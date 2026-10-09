@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-import { Email, LegalPage, List, Section } from "@/components/legal/legal-page";
+import { A, Email, LegalPage, List, Section } from "@/components/legal/legal-page";
 import { PublicPage } from "@/components/shell/public-page";
-import { SITE } from "@/lib/site";
+import { phoneDigits, SITE, whatsappLink } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Contact", description: "How to reach RamAI for support, refunds, privacy requests and feedback." };
 export const dynamic = "force-dynamic";
@@ -10,7 +10,22 @@ export const dynamic = "force-dynamic";
 export default function ContactPage() {
   return (
     <PublicPage>
-      <LegalPage eyebrow="Contact" title="We're here to help." updated={false} intro={<>Email us at <Email /> — we reply within {SITE.replyWithin}.</>}>
+      <LegalPage
+        eyebrow="Contact"
+        title="We're here to help."
+        updated={false}
+        intro={
+          <>
+            Email us at <Email />
+            {whatsappLink() && (
+              <>
+                {" "}or message us on <A href={whatsappLink()!}>WhatsApp</A>
+              </>
+            )}{" "}
+            — we reply within {SITE.replyWithin}.
+          </>
+        }
+      >
         <Section title="Write to us about">
           <List>
             <li>
@@ -42,8 +57,20 @@ export default function ContactPage() {
         {(SITE.owner || SITE.phone || SITE.address) && (
           <Section title="Business details">
             <List>
-              {SITE.owner && <li>Operated by {SITE.owner}</li>}
-              {SITE.phone && <li>Phone: {SITE.phone}</li>}
+              {SITE.owner && <li>RamAI is run by {SITE.owner}</li>}
+              <li>
+                Email: <Email />
+              </li>
+              {SITE.phone && (
+                <li>
+                  Phone{SITE.whatsapp ? " & WhatsApp" : ""}: <A href={`tel:${phoneDigits()}`}>{SITE.phone}</A>
+                  {whatsappLink() && (
+                    <>
+                      {" "}· <A href={whatsappLink()!}>Chat on WhatsApp</A>
+                    </>
+                  )}
+                </li>
+              )}
               {SITE.address && <li>Address: {SITE.address}</li>}
             </List>
           </Section>

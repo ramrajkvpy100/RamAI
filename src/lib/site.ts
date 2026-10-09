@@ -9,8 +9,11 @@ export const SITE = {
   url: "https://ram-ai-liard.vercel.app",
   email: "ramrajkansana100@gmail.com",
   /** Full legal name of the person or company that runs RamAI. */
-  owner: null as string | null,
-  phone: null as string | null,
+  owner: "Dr. Ramraj Singh Kansana" as string | null,
+  /** Shown as written; dialled as digits. */
+  phone: "+91 88179 73879" as string | null,
+  /** The same number takes WhatsApp messages. */
+  whatsapp: true,
   address: null as string | null,
   /** How quickly support replies. */
   replyWithin: "2 working days",
@@ -30,3 +33,7 @@ export const LEGAL_LINKS = [
   { href: "/shipping-policy", label: "Shipping & delivery" },
   { href: "/disclaimer", label: "Disclaimer" },
 ] as const;
+
+/** tel: and WhatsApp links for the support number. */
+export const phoneDigits = () => (SITE.phone ?? "").replace(/[^\d+]/g, "");
+export const whatsappLink = () => (SITE.phone && SITE.whatsapp ? `https://wa.me/${phoneDigits().replace(/^\+/, "")}` : null);
