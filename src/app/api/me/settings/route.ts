@@ -18,14 +18,14 @@ export async function POST(req: Request) {
     const user = await requireUser();
     const next = { ...user };
     if (body.patientLang) {
-      setPatientLang(user.id, body.patientLang as PatientLang);
+      await setPatientLang(user.id, body.patientLang as PatientLang);
       next.patientLang = body.patientLang as PatientLang;
     }
     if (body.country) {
-      setCountry(user.id, body.country as Country);
+      await setCountry(user.id, body.country as Country);
       next.country = body.country as Country;
     }
-    return ok(meFor(next));
+    return ok(await meFor(next));
   } catch (err) {
     return handleError(err);
   }

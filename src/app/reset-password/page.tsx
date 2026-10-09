@@ -9,5 +9,5 @@ export const dynamic = "force-dynamic";
 export default async function ResetPasswordPage({ searchParams }: { searchParams: Promise<{ token?: string | string[] }> }) {
   const raw = (await searchParams).token;
   const token = typeof raw === "string" ? raw : "";
-  return <ResetForm token={token} valid={resetLinkValid(token)} />;
+  return <ResetForm token={token} valid={await resetLinkValid(token)} />;
 }

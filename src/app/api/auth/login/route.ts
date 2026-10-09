@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   if (body instanceof Response) return body;
   try {
     const user = await authenticate(body.login, body.password);
-    const { token, expires } = createSession(user.id);
+    const { token, expires } = await createSession(user.id);
     const res = NextResponse.json({ user });
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(expires));
     return res;

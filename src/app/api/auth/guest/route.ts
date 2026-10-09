@@ -15,8 +15,8 @@ export async function POST(req: Request) {
     const current = await getCurrentUser();
     if (current) return NextResponse.json({ user: current });
     const body = GuestSchema.safeParse(await req.json().catch(() => ({})));
-    const user = createGuest((body.success ? body.data.country : undefined) as Country | undefined);
-    const { token, expires } = createSession(user.id);
+    const user = await createGuest((body.success ? body.data.country : undefined) as Country | undefined);
+    const { token, expires } = await createSession(user.id);
     const res = NextResponse.json({ user });
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(expires));
     return res;

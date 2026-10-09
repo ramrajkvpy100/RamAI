@@ -9,5 +9,5 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return apiError(401, "UNAUTHENTICATED", "Please log in.");
-  return ok(meFor(user));
+  return ok(await meFor(user));
 }

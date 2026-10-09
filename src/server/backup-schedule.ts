@@ -10,10 +10,14 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 
+import { remoteDatabase } from "./db";
+
 export function scheduleBackups() {
   const g = globalThis as unknown as { __ramaiBackups?: boolean };
   if (g.__ramaiBackups) return;
   g.__ramaiBackups = true;
+  // A cloud database (Turso) is backed up by its provider; these backups copy the local file.
+  if (remoteDatabase()) return;
   const hours = Number(process.env.RAMAI_BACKUP_INTERVAL_HOURS ?? 24);
   if (!(hours > 0)) return;
   const script = path.join(process.cwd(), "scripts", "backup.mjs");

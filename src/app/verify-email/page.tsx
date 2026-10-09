@@ -11,7 +11,7 @@ const firstName = (name: string) => name.replace(/^dr\.?\s+/i, "").split(/\s+/)[
 
 export default async function VerifyEmailPage({ searchParams }: { searchParams: Promise<{ token?: string | string[] }> }) {
   const raw = (await searchParams).token;
-  const verified = typeof raw === "string" ? confirmEmail(raw) : null;
+  const verified = typeof raw === "string" ? await confirmEmail(raw) : null;
   if (verified) return <VerifyResult verified name={firstName(verified.name)} canResend={false} />;
   // An already-verified account opening an old link is still verified.
   const user = await getCurrentUser();

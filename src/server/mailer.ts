@@ -31,7 +31,13 @@ const FROM = () => process.env.RAMAI_EMAIL_FROM || "RamAI <no-reply@ramai.app>";
 /** Sends (or, without a provider, files) one email. Never throws; returns whether it went out. */
 export async function sendEmail(email: Email): Promise<boolean> {
   try {
-    return emailDelivery() === "live" ? await viaResend(email) : toOutbox(email);
+    if (emailDelivery() === "live") return await viaResend(email);
+    if (process.env.NODE_ENV === "production") {
+      // Hosted servers can't keep an outbox (and links must reach a real inbox): report it as not sent.
+      console.warn(`[ramai] Email not sent — set RAMAI_EMAIL_PROVIDER=resend and RESEND_API_KEY. To: ${email.to} | ${email.subject}`);
+      return false;
+    }
+    return toOutbox(email);
   } catch (err) {
     console.error("[ramai] email failed:", err instanceof Error ? err.message : err);
     return false;

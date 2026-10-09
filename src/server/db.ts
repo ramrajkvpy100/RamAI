@@ -1,15 +1,41 @@
 /**
- * Database — SQLite via Node's built-in `node:sqlite` (no native dependencies).
+ * Database — SQLite in two places, one set of queries.
  *
- * Suits a single server or container with a persistent volume. For serverless
- * or multi-instance deployments, port these few tables to Postgres; every query
- * lives in `src/server/*` and uses plain SQL.
+ *   TURSO_DATABASE_URL set  →  Turso, SQLite in the cloud over HTTPS. For
+ *                              serverless hosts like Vercel, whose disks don't
+ *                              keep files between requests.
+ *   otherwise               →  a local file (RAMAI_DB_PATH, default
+ *                              ./data/ramai.db) through Node's built-in
+ *                              `node:sqlite` — development and single servers.
+ *
+ * Every query is async so both behave the same. `tx()` runs a function in a
+ * write transaction; queries made inside it through `db` join it.
  */
 import "server-only";
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { StatementSync } from "node:sqlite";
+
+import type { Client } from "@libsql/client/http";
+
+import { ConfigError } from "@/engine/session";
+
+export type Value = string | number | bigint | null;
+
+export interface Db {
+  all<T>(sql: string, ...args: Value[]): Promise<T[]>;
+  get<T>(sql: string, ...args: Value[]): Promise<T | undefined>;
+  run(sql: string, ...args: Value[]): Promise<{ changes: number; lastId: number }>;
+  /** Several writes at once, all or nothing — one round trip to the cloud. */
+  batch(statements: { sql: string; args?: Value[] }[]): Promise<void>;
+}
+
+interface Backend extends Db {
+  exec(script: string): Promise<void>;
+  transaction<T>(fn: (db: Db) => Promise<T>): Promise<T>;
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -95,46 +121,205 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 `;
 
-const globalForDb = globalThis as unknown as { __ramaiDb?: DatabaseSync };
+/** The cloud database, when configured. Vercel's Turso integration sets TURSO_DATABASE_URL and TURSO_AUTH_TOKEN. */
+export function remoteDatabase(): { url: string; authToken?: string } | null {
+  const env = process.env;
+  const url = env.TURSO_DATABASE_URL || env.LIBSQL_URL || env.RAMAI_DB_URL;
+  if (url) return { url, authToken: env.TURSO_AUTH_TOKEN || env.LIBSQL_AUTH_TOKEN || env.RAMAI_DB_TOKEN };
+  // Integrations can add a prefix: <PREFIX>_DATABASE_URL with <PREFIX>_AUTH_TOKEN.
+  for (const [key, value] of Object.entries(env)) {
+    const m = key.match(/^(.+)_DATABASE_URL$/);
+    if (m && value?.startsWith("libsql://")) return { url: value, authToken: env[`${m[1]}_AUTH_TOKEN`] };
+  }
+  return null;
+}
 
-export function getDb(): DatabaseSync {
-  if (globalForDb.__ramaiDb) return globalForDb.__ramaiDb;
+/* -------------------------------------------------------------------------- */
+/* A local file                                                                */
+/* -------------------------------------------------------------------------- */
+
+async function fileBackend(): Promise<Backend> {
+  if (process.env.VERCEL) {
+    throw new ConfigError("No database: Vercel can't keep a database file. Connect Turso (Vercel → Storage) so TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are set, then redeploy.");
+  }
+  const { DatabaseSync } = await import("node:sqlite");
   const file = process.env.RAMAI_DB_PATH || path.join(process.cwd(), "data", "ramai.db");
   if (file !== ":memory:") mkdirSync(path.dirname(file), { recursive: true });
-  const db = new DatabaseSync(file);
-  db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000;");
-  db.exec(SCHEMA);
-  migrate(db);
-  globalForDb.__ramaiDb = db;
-  return db;
+  const sqlite = new DatabaseSync(file);
+  sqlite.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000;");
+  const statements = new Map<string, StatementSync>();
+  const stmt = (sql: string) => {
+    let s = statements.get(sql);
+    if (!s) statements.set(sql, (s = sqlite.prepare(sql)));
+    return s;
+  };
+  const direct: Db = {
+    async all<T>(sql: string, ...args: Value[]) {
+      return stmt(sql).all(...args) as T[];
+    },
+    async get<T>(sql: string, ...args: Value[]) {
+      return stmt(sql).get(...args) as T | undefined;
+    },
+    async run(sql: string, ...args: Value[]) {
+      const r = stmt(sql).run(...args);
+      return { changes: Number(r.changes), lastId: Number(r.lastInsertRowid) };
+    },
+    async batch(list) {
+      for (const s of list) stmt(s.sql).run(...(s.args ?? []));
+    },
+  };
+  const atomically = async <T>(fn: () => Promise<T>) => {
+    sqlite.exec("BEGIN IMMEDIATE");
+    try {
+      const out = await fn();
+      sqlite.exec("COMMIT");
+      return out;
+    } catch (err) {
+      sqlite.exec("ROLLBACK");
+      throw err;
+    }
+  };
+  // One connection: a transaction keeps it until it ends, and other queries wait their turn.
+  let queue: Promise<unknown> = Promise.resolve();
+  const turn = <T>(fn: () => Promise<T>): Promise<T> => {
+    const run = queue.then(fn);
+    queue = run.catch(() => undefined);
+    return run;
+  };
+  return {
+    all: (sql, ...args) => turn(() => direct.all(sql, ...args)),
+    get: (sql, ...args) => turn(() => direct.get(sql, ...args)),
+    run: (sql, ...args) => turn(() => direct.run(sql, ...args)),
+    batch: (list) => turn(() => atomically(() => direct.batch(list))),
+    exec: (script) => turn(async () => sqlite.exec(script)),
+    transaction: (fn) => turn(() => atomically(() => fn(direct))),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Turso                                                                       */
+/* -------------------------------------------------------------------------- */
+
+async function tursoBackend(url: string, authToken?: string): Promise<Backend> {
+  const { createClient } = await import("@libsql/client/http");
+  // Plain HTTPS requests: no sockets to keep open between serverless invocations.
+  return clientBackend(createClient({ url: url.replace(/^libsql:\/\//, "https://"), authToken }));
+}
+
+function clientBackend(client: Client): Backend {
+  type Target = Pick<Client, "execute">;
+  const rows = (rs: { columns: string[]; rows: ArrayLike<unknown>[] }) => rs.rows.map((row) => Object.fromEntries(rs.columns.map((c, i) => [c, row[i]])));
+  const on = (target: Target): Omit<Db, "batch"> => ({
+    async all<T>(sql: string, ...args: Value[]) {
+      return rows(await target.execute({ sql, args })) as T[];
+    },
+    async get<T>(sql: string, ...args: Value[]) {
+      return rows(await target.execute({ sql, args }))[0] as T | undefined;
+    },
+    async run(sql: string, ...args: Value[]) {
+      const rs = await target.execute({ sql, args });
+      return { changes: rs.rowsAffected, lastId: Number(rs.lastInsertRowid ?? 0) };
+    },
+  });
+  const batch = async (list: { sql: string; args?: Value[] }[]) => {
+    if (list.length) await client.batch(list.map((s) => ({ sql: s.sql, args: s.args ?? [] })), "write");
+  };
+  return {
+    ...on(client),
+    batch,
+    exec: (script) => batch(script.split(";").map((sql) => ({ sql: sql.trim() })).filter((s) => s.sql)),
+    async transaction(fn) {
+      const t = await client.transaction("write");
+      try {
+        const out = await fn({
+          ...on(t),
+          async batch(list) {
+            for (const s of list) await t.execute({ sql: s.sql, args: s.args ?? [] });
+          },
+        });
+        await t.commit();
+        return out;
+      } catch (err) {
+        await t.rollback().catch(() => undefined);
+        throw err;
+      } finally {
+        t.close();
+      }
+    },
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Opening, migrating, querying                                                */
+/* -------------------------------------------------------------------------- */
+
+const g = globalThis as unknown as { __ramaiDb?: Promise<Backend> };
+
+function backend(): Promise<Backend> {
+  return (g.__ramaiDb ??= open().catch((err) => {
+    g.__ramaiDb = undefined;
+    throw err;
+  }));
+}
+
+async function open(): Promise<Backend> {
+  const remote = remoteDatabase();
+  const b = remote ? await tursoBackend(remote.url, remote.authToken) : await fileBackend();
+  await b.exec(SCHEMA);
+  await migrate(b);
+  return b;
 }
 
 /** Additive migrations for databases created by earlier versions. */
-function migrate(db: DatabaseSync) {
-  const columns = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((c) => c.name);
-  if (!columns.includes("patient_lang")) db.exec("ALTER TABLE users ADD COLUMN patient_lang TEXT NOT NULL DEFAULT 'en'");
+async function migrate(b: Backend) {
+  const columns = (await b.all<{ name: string }>("PRAGMA table_info(users)")).map((c) => c.name);
+  const add: string[] = [];
+  if (!columns.includes("patient_lang")) add.push("ALTER TABLE users ADD COLUMN patient_lang TEXT NOT NULL DEFAULT 'en'");
   if (!columns.includes("email_verified_at")) {
-    db.exec("ALTER TABLE users ADD COLUMN email_verified_at INTEGER");
+    add.push("ALTER TABLE users ADD COLUMN email_verified_at INTEGER");
     // Accounts created before email verification existed are grandfathered in.
-    db.exec("UPDATE users SET email_verified_at = created_at WHERE is_demo = 0");
+    add.push("UPDATE users SET email_verified_at = created_at WHERE is_demo = 0");
   }
-  if (!columns.includes("league_tier")) db.exec("ALTER TABLE users ADD COLUMN league_tier INTEGER NOT NULL DEFAULT 0");
-  if (!columns.includes("is_guest")) db.exec("ALTER TABLE users ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0");
-  if (!columns.includes("country")) db.exec("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT 'IN'");
-  const startColumns = (db.prepare("PRAGMA table_info(case_starts)").all() as { name: string }[]).map((c) => c.name);
-  if (!startColumns.includes("tutorial")) db.exec("ALTER TABLE case_starts ADD COLUMN tutorial INTEGER NOT NULL DEFAULT 0");
+  if (!columns.includes("league_tier")) add.push("ALTER TABLE users ADD COLUMN league_tier INTEGER NOT NULL DEFAULT 0");
+  if (!columns.includes("is_guest")) add.push("ALTER TABLE users ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0");
+  if (!columns.includes("country")) add.push("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT 'IN'");
+  const startColumns = (await b.all<{ name: string }>("PRAGMA table_info(case_starts)")).map((c) => c.name);
+  if (!startColumns.includes("tutorial")) add.push("ALTER TABLE case_starts ADD COLUMN tutorial INTEGER NOT NULL DEFAULT 0");
+  if (add.length) await b.batch(add.map((sql) => ({ sql })));
 }
 
-/** Runs `fn` in a transaction. */
-export function tx<T>(fn: (db: DatabaseSync) => T): T {
-  const db = getDb();
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const out = fn(db);
-    db.exec("COMMIT");
-    return out;
-  } catch (err) {
-    db.exec("ROLLBACK");
-    throw err;
-  }
+const inTx = new AsyncLocalStorage<Db>();
+
+/** Queries — inside `tx()` they join its transaction. */
+export const db: Db = {
+  async all<T>(sql: string, ...args: Value[]) {
+    return (inTx.getStore() ?? (await backend())).all<T>(sql, ...args);
+  },
+  async get<T>(sql: string, ...args: Value[]) {
+    return (inTx.getStore() ?? (await backend())).get<T>(sql, ...args);
+  },
+  async run(sql: string, ...args: Value[]) {
+    return (inTx.getStore() ?? (await backend())).run(sql, ...args);
+  },
+  async batch(list) {
+    return (inTx.getStore() ?? (await backend())).batch(list);
+  },
+};
+
+/** Runs `fn` in a write transaction (or joins the one already open). */
+export async function tx<T>(fn: (db: Db) => Promise<T>): Promise<T> {
+  const open = inTx.getStore();
+  if (open) return fn(open);
+  return (await backend()).transaction((t) => inTx.run(t, () => fn(t)));
 }
+
+/** Tests: runs the cloud adapter over any libSQL client (a local file stands in for Turso). */
+export async function useClientForTests(client: Client) {
+  const b = clientBackend(client);
+  await b.exec(SCHEMA);
+  await migrate(b);
+  g.__ramaiDb = Promise.resolve(b);
+}
+
+/** A constraint violation, e.g. a username taken a moment ago by a parallel sign-up. */
+export const isUniqueViolation = (err: unknown) => err instanceof Error && /UNIQUE constraint failed/i.test(err.message);

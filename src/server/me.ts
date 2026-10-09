@@ -9,12 +9,12 @@ import { casesStartedToday, progressFor } from "./results";
 /** Recent history sent to the browser — progress itself is computed from all of it. */
 const HISTORY_SENT = 30;
 
-export function meFor(user: User): Me {
-  const progress = progressFor(user.id);
+export async function meFor(user: User): Promise<Me> {
+  const [progress, casesToday] = await Promise.all([progressFor(user.id), casesStartedToday(user.id)]);
   return {
     user,
     progress: { ...progress, history: progress.history.slice(-HISTORY_SENT) },
-    usage: { casesToday: casesStartedToday(user.id), dailyLimit: PLANS[user.plan].dailyCases },
+    usage: { casesToday, dailyLimit: PLANS[user.plan].dailyCases },
   };
 }
 

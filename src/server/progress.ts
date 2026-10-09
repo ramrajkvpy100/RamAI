@@ -4,7 +4,7 @@ import "server-only";
 import { withDerived } from "@/engine/progression";
 import type { CareLevel, CaseTrack, CompletedCaseSummary, DiagnosisVerdict, PlayerProgress, Specialty } from "@/engine/types";
 
-import { getDb } from "./db";
+import { db } from "./db";
 
 interface ResultRow {
   case_ref: string;
@@ -34,11 +34,22 @@ const toSummary = (r: ResultRow): CompletedCaseSummary => ({
   completedISO: new Date(r.created_at).toISOString(),
 });
 
-export function historyFor(userId: string): CompletedCaseSummary[] {
-  const rows = getDb().prepare("SELECT * FROM results WHERE user_id = ? ORDER BY created_at ASC").all(userId) as unknown as ResultRow[];
-  return rows.map(toSummary);
+export async function historyFor(userId: string): Promise<CompletedCaseSummary[]> {
+  return (await db.all<ResultRow>("SELECT * FROM results WHERE user_id = ? ORDER BY created_at ASC", userId)).map(toSummary);
 }
 
-export function progressFor(userId: string): PlayerProgress {
-  return withDerived(historyFor(userId));
+export async function progressFor(userId: string): Promise<PlayerProgress> {
+  return withDerived(await historyFor(userId));
+}
+
+/** Progress for many players with one query — leaderboards and league tables. */
+export async function progressForMany(userIds: readonly string[]): Promise<Map<string, PlayerProgress>> {
+  const ids = [...new Set(userIds)];
+  const byUser = new Map<string, CompletedCaseSummary[]>(ids.map((id) => [id, []]));
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200);
+    const rows = await db.all<ResultRow & { user_id: string }>(`SELECT * FROM results WHERE user_id IN (${chunk.map(() => "?").join(", ")}) ORDER BY created_at ASC`, ...chunk);
+    for (const r of rows) byUser.get(r.user_id)?.push(toSummary(r));
+  }
+  return new Map([...byUser].map(([id, history]) => [id, withDerived(history)]));
 }

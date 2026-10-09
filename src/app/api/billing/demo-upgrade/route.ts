@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   if (!demoBillingEnabled()) return apiError(404, "NOT_FOUND", "Not found.");
   try {
     const user = await requireUser();
-    extendPro(user, PRICES.monthly.days);
+    await extendPro(user, PRICES.monthly.days);
     return ok({ ok: true });
   } catch (err) {
     return handleError(err);

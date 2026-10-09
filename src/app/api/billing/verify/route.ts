@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   if (body instanceof Response) return body;
   try {
     const user = await requireUser();
-    verifyPayment(user, body);
+    await verifyPayment(user, body);
     return ok({ ok: true });
   } catch (err) {
     if (err instanceof BillingError) return apiError(400, "PAYMENT_UNVERIFIED", err.message);

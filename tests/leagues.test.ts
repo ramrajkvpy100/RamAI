@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { istWeekStart } from "@/engine/progression";
 import { createGuest, createUser, findUserById, markEmailVerified, type User } from "@/server/auth";
-import { getDb } from "@/server/db";
+import { db } from "@/server/db";
 import { demoXp, ensureMembership, leaguePosition, leagueView } from "@/server/leagues";
 import { COHORT_SIZE, outcomeFor, zones } from "@/lib/leagues";
 
@@ -18,15 +18,16 @@ let n = 0;
 async function player(tier = 0): Promise<User> {
   n += 1;
   const u = await createUser({ email: `league${n}@example.com`, username: `league${n}`, name: `Dr. League ${n}`, password: "stethoscope" });
-  markEmailVerified(u.id);
-  getDb().prepare("UPDATE users SET league_tier = ? WHERE id = ?").run(tier, u.id);
-  return findUserById(u.id)!;
+  await markEmailVerified(u.id);
+  await db.run("UPDATE users SET league_tier = ? WHERE id = ?", tier, u.id);
+  return (await findUserById(u.id))!;
 }
 
-function earn(user: User, xp: number, at: number) {
-  getDb()
-    .prepare("INSERT INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, score, xp, created_at) VALUES (?, ?, 'c', 1, 'Emergency', 'emergency', 'chc', 'x', 'correct', 80, ?, ?)")
-    .run(user.id, `s-${user.id}-${at}-${xp}`, xp, at);
+async function earn(user: User, xp: number, at: number) {
+  await db.run(
+    "INSERT INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, score, xp, created_at) VALUES (?, ?, 'c', 1, 'Emergency', 'emergency', 'chc', 'x', 'correct', 80, ?, ?)",
+    user.id, `s-${user.id}-${at}-${xp}`, xp, at,
+  );
 }
 
 describe("league rules", () => {
@@ -49,19 +50,19 @@ describe("league rules", () => {
 describe("joining a league", () => {
   it("unverified players and guests don't join", async () => {
     const u = await createUser({ email: "unverified.l@example.com", username: "unverified.l", name: "Dr. U", password: "stethoscope" });
-    earn(u, 100, now - 1000);
-    expect(ensureMembership(u)).toBeUndefined();
-    expect(leagueView(u).status).toBe("unverified");
-    expect(leagueView(createGuest()).status).toBe("guest");
+    await earn(u, 100, now - 1000);
+    expect(await ensureMembership(u)).toBeUndefined();
+    expect((await leagueView(u)).status).toBe("unverified");
+    expect((await leagueView(await createGuest())).status).toBe("guest");
   });
 
   it("a verified player joins with their first case of the week", async () => {
     const u = await player();
-    expect(leagueView(u).status).toBe("waiting");
-    earn(u, 120, now - 1000);
-    const m = ensureMembership(u);
+    expect((await leagueView(u)).status).toBe("waiting");
+    await earn(u, 120, now - 1000);
+    const m = await ensureMembership(u);
     expect(m?.tier).toBe(0);
-    expect(leagueView(u).status).toBe("joined");
+    expect((await leagueView(u)).status).toBe("joined");
   });
 
   it("groups hold 30 players; the next one starts a new group", async () => {
@@ -69,8 +70,8 @@ describe("joining a league", () => {
     const joined: number[] = [];
     for (let i = 0; i <= COHORT_SIZE; i++) {
       const u = await player(4);
-      earn(u, 100 + i, week + 1000);
-      joined.push(ensureMembership(u, week + 2000)!.cohort);
+      await earn(u, 100 + i, week + 1000);
+      joined.push((await ensureMembership(u, week + 2000))!.cohort);
     }
     expect(joined.filter((c) => c === joined[0]).length).toBe(COHORT_SIZE);
     expect(new Set(joined).size).toBe(2);
@@ -83,20 +84,20 @@ describe("standings", () => {
   beforeAll(async () => {
     first = await player(3);
     second = await player(3);
-    earn(first, 300, now - 2 * DAY < thisWeek ? thisWeek + 1 : now - 2 * DAY);
-    earn(second, 100, now - 2 * DAY < thisWeek ? thisWeek + 2 : now - 2 * DAY);
-    ensureMembership(first);
-    ensureMembership(second);
+    await earn(first, 300, now - 2 * DAY < thisWeek ? thisWeek + 1 : now - 2 * DAY);
+    await earn(second, 100, now - 2 * DAY < thisWeek ? thisWeek + 2 : now - 2 * DAY);
+    await ensureMembership(first);
+    await ensureMembership(second);
   });
 
-  it("orders the group by this week's XP", () => {
-    expect(leaguePosition(first)?.position).toBe(1);
-    expect(leaguePosition(second)?.position).toBe(2);
+  it("orders the group by this week's XP", async () => {
+    expect((await leaguePosition(first))?.position).toBe(1);
+    expect((await leaguePosition(second))?.position).toBe(2);
   });
 
-  it("shows who moved in the last 24 hours", () => {
-    earn(second, 400, now - 1000);
-    const rows = leagueView(second).rows;
+  it("shows who moved in the last 24 hours", async () => {
+    await earn(second, 400, now - 1000);
+    const rows = (await leagueView(second)).rows;
     const me = rows.find((r) => r.userId === second.id)!;
     expect(me.position).toBe(1);
     if (now - 2 * DAY >= thisWeek) {
@@ -111,22 +112,22 @@ describe("the week settles", () => {
     const group: User[] = [];
     for (let i = 0; i < 12; i++) {
       const u = await player(2);
-      earn(u, 1000 - i * 50, lastWeek + DAY);
-      ensureMembership(u, lastWeek + 2 * DAY);
+      await earn(u, 1000 - i * 50, lastWeek + DAY);
+      await ensureMembership(u, lastWeek + 2 * DAY);
       group.push(u);
     }
-    const top = leagueView(findUserById(group[0]!.id)!);
+    const top = await leagueView((await findUserById(group[0]!.id))!);
     expect(top.lastWeek).toMatchObject({ rank: 1, outcome: "promoted", nextTier: 3 });
     expect(top.tier).toBe(3);
-    const middle = leagueView(findUserById(group[6]!.id)!);
+    const middle = await leagueView((await findUserById(group[6]!.id))!);
     expect(middle.lastWeek).toMatchObject({ outcome: "stayed", nextTier: 2 });
-    const bottom = leagueView(findUserById(group[11]!.id)!);
+    const bottom = await leagueView((await findUserById(group[11]!.id))!);
     expect(bottom.lastWeek).toMatchObject({ rank: 12, outcome: "demoted", nextTier: 1 });
 
     // Their first case this week puts them in the new league.
-    const promoted = findUserById(group[0]!.id)!;
-    earn(promoted, 90, now - 500);
-    expect(ensureMembership(promoted)?.tier).toBe(3);
+    const promoted = (await findUserById(group[0]!.id))!;
+    await earn(promoted, 90, now - 500);
+    expect((await ensureMembership(promoted))?.tier).toBe(3);
   });
 });
 

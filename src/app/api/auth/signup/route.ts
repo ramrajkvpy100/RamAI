@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const input = { ...parsed.data, country: parsed.data.country as Country | undefined };
     const user = current?.isGuest ? await claimGuest(current.id, input) : await createUser(input);
     const verification = await sendVerification(user, appUrl(req));
-    const { token, expires } = createSession(user.id);
+    const { token, expires } = await createSession(user.id);
     const res = NextResponse.json({ user, verification });
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(expires));
     return res;

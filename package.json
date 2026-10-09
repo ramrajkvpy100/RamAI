@@ -2,7 +2,7 @@
   "name": "ramai",
   "version": "0.1.0",
   "private": true,
-  "description": "RamAI \u2014 clinical case simulation for doctors. Think like a doctor, every day.",
+  "description": "RamAI — clinical case simulation for doctors. Think like a doctor, every day.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +14,7 @@
     "restore": "node --no-warnings scripts/restore.mjs"
   },
   "dependencies": {
+    "@libsql/client": "0.18.0",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

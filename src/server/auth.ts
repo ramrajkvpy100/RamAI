@@ -16,7 +16,7 @@ import { isCountry, type Country } from "@/engine/countries";
 import type { PatientLang } from "@/engine/types";
 import type { PlanId } from "@/lib/plans";
 
-import { getDb } from "./db";
+import { db, isUniqueViolation } from "./db";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, keylen: number, opts: { N: number; r: number; p: number }) => Promise<Buffer>;
 
@@ -110,45 +110,49 @@ export class AuthError extends Error {
   }
 }
 
+/** Why an email or username can't be used — checked before writing, and again by the database's unique keys. */
+async function assertAvailable(email: string, username: string, exceptId = "") {
+  const taken = await db.get<{ email: string; username: string }>("SELECT email, username FROM users WHERE (email = ? OR username = ?) AND id != ?", email, username, exceptId);
+  if (taken) throw new AuthError("EXISTS", taken.email.toLowerCase() === email.toLowerCase() ? "An account with this email already exists." : "That username is taken.");
+}
+
+const takenMeanwhile = (err: unknown) => (isUniqueViolation(err) ? new AuthError("EXISTS", "That email or username was just taken. Try another.") : err);
+
 export async function createUser(input: { email: string; username: string; name: string; password: string; country?: Country }): Promise<User> {
-  const db = getDb();
-  const taken = db.prepare("SELECT email, username FROM users WHERE email = ? OR username = ?").get(input.email, input.username) as { email: string; username: string } | undefined;
-  if (taken) {
-    throw new AuthError("EXISTS", taken.email.toLowerCase() === input.email.toLowerCase() ? "An account with this email already exists." : "That username is taken.");
-  }
+  await assertAvailable(input.email, input.username);
   const id = randomUUID();
-  const now = Date.now();
-  db.prepare("INSERT INTO users (id, email, username, name, password_hash, created_at, country) VALUES (?, ?, ?, ?, ?, ?, ?)").run(
-    id, input.email, input.username, input.name, await hashPassword(input.password), now, input.country ?? "IN",
-  );
-  return findUserById(id)!;
+  const hash = await hashPassword(input.password);
+  await db
+    .run("INSERT INTO users (id, email, username, name, password_hash, created_at, country) VALUES (?, ?, ?, ?, ?, ?, ?)", id, input.email, input.username, input.name, hash, Date.now(), input.country ?? "IN")
+    .catch((err) => Promise.reject(takenMeanwhile(err)));
+  return (await findUserById(id))!;
 }
 
 export async function authenticate(login: string, password: string): Promise<User> {
-  const row = getDb().prepare("SELECT * FROM users WHERE (email = ? OR username = ?) AND is_demo = 0 AND is_guest = 0").get(login, login) as UserRow | undefined;
+  const row = await db.get<UserRow>("SELECT * FROM users WHERE (email = ? OR username = ?) AND is_demo = 0 AND is_guest = 0", login, login);
   // Hash anyway so timing does not reveal whether the account exists.
   const ok = row ? await verifyPassword(password, row.password_hash) : await verifyPassword(password, "scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA$AAAA");
   if (!row || !ok) throw new AuthError("INVALID", "Incorrect email/username or password.");
   return toUser(row);
 }
 
-export function findUserById(id: string): User | null {
-  const row = getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
+export async function findUserById(id: string): Promise<User | null> {
+  const row = await db.get<UserRow>("SELECT * FROM users WHERE id = ?", id);
   return row ? toUser(row) : null;
 }
 
 /** A real (non-demo, non-guest) account by email address. */
-export function findUserByEmail(email: string): User | null {
-  const row = getDb().prepare("SELECT * FROM users WHERE email = ? AND is_demo = 0 AND is_guest = 0").get(email.trim()) as UserRow | undefined;
+export async function findUserByEmail(email: string): Promise<User | null> {
+  const row = await db.get<UserRow>("SELECT * FROM users WHERE email = ? AND is_demo = 0 AND is_guest = 0", email.trim());
   return row ? toUser(row) : null;
 }
 
 export async function setPassword(userId: string, password: string) {
-  getDb().prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(await hashPassword(password), userId);
+  await db.run("UPDATE users SET password_hash = ? WHERE id = ?", await hashPassword(password), userId);
 }
 
-export function markEmailVerified(userId: string) {
-  getDb().prepare("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ?").run(Date.now(), userId);
+export async function markEmailVerified(userId: string) {
+  await db.run("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ?", Date.now(), userId);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -157,40 +161,52 @@ export function markEmailVerified(userId: string) {
 
 const GUEST_DAYS = 7;
 
+const STALE_GUEST = "SELECT id FROM users WHERE is_guest = 1 AND created_at < ?";
+let purgedAt = 0;
+
+/** Removes unclaimed guests (and everything they played) at most once an hour per server. */
+async function purgeStaleGuests(now: number) {
+  if (now - purgedAt < 3_600_000) return;
+  purgedAt = now;
+  const before = now - GUEST_DAYS * 86_400_000;
+  // Children first, explicitly: cascades depend on a per-connection setting the cloud database may not keep.
+  const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments"];
+  await db.batch([...children.map((t) => ({ sql: `DELETE FROM ${t} WHERE user_id IN (${STALE_GUEST})`, args: [before] })), { sql: "DELETE FROM users WHERE is_guest = 1 AND created_at < ?", args: [before] }]);
+}
+
 /** A throwaway account for the demo case. Unclaimed guests are removed after a week. */
-export function createGuest(country: Country = "IN"): User {
-  const db = getDb();
+export async function createGuest(country: Country = "IN"): Promise<User> {
   const now = Date.now();
-  db.prepare("DELETE FROM users WHERE is_guest = 1 AND created_at < ?").run(now - GUEST_DAYS * 86_400_000);
+  await purgeStaleGuests(now).catch((err) => console.error("[ramai] guest cleanup failed:", err instanceof Error ? err.message : err));
   const id = randomUUID();
   const handle = `guest-${id.slice(0, 8)}`;
-  db.prepare("INSERT INTO users (id, email, username, name, password_hash, is_guest, created_at, country) VALUES (?, ?, ?, 'Guest doctor', '!guest', 1, ?, ?)").run(id, `${handle}@guest.ramai.invalid`, handle, now, country);
-  return findUserById(id)!;
+  await db.run("INSERT INTO users (id, email, username, name, password_hash, is_guest, created_at, country) VALUES (?, ?, ?, 'Guest doctor', '!guest', 1, ?, ?)", id, `${handle}@guest.ramai.invalid`, handle, now, country);
+  return (await findUserById(id))!;
 }
 
 /** Turns the signed-in guest into a full account, keeping the demo case they played. */
 export async function claimGuest(guestId: string, input: { email: string; username: string; name: string; password: string; country?: Country }): Promise<User> {
-  const db = getDb();
-  const taken = db.prepare("SELECT email, username FROM users WHERE (email = ? OR username = ?) AND id != ?").get(input.email, input.username, guestId) as { email: string; username: string } | undefined;
-  if (taken) {
-    throw new AuthError("EXISTS", taken.email.toLowerCase() === input.email.toLowerCase() ? "An account with this email already exists." : "That username is taken.");
-  }
-  db.prepare("UPDATE users SET email = ?, username = ?, name = ?, password_hash = ?, is_guest = 0, created_at = ?, country = COALESCE(?, country) WHERE id = ? AND is_guest = 1").run(
-    input.email, input.username, input.name, await hashPassword(input.password), Date.now(), input.country ?? null, guestId,
-  );
-  return findUserById(guestId)!;
+  await assertAvailable(input.email, input.username, guestId);
+  const hash = await hashPassword(input.password);
+  await db
+    .run(
+      "UPDATE users SET email = ?, username = ?, name = ?, password_hash = ?, is_guest = 0, created_at = ?, country = COALESCE(?, country) WHERE id = ? AND is_guest = 1",
+      input.email, input.username, input.name, hash, Date.now(), input.country ?? null, guestId,
+    )
+    .catch((err) => Promise.reject(takenMeanwhile(err)));
+  return (await findUserById(guestId))!;
 }
 
-export function setPatientLang(userId: string, lang: PatientLang) {
-  getDb().prepare("UPDATE users SET patient_lang = ? WHERE id = ?").run(lang, userId);
+export async function setPatientLang(userId: string, lang: PatientLang) {
+  await db.run("UPDATE users SET patient_lang = ? WHERE id = ?", lang, userId);
 }
 
-export function setCountry(userId: string, country: Country) {
-  getDb().prepare("UPDATE users SET country = ? WHERE id = ?").run(country, userId);
+export async function setCountry(userId: string, country: Country) {
+  await db.run("UPDATE users SET country = ? WHERE id = ?", country, userId);
 }
 
-export function setPlan(userId: string, plan: PlanId, expiresAt: number | null) {
-  getDb().prepare("UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?").run(plan, expiresAt, userId);
+export async function setPlan(userId: string, plan: PlanId, expiresAt: number | null) {
+  await db.run("UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?", plan, expiresAt, userId);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -199,31 +215,30 @@ export function setPlan(userId: string, plan: PlanId, expiresAt: number | null) 
 
 const tokenHash = (token: string) => createHash("sha256").update(token).digest("base64url");
 
-export function createSession(userId: string): { token: string; expires: Date } {
+export async function createSession(userId: string): Promise<{ token: string; expires: Date }> {
   const token = randomBytes(32).toString("base64url");
   const now = Date.now();
   const expires = now + SESSION_DAYS * 86_400_000;
-  const db = getDb();
-  db.prepare("INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)").run(tokenHash(token), userId, now, expires);
-  db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(now);
+  await db.batch([
+    { sql: "INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)", args: [tokenHash(token), userId, now, expires] },
+    { sql: "DELETE FROM sessions WHERE expires_at < ?", args: [now] },
+  ]);
   return { token, expires: new Date(expires) };
 }
 
-export function userForToken(token: string | undefined): User | null {
+export async function userForToken(token: string | undefined): Promise<User | null> {
   if (!token) return null;
-  const row = getDb()
-    .prepare("SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?")
-    .get(tokenHash(token), Date.now()) as UserRow | undefined;
+  const row = await db.get<UserRow>("SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?", tokenHash(token), Date.now());
   return row ? toUser(row) : null;
 }
 
-export function deleteSession(token: string | undefined) {
-  if (token) getDb().prepare("DELETE FROM sessions WHERE token_hash = ?").run(tokenHash(token));
+export async function deleteSession(token: string | undefined) {
+  if (token) await db.run("DELETE FROM sessions WHERE token_hash = ?", tokenHash(token));
 }
 
 /** Signs the user out everywhere (after a password reset). */
-export function deleteAllSessions(userId: string) {
-  getDb().prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+export async function deleteAllSessions(userId: string) {
+  await db.run("DELETE FROM sessions WHERE user_id = ?", userId);
 }
 
 export const sessionCookieOptions = (expires: Date) => ({

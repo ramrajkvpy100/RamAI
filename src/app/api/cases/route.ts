@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   if (body instanceof Response) return body;
   try {
     const user = await requireUser();
-    ensureDemoPlayers();
+    await ensureDemoPlayers();
     const tutorial = body.tutorial === true;
     if (user.isGuest && !tutorial) {
       return apiError(403, "SIGNUP_REQUIRED", "Create a free account to play more cases — it takes 30 seconds.");
@@ -27,22 +27,22 @@ export async function POST(req: Request) {
     if (!tutorial && body.level && !plan.levels.includes(body.level as CareLevel)) {
       return apiError(402, "PRO_REQUIRED", "This level is part of RamAI Pro.");
     }
-    if (!tutorial && plan.dailyCases !== null && casesStartedToday(user.id) >= plan.dailyCases) {
+    if (!tutorial && plan.dailyCases !== null && (await casesStartedToday(user.id)) >= plan.dailyCases) {
       return apiError(402, "DAILY_LIMIT", `You've used today's ${plan.dailyCases} free cases. They refresh at midnight — or go Pro for unlimited cases.`);
     }
     const session = await simulateCase({
       userId: user.id,
-      caseNumber: totalCasesStarted(user.id) + 1,
+      caseNumber: (await totalCasesStarted(user.id)) + 1,
       specialty: body.specialty as Specialty | undefined,
       track: body.track as CaseTrack | undefined,
       level: body.level as CareLevel | undefined,
       allowedLevels: plan.levels,
-      exclude: recentCaseRefs(user.id),
+      exclude: await recentCaseRefs(user.id),
       lang: user.patientLang,
       tutorial,
       country: user.country,
     });
-    recordCaseStart(user.id, session.state.sessionId, tutorial);
+    await recordCaseStart(user.id, session.state.sessionId, tutorial);
     return ok(session);
   } catch (err) {
     return handleError(err);

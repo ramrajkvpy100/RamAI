@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   try {
     const user = await resetPassword(parsed.data.token, parsed.data.password);
     if (!user) return apiError(400, "LINK_EXPIRED", "This link has expired or was already used. Ask for a new one.");
-    const { token, expires } = createSession(user.id);
+    const { token, expires } = await createSession(user.id);
     const res = NextResponse.json({ user });
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(expires));
     return res;

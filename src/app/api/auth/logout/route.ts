@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const blocked = crossSite(req);
   if (blocked) return blocked;
   const jar = await cookies();
-  deleteSession(jar.get(SESSION_COOKIE)?.value);
+  await deleteSession(jar.get(SESSION_COOKIE)?.value);
   const res = NextResponse.json({ ok: true });
   res.cookies.delete(SESSION_COOKIE);
   return res;
