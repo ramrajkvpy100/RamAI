@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ramai-dev",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [".claude/dev.sh"],
+      "port": 3100,
+      "autoPort": true
+    },
+    {
+      "name": "ramai-prod",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [".claude/start.sh", "-p", "3218"],
+      "port": 3218
+    }
+  ]
+}
