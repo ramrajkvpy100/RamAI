@@ -10,6 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
   const next = safeNext((await searchParams).next);
-  if (await getCurrentUser()) redirect(next);
+  // Guests trying the demo can sign up — their demo case comes with them.
+  const user = await getCurrentUser();
+  if (user && !user.isGuest) redirect(next);
   return <AuthForm mode="signup" next={next} />;
 }

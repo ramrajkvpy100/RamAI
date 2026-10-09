@@ -72,9 +72,15 @@ export function UserMenu({ me }: { me: Me }) {
               </Link>
             )}
           </div>
-          <Link role="menuitem" href="/profile" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
-            <Icon name="user" size={15} className="text-fg-2" /> Profile
-          </Link>
+          {me.user.isGuest ? (
+            <Link role="menuitem" href="/signup" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-semibold text-accent-text hover:bg-surface-3">
+              <Icon name="sparkles" size={15} /> Create free account
+            </Link>
+          ) : (
+            <Link role="menuitem" href="/profile" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
+              <Icon name="user" size={15} className="text-fg-2" /> Profile
+            </Link>
+          )}
           <button
             role="menuitem"
             type="button"

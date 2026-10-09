@@ -16,6 +16,8 @@ export interface Me {
   user: { id: string; email: string; username: string; name: string; plan: PlanId; planExpiresAt: number | null; patientLang: PatientLang; createdAt: number; emailVerified: boolean; isGuest: boolean; leagueTier: number; country: Country };
   progress: PlayerProgress;
   usage: { casesToday: number; dailyLimit: number | null };
+  /** Whether this server can send email (verification, password reset). */
+  emailReady?: boolean;
 }
 
 let snapshot: Me | null = null;

@@ -85,6 +85,11 @@ export function VerifyBanner({ me }: { me: Me }) {
             <div className="font-semibold">You're trying RamAI as a guest</div>
             <div className="text-fg-2">Create a free account to keep your progress, build a streak and join the weekly league.</div>
           </>
+        ) : me.emailReady === false ? (
+          <>
+            <div className="font-semibold">You're all set to play</div>
+            <div className="text-fg-2">Email isn't switched on yet, so verification (for weekly leagues) will come later. Every case is open now.</div>
+          </>
         ) : (
           <>
             <div className="font-semibold">Verify your email to join the weekly league</div>
@@ -99,7 +104,7 @@ export function VerifyBanner({ me }: { me: Me }) {
           <Link href="/signup" className="bg-ai inline-flex h-8 items-center rounded-full px-3.5 text-[12.5px] font-semibold text-white">
             Create free account
           </Link>
-        ) : (
+        ) : me.emailReady === false ? null : (
           <ResendVerification compact />
         )}
         <button type="button" onClick={dismiss} aria-label="Dismiss" className="flex h-8 w-8 items-center justify-center rounded-full text-fg-3 hover:bg-surface-3 hover:text-fg">
