@@ -5,6 +5,7 @@
 import "server-only";
 
 import type { ClinicalCaseDefinition } from "../case-definition";
+import type { Country } from "../countries";
 import type { CareLevel, CaseTrack, Specialty } from "../types";
 import { dermAcne } from "./derm-acne";
 import { dermMelasma } from "./derm-melasma";
@@ -41,7 +42,11 @@ export interface CaseFilter {
   level?: CareLevel;
   /** Levels the player may play (plan-gated). */
   allowedLevels?: readonly CareLevel[];
+  /** The player's country: cases set only elsewhere are left out. */
+  country?: Country;
 }
+
+const playableIn = (c: ClinicalCaseDefinition, country?: Country) => !country || !c.countries || c.countries.includes(country);
 
 export function filterCases(f: CaseFilter): ClinicalCaseDefinition[] {
   return CASE_LIBRARY.filter(
@@ -49,16 +54,18 @@ export function filterCases(f: CaseFilter): ClinicalCaseDefinition[] {
       (!f.specialty || c.specialty === f.specialty) &&
       (!f.track || c.track === f.track) &&
       (!f.level || c.level === f.level) &&
-      (!f.allowedLevels || f.allowedLevels.includes(c.level)),
+      (!f.allowedLevels || f.allowedLevels.includes(c.level)) &&
+      playableIn(c, f.country),
   );
 }
 
 /** Counts per specialty, mode and level — never ids. */
-export function libraryAvailability() {
+export function libraryAvailability(country?: Country) {
   const specialties: Partial<Record<Specialty, number>> = {};
   const tracks: Partial<Record<CaseTrack, number>> = {};
   const levels: Partial<Record<CareLevel, number>> = {};
   for (const c of CASE_LIBRARY) {
+    if (!playableIn(c, country)) continue;
     specialties[c.specialty] = (specialties[c.specialty] ?? 0) + 1;
     tracks[c.track] = (tracks[c.track] ?? 0) + 1;
     levels[c.level] = (levels[c.level] ?? 0) + 1;

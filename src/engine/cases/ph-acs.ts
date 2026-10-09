@@ -82,7 +82,7 @@ export const phAcs: ClinicalCaseDefinition = {
 
   therapeutics: [
     { id: "hospital-now", kind: "referral", label: "Ambulance (108) to a PCI-capable hospital now", appropriateness: "ideal", durationMin: 2,
-      match: ["108", "call 108", "ambulance", "call an ambulance", "call the ambulance", "go to hospital", "go to the hospital", "take him to hospital", "take him to the hospital", "bring him to hospital", "bring him to the hospital", "nearest hospital", "emergency department", "emergency room", "casualty", "cath lab", "rush him", "come to the hospital", "go to the emergency", "heart hospital", "district hospital", "refer", "referral", "shift him", "admit him", "hospital immediately", "hospital right now"],
+      match: ["108", "call 108", "911", "call 911", "999", "call 999", "paramedics", "ems", "emergency services", "ambulance", "call an ambulance", "call the ambulance", "go to hospital", "go to the hospital", "take him to hospital", "take him to the hospital", "bring him to hospital", "bring him to the hospital", "nearest hospital", "emergency department", "emergency room", "casualty", "cath lab", "rush him", "come to the hospital", "go to the emergency", "heart hospital", "district hospital", "refer", "referral", "shift him", "admit him", "hospital immediately", "hospital right now"],
       response: [{ role: "attendant", kind: "speech", text: "Okay — my sister is calling 108 on her phone… They say twelve minutes. I'll stay on the line with you." }],
       praise: "Got an ambulance moving within minutes — in a heart attack, every 30 minutes of delay costs heart muscle and lives." },
     { id: "aspirin-load", kind: "drug", drugIds: ["aspirin"], label: "Chew aspirin 300–350 mg now", appropriateness: "ideal",

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { caseSnapshot, hydrate, startCase } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
+import { countryFromLocale } from "@/engine/countries";
 import { startGuest } from "@/lib/engine-client";
 
 /** Plays the guided demo case straight away — no account needed. */
@@ -18,7 +19,7 @@ export function DemoButton({ className }: { className?: string }) {
     setBusy(true);
     setError(null);
     try {
-      const { user } = await startGuest();
+      const { user } = await startGuest(countryFromLocale(navigator.language));
       hydrate(user.id);
       if (await startCase({ tutorial: true })) {
         router.push("/case");

@@ -15,8 +15,9 @@ import "server-only";
 
 import type { ClinicalCaseDefinition } from "../case-definition";
 import { EXAMS, INVESTIGATIONS, MEASURES } from "../catalog";
+import { COUNTRY, type Country } from "../countries";
 import { FORMULARY } from "../formulary";
-import { LEVELS, TRACKS } from "../levels";
+import { levelMeta, trackLabel } from "../levels";
 import { ALL_SPECIALTIES } from "../progression";
 import { CARE_LEVELS, CASE_TRACKS, type ResolvedIntent } from "../types";
 import { mockProvider } from "./mock";
@@ -64,22 +65,25 @@ async function chatJSON(messages: ChatMessage[], maxTokens: number): Promise<unk
 /* Prompts                                                                     */
 /* -------------------------------------------------------------------------- */
 
-const SIMULATION_RULES = `You are the hidden clinical environment of RamAI, an educational clinical-decision game for doctors in India.
+const IDIOM: Record<Country, string> = { IN: "Indian English", US: "American English", UK: "British English" };
+const WHERE: Record<Country, string> = { IN: "India", US: "the USA", UK: "the UK" };
+
+const simulationRules = (country: Country = "IN") => `You are the hidden clinical environment of RamAI, an educational clinical-decision game for doctors in ${WHERE[country]}.
 Absolute rules while a case is active:
 - Never reveal or hint at the diagnosis, differential, severity, hidden findings, future complications, scoring or ideal treatment.
 - Never coach. No "you may want to…", "this could suggest…", "consider…", "the next step is…".
-- The patient speaks as a lay person from the stated background (Indian English, natural, brief). They answer only what was asked.
+- The patient speaks as a lay person from the stated background (${IDIOM[country]}, natural, brief). They answer only what was asked.
 - Positive findings must come only from the case file. If the case file does not mention something, the honest answer is a plausible negative.
 - Output JSON only.`;
 
-function interpretPrompt(def: ClinicalCaseDefinition, clause: string): ChatMessage[] {
+function interpretPrompt(def: ClinicalCaseDefinition, clause: string, country?: Country): ChatMessage[] {
   const history = def.history.map((h) => `${h.id} | ${h.label} | patient says: ${h.reply}`).join("\n");
   const exams = [...def.exam.map((e) => `${e.id} | ${e.label}`), ...EXAMS.map((e) => `${e.id} | ${e.label}`)].join("\n");
   const invs = [...def.investigations.map((i) => i.id), ...INVESTIGATIONS.map((i) => i.id)].join(", ");
   const measures = MEASURES.map((m) => m.id).join(", ");
   const rules = def.therapeutics.map((r) => `${r.id} (${r.kind}: ${r.label})`).join(", ");
   return [
-    { role: "system", content: SIMULATION_RULES },
+    { role: "system", content: simulationRules(country) },
     {
       role: "user",
       content: `CASE FILE (hidden)
@@ -108,13 +112,19 @@ Map to existing ids whenever the meaning matches. For history questions with no 
 
 function generationPrompt(opts: StartOptions): ChatMessage[] {
   const specialty = opts.specialty;
-  const setting = opts.level ? `${LEVELS[opts.level].label} (${LEVELS[opts.level].description})` : "any Indian care setting";
-  const mode = opts.track ? TRACKS[opts.track].label : "any mode";
+  const country = COUNTRY[opts.country ?? "IN"];
+  const level = opts.level ? levelMeta(opts.level, country.id) : undefined;
+  const setting = level ? `a ${level.label} in ${country.name} (${level.description})` : `any care setting in ${country.name}`;
+  const mode = opts.track ? trackLabel(opts.track, country.id) : "any mode";
+  const common = { IN: "common North-Indian OPD presentations", US: "common US primary-care and urgent-care presentations", UK: "common UK general-practice presentations" }[country.id];
   return [
-    { role: "system", content: `${SIMULATION_RULES}\nYou author realistic, guideline-accurate clinical cases for Indian outpatient and emergency practice. Patients are fictional, culturally realistic, never stereotyped. Use reputed Indian brands in teaching content.` },
+    {
+      role: "system",
+      content: `${simulationRules(country.id)}\nYou author realistic, guideline-accurate clinical cases for outpatient and emergency practice in ${country.name}. Patients are fictional, culturally realistic for ${country.name}, never stereotyped; places, food, drug brands and services are local (the ambulance number is ${country.emergency}). Use reputed local brands in teaching content. Write lab values in conventional units (mg/dL, g/dL, °F) and costs in Indian rupees: the app converts units and money for the player.`,
+    },
     {
       role: "user",
-      content: `Write one complete case${specialty ? ` in ${specialty}` : " (favour dermatology and common North-Indian OPD presentations)"} for ${setting}, mode: ${mode}. Difficulty must match the setting. Return JSON matching this TypeScript shape exactly (all teaching content is released only after closure):
+      content: `Write one complete case${specialty ? ` in ${specialty}` : ` (favour dermatology and ${common})`} for ${setting}, mode: ${mode}. Difficulty must match the setting. Return JSON matching this TypeScript shape exactly (all teaching content is released only after closure):
 
 ${GENERATED_CASE_SHAPE}
 
@@ -206,7 +216,7 @@ export function createOpenAIProvider(): ClinicalProvider {
       const unresolved = ruled.some((i) => i.kind === "unknown" || (i.kind === "history" && i.targetId?.startsWith("fallback:")));
       if (!unresolved) return { intents: ruled };
       try {
-        const raw = await chatJSON(interpretPrompt(ctx.def, text), 800);
+        const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx.country), 800);
         const parsed = PatientResponseSchema.safeParse(raw);
         if (!parsed.success) return { intents: ruled };
         const intents: ResolvedIntent[] = [];

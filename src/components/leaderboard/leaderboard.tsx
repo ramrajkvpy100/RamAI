@@ -462,7 +462,7 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
               <Icon name="trophy" size={22} />
             </span>
             <p className="mt-4 text-[15px] font-semibold">No scores here yet</p>
-            <p className="mt-1 max-w-xs text-[13.5px] text-fg-2">{board === "hard" ? "Hard cases are Medical College, Apex Institute and Grand Rounds." : "Finish a case to take first place."}</p>
+            <p className="mt-1 max-w-xs text-[13.5px] text-fg-2">{board === "hard" ? "Hard cases are the top three levels — teaching hospital and up." : "Finish a case to take first place."}</p>
           </div>
         ) : (
           <>

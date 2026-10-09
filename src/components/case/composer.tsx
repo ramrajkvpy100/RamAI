@@ -6,7 +6,8 @@ import { IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
-import { QUICK_ACTIONS, TOOL_CATEGORIES } from "@/lib/tool-menus";
+import type { Country } from "@/engine/countries";
+import { menusFor, QUICK_ACTIONS } from "@/lib/tool-menus";
 import { useSpeech } from "@/lib/use-speech";
 
 import { useComposer } from "./composer-context";
@@ -18,6 +19,7 @@ export function Composer({
   sending,
   history,
   phone = false,
+  country,
 }: {
   onSend: (text: string) => Promise<boolean>;
   disabled?: boolean;
@@ -26,6 +28,8 @@ export function Composer({
   history: string[];
   /** Phone consult: no examination or tests, so only history and advice shortcuts. */
   phone?: boolean;
+  /** Shortcuts use the test and drug names of the country the case is set in. */
+  country?: Country;
 }) {
   const { draft, setDraft, insert, inputRef } = useComposer();
   const [menu, setMenu] = useState<string | null>(null);
@@ -95,7 +99,7 @@ export function Composer({
   };
 
   const active = actions.find((a) => a.id === menu);
-  const categories = active ? TOOL_CATEGORIES.filter((c) => active.categories.includes(c.id)) : [];
+  const categories = active ? menusFor(country).filter((c) => active.categories.includes(c.id)) : [];
 
   return (
     <div className="relative" ref={menuRef}>

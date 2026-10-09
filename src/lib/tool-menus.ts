@@ -6,6 +6,7 @@
  * composer; the player still decides to send it.
  */
 import type { IconName } from "@/components/ui/icon";
+import type { Country } from "@/engine/countries";
 
 export type InsertMode = "replace" | "order" | "append";
 
@@ -141,4 +142,35 @@ export function applyInsert(draftText: string, item: ToolItem): string {
   }
   if (item.mode === "append" && draftText.trim()) return `${draftText.trim()} ${item.text}`;
   return item.text;
+}
+
+/** The same shortcuts in the words used where the case is set: BMP in the USA, U&E in the UK. */
+const LOCAL_WORDS: Record<Exclude<Country, "IN">, [RegExp, string][]> = {
+  US: [
+    [/\bRBS\b/g, "glucose"], [/^glucose$/, "Glucose"], [/\bRFT\b/g, "BMP"], [/\bFBS\b/g, "Fasting glucose"], [/\bUSG\b/g, "Ultrasound"],
+    [/\bCECT\b/g, "CT"], [/\bNCCT head\b/g, "CT head"], [/\bUrine routine\b/g, "Urinalysis"], [/\bStool routine\b/g, "Stool microscopy"],
+    [/\b2D echo\b/g, "Echo"], [/\bKOH mount\b/g, "KOH prep"], [/\bRyle's tube\b/g, "NG tube"], [/\bparacetamol\b/g, "acetaminophen"],
+    [/\bParacetamol\b/g, "Acetaminophen"], [/\bringer lactate\b/g, "lactated Ringer's"], [/\bsalbutamol\b/g, "albuterol"],
+    [/\bNebulise\b/g, "Nebulize"], [/\bNebulisation\b/g, "Nebulizer"], [/\boedema\b/g, "edema"],
+  ],
+  UK: [
+    [/\bRBS\b/g, "CBG"], [/\bRFT\b/g, "U&E"], [/\bCBC\b/g, "FBC"], [/\bFBS\b/g, "Fasting glucose"], [/\bUSG\b/g, "Ultrasound"],
+    [/\bCECT\b/g, "CT"], [/\bNCCT head\b/g, "CT head"], [/\bUrine routine\b/g, "Urine microscopy"], [/\bStool routine\b/g, "Stool microscopy"],
+    [/\b2D echo\b/g, "Echo"], [/\bPT\/INR\b/g, "Clotting screen"], [/\bKOH mount\b/g, "Skin scrapings"], [/\bRyle's tube\b/g, "NG tube"],
+    [/paracetamol 650 mg/g, "paracetamol 1 g"], [/\bringer lactate\b/g, "Hartmann's"],
+  ],
+};
+
+const localized = new Map<Country, ToolCategory[]>();
+
+export function menusFor(country: Country = "IN"): ToolCategory[] {
+  if (country === "IN") return TOOL_CATEGORIES;
+  const words = LOCAL_WORDS[country];
+  const fix = (s: string) => words.reduce((t, [re, rep]) => t.replace(re, rep), s);
+  let menus = localized.get(country);
+  if (!menus) {
+    menus = TOOL_CATEGORIES.map((c) => ({ ...c, groups: c.groups.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i, label: fix(i.label), text: fix(i.text) })) })) }));
+    localized.set(country, menus);
+  }
+  return menus;
 }

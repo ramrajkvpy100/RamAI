@@ -76,7 +76,7 @@ export function CallScreen({ state, speaking, className }: { state: CaseState; s
                 <dt className="text-[10.5px] text-white/45">{h.label}</dt>
                 <dd className="font-mono text-[17px] leading-tight text-white tabular">
                   {state.vitals[h.k]!.current.value}
-                  <span className="ml-1 font-sans text-[10px] text-white/35">{h.unit}</span>
+                  <span className="ml-1 font-sans text-[10px] text-white/35">{state.vitals[h.k]!.current.unit ?? h.unit}</span>
                 </dd>
               </div>
             ))}

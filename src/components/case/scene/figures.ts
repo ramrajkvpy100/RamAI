@@ -16,7 +16,7 @@ export function figureCues(state: CaseState) {
   const temp = state.vitals.temp?.current;
   const rr = state.vitals.rr?.current;
   return {
-    fever: !!temp && parseFloat(temp.value) >= 100.4,
+    fever: !!temp && parseFloat(temp.value) >= (temp.unit === "°C" ? 38 : 100.4),
     breathless: !!rr && parseFloat(rr.value) >= 24,
   };
 }

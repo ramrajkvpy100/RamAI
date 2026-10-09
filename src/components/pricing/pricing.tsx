@@ -135,7 +135,7 @@ export function Pricing({ initial }: { initial: Me | null }) {
       <h1 className="text-center text-[34px] leading-[1.08] font-semibold tracking-[-0.035em] text-balance sm:text-[44px]">
         Practise without <span className="text-gradient">limits.</span>
       </h1>
-      <p className="mt-4 max-w-xl text-center text-[15.5px] leading-7 text-fg-2">Unlimited cases at every level — Medical College, Apex Institute and Grand Rounds included.</p>
+      <p className="mt-4 max-w-xl text-center text-[15.5px] leading-7 text-fg-2">Unlimited cases at every level — teaching hospital, national referral centre and global centre of excellence included.</p>
       <div className="mt-8">
         <PeriodToggle value={period} onChange={setPeriod} />
       </div>

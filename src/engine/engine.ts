@@ -19,7 +19,9 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import type { ClinicalCaseDefinition } from "./case-definition";
+import type { Country } from "./countries";
 import { generateDebrief } from "./debrief";
+import { localizeCase, presentDebrief, presentEffects, presentState } from "./i18n/country";
 import { localizeEffects, localizeState } from "./i18n/hinglish";
 import { getProvider } from "./providers";
 import type { ClinicalProvider } from "./providers/types";
@@ -46,11 +48,13 @@ interface Rebuilt {
   def: ClinicalCaseDefinition;
   hidden: HiddenState;
   state: CaseState;
+  country: Country;
 }
 
 /** Deterministically rebuilds hidden and visible state from a sealed payload. */
 function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
-  const def = provider.resolveCase(payload.src);
+  const country = payload.c ?? "IN";
+  const def = localizeCase(provider.resolveCase(payload.src), country);
   const hidden = createHiddenState(def);
   let state = createInitialState({
     sessionId: payload.sid,
@@ -67,7 +71,15 @@ function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
   state = applyEffects(state, openingEffects(def, hidden));
   for (const record of payload.a) state = applyEffects(state, runTurn(def, hidden, record));
   if (hidden.closed) state = { ...state, specialty: def.specialty };
-  return { def, hidden, state };
+  return { def, hidden, state, country };
+}
+
+/** Hinglish is how patients speak in India; elsewhere they speak English. */
+const speechIn = (country: Country, lang: PatientLang): PatientLang => (country === "IN" ? lang : "en");
+
+/** What the player sees: the patient's language, then the country's units, money and names. */
+function render(state: CaseState, def: ClinicalCaseDefinition, country: Country, lang: PatientLang): CaseState {
+  return presentState(localizeState(state, def.id, speechIn(country, lang)), country);
 }
 
 function open(token: string, userId: string): SessionPayload {
@@ -94,6 +106,8 @@ export interface StartCaseOptions {
   lang?: PatientLang;
   /** The guided demo case instead of a pick from the library. */
   tutorial?: boolean;
+  /** Where the player practises; fixed for the life of the case. */
+  country?: Country;
 }
 
 export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession> {
@@ -105,9 +119,10 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
     if (err instanceof NoCaseError) throw new EngineError("NO_CASES", err.message);
     throw err;
   }
-  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now() };
+  const country = opts.country ?? "IN";
+  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }) };
   const { def, state } = rebuild(payload, provider);
-  return { token: seal(payload), state: localizeState(state, def.id, opts.lang ?? "en") };
+  return { token: seal(payload), state: render(state, def, country, opts.lang ?? "en") };
 }
 
 /** The library reference and owner of a sealed session (server use only). */
@@ -120,8 +135,8 @@ export function sessionInfo(token: string): { sessionId: string; userId: string 
 export async function resumeCase(token: string, userId: string, lang: PatientLang = "en"): Promise<CaseSession> {
   const provider = await getProvider();
   const payload = open(token, userId);
-  const { def, hidden, state } = rebuild(payload, provider);
-  return { token, state: localizeState(state, def.id, lang), debrief: hidden.closed ? generateDebrief(def, hidden, state) : undefined };
+  const { def, hidden, state, country } = rebuild(payload, provider);
+  return { token, state: render(state, def, country, lang), debrief: hidden.closed ? presentDebrief(generateDebrief(def, hidden, state), country) : undefined };
 }
 
 export async function submitDoctorAction(token: string, input: string, userId: string, lang: PatientLang = "en"): Promise<TurnResponse> {
@@ -133,10 +148,10 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   const payload = open(token, userId);
   if (payload.a.length >= MAX_ACTIONS) throw new EngineError("LIMIT", "This case has reached its action limit. Close the case to review it.");
 
-  const { def, hidden, state } = rebuild(payload, provider);
+  const { def, hidden, state, country } = rebuild(payload, provider);
   if (hidden.closed) throw new EngineError("CASE_CLOSED", "This case is already closed.");
 
-  const interpretation = await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-12) });
+  const interpretation = await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-12), country });
   const record: ActionRecord = {
     id: `a${payload.a.length + 1}`,
     at: hidden.clock,
@@ -151,9 +166,15 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   let debrief: CaseDebrief | undefined;
   if (hidden.closed) {
     next = { ...next, specialty: def.specialty };
-    debrief = generateDebrief(def, hidden, next);
+    debrief = presentDebrief(generateDebrief(def, hidden, next), country);
   }
-  return { token: seal(payload), state: localizeState(next, def.id, lang), effects: localizeEffects(effects, def.id, def.patient, lang), debrief };
+  const shown = speechIn(country, lang);
+  return {
+    token: seal(payload),
+    state: render(next, def, country, lang),
+    effects: presentEffects(localizeEffects(effects, def.id, def.patient, shown), country),
+    debrief,
+  };
 }
 
 /* Convenience wrappers — every action is natural language underneath. */
@@ -163,9 +184,9 @@ export const advanceTime = (token: string, minutes: number, userId: string) => s
 export const closeCase = (token: string, userId: string, finalDiagnosis?: string) =>
   submitDoctorAction(token, finalDiagnosis ? `Final diagnosis: ${finalDiagnosis}. Case close.` : "Case close.", userId);
 
-export async function caseAvailability() {
+export async function caseAvailability(country: Country = "IN") {
   const provider = await getProvider();
-  return { engine: provider.id, ...(await provider.availability()) };
+  return { engine: provider.id, ...(await provider.availability(country)) };
 }
 
 export { getPatientResponse } from "./simulator";

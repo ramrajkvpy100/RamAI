@@ -269,6 +269,13 @@
   box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-md);
 }
 
+/* Solid menu surface: floats over busy pages without letting them show through. */
+@utility popover {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-lg);
+}
+
 /* Elevated card with depth. */
 @utility panel {
   background: var(--surface);

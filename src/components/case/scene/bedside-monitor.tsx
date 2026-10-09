@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Icon } from "@/components/ui/icon";
+import { glucoseLabel } from "@/engine/countries";
 import type { CaseState, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { clockAt } from "@/lib/format";
 import { beep } from "@/lib/monitor-audio";
 
+import { useScene } from "./context";
 import { useLiveMonitorView, type LiveMonitor } from "./live-monitor";
 import { MonitorSignal } from "./monitor-signal";
 import { MonitorSweep } from "./monitor-sweep";
@@ -117,6 +119,33 @@ function Header({ state, alarm, children }: { state: CaseState; alarm: AlarmStat
 
 const TRACE_LABEL = "pointer-events-none absolute left-1 text-[9px] font-medium tracking-[0.06em]";
 
+/** One tap puts the patient on the monitor — the same as typing "Attach cardiac monitor". Only while it's off and the case is live. */
+export function AttachMonitorButton({ state, tone = "dark", className }: { state: CaseState; tone?: "dark" | "light"; className?: string }) {
+  const { attachMonitor, busy } = useScene();
+  const [asked, setAsked] = useState(false);
+  useEffect(() => {
+    if (!busy) setAsked(false);
+  }, [busy]);
+  if (state.monitored || state.status !== "active" || state.patientStatus === "deceased") return null;
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => {
+        setAsked(true);
+        attachMonitor();
+      }}
+      className={cn(
+        "press inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold tracking-normal normal-case transition-[background-color,opacity] disabled:opacity-60",
+        tone === "dark" ? "bg-emerald-400 text-[#04130c] hover:bg-emerald-300" : "bg-fg text-bg hover:opacity-90",
+        className,
+      )}
+    >
+      <Icon name="monitor" size={14} strokeWidth={1.9} /> {asked && busy ? "Attaching…" : "Attach monitor"}
+    </button>
+  );
+}
+
 /** The full bedside monitor: each waveform with its number, then the cuff pressure and the slower parameters. */
 export function BedsideMonitor({ state, alarm, className }: { state: CaseState; alarm: AlarmState; className?: string }) {
   const { numbers, signal, running } = useMonitor(state);
@@ -126,6 +155,11 @@ export function BedsideMonitor({ state, alarm, className }: { state: CaseState; 
       <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-1 px-2 pt-1 pb-1">
         <div className="relative h-[156px]">
           <MonitorSweep signal={signal} running={running} resp onBeat={() => beep(numbers.spo2)} className="absolute inset-0 h-full w-full" />
+          {!state.monitored && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <AttachMonitorButton state={state} className="shadow-[0_8px_24px_-8px_rgb(52_211_153/0.7)]" />
+            </div>
+          )}
           <span aria-hidden className={cn(TRACE_LABEL, "top-0.5 text-emerald-300/50")}>II</span>
           <span aria-hidden className={cn(TRACE_LABEL, "top-[46%] text-sky-300/50")}>Pleth</span>
           <span aria-hidden className={cn(TRACE_LABEL, "top-[73%] text-amber-200/50")}>Resp</span>
@@ -138,8 +172,8 @@ export function BedsideMonitor({ state, alarm, className }: { state: CaseState; 
       </div>
       <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] border-t border-white/10 px-1 py-1">
         <Nibp state={state} />
-        <Reading state={state} k="temp" label="Temp" unit="°F" />
-        <Reading state={state} k="rbs" label="RBS" />
+        <Reading state={state} k="temp" label="Temp" unit={state.vitals.temp?.current.unit ?? "°F"} />
+        <Reading state={state} k="rbs" label={glucoseLabel(state.country)} />
       </div>
     </section>
   );
@@ -156,24 +190,27 @@ export function MonitorStrip({ state, alarm, onOpen }: { state: CaseState; alarm
     { k: "bp", label: "BP", value: state.vitals.bp?.current.value },
   ];
   return (
-    <button type="button" onClick={onOpen} className="flex w-full items-center gap-2.5 bg-[#07090d] px-3 py-2 text-left text-white min-[420px]:gap-3" aria-label="Open the bedside monitor and chart">
-      {/* Narrower on small phones so all four numbers fit beside it. */}
-      <span className="relative h-8 w-16 shrink-0 overflow-hidden rounded-md bg-white/[0.03] min-[420px]:w-[104px]">
-        <MonitorSweep signal={signal} running={running} pleth={false} speed={40} onBeat={() => beep(numbers.spo2)} className="absolute inset-0 h-full w-full" />
-      </span>
-      <span className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] min-[420px]:gap-3">
-        {items.map(({ k, label, value }) => {
-          const shown = state.vitals[k] && value !== null && value !== undefined;
-          return (
-            <span key={k} className={cn("flex shrink-0 items-baseline gap-1 rounded px-1 font-mono tabular", alarming.has(k) && FLASH)}>
-              <span className="text-[9.5px] tracking-[0.08em] text-white/40 uppercase">{label}</span>
-              <span className={cn("text-[15px] font-medium", shown ? COLOR[k] : "text-white/25")}>{shown ? value : "—"}</span>
-            </span>
-          );
-        })}
-      </span>
-      {alarm.level && <span className={cn("h-2 w-2 shrink-0 rounded-full", alarm.level === "high" ? "animate-pulse bg-red-500" : "bg-amber-400")} aria-label="Monitor alarm" />}
-      <Icon name="chevron-down" size={15} className="shrink-0 text-white/40" />
-    </button>
+    <div className="flex w-full items-center gap-2 bg-[#07090d] pr-2 text-white">
+      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-left min-[420px]:gap-3" aria-label="Open the bedside monitor and chart">
+        {/* Narrower on small phones so all four numbers fit beside it. */}
+        <span className="relative h-8 w-16 shrink-0 overflow-hidden rounded-md bg-white/[0.03] min-[420px]:w-[104px]">
+          <MonitorSweep signal={signal} running={running} pleth={false} speed={40} onBeat={() => beep(numbers.spo2)} className="absolute inset-0 h-full w-full" />
+        </span>
+        <span className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] min-[420px]:gap-3">
+          {items.map(({ k, label, value }) => {
+            const shown = state.vitals[k] && value !== null && value !== undefined;
+            return (
+              <span key={k} className={cn("flex shrink-0 items-baseline gap-1 rounded px-1 font-mono tabular", alarming.has(k) && FLASH)}>
+                <span className="text-[9.5px] tracking-[0.08em] text-white/40 uppercase">{label}</span>
+                <span className={cn("text-[15px] font-medium", shown ? COLOR[k] : "text-white/25")}>{shown ? value : "—"}</span>
+              </span>
+            );
+          })}
+        </span>
+        {alarm.level && <span className={cn("h-2 w-2 shrink-0 rounded-full", alarm.level === "high" ? "animate-pulse bg-red-500" : "bg-amber-400")} aria-label="Monitor alarm" />}
+        <Icon name="chevron-down" size={15} className="shrink-0 text-white/40" />
+      </button>
+      <AttachMonitorButton state={state} className="px-2.5 py-1 text-[11.5px]" />
+    </div>
   );
 }

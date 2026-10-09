@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
+import { glucoseLabel, type Country } from "@/engine/countries";
 import type { CaseState } from "@/engine/types";
 import { cn } from "@/lib/cn";
 
@@ -13,10 +14,24 @@ import { cn } from "@/lib/cn";
  * (elements marked with data-coach-target).
  */
 
+/** What to type, in the words used where the case is set. */
+interface Words {
+  check: string;
+  recheck: string;
+  bolus: string;
+  drip: string;
+}
+
+const WORDS: Record<Country, Words> = {
+  IN: { check: "Check RBS", recheck: "Recheck RBS", bolus: "Give 25% dextrose 100 mL IV", drip: "Start 10% dextrose infusion" },
+  US: { check: "Check glucose", recheck: "Recheck glucose", bolus: "Give D50 50 mL IV", drip: "Start D10 infusion" },
+  UK: { check: "Check CBG", recheck: "Recheck CBG", bolus: "Give 20% glucose 100 mL IV", drip: "Start 10% glucose infusion" },
+};
+
 interface Step {
   id: string;
   title: string;
-  body: React.ReactNode;
+  body: (w: Words, s: CaseState) => React.ReactNode;
   target: "composer" | "condition" | "end-case";
   done: (s: CaseState) => boolean;
 }
@@ -31,7 +46,7 @@ const STEPS: Step[] = [
   {
     id: "talk",
     title: "Talk to the family",
-    body: (
+    body: (w, s) => (
       <>
         His wife is with him. Ask what happened in your own words — try <Q>What happened?</Q> — or tap <b>Ask</b> for ideas.
       </>
@@ -42,7 +57,7 @@ const STEPS: Step[] = [
   {
     id: "history",
     title: "Find the cause",
-    body: (
+    body: (w, s) => (
       <>
         Good. Dig a little deeper: <Q>Is he diabetic?</Q> <Q>What medicines does he take?</Q> <Q>When did he last eat?</Q>
       </>
@@ -53,9 +68,9 @@ const STEPS: Step[] = [
   {
     id: "check",
     title: "Check his sugar",
-    body: (
+    body: (w, s) => (
       <>
-        A confused, sweaty diabetic needs his sugar checked first. Type <Q>Check RBS</Q>, or tap <b>Examine</b>.
+        A confused, sweaty diabetic needs his sugar checked first. Type <Q>{w.check}</Q>, or tap <b>Examine</b>.
       </>
     ),
     target: "composer",
@@ -64,9 +79,9 @@ const STEPS: Step[] = [
   {
     id: "treat",
     title: "Treat it — now",
-    body: (
+    body: (w, s) => (
       <>
-        RBS 42 is dangerously low. Sugar into the vein: <Q>Give 25% dextrose 100 mL IV</Q>, or use <b>Treat</b>.
+        {glucoseLabel(s.country)} {s.vitals.rbs?.current.value ?? "42"} is dangerously low. Sugar into the vein: <Q>{w.bolus}</Q>, or use <b>Treat</b>.
       </>
     ),
     target: "composer",
@@ -75,9 +90,9 @@ const STEPS: Step[] = [
   {
     id: "watch",
     title: "Watch him respond",
-    body: (
+    body: (w, s) => (
       <>
-        See the condition bar and the monitor move, and hear him wake up. Confirm it: <Q>Recheck RBS</Q>.
+        See the condition bar and the monitor move, and hear him wake up. Confirm it: <Q>{w.recheck}</Q>.
       </>
     ),
     target: "condition",
@@ -86,9 +101,9 @@ const STEPS: Step[] = [
   {
     id: "finish",
     title: "Make a plan, then finish",
-    body: (
+    body: (w, s) => (
       <>
-        Glimepiride lows come back for hours. A good plan: <Q>Start 10% dextrose infusion</Q> <Q>Stop glimepiride</Q> <Q>Admit</Q>. Then tap <b>End case</b> for your score and debrief.
+        Glimepiride lows come back for hours. A good plan: <Q>{w.drip}</Q> <Q>Stop glimepiride</Q> <Q>Admit</Q>. Then tap <b>End case</b> for your score and debrief.
       </>
     ),
     target: "end-case",
@@ -141,7 +156,7 @@ export function Coach({ state, className }: { state: CaseState; className?: stri
               {index + 1}/{STEPS.length}
             </span>
           </div>
-          <p className="mt-1 text-[13px] leading-[1.7] text-fg-2">{step.body}</p>
+          <p className="mt-1 text-[13px] leading-[1.7] text-fg-2">{step.body(WORDS[state.country ?? "IN"], state)}</p>
         </div>
         <button type="button" onClick={hide} className="shrink-0 rounded-full px-2 py-1 text-[12px] font-medium text-fg-3 hover:bg-surface-3 hover:text-fg">
           Hide tips

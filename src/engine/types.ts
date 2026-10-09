@@ -1,3 +1,5 @@
+import type { Country } from "./countries";
+
 /**
  * RamAI — core domain model.
  *
@@ -46,7 +48,7 @@ export const PATIENT_LANGS: readonly PatientLang[] = ["en", "hinglish"] as const
 /** How the case presents. */
 export type CaseTrack = "opd" | "phone" | "emergency";
 
-/** Care level — the facility's resources and the case's difficulty, PHC → Grand Rounds. */
+/** Care level — the facility's resources and the case's difficulty, first contact → global centre of excellence. */
 export type CareLevel = "phc" | "chc" | "district" | "college" | "apex" | "grandrounds";
 
 export const CARE_LEVELS: readonly CareLevel[] = ["phc", "chc", "district", "college", "apex", "grandrounds"] as const;
@@ -467,6 +469,8 @@ export interface CaseState {
   lang?: PatientLang;
   /** The guided demo case: on-screen tips walk the player through it. */
   guided?: boolean;
+  /** Where the case is set: units, money and names on screen follow it. */
+  country?: Country;
   /** Monotonic counter so generated ids are stable across replay. */
   seq: number;
 }
@@ -752,6 +756,8 @@ export interface CaseDebrief {
   followUp: FollowUpPlan;
   treatmentFailure: TreatmentFailurePath;
   pearl: string;
+  /** Where the case was set; money in this debrief is in that country's currency. */
+  country?: Country;
 }
 
 /* -------------------------------------------------------------------------- */

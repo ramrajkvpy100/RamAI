@@ -1,7 +1,7 @@
 import type { IconName } from "@/components/ui/icon";
 import type { CareLevel, CaseTrack } from "@/engine/types";
 
-/** Colour and glyph per care level — a calm ramp from green (PHC) to gold (Grand Rounds). */
+/** Colour and glyph per care level — a calm ramp from green (first contact) to gold (global excellence). */
 export const LEVEL_STYLE: Record<CareLevel, { from: string; to: string; press: string; icon: IconName }> = {
   phc: { from: "#34d399", to: "#059669", press: "#047857", icon: "home" },
   chc: { from: "#22d3ee", to: "#0891b2", press: "#0e7490", icon: "building" },

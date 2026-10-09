@@ -27,7 +27,7 @@ export const PLANS: Record<PlanId, Plan> = {
     label: "Pro",
     dailyCases: null,
     levels: ["phc", "chc", "district", "college", "apex", "grandrounds"],
-    features: ["Unlimited cases", "Medical College, Apex Institute and Grand Rounds", "Every leaderboard, including Hard cases", "Generated clinical images (when enabled)", "Priority access to new cases"],
+    features: ["Unlimited cases", "Teaching hospital, national referral and global excellence levels", "Every leaderboard, including Hard cases", "Generated clinical images (when enabled)", "Priority access to new cases"],
   },
 };
 

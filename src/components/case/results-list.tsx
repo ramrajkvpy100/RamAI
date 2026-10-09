@@ -2,7 +2,7 @@
 
 import { EmptyState } from "@/components/ui/primitives";
 import type { CaseState } from "@/engine/types";
-import { rupees } from "@/lib/format";
+import { money } from "@/lib/format";
 
 import { ResultCard } from "./result-card";
 
@@ -14,10 +14,10 @@ export function ResultsList({ state, highlightIds }: { state: CaseState; highlig
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between text-[11.5px] text-fg-2">
         <span>{items.filter((i) => i.status === "pending").length} pending</span>
-        <span className="tabular">Spent {rupees(spend)}</span>
+        <span className="tabular">Spent {money(spend, state.country)}</span>
       </div>
       {items.map((inv) => (
-        <ResultCard key={inv.id} inv={inv} arrivalMinuteOfDay={state.arrivalMinuteOfDay} now={state.clock} highlight={highlightIds.has(inv.id)} />
+        <ResultCard key={inv.id} inv={inv} arrivalMinuteOfDay={state.arrivalMinuteOfDay} now={state.clock} country={state.country} highlight={highlightIds.has(inv.id)} />
       ))}
     </div>
   );

@@ -11,7 +11,7 @@ import { Badge, Label } from "@/components/ui/primitives";
 import type { CaseDebrief, PlayerProgress } from "@/engine/types";
 import type { ActiveSession } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
-import { rupees, STATUS_LABEL } from "@/lib/format";
+import { money, STATUS_LABEL } from "@/lib/format";
 
 import { Bullets } from "./flow";
 import { RewardsPanel } from "./rewards";
@@ -137,7 +137,7 @@ export function DebriefView({
             <span className="text-fg-3">·</span>
             <span className="tabular">{duration(d.elapsedMin)}</span>
             <span className="text-fg-3">·</span>
-            <span className="tabular">{rupees(d.spend)} on investigations</span>
+            <span className="tabular">{money(d.spend, d.country)} on investigations</span>
           </p>
         </div>
 

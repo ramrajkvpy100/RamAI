@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   const me = await getMe();
   if (!me) return <Landing />;
-  const library = await caseAvailability();
+  const library = await caseAvailability(me.user.country);
   return (
     <AppShell me={me} wide>
       <Home initial={me} library={library} />

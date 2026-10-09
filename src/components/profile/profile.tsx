@@ -9,7 +9,7 @@ import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { ProgressBar } from "@/components/ui/primitives";
-import { LEVELS, TRACKS } from "@/engine/levels";
+import { levelMeta, trackLabel } from "@/engine/levels";
 import { BADGE_LIST, nextRank, RANKS, rankFor, rankProgress } from "@/engine/progression";
 import { cn } from "@/lib/cn";
 import { caseLabel, xp } from "@/lib/format";
@@ -170,7 +170,7 @@ export function Profile({ initial }: { initial: Me }) {
                     <Icon name={locked ? "lock" : LEVEL_STYLE[l.level].icon} size={16} strokeWidth={1.9} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-medium">{LEVELS[l.level].label}</div>
+                    <div className="text-[13.5px] font-medium">{levelMeta(l.level, me.user.country).label}</div>
                     <div className="text-[12px] text-fg-2 tabular">{locked ? "Pro" : l.cases ? `${l.cases} case${l.cases === 1 ? "" : "s"}` : "Not played yet"}</div>
                   </div>
                   {l.cases > 0 && <span className="text-[14px] font-semibold tabular">{l.best}</span>}
@@ -222,7 +222,7 @@ export function Profile({ initial }: { initial: Me }) {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-medium">{h.diagnosis}</div>
                     <div className="truncate text-[12px] text-fg-2">
-                      {caseLabel(h.caseNumber)} · {TRACKS[h.track].label} · {LEVELS[h.level].short} · {h.specialty}
+                      {caseLabel(h.caseNumber)} · {trackLabel(h.track, me.user.country)} · {levelMeta(h.level, me.user.country).short} · {h.specialty}
                     </div>
                   </div>
                   <span className="text-[14px] font-semibold tabular">{h.score}</span>

@@ -4,10 +4,11 @@ import type { CSSProperties } from "react";
 
 import { LEVEL_STYLE, levelGradient } from "@/components/game/level-style";
 import { Icon } from "@/components/ui/icon";
-import { LEVELS } from "@/engine/levels";
+import { levelMeta } from "@/engine/levels";
 import { CARE_LEVELS, type CareLevel, type PlayerProgress } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import type { LibraryInfo } from "@/lib/engine-client";
+import { useMe } from "@/lib/me-store";
 import type { Plan } from "@/lib/plans";
 
 /** Best score that clears a level on the path. */
@@ -37,6 +38,7 @@ function Node({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const meta = levelMeta(level, useMe()?.user.country);
   const s = LEVEL_STYLE[level];
   const r = (RING - STROKE) / 2;
   const c = 2 * Math.PI * r;
@@ -62,7 +64,7 @@ function Node({
           type="button"
           onClick={onClick}
           disabled={disabled || (!available && !locked)}
-          aria-label={`${LEVELS[level].label} — ${sub}`}
+          aria-label={`${meta.label} — ${sub}`}
           className="press absolute inset-[10px] flex items-center justify-center rounded-full text-white disabled:cursor-not-allowed disabled:opacity-45"
           style={{ background: locked || !available ? "var(--surface-3)" : levelGradient(level), "--press": locked || !available ? "var(--line)" : s.press } as CSSProperties}
         >
@@ -75,13 +77,13 @@ function Node({
           </span>
         )}
       </div>
-      <div className="mt-2.5 text-[13px] leading-tight font-semibold">{LEVELS[level].short}</div>
+      <div className="mt-2.5 text-[13px] leading-tight font-semibold">{meta.short}</div>
       <div className={cn("mt-0.5 text-[11.5px] tabular", locked ? "font-semibold text-violet" : "text-fg-3")}>{sub}</div>
     </li>
   );
 }
 
-/** PHC → Grand Rounds as a path. Every unlocked level stays playable; the path only recommends. */
+/** First contact → Global Centre of Excellence as a path. Every unlocked level stays playable; the path only recommends. */
 export function LevelPath({
   progress,
   plan,

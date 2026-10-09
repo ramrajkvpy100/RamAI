@@ -11,6 +11,7 @@ import "server-only";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { deflateRawSync, inflateRawSync } from "node:zlib";
 
+import type { Country } from "./countries";
 import type { CaseSource } from "./providers/types";
 import type { ActionRecord, Specialty } from "./types";
 
@@ -29,6 +30,8 @@ export interface SessionPayload {
   a: ActionRecord[];
   /** Created at (ms since epoch). */
   t: number;
+  /** Country the case is set in (India when absent). Fixed for the life of the case. */
+  c?: Country;
 }
 
 export class SessionError extends Error {

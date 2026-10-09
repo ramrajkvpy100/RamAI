@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { CountryPicker } from "@/components/app/country-picker";
+import { countryFromLocale, type Country } from "@/engine/countries";
 import { ClinicalEngineError, login, signup } from "@/lib/engine-client";
 
 import { AuthFrame, Field, FormError, PasswordField, SubmitButton } from "./auth-ui";
@@ -15,7 +17,11 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
   const [form, setForm] = useState({ name: "", username: "", email: "", login: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [country, setCountry] = useState<Country>("IN");
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // A first guess from the browser's language; the player can change it below.
+  useEffect(() => setCountry(countryFromLocale(navigator.language)), []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +29,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
     setError(null);
     try {
       if (mode === "login") await login({ login: form.login.trim(), password: form.password });
-      else await signup({ name: form.name.trim(), username: form.username.trim(), email: form.email.trim(), password: form.password });
+      else await signup({ name: form.name.trim(), username: form.username.trim(), email: form.email.trim(), password: form.password, country });
       router.replace(next);
       router.refresh();
     } catch (err) {
@@ -47,6 +53,11 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
             <Field label="Username" value={form.username} onChange={(e) => set("username")(e.target.value)} autoComplete="username" required minLength={3} maxLength={24} pattern="[a-zA-Z0-9._]+" placeholder="asha.verma" hint="Shown on leaderboards." />
             <Field label="Email" type="email" value={form.email} onChange={(e) => set("email")(e.target.value)} autoComplete="email" required maxLength={120} placeholder="you@example.com" hint="We'll send a link to verify it." />
             <PasswordField value={form.password} onChange={set("password")} autoComplete="new-password" hint="At least 8 characters." />
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-medium">Where you practise</span>
+              <CountryPicker value={country} onChange={setCountry} className="self-start" />
+              <span className="text-[12px] text-fg-3">Patients, units and money follow it. Change it any time.</span>
+            </div>
           </>
         ) : (
           <>

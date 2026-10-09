@@ -129,6 +129,12 @@ export interface HiddenState {
   firstTreatmentAt?: number;
 }
 
+/** "district hospital", "GP surgery", "regional medical center" — as said mid-sentence. */
+function facilityName(def: ClinicalCaseDefinition): string {
+  if (def.facility) return def.facility.replace(/\b[A-Z][a-z]+/g, (w) => w.toLowerCase());
+  return LEVELS[def.level].short === "Med College" ? "medical college" : LEVELS[def.level].label.toLowerCase();
+}
+
 export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
   const vitals = defaultVitals(def.patient);
   for (const [k, v] of Object.entries(def.baselineVitals)) {
@@ -782,7 +788,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   }
   if (!canPerform(def.level, id, { inCatalog: !!cat, minLevel: override?.minLevel })) {
     hidden.unavailable.push(id);
-    return [{ type: "message", role: "system", kind: "status", text: `${testName} isn't available at this ${LEVELS[def.level].short === "Med College" ? "medical college" : LEVELS[def.level].label.toLowerCase()}. Decide clinically, or refer.` }];
+    return [{ type: "message", role: "system", kind: "status", text: `${testName} isn't available at this ${facilityName(def)}. Decide clinically, or refer.` }];
   }
 
   const name = override?.short ?? cat?.short ?? override?.name ?? id;

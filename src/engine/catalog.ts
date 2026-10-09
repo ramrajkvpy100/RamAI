@@ -35,7 +35,7 @@ export const VITALS: VitalDefinition[] = [
   { key: "rr", label: "RR", unit: "/min", durationMin: 1, match: ["rr", "respiratory rate", "resp rate", "breathing rate", "respiration"] },
   { key: "temp", label: "Temp", unit: "°F", durationMin: 1, match: ["temperature", "temp", "thermometer"] },
   { key: "spo2", label: "SpO₂", unit: "%", durationMin: 1, match: ["spo2", "sp o2", "saturation", "saturations", "oxygen saturation", "sats", "pulse ox", "pulse oximetry", "oximetry", "o2 sat"] },
-  { key: "rbs", label: "RBS", unit: "mg/dL", durationMin: 2, match: ["rbs", "random blood sugar", "random sugar", "blood sugar", "sugar", "glucometer", "capillary glucose", "cbg", "grbs", "blood glucose", "glucose"] },
+  { key: "rbs", label: "RBS", unit: "mg/dL", durationMin: 2, match: ["rbs", "random blood sugar", "random sugar", "blood sugar", "sugar", "glucometer", "capillary glucose", "cbg", "grbs", "blood glucose", "glucose", "fingerstick", "finger stick", "fingerstick glucose", "poc glucose", "point of care glucose", "capillary blood glucose", "accucheck", "accu chek"] },
   { key: "weight", label: "Weight", unit: "kg", durationMin: 1, match: ["weight", "weigh"] },
   { key: "height", label: "Height", unit: "cm", durationMin: 1, match: ["height"] },
   { key: "bmi", label: "BMI", unit: "kg/m²", durationMin: 1, match: ["bmi", "body mass index"] },
@@ -205,7 +205,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "rft", name: "Renal function tests", short: "RFT", category: "lab", menu: "Blood",
     turnaroundMin: 40, cost: 550,
-    match: ["rft", "rfts", "kft", "kfts", "renal function", "renal function test", "kidney function", "kidney function test", "urea", "creatinine", "s creatinine", "serum creatinine", "egfr"],
+    match: ["bmp", "basic metabolic panel", "cmp", "comprehensive metabolic panel", "chem 7", "u and e", "u e", "ue", "urea and electrolytes", "renal panel", "rft", "rfts", "kft", "kfts", "renal function", "renal function test", "kidney function", "kidney function test", "urea", "creatinine", "s creatinine", "serum creatinine", "egfr"],
     normal: (c) => ({
       rows: [
         row("Urea", "24", "mg/dL", "15–40"),
@@ -287,7 +287,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "coag", name: "Coagulation profile", short: "PT/INR", category: "lab", menu: "Blood",
     turnaroundMin: 40, cost: 600,
-    match: ["pt inr", "pt", "inr", "aptt", "coagulation", "coagulation profile", "clotting", "bt ct", "prothrombin"],
+    match: ["clotting screen", "coags", "coag panel", "pt inr", "pt", "inr", "aptt", "coagulation", "coagulation profile", "clotting", "bt ct", "prothrombin"],
     normal: () => ({
       rows: [
         row("PT", "12.8", "s", "11.0–13.5"),
@@ -385,7 +385,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "blood-group", name: "Blood grouping & cross-match", short: "Group & match", category: "lab", menu: "Blood",
     turnaroundMin: 45, cost: 300,
-    match: ["blood group", "blood grouping", "grouping", "cross match", "crossmatch", "group and cross match", "gxm", "group and save"],
+    match: ["type and screen", "type and cross", "type and crossmatch", "group and screen", "blood group", "blood grouping", "grouping", "cross match", "crossmatch", "group and cross match", "gxm", "group and save"],
     normal: (c) => ({ rows: [row("ABO / Rh", BLOOD_GROUPS[c.seed % BLOOD_GROUPS.length] ?? "B positive")], report: "Two units cross-matched and reserved on request." }),
   },
   {
@@ -428,7 +428,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "peripheral-smear", name: "Peripheral blood smear", short: "Smear", category: "lab", menu: "Blood",
     turnaroundMin: 60, cost: 250,
-    match: ["peripheral smear", "pbs", "blood smear", "general blood picture", "gbp"],
+    match: ["blood film", "peripheral blood film", "peripheral smear", "pbs", "blood smear", "general blood picture", "gbp"],
     normal: () => ({ report: "Normocytic normochromic red cells. White cells normal in number and morphology. Platelets adequate on smear. No haemoparasites seen." }),
   },
   {
@@ -478,7 +478,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "urine-rm", name: "Urine routine & microscopy", short: "Urine R/M", category: "lab", menu: "Urine & stool",
     turnaroundMin: 30, cost: 150,
-    match: ["urine routine", "urine rm", "urine r m", "urine re", "urinalysis", "urine examination", "urine analysis", "urine micro", "urine microscopy", "routine urine"],
+    match: ["ua", "urine routine", "urine rm", "urine r m", "urine re", "urinalysis", "urine examination", "urine analysis", "urine micro", "urine microscopy", "routine urine"],
     normal: () => ({
       rows: [
         row("Appearance", "Pale yellow, clear"),
@@ -502,7 +502,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "stool-rm", name: "Stool routine & microscopy", short: "Stool R/M", category: "lab", menu: "Urine & stool",
     turnaroundMin: 60, cost: 200,
-    match: ["stool routine", "stool rm", "stool r m", "stool examination", "stool test", "stool for occult blood", "stool occult blood", "fobt"],
+    match: ["stool routine", "stool microscopy", "stool rm", "stool r m", "stool examination", "stool test", "stool for occult blood", "stool occult blood", "fobt"],
     normal: () => ({ report: "Brown, formed. No ova, cysts or trophozoites seen. Occult blood negative." }),
   },
 

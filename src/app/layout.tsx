@@ -8,7 +8,7 @@ const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", dis
 
 export const metadata: Metadata = {
   title: { default: "RamAI — Think like a doctor, every day", template: "%s · RamAI" },
-  description: "Clinical case simulation for doctors and medical students. Real patients, hidden diagnoses, no hints — from PHC to Grand Rounds.",
+  description: "Clinical case simulation for doctors and medical students. Real patients, hidden diagnoses, no hints — from first-contact care to the world's hardest cases. India, USA and UK.",
   applicationName: "RamAI",
   robots: { index: false, follow: false },
 };

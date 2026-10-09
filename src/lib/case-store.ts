@@ -9,6 +9,7 @@
  */
 import { useSyncExternalStore } from "react";
 
+import type { Country } from "@/engine/countries";
 import type { CaseDebrief, CaseRewards, CaseState, PatientLang, TurnEffect } from "@/engine/types";
 
 import { ClinicalEngineError, resumeCase, simulateCase, submitDoctorAction, UNAVAILABLE_MESSAGE, updateSettings, type CaseChoice } from "./engine-client";
@@ -138,6 +139,17 @@ export async function setPatientLanguage(lang: PatientLang): Promise<boolean> {
     /* the next turn renders in the new language anyway */
   }
   return true;
+}
+
+/** Where the player practises. An open case keeps the country it started in; the next one follows the new choice. */
+export async function setPracticeCountry(country: Country): Promise<boolean> {
+  try {
+    const me = (await updateSettings({ country })) as Me;
+    if (me?.user) primeMe(me);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function dismissError() {

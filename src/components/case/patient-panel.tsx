@@ -49,7 +49,7 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
           <p className="mt-1 truncate text-[12.5px] text-fg-2">
             {[patient.occupation, patient.city.split(",").pop()?.trim()].filter(Boolean).join(" · ")}
           </p>
-          <LangToggle value={state.lang} className="mt-2" />
+          <LangToggle value={state.lang} country={state.country} className="mt-2" />
         </div>
       </section>
 

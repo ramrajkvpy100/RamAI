@@ -108,7 +108,7 @@ function Finding({ m, state, isNew, highlightIds }: { m: EncounterMessage; state
   const results = (m.attachmentIds ?? []).map((id) => state.investigations.find((i) => i.id === id)).filter((x): x is NonNullable<typeof x> => !!x);
   const [head, ...rest] = m.text.split(" — ");
   const isExam = rest.length > 0 && !results.length;
-  const isObservation = !results.length && !isExam && /\s·\s|mmHg|\/min|mg\/dL|°F|%/.test(m.text) && m.text.length < 160;
+  const isObservation = !results.length && !isExam && /\s·\s|mmHg|\/min|mg\/dL|mmol\/L|°F|°C|%/.test(m.text) && m.text.length < 160;
 
   if (results.length > 0) {
     return (
@@ -120,7 +120,7 @@ function Finding({ m, state, isNew, highlightIds }: { m: EncounterMessage; state
           {results.length === 1 ? "Result available" : `${results.length} results available`}
         </div>
         {results.map((r) => (
-          <ResultCard key={r.id} inv={r} arrivalMinuteOfDay={state.arrivalMinuteOfDay} now={state.clock} highlight={highlightIds.has(r.id)} className="max-w-[600px]" />
+          <ResultCard key={r.id} inv={r} arrivalMinuteOfDay={state.arrivalMinuteOfDay} now={state.clock} country={state.country} highlight={highlightIds.has(r.id)} className="max-w-[600px]" />
         ))}
       </div>
     );

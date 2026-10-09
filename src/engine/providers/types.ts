@@ -6,6 +6,7 @@
  */
 
 import type { ClinicalCaseDefinition } from "../case-definition";
+import type { Country } from "../countries";
 import type { HiddenState } from "../simulator";
 import type { CareLevel, CaseTrack, EncounterMessage, ResolvedIntent, Specialty } from "../types";
 
@@ -19,6 +20,8 @@ export interface StartOptions {
   allowedLevels?: readonly CareLevel[];
   /** Library case ids recently played (revealed to the client only after closure). */
   exclude?: readonly string[];
+  /** Where the player practises: who the patients are, the units, the money. */
+  country?: Country;
 }
 
 export interface InterpretContext {
@@ -26,6 +29,8 @@ export interface InterpretContext {
   hidden: HiddenState;
   /** Recent transcript, for language models that need conversational context. */
   transcript: readonly EncounterMessage[];
+  /** Where the case is set, so generated replies use the local idiom. */
+  country?: Country;
 }
 
 export interface Interpretation {
@@ -39,8 +44,8 @@ export interface ClinicalProvider {
   createCase(opts: StartOptions): Promise<CaseSource>;
   resolveCase(src: CaseSource): ClinicalCaseDefinition;
   interpret(text: string, ctx: InterpretContext): Promise<Interpretation>;
-  /** Number of available cases per specialty, mode and level. */
-  availability(): Promise<{
+  /** Number of available cases per specialty, mode and level, in the player's country. */
+  availability(country?: Country): Promise<{
     specialties: Partial<Record<Specialty, number>>;
     tracks: Partial<Record<CaseTrack, number>>;
     levels: Partial<Record<CareLevel, number>>;

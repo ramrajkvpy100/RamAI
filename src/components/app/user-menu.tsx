@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { LangToggle } from "@/components/case/lang-toggle";
+import { CountryPicker } from "@/components/app/country-picker";
 import { useLauncher } from "@/components/home/use-launcher";
 import { Avatar } from "@/components/game/avatar";
 import { RankBadge } from "@/components/game/rank-badge";
@@ -41,7 +42,7 @@ export function UserMenu({ me }: { me: Me }) {
         <Avatar name={me.user.name} size={32} />
       </button>
       {open && (
-        <div role="menu" className="glass absolute top-full right-0 z-50 mt-2 w-[290px] animate-enter rounded-2xl p-2">
+        <div role="menu" className="popover absolute top-full right-0 z-50 mt-2 w-[300px] animate-enter rounded-2xl p-2">
           <div className="flex items-center gap-3 px-2.5 pt-2 pb-3">
             <Avatar name={me.user.name} size={38} />
             <div className="min-w-0">
@@ -99,10 +100,18 @@ export function UserMenu({ me }: { me: Me }) {
           </div>
           <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-[13.5px]">
             <span className="flex items-center gap-2.5">
-              <Icon name="chat" size={15} className="text-fg-2" /> Patients speak
+              <Icon name="globe" size={15} className="text-fg-2" /> Practise in
             </span>
-            <LangToggle />
+            <CountryPicker />
           </div>
+          {me.user.country === "IN" && (
+            <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-[13.5px]">
+              <span className="flex items-center gap-2.5">
+                <Icon name="chat" size={15} className="text-fg-2" /> Patients speak
+              </span>
+              <LangToggle />
+            </div>
+          )}
           <button
             role="menuitem"
             type="button"

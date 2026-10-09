@@ -40,6 +40,7 @@ export async function POST(req: Request) {
       exclude: recentCaseRefs(user.id),
       lang: user.patientLang,
       tutorial,
+      country: user.country,
     });
     recordCaseStart(user.id, session.state.sessionId, tutorial);
     return ok(session);

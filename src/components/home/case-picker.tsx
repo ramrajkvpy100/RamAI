@@ -6,12 +6,13 @@ import { LangToggle } from "@/components/case/lang-toggle";
 import { LEVEL_STYLE, levelGradient, TRACK_ICON } from "@/components/game/level-style";
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
-import { LEVELS, TRACKS } from "@/engine/levels";
+import { levelMeta, trackLabel } from "@/engine/levels";
 import { ALL_SPECIALTIES } from "@/engine/progression";
 import { CARE_LEVELS, CASE_TRACKS, type CareLevel, type CaseTrack, type Specialty } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import type { CaseChoice, LibraryInfo } from "@/lib/engine-client";
 import { caseLabel } from "@/lib/format";
+import { useMe } from "@/lib/me-store";
 import type { Plan } from "@/lib/plans";
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
@@ -43,6 +44,7 @@ export function CasePicker({
   starting: boolean;
   activeCase?: number;
 }) {
+  const country = useMe()?.user.country ?? "IN";
   const [track, setTrack] = useState<CaseTrack | undefined>();
   const [level, setLevel] = useState<CareLevel | undefined>();
   const [specialty, setSpecialty] = useState<Specialty | undefined>();
@@ -82,7 +84,7 @@ export function CasePicker({
                   )}
                 >
                   {t && <Icon name={TRACK_ICON[t]} size={14} className="hidden sm:block" />}
-                  {t ? (t === "phone" ? "Phone" : TRACKS[t].label) : "Any"}
+                  {t ? (t === "phone" ? "Phone" : trackLabel(t, country)) : "Any"}
                 </button>
               );
             })}
@@ -121,8 +123,8 @@ export function CasePicker({
                     <Icon name={locked ? "lock" : LEVEL_STYLE[l].icon} size={15} strokeWidth={1.9} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[13.5px] leading-tight font-semibold">{LEVELS[l].short}</span>
-                    <span className="mt-0.5 block truncate text-[11.5px] text-fg-2">{locked ? "Pro" : none ? "Coming soon" : LEVELS[l].tagline}</span>
+                    <span className="block text-[13.5px] leading-tight font-semibold">{levelMeta(l, country).short}</span>
+                    <span className="mt-0.5 block truncate text-[11.5px] text-fg-2">{locked ? "Pro" : none ? "Coming soon" : levelMeta(l, country).tagline}</span>
                   </span>
                 </button>
               );

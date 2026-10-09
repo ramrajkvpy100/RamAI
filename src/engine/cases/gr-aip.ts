@@ -1,7 +1,7 @@
 import type { ClinicalCaseDefinition } from "../case-definition";
 import { ecg } from "./media";
 
-/** Grand Rounds: recurrent "unexplained" abdominal pain — acute intermittent porphyria. */
+/** Global Centre of Excellence: recurrent "unexplained" abdominal pain — acute intermittent porphyria. */
 export const grAip: ClinicalCaseDefinition = {
   id: "gr-aip-01",
   specialty: "Medicine",

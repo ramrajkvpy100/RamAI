@@ -3,7 +3,7 @@ import { Icon } from "@/components/ui/icon";
 import { Badge, Label } from "@/components/ui/primitives";
 import type { CaseDebrief, DrugMonograph, PracticalRoutine, SeverityBand } from "@/engine/types";
 import { cn } from "@/lib/cn";
-import { rupees } from "@/lib/format";
+import { money } from "@/lib/format";
 
 import { Bullets, Chain, Steps } from "./flow";
 
@@ -304,7 +304,7 @@ export function InvestigationsSection({ d }: { d: CaseDebrief }) {
   const ordered = new Set(d.orderedInvestigationIds);
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[12.5px] text-fg-2 tabular">You spent {rupees(d.spend)} on investigations.</p>
+      <p className="text-[12.5px] text-fg-2 tabular">You spent {money(d.spend, d.country)} on investigations.</p>
       <div className="overflow-hidden rounded-lg border border-line">
         <ul className="divide-y divide-line-2">
           {d.investigations.map((inv) => {
@@ -321,7 +321,7 @@ export function InvestigationsSection({ d }: { d: CaseDebrief }) {
                 </div>
                 <div className="flex items-start gap-2 sm:flex-col sm:items-end">
                   <Badge tone={PRIORITY_TONE[inv.priority]}>{inv.priority}</Badge>
-                  {inv.cost ? <span className="text-[11.5px] text-fg-3 tabular">{rupees(inv.cost)}</span> : null}
+                  {inv.cost ? <span className="text-[11.5px] text-fg-3 tabular">{money(inv.cost, d.country)}</span> : null}
                 </div>
               </li>
             );

@@ -174,7 +174,9 @@ function Workspace() {
     setTab("patient");
     setPanelOpen(true);
   }, [md, setPanelOpen]);
-  const sceneValue = useMemo(() => ({ alarm: alarmState, speaking, openPatient }), [alarmState, speaking, openPatient]);
+  const attachMonitor = useCallback(() => void send("Attach cardiac monitor"), []);
+  const busy = !!snap.sending;
+  const sceneValue = useMemo(() => ({ alarm: alarmState, speaking, openPatient, attachMonitor, busy }), [alarmState, speaking, openPatient, attachMonitor, busy]);
 
   const endCase = () => {
     setEnding(false);
@@ -240,7 +242,7 @@ function Workspace() {
                       </button>
                     </div>
                     <Coach state={state} />
-                  <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} />
+                  <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} country={state.country} />
                   </div>
                 </div>
               </main>

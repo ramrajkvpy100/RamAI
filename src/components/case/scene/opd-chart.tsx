@@ -1,8 +1,10 @@
-import { LEVELS } from "@/engine/levels";
+import { glucoseLabel } from "@/engine/countries";
+import { levelMeta } from "@/engine/levels";
 import type { CaseState, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { clockAt } from "@/lib/format";
 
+import { AttachMonitorButton } from "./bedside-monitor";
 import { tokenNumber } from "./scene";
 
 const ROWS: { k: VitalKey; label: string; unit: string }[] = [
@@ -24,7 +26,7 @@ export function OpdChart({ state, className }: { state: CaseState; className?: s
       <div className="flex items-stretch justify-between gap-3 border-b border-line bg-[color-mix(in_srgb,var(--accent)_7%,var(--surface))] px-4 py-3">
         <div className="min-w-0">
           <div className="micro text-accent-text">Outpatient card</div>
-          <div className="mt-1 truncate text-[13px] text-fg">{LEVELS[state.level].label}</div>
+          <div className="mt-1 truncate text-[13px] text-fg">{levelMeta(state.level, state.country).label}</div>
           <div className="text-[12px] text-fg-3 tabular">Registered {clockAt(state.arrivalMinuteOfDay, 0)}</div>
         </div>
         <div className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-fg px-3 py-1.5 text-bg">
@@ -37,16 +39,22 @@ export function OpdChart({ state, className }: { state: CaseState; className?: s
           const r = state.vitals[row.k]?.current;
           return (
             <div key={row.k} className="flex items-baseline gap-2 border-b border-dashed border-line py-2 last:border-b-0">
-              <dt className="w-16 shrink-0 text-[12.5px] text-fg-2">{row.label}</dt>
+              <dt className="w-16 shrink-0 text-[12.5px] text-fg-2">{row.k === "rbs" ? glucoseLabel(state.country) : row.label}</dt>
               <dd className={cn("min-w-0 flex-1 font-mono text-[15px] tabular", r ? TONE[r.flag] : "text-fg-3")}>
                 {r ? r.value : "—"}
-                {r && <span className="ml-1 font-sans text-[11px] text-fg-3">{row.unit}</span>}
+                {r && <span className="ml-1 font-sans text-[11px] text-fg-3">{r.unit ?? row.unit}</span>}
               </dd>
               {r && <span className="text-[11px] text-fg-3 tabular">{clockAt(state.arrivalMinuteOfDay, r.at)}</span>}
             </div>
           );
         })}
       </dl>
+      {(state.patientStatus === "guarded" || state.patientStatus === "deteriorating" || state.patientStatus === "critical") && !state.monitored && (
+        <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
+          <span className="text-[12px] text-fg-2">Unwell in clinic? Put them on a monitor.</span>
+          <AttachMonitorButton state={state} tone="light" />
+        </div>
+      )}
     </section>
   );
 }

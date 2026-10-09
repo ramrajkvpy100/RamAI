@@ -4,7 +4,8 @@ import { MediaFigure } from "@/components/media/media-figure";
 import { Icon } from "@/components/ui/icon";
 import type { Flag, InvestigationResult } from "@/engine/types";
 import { cn } from "@/lib/cn";
-import { clockAt, rupees } from "@/lib/format";
+import type { Country } from "@/engine/countries";
+import { clockAt, money } from "@/lib/format";
 
 const FLAG_CLASS: Record<Flag, string> = {
   normal: "text-fg",
@@ -25,12 +26,15 @@ export function ResultCard({
   inv,
   arrivalMinuteOfDay,
   now,
+  country,
   className,
   highlight = false,
 }: {
   inv: InvestigationResult;
   arrivalMinuteOfDay: number;
   now: number;
+  /** Costs are already in this country's money. */
+  country?: Country;
   className?: string;
   highlight?: boolean;
 }) {
@@ -108,7 +112,7 @@ export function ResultCard({
         </>
       )}
       {typeof inv.cost === "number" && inv.cost > 0 && (
-        <footer className="flex justify-end border-t border-line-2 px-4 py-1.5 text-[11px] text-fg-3 tabular">{rupees(inv.cost)}</footer>
+        <footer className="flex justify-end border-t border-line-2 px-4 py-1.5 text-[11px] text-fg-3 tabular">{money(inv.cost, country)}</footer>
       )}
     </article>
   );

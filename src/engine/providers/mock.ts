@@ -38,7 +38,7 @@ export const mockProvider: ClinicalProvider = {
     return { intents: resolveIntents(text, { def: ctx.def, setting: ctx.hidden.setting, weightKg }) };
   },
 
-  async availability() {
-    return libraryAvailability();
+  async availability(country) {
+    return libraryAvailability(country);
   },
 };

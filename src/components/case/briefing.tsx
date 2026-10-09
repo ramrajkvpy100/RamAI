@@ -6,7 +6,7 @@ import { useEffect, type CSSProperties } from "react";
 import { LogoTile } from "@/components/brand/wordmark";
 import { FamilyFigure, PatientFigure } from "@/components/game/caricature";
 import { Icon } from "@/components/ui/icon";
-import { LEVELS, TRACKS } from "@/engine/levels";
+import { levelMeta, trackLabel } from "@/engine/levels";
 import type { CaseState } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { caseLabel, clockAt } from "@/lib/format";
@@ -108,8 +108,8 @@ export function Briefing({ state, onBegin }: { state: CaseState; onBegin: () => 
         <div className="flex min-w-0 items-center gap-2 truncate text-[12.5px] text-fg-2">
           <span className="font-semibold text-fg tabular">{caseLabel(state.caseNumber)}</span>
           <span>·</span>
-          <span>{TRACKS[state.track].label}</span>
-          <span className="hidden sm:inline">· {LEVELS[state.level].label}</span>
+          <span>{trackLabel(state.track, state.country)}</span>
+          <span className="hidden sm:inline">· {levelMeta(state.level, state.country).label}</span>
         </div>
       </header>
 
@@ -140,7 +140,7 @@ export function Briefing({ state, onBegin }: { state: CaseState; onBegin: () => 
           </button>
           <div className="mt-5 flex items-center justify-center gap-2 text-[12.5px] text-fg-3">
             <span>{state.track === "phone" ? "The family speaks" : "The patient speaks"}</span>
-            <LangToggle value={state.lang} />
+            <LangToggle value={state.lang} country={state.country} />
           </div>
         </div>
       </main>

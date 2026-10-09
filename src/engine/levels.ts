@@ -60,6 +60,11 @@ export const TRACKS: Record<CaseTrack, { id: CaseTrack; label: string; descripti
   emergency: { id: "emergency", label: "Emergency", description: "Sick patients, ticking clocks" },
 };
 
+/** A mode as it's called in the player's country: OPD in India, Clinic elsewhere. */
+export function trackLabel(track: CaseTrack, country: Country = "IN"): string {
+  return track === "opd" && country !== "IN" ? "Clinic" : TRACKS[track].label;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Facility capability                                                         */
 /* -------------------------------------------------------------------------- */

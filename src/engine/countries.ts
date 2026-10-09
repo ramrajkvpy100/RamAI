@@ -51,6 +51,9 @@ export function formatMoney(amount: number, country: Country = "IN"): string {
   return `${c.symbol}${Math.round(amount).toLocaleString(c.locale)}`;
 }
 
+/** What the fingerstick glucose is called on screen: RBS (India), Glucose (USA), CBG (UK). */
+export const glucoseLabel = (country: Country = "IN") => COUNTRY[country].glucoseLabel;
+
 /** A best guess from the browser's language: en-US → USA, en-GB → UK, otherwise India. */
 export function countryFromLocale(locale: string | undefined): Country {
   const l = (locale ?? "").toLowerCase();

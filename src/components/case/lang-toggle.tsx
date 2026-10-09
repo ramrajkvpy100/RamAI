@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import type { Country } from "@/engine/countries";
 import type { PatientLang } from "@/engine/types";
 import { setPatientLanguage } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
@@ -11,11 +12,13 @@ const LABEL: Record<PatientLang, string> = { en: "English", hinglish: "Hinglish"
 
 /**
  * English / Hinglish for what patients and families say. Saved to the account;
- * an open case re-renders in the new language straight away.
+ * an open case re-renders in the new language straight away. India only —
+ * patients in the USA and the UK speak English.
  */
-export function LangToggle({ value, tone = "default", className }: { value?: PatientLang; tone?: "default" | "dark"; className?: string }) {
+export function LangToggle({ value, country, tone = "default", className }: { value?: PatientLang; country?: Country; tone?: "default" | "dark"; className?: string }) {
   const me = useMe();
   const [pending, setPending] = useState<PatientLang | null>(null);
+  if ((country ?? me?.user.country ?? "IN") !== "IN") return null;
   const current = pending ?? value ?? me?.user.patientLang ?? "en";
   const choose = async (lang: PatientLang) => {
     if (lang === current) return;

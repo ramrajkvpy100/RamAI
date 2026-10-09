@@ -17,6 +17,7 @@
  * • Patient replies are spoken words — human, specific, free of jargon.
  */
 
+import type { Country } from "./countries";
 import type {
   CareLevel,
   CareSetting,
@@ -303,6 +304,10 @@ export interface ClinicalCaseDefinition {
   id: string;
   /** The guided demo case: on-screen tips are allowed, and it's never picked at random. */
   guided?: boolean;
+  /** Countries the case is set in. Omitted: every country (localised for each). */
+  countries?: Country[];
+  /** What the facility is called where this rendering of the case is set; filled in by localisation. */
+  facility?: string;
   specialty: Specialty;
   track: CaseTrack;
   level: CareLevel;

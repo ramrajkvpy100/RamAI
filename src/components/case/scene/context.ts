@@ -10,12 +10,18 @@ export interface SceneContextValue {
   speaking: boolean;
   /** Opens the full patient panel (sheet on phones, tab on tablets). */
   openPatient: () => void;
+  /** Puts the patient on the bedside monitor — the same as typing the order. */
+  attachMonitor: () => void;
+  /** A turn is being sent. */
+  busy: boolean;
 }
 
 const SceneContext = createContext<SceneContextValue>({
   alarm: { level: null, silenced: false, sound: false, silence: () => undefined },
   speaking: false,
   openPatient: () => undefined,
+  attachMonitor: () => undefined,
+  busy: false,
 });
 
 export const SceneProvider = SceneContext.Provider;

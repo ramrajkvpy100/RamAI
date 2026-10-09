@@ -3,6 +3,7 @@ import type { CareSetting, PatientStatus, Specialty } from "@/engine/types";
 export const caseLabel = (n: number) => `CASE ${String(n).padStart(3, "0")}`;
 
 export const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+export { formatMoney as money } from "@/engine/countries";
 
 export const xp = (n: number) => Math.round(n).toLocaleString("en-IN");
 

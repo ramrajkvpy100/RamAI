@@ -7,6 +7,8 @@ export const emViperPhc: ClinicalCaseDefinition = {
   specialty: "Emergency",
   track: "emergency",
   level: "phc",
+  // Russell's viper, a PHC and 20WBCT: this case only makes sense in India.
+  countries: ["IN"],
   setting: "ER",
   weight: 3,
   difficulty: 2,

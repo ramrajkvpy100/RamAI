@@ -129,7 +129,7 @@ const BADGES: (Badge & { earned: (h: CompletedCaseSummary[], bestStreak: number)
   { id: "rescuer", label: "Saved in time", description: "Rescued a deteriorating patient", earned: (h) => h.some((x) => x.rescued) },
   { id: "sharp", label: "Sharp eye", description: "Scored 90 or more", earned: (h) => h.some((x) => x.score >= 90) },
   { id: "phone", label: "Steady voice", description: "Three phone consults scored 70+", earned: (h) => h.filter((x) => x.track === "phone" && x.score >= 70).length >= 3 },
-  { id: "grand-rounds", label: "Grand Rounds", description: "Solved a Grand Rounds case", earned: (h) => h.some((x) => x.level === "grandrounds" && (x.verdict === "correct" || x.verdict === "implied")) },
+  { id: "grand-rounds", label: "World class", description: "Solved a Global Centre of Excellence case", earned: (h) => h.some((x) => x.level === "grandrounds" && (x.verdict === "correct" || x.verdict === "implied")) },
   { id: "full-circuit", label: "Full circuit", description: "Played every care level", earned: (h) => CARE_LEVELS.every((l) => h.some((x) => x.level === l)) },
 ];
 

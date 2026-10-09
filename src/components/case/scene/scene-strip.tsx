@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/icon";
+import { glucoseLabel } from "@/engine/countries";
 import type { CaseState, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
 
@@ -47,7 +48,7 @@ export function SceneStrip({ state, className }: { state: CaseState; className?:
     { k: "hr", label: "Pulse" },
     { k: "temp", label: "Temp" },
     { k: "spo2", label: "SpO₂" },
-    { k: "rbs", label: "RBS" },
+    { k: "rbs", label: glucoseLabel(state.country) },
   ];
   return (
     <button type="button" onClick={openPatient} className={cn("flex w-full items-center gap-3 border-b border-line-2 bg-surface px-3 py-2 text-left", className)} aria-label="Open the outpatient card">

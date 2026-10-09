@@ -6,7 +6,7 @@ import { LogoTile } from "@/components/brand/wordmark";
 import { Button, IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { StatusDot } from "@/components/ui/primitives";
-import { LEVELS, TRACKS } from "@/engine/levels";
+import { levelMeta, trackLabel } from "@/engine/levels";
 import type { CaseState } from "@/engine/types";
 import { caseLabel, clockAt, STATUS_LABEL, STATUS_TONE } from "@/lib/format";
 
@@ -40,7 +40,7 @@ export function CaseTopBar({
         <div className="flex min-w-0 flex-col leading-tight">
           <span className="text-[13px] font-semibold tracking-[0.02em] tabular">{caseLabel(state.caseNumber)}</span>
           <span className="truncate text-[11.5px] text-fg-2">
-            {TRACKS[state.track].label} · {LEVELS[state.level].short}
+            {trackLabel(state.track, state.country)} · {levelMeta(state.level, state.country).short}
           </span>
         </div>
 

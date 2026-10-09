@@ -9,7 +9,7 @@ import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
 import { HeartScene } from "@/components/three/heart-scene";
 import { Icon } from "@/components/ui/icon";
-import { LEVELS } from "@/engine/levels";
+import { levelMeta } from "@/engine/levels";
 import { nextRank, rankFor, rankProgress } from "@/engine/progression";
 import type { CareLevel } from "@/engine/types";
 import { hydrate, useCase } from "@/lib/case-store";
@@ -26,8 +26,9 @@ import { UpgradeSheet } from "./upgrade-sheet";
 import { useLauncher } from "./use-launcher";
 import { LeagueCard } from "./week-board";
 
+/** By the player's own clock — they may be in Delhi, Dallas or Dundee. */
 function greeting(now = new Date()) {
-  const h = Number(new Intl.DateTimeFormat("en-IN", { hour: "numeric", hour12: false, timeZone: "Asia/Kolkata" }).format(now));
+  const h = now.getHours();
   return h < 5 ? "Late shift" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
@@ -72,7 +73,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
 
   const locked = (level: CareLevel) => {
     setPicker(false);
-    setGate({ code: "PRO_REQUIRED", message: `${LEVELS[level].label} cases are part of RamAI Pro — along with unlimited cases every day.` });
+    setGate({ code: "PRO_REQUIRED", message: `${levelMeta(level, me.user.country).label} cases are part of RamAI Pro — along with unlimited cases every day.` });
   };
   const start = async (choice: Parameters<typeof launch>[0]) => {
     if (left === 0) {

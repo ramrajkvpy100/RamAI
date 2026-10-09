@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
+import { CountryPicker } from "@/components/app/country-picker";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Avatar } from "@/components/game/avatar";
 import { GoalRing } from "@/components/game/goal-ring";
@@ -13,7 +14,8 @@ import { PeriodToggle, PlanCards } from "@/components/pricing/plan-cards";
 import { Footer } from "@/components/shell/footer";
 import { HeartScene } from "@/components/three/heart-scene";
 import { Icon } from "@/components/ui/icon";
-import { LEVELS, TRACKS } from "@/engine/levels";
+import { countryFromLocale, type Country } from "@/engine/countries";
+import { levelMeta, trackLabel } from "@/engine/levels";
 import { RANKS } from "@/engine/progression";
 import { CARE_LEVELS, CASE_TRACKS } from "@/engine/types";
 import { cn } from "@/lib/cn";
@@ -176,10 +178,21 @@ function SectionHead({ eyebrow, title, body }: { eyebrow: string; title: string;
   );
 }
 
+/** A guess at where the visitor practises, from the browser's language — India until the page knows. */
+function useVisitorCountry(): [Country, (country: Country) => void] {
+  const [country, setCountry] = useState<Country>("IN");
+  useEffect(() => setCountry(countryFromLocale(navigator.language)), []);
+  return [country, setCountry];
+}
+
 function Ladder() {
+  const [country, setCountry] = useVisitorCountry();
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-      <SectionHead eyebrow="Six care levels" title="From PHC to Grand Rounds." body="The facility decides what you can order. The level decides how hard the patient is. Climb from first-contact care to the rarest diagnoses in medicine." />
+      <SectionHead eyebrow="Six care levels" title="From first contact to the world's hardest cases." body="The facility decides what you can order. The level decides how hard the patient is. Climb from first-contact care to the rarest diagnoses in medicine — in India, the USA or the UK." />
+      <div className="mt-6 flex justify-center">
+        <CountryPicker value={country} onChange={setCountry} />
+      </div>
       <ol className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:items-end">
         {CARE_LEVELS.map((id, i) => {
           const pro = !PLANS.free.levels.includes(id);
@@ -192,8 +205,8 @@ function Ladder() {
                 <span className={cn("absolute top-3.5 right-3.5 rounded-full px-2 py-0.5 text-[10.5px] font-semibold", pro ? "bg-ai text-white" : "bg-success-soft text-success")}>{pro ? "Pro" : "Free"}</span>
                 <div className="mt-auto pt-6">
                   <div className="micro text-fg-3">Level {i + 1}</div>
-                  <div className="mt-1 text-[15px] leading-tight font-semibold">{LEVELS[id].label}</div>
-                  <div className="mt-1 text-[12.5px] leading-5 text-fg-2">{LEVELS[id].tagline}</div>
+                  <div className="mt-1 text-[15px] leading-tight font-semibold">{levelMeta(id, country).label}</div>
+                  <div className="mt-1 text-[12.5px] leading-5 text-fg-2">{levelMeta(id, country).tagline}</div>
                 </div>
               </div>
             </li>
@@ -205,12 +218,13 @@ function Ladder() {
 }
 
 const MODE_COPY: Record<(typeof CASE_TRACKS)[number], string> = {
-  opd: "Walk-in patients. History, examination, the right test and the right prescription — at Indian prices.",
+  opd: "Walk-in patients. History, examination, the right test and the right prescription — at local prices.",
   phone: "A worried caller and no examination. Triage, advise, and know when to send them in.",
   emergency: "Unstable patients and a ticking clock. Wrong orders have consequences — and a window to rescue.",
 };
 
 function Modes() {
+  const [country] = useVisitorCountry();
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
       <SectionHead eyebrow="Three modes" title="Every way patients reach you." />
@@ -221,7 +235,7 @@ function Modes() {
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent-text">
                 <Icon name={TRACK_ICON[t]} size={20} />
               </span>
-              <h3 className="mt-5 text-[17px] font-semibold tracking-[-0.01em]">{TRACKS[t].label}</h3>
+              <h3 className="mt-5 text-[17px] font-semibold tracking-[-0.01em]">{trackLabel(t, country)}</h3>
               <p className="mt-2 text-[14px] leading-6 text-fg-2">{MODE_COPY[t]}</p>
             </div>
           </Tilt>

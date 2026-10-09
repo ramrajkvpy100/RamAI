@@ -52,3 +52,26 @@ describe("guided demo case", () => {
     expect(debrief.score.total).toBeGreaterThanOrEqual(80);
   });
 });
+
+describe("guided demo case abroad — the coach's words work", () => {
+  const plan = (check: string, bolus: string, recheck: string, drip: string) => [
+    "What happened?", "Is he diabetic?", "What medicines does he take?", "When did he last eat?", "Any allergies?", check,
+    bolus, recheck, "Check vitals", "Examine the patient", "Neurological examination",
+    drip, "Stop glimepiride", "Admit to the ward", "Diagnosis: sulfonylurea induced hypoglycemia", "End case",
+  ];
+
+  it.each([
+    ["US", plan("Check glucose", "Give D50 50 mL IV", "Recheck glucose", "Start D10 infusion")],
+    ["UK", plan("Check CBG", "Give 20% glucose 100 mL IV", "Recheck CBG", "Start 10% glucose infusion")],
+  ] as const)("%s: same recovery, same score", async (country, inputs) => {
+    const { localizeCase } = await import("@/engine/i18n/country");
+    const def = localizeCase(TUTORIAL_CASE, country);
+    const { hidden, state, turns } = play(def, [...inputs]);
+    expect(state.vitals.rbs!.history.length).toBeGreaterThan(0);
+    expect(messagesOf(turns[6]!.effects).some((m) => m.startsWith("patient:") && /better/.test(m))).toBe(true);
+    const debrief = generateDebrief(def, hidden, state);
+    expect(debrief.verdict).toBe("correct");
+    expect(debrief.score.total).toBeGreaterThanOrEqual(80);
+    expect(debrief.missed.map((m) => m.what).join(" ")).not.toMatch(/dextrose|infusion|glimepiride/i);
+  });
+});
