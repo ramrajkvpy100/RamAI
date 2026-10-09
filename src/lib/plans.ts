@@ -20,7 +20,7 @@ export const PLANS: Record<PlanId, Plan> = {
     label: "Free",
     dailyCases: 3,
     levels: ["phc", "chc", "district"],
-    features: ["3 cases a day", "PHC, CHC and District Hospital", "OPD, phone and emergency modes", "Full debrief and score", "Weekly leaderboards"],
+    features: ["3 cases a day", "The first three care levels", "OPD, phone and emergency modes", "Full debrief and score", "Weekly leaderboards"],
   },
   pro: {
     id: "pro",

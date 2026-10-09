@@ -161,7 +161,16 @@ export function Pricing({ initial }: { initial: Me | null }) {
       <div className="mt-8 w-full">
         <PlanCards period={period} free={freeAction} pro={proAction} />
       </div>
-      <p className="mt-6 text-center text-[12.5px] text-fg-3">One-time payment for 30 or 365 days — no auto-renewal.</p>
+      <p className="mt-6 text-center text-[12.5px] leading-6 text-fg-3">
+        One-time payment for 30 or 365 days — no auto-renewal. 7-day money-back guarantee.{" "}
+        <Link href="/refund-policy" className="underline underline-offset-2 hover:text-fg">
+          Refund policy
+        </Link>{" "}
+        ·{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-fg">
+          Terms
+        </Link>
+      </p>
     </div>
   );
 }

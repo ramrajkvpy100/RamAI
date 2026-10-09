@@ -80,6 +80,19 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
         <SubmitButton busy={busy} busyLabel={mode === "login" ? "Logging in…" : "Creating account…"}>
           {mode === "login" ? "Log in" : "Create account"}
         </SubmitButton>
+        {mode === "signup" && (
+          <p className="text-center text-[12px] leading-5 text-fg-3">
+            By creating an account you agree to the{" "}
+            <Link href="/terms" className="underline underline-offset-2 hover:text-fg">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline underline-offset-2 hover:text-fg">
+              Privacy policy
+            </Link>
+            , and that RamAI is for education only.
+          </p>
+        )}
       </form>
 
       <p className="mt-6 text-center text-[13.5px] text-fg-2">
