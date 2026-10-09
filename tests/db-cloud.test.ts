@@ -86,3 +86,42 @@ describe("the cloud database adapter", () => {
     expect((await progressFor(guest.id)).casesCompleted).toBe(1);
   });
 });
+
+describe("hosting without extra settings", () => {
+  it("finds the Turso database under the integration's names, or a custom prefix", async () => {
+    const { remoteDatabase } = await import("@/lib/server/database-env");
+    expect(remoteDatabase({ TURSO_DATABASE_URL: "libsql://a.turso.io", TURSO_AUTH_TOKEN: "t1" })).toEqual({ url: "libsql://a.turso.io", authToken: "t1" });
+    expect(remoteDatabase({ STORE_DATABASE_URL: "libsql://b.turso.io", STORE_AUTH_TOKEN: "t2" })).toEqual({ url: "libsql://b.turso.io", authToken: "t2" });
+    expect(remoteDatabase({ DATABASE_URL: "postgres://x", PATH: "/bin" })).toBeNull();
+  });
+
+  it("seals case sessions in production with only the database token", async () => {
+    const { seal, unseal } = await import("@/engine/session");
+    const env = process.env as Record<string, string | undefined>;
+    const saved = { node: env.NODE_ENV, secret: env.RAMAI_SESSION_SECRET, url: env.TURSO_DATABASE_URL, token: env.TURSO_AUTH_TOKEN };
+    env.NODE_ENV = "production";
+    delete env.RAMAI_SESSION_SECRET;
+    env.TURSO_DATABASE_URL = "libsql://example.turso.io";
+    env.TURSO_AUTH_TOKEN = "x".repeat(40) + ".signature-part-of-a-long-turso-token";
+    try {
+      const token = seal({ v: 1, sid: "s", u: "u", n: 1, src: { kind: "library", id: "x" }, a: [], t: 1 });
+      expect(unseal(token).sid).toBe("s");
+    } finally {
+      for (const [k, v] of Object.entries({ NODE_ENV: saved.node, RAMAI_SESSION_SECRET: saved.secret, TURSO_DATABASE_URL: saved.url, TURSO_AUTH_TOKEN: saved.token })) {
+        if (v === undefined) delete env[k];
+        else env[k] = v;
+      }
+    }
+  });
+
+  it("links emails to Vercel's production address when no app URL is set", async () => {
+    const { appUrl } = await import("@/server/account");
+    const env = process.env as Record<string, string | undefined>;
+    env.VERCEL_PROJECT_PRODUCTION_URL = "ram-ai-liard.vercel.app";
+    try {
+      expect(appUrl(new Request("https://evil.example.com/x", { headers: { host: "evil.example.com" } }))).toBe("https://ram-ai-liard.vercel.app");
+    } finally {
+      delete env.VERCEL_PROJECT_PRODUCTION_URL;
+    }
+  });
+});

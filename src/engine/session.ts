@@ -8,8 +8,10 @@
  */
 import "server-only";
 
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import { deflateRawSync, inflateRawSync } from "node:zlib";
+
+import { remoteDatabase } from "@/lib/server/database-env";
 
 import type { Country } from "./countries";
 import type { CaseSource } from "./providers/types";
@@ -54,6 +56,10 @@ let warned = false;
 function key(): Buffer {
   const secret = process.env.RAMAI_SESSION_SECRET;
   if (!secret || secret.length < 32) {
+    // No secret of its own: derive one from the cloud database's token, which is just as private.
+    // Setting RAMAI_SESSION_SECRET later is still better — it then takes over (open cases restart).
+    const dbToken = remoteDatabase()?.authToken;
+    if (dbToken && dbToken.length >= 32) return createHmac("sha256", dbToken).update("ramai/session-key/v1").digest();
     if (process.env.NODE_ENV === "production") {
       throw new ConfigError("RAMAI_SESSION_SECRET must be set to at least 32 characters in production.");
     }

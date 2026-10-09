@@ -21,6 +21,7 @@ import type { StatementSync } from "node:sqlite";
 import type { Client } from "@libsql/client/http";
 
 import { ConfigError } from "@/engine/session";
+import { remoteDatabase } from "@/lib/server/database-env";
 
 export type Value = string | number | bigint | null;
 
@@ -121,18 +122,7 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 `;
 
-/** The cloud database, when configured. Vercel's Turso integration sets TURSO_DATABASE_URL and TURSO_AUTH_TOKEN. */
-export function remoteDatabase(): { url: string; authToken?: string } | null {
-  const env = process.env;
-  const url = env.TURSO_DATABASE_URL || env.LIBSQL_URL || env.RAMAI_DB_URL;
-  if (url) return { url, authToken: env.TURSO_AUTH_TOKEN || env.LIBSQL_AUTH_TOKEN || env.RAMAI_DB_TOKEN };
-  // Integrations can add a prefix: <PREFIX>_DATABASE_URL with <PREFIX>_AUTH_TOKEN.
-  for (const [key, value] of Object.entries(env)) {
-    const m = key.match(/^(.+)_DATABASE_URL$/);
-    if (m && value?.startsWith("libsql://")) return { url: value, authToken: env[`${m[1]}_AUTH_TOKEN`] };
-  }
-  return null;
-}
+export { remoteDatabase };
 
 /* -------------------------------------------------------------------------- */
 /* A local file                                                                */

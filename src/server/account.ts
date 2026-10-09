@@ -72,6 +72,9 @@ const PRIVATE_HOST = /^(localhost|127\.0\.0\.1|::1|.+\.localhost|10\.\d+\.\d+\.\
 export function appUrl(req: Request): string | null {
   const configured = process.env.RAMAI_APP_URL?.trim().replace(/\/+$/, "");
   if (configured) return configured;
+  // On Vercel, its own production address (your custom domain once you add one) — never the request's Host header.
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
   const host = req.headers.get("host") ?? "";
   const hostname = host.replace(/:\d+$/, "").replace(/^\[(.*)\]$/, "$1");
   if (!PRIVATE_HOST.test(hostname)) {
