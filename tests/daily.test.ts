@@ -4,7 +4,7 @@ import { CASE_LIBRARY, dailyCase } from "@/engine/cases";
 import { generateDebrief } from "@/engine/debrief";
 import { sessionInfo, simulateCase } from "@/engine/engine";
 import { dailyEndsAt, dailyKeyFor, dailyNumber, shareText, squares } from "@/lib/daily";
-import { createUser, markEmailVerified } from "@/server/auth";
+import { createProfile } from "@/server/auth";
 import { casesStartedToday, dailyBoard, recordCase, recordCaseStart } from "@/server/results";
 
 import { play } from "./helpers";
@@ -47,8 +47,7 @@ describe("the share card", () => {
 describe("playing it", () => {
   it("ranks only the first attempt of the day and doesn't use up free cases", async () => {
     const dayKey = dailyKeyFor();
-    const user = await createUser({ email: "daily@example.com", username: "daily.doc", name: "Dr. Daily", password: "quiet harbour 77" });
-    await markEmailVerified(user.id);
+    const user = await createProfile({ email: "daily@example.com", username: "daily.doc", name: "Dr. Daily" });
 
     const first = await simulateCase({ userId: user.id, caseNumber: 1, daily: dayKey });
     expect(first.state.daily).toBe(dayKey);

@@ -7,8 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { dermAcne } from "@/engine/cases/derm-acne";
 import { generateDebrief } from "@/engine/debrief";
-import { confirmEmail, sendVerification } from "@/server/account";
-import { claimGuest, createGuest, createSession, createUser, findUserById, markEmailVerified, userForToken } from "@/server/auth";
+import { createGuest, createProfile, createSession, findUserById, guestForToken, linkProfile } from "@/server/auth";
 import { db, tx, useClientForTests } from "@/server/db";
 import { ensureMembership, leagueView } from "@/server/leagues";
 import { leaderboard, progressFor, recordCase } from "@/server/results";
@@ -20,19 +19,17 @@ import { play } from "./helpers";
  * uses for Turso — a local file stands in for the cloud database.
  */
 const file = path.join(tmpdir(), `ramai-cloud-${process.pid}-${Date.now()}.db`);
-process.env.RAMAI_OUTBOX_DIR = path.join(tmpdir(), `ramai-cloud-outbox-${process.pid}`);
-delete process.env.RAMAI_EMAIL_PROVIDER;
 
 beforeAll(async () => {
   await useClientForTests(createClient({ url: `file:${file}` }));
 });
 afterAll(() => {
-  for (const f of [file, `${file}-wal`, `${file}-shm`, process.env.RAMAI_OUTBOX_DIR!]) rmSync(f, { recursive: true, force: true });
+  for (const f of [file, `${file}-wal`, `${file}-shm`]) rmSync(f, { recursive: true, force: true });
 });
 
 describe("the cloud database adapter", () => {
   it("returns plain rows that spread and destructure", async () => {
-    await createUser({ email: "rows@example.com", username: "rows", name: "Dr. Rows", password: "stethoscope" });
+    await createProfile({ email: "rows@example.com", username: "rows", name: "Dr. Rows" });
     const [row] = await db.all<{ username: string; name: string }>("SELECT username, name FROM users WHERE username = ?", "rows");
     const { username, ...rest } = row!;
     expect(username).toBe("rows");
@@ -49,29 +46,23 @@ describe("the cloud database adapter", () => {
     expect((await db.get<{ name: string }>("SELECT name FROM users WHERE username = ?", "rows"))?.name).toBe("Dr. Rows");
   });
 
-  it("signs up, refuses duplicates, and keeps sessions", async () => {
-    const user = await createUser({ email: "cloud@example.com", username: "cloud.doc", name: "Dr. Cloud", password: "stethoscope" });
-    await expect(createUser({ email: "CLOUD@example.com", username: "other", name: "X", password: "stethoscope" })).rejects.toMatchObject({ code: "EXISTS" });
-    const { token } = await createSession(user.id);
-    expect((await userForToken(token))?.id).toBe(user.id);
+  it("makes profiles, refuses duplicates, and keeps guests' sessions", async () => {
+    await createProfile({ email: "cloud@example.com", username: "cloud.doc", name: "Dr. Cloud" });
+    await expect(createProfile({ email: "CLOUD@example.com", username: "other", name: "X" })).rejects.toMatchObject({ code: "EXISTS" });
+    const guest = await createGuest();
+    const { token } = await createSession(guest.id);
+    expect((await guestForToken(token))?.id).toBe(guest.id);
   });
 
-  it("verifies email and records cases into leaderboards and leagues", async () => {
-    const user = await createUser({ email: "league@example.com", username: "league.doc", name: "Dr. League", password: "stethoscope" });
-    expect((await sendVerification(user, "http://localhost:3218")).sent).toBe(true);
-    const link = (await db.get<{ token_hash: string }>("SELECT token_hash FROM auth_tokens WHERE user_id = ?", user.id))!;
-    expect(link.token_hash).toBeTruthy();
-    await markEmailVerified(user.id);
-    const verified = (await findUserById(user.id))!;
-
+  it("records cases into leaderboards and leagues", async () => {
+    const verified = await createProfile({ email: "league@example.com", username: "league.doc", name: "Dr. League" });
     const { hidden, state } = play(dermAcne, ["What brings you here?", "Examine the face", "Final diagnosis: acne vulgaris. Case close."]);
     const rewards = await recordCase(verified, "cloud-s1", generateDebrief(dermAcne, hidden, state));
     expect(rewards.streakDays).toBe(1);
-    expect((await progressFor(user.id)).casesCompleted).toBe(1);
-    expect((await leaderboard("overall", "week", user.id)).me?.userId).toBe(user.id);
+    expect((await progressFor(verified.id)).casesCompleted).toBe(1);
+    expect((await leaderboard("overall", "week", verified.id)).me?.userId).toBe(verified.id);
     expect((await ensureMembership(verified))?.tier).toBe(0);
     expect((await leagueView(verified)).status).toBe("joined");
-    expect(await confirmEmail("not-a-real-token")).toBeNull();
   });
 
   it("guests play first and keep their results when they sign up", async () => {
@@ -81,8 +72,13 @@ describe("the cloud database adapter", () => {
       "INSERT INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, score, xp, created_at) VALUES (?, 'cloud-g1', 'tut', 1, 'Emergency', 'emergency', 'chc', 'x', 'correct', 80, 100, ?)",
       guest.id, Date.now(),
     );
-    const claimed = await claimGuest(guest.id, { email: "guest.cloud@example.com", username: "guest.cloud", name: "Dr. Guest", password: "stethoscope" });
-    expect(claimed.isGuest).toBe(false);
+    const claimed = await linkProfile(
+      { id: "5d1f6a9e-0000-4000-8000-00000000c10d", email: "guest.cloud@example.com", confirmed: true, meta: { name: "Dr. Guest", username: "guest.cloud" } },
+      { guestId: guest.id },
+    );
+    expect(claimed?.id).toBe(guest.id);
+    expect(claimed?.isGuest).toBe(false);
+    expect((await findUserById(guest.id))?.username).toBe("guest.cloud");
     expect((await progressFor(guest.id)).casesCompleted).toBe(1);
   });
 });
@@ -115,7 +111,7 @@ describe("hosting without extra settings", () => {
   });
 
   it("links emails to Vercel's production address when no app URL is set", async () => {
-    const { appUrl } = await import("@/server/account");
+    const { appUrl } = await import("@/server/app-url");
     const env = process.env as Record<string, string | undefined>;
     env.VERCEL_PROJECT_PRODUCTION_URL = "ram-ai-liard.vercel.app";
     try {

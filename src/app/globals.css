@@ -229,6 +229,7 @@
   --animate-flicker: flicker 1.6s ease-in-out infinite;
   --animate-bob: bob 6s ease-in-out infinite;
   --animate-trace: trace 2.6s linear infinite;
+  --animate-shake: shake 380ms ease-in-out both;
 }
 
 @keyframes enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -257,6 +258,7 @@
 @keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes page-out { to { opacity: 0; } }
 @keyframes blink { to { visibility: hidden; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(-12deg); } 20%, 40% { transform: rotate(12deg); } 50% { transform: rotate(0); } }
 @keyframes fig-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.025); } }
 @keyframes fig-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }

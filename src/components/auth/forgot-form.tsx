@@ -21,7 +21,7 @@ export function ForgotForm() {
       await forgotPassword(email.trim());
       setSent(true);
     } catch (err) {
-      setError(err instanceof ClinicalEngineError && err.code === "RATE_LIMITED" ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof ClinicalEngineError && (err.code === "RATE_LIMITED" || err.code === "BAD_REQUEST" || err.code === "AUTH_UNAVAILABLE") ? err.message : "Something went wrong. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -39,7 +39,8 @@ export function ForgotForm() {
             </Link>
           }
         >
-          If an account exists for <span className="font-medium text-fg">{email.trim()}</span>, a link to reset your password is on its way. It works for one hour.
+          If an account exists for <span className="font-medium text-fg">{email.trim()}</span>, a link to reset your password is on its way. It works once, for one hour —
+          check spam or promotions if you don&apos;t see it.
         </AuthNotice>
       ) : (
         <>

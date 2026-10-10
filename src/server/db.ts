@@ -311,8 +311,18 @@ async function migrate(b: Backend) {
   if (!resultColumns.includes("daily_key")) add.push("ALTER TABLE results ADD COLUMN daily_key TEXT");
   if (!resultColumns.includes("elapsed_min")) add.push("ALTER TABLE results ADD COLUMN elapsed_min INTEGER");
   if (!resultColumns.includes("grid")) add.push("ALTER TABLE results ADD COLUMN grid TEXT");
+  // Sign-in moved to Supabase Auth: profiles link to their Supabase user.
+  if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
   if (add.length) await b.batch(add.map((sql) => ({ sql })));
   await b.exec("CREATE INDEX IF NOT EXISTS results_daily ON results(daily_key, score); CREATE INDEX IF NOT EXISTS case_starts_daily ON case_starts(user_id, daily_key)");
+  await b.exec("CREATE UNIQUE INDEX IF NOT EXISTS users_auth_id ON users(auth_id) WHERE auth_id IS NOT NULL");
+  // Supabase keeps passwords now: RamAI's old password hashes and their sign-in sessions are gone for good.
+  // (Guests still use RamAI's own session cookie — they have no password.)
+  await b.batch([
+    { sql: "UPDATE users SET password_hash = '!supabase' WHERE password_hash LIKE 'scrypt$%'" },
+    { sql: "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE is_guest = 0)" },
+    { sql: "DELETE FROM auth_tokens" },
+  ]);
 }
 
 const inTx = new AsyncLocalStorage<Db>();

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { istWeekStart } from "@/engine/progression";
-import { createGuest, createUser, findUserById, markEmailVerified, type User } from "@/server/auth";
+import { createGuest, createProfile, findUserById, type User } from "@/server/auth";
 import { db } from "@/server/db";
 import { demoXp, ensureMembership, leaguePosition, leagueView } from "@/server/leagues";
 import { COHORT_SIZE, outcomeFor, zones } from "@/lib/leagues";
@@ -17,8 +17,7 @@ let n = 0;
 
 async function player(tier = 0): Promise<User> {
   n += 1;
-  const u = await createUser({ email: `league${n}@example.com`, username: `league${n}`, name: `Dr. League ${n}`, password: "stethoscope" });
-  await markEmailVerified(u.id);
+  const u = await createProfile({ email: `league${n}@example.com`, username: `league${n}`, name: `Dr. League ${n}` });
   await db.run("UPDATE users SET league_tier = ? WHERE id = ?", tier, u.id);
   return (await findUserById(u.id))!;
 }
@@ -49,7 +48,10 @@ describe("league rules", () => {
 
 describe("joining a league", () => {
   it("unverified players and guests don't join", async () => {
-    const u = await createUser({ email: "unverified.l@example.com", username: "unverified.l", name: "Dr. U", password: "stethoscope" });
+    const made = await createProfile({ email: "unverified.l@example.com", username: "unverified.l", name: "Dr. U" });
+    // An account from before sign-in moved to Supabase that never verified its email.
+    await db.run("UPDATE users SET email_verified_at = NULL WHERE id = ?", made.id);
+    const u = (await findUserById(made.id))!;
     await earn(u, 100, now - 1000);
     expect(await ensureMembership(u)).toBeUndefined();
     expect((await leagueView(u)).status).toBe("unverified");

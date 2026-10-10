@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { dermAcne } from "@/engine/cases/derm-acne";
 import { phAcs } from "@/engine/cases/ph-acs";
 import { generateDebrief } from "@/engine/debrief";
-import { AuthError, authenticate, createSession, createUser, deleteSession, findUserById, markEmailVerified, setPatientLang, setPlan, userForToken, type User } from "@/server/auth";
+import { createGuest, createProfile, createSession, deleteSession, findUserById, guestForToken, setPatientLang, setPlan, type User } from "@/server/auth";
 import { verifyPayment } from "@/server/billing";
 import { db } from "@/server/db";
 import { casesStartedToday, historyFor, leaderboard, progressFor, recordCase, recordCaseStart } from "@/server/results";
@@ -19,46 +19,34 @@ let asha: User;
 let kabir: User;
 
 beforeAll(async () => {
-  asha = await createUser({ email: "asha@example.com", username: "asha.v", name: "Asha Verma", password: "correct horse" });
-  kabir = await createUser({ email: "kabir@example.com", username: "kabir", name: "Kabir Shah", password: "battery staple" });
-  // Leaderboards list verified players only.
-  await markEmailVerified(asha.id);
-  await markEmailVerified(kabir.id);
-  asha = (await findUserById(asha.id))!;
-  kabir = (await findUserById(kabir.id))!;
+  asha = await createProfile({ email: "asha@example.com", username: "asha.v", name: "Asha Verma" });
+  kabir = await createProfile({ email: "kabir@example.com", username: "kabir", name: "Kabir Shah" });
 });
 
 describe("accounts", () => {
-  it("logs in by email or username, case-insensitively", async () => {
-    expect((await authenticate("ASHA@example.com", "correct horse")).id).toBe(asha.id);
-    expect((await authenticate("Asha.V", "correct horse")).id).toBe(asha.id);
+  it("refuses duplicate emails and usernames, case-insensitively", async () => {
+    await expect(createProfile({ email: "ASHA@example.com", username: "other", name: "X Y" })).rejects.toMatchObject({ code: "EXISTS" });
+    await expect(createProfile({ email: "new@example.com", username: "KABIR", name: "X Y" })).rejects.toMatchObject({ code: "EXISTS" });
   });
 
-  it("rejects a wrong password with a generic message", async () => {
-    await expect(authenticate("asha.v", "wrong password")).rejects.toMatchObject({ code: "INVALID" });
-    await expect(authenticate("nobody", "whatever1")).rejects.toBeInstanceOf(AuthError);
-  });
-
-  it("refuses duplicate emails and usernames", async () => {
-    await expect(createUser({ email: "asha@example.com", username: "other", name: "X Y", password: "12345678" })).rejects.toMatchObject({ code: "EXISTS" });
-    await expect(createUser({ email: "new@example.com", username: "KABIR", name: "X Y", password: "12345678" })).rejects.toMatchObject({ code: "EXISTS" });
-  });
-
-  it("never stores passwords or session tokens in plain text", async () => {
+  it("keeps no passwords — Supabase does — and only hashes of guests' session tokens", async () => {
     const row = (await db.get<{ password_hash: string }>("SELECT password_hash FROM users WHERE id = ?", asha.id))!;
-    expect(row.password_hash.startsWith("scrypt$")).toBe(true);
-    expect(row.password_hash).not.toContain("correct horse");
-    const { token } = await createSession(asha.id);
+    expect(row.password_hash).toBe("!supabase");
+    const guest = await createGuest();
+    const { token } = await createSession(guest.id);
     const stored = await db.all<{ token_hash: string }>("SELECT token_hash FROM sessions");
     expect(stored.some((s) => s.token_hash === token)).toBe(false);
   });
 
-  it("sessions resolve to their user and can be revoked", async () => {
-    const { token } = await createSession(kabir.id);
-    expect((await userForToken(token))?.id).toBe(kabir.id);
+  it("guest sessions resolve, can be revoked, and never sign in a real account", async () => {
+    const guest = await createGuest();
+    const { token } = await createSession(guest.id);
+    expect((await guestForToken(token))?.id).toBe(guest.id);
     await deleteSession(token);
-    expect(await userForToken(token)).toBeNull();
-    expect(await userForToken("forged-token")).toBeNull();
+    expect(await guestForToken(token)).toBeNull();
+    expect(await guestForToken("forged-token")).toBeNull();
+    const { token: old } = await createSession(kabir.id);
+    expect(await guestForToken(old)).toBeNull();
   });
 
   it("remembers the patient language, English by default", async () => {

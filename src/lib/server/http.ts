@@ -5,7 +5,10 @@ import type { z } from "zod";
 
 import { EngineError } from "@/engine/engine";
 import { ConfigError } from "@/engine/session";
+import { isAuthError } from "@supabase/supabase-js";
+
 import { AuthError } from "@/server/auth";
+import { AuthConfigError } from "@/server/supabase";
 
 export interface ApiErrorBody {
   error: { code: string; message: string };
@@ -42,6 +45,14 @@ export function handleError(err: unknown) {
   if (err instanceof EngineError) {
     const status = err.code === "BAD_SESSION" ? 410 : err.code === "CASE_CLOSED" ? 409 : err.code === "LIMIT" ? 429 : err.code === "NO_CASES" ? 404 : 400;
     return apiError(status, err.code, err.message);
+  }
+  if (err instanceof AuthConfigError) {
+    console.error("[ramai] sign-in is not configured:", err.message);
+    return apiError(503, "AUTH_UNAVAILABLE", "Sign-in isn't available right now. Please try again later.");
+  }
+  if (isAuthError(err)) {
+    console.error("[ramai] Supabase Auth unavailable:", err.message);
+    return apiError(503, "AUTH_UNAVAILABLE", "Sign-in is unavailable for a moment. Please try again.");
   }
   if (err instanceof ConfigError) {
     console.error("[ramai] configuration error:", err.message);

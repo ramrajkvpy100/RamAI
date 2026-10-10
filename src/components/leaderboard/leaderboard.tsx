@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, ViewTransition } from "react";
 
-import { ResendVerification } from "@/components/auth/verify-banner";
 import { DoctorFigure } from "@/components/game/caricature";
 import { Confetti } from "@/components/debrief/confetti";
 import { Flame } from "@/components/game/streak";
@@ -198,7 +197,9 @@ function LeagueHero({ view, meId, me, onPlay, starting }: { view: LeagueView; me
           )}
         </div>
         {view.status === "unverified" ? (
-          <ResendVerification compact />
+          <Link href="/verify-email" className="bg-ai inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full px-5 text-[13.5px] font-semibold text-white shadow-glow">
+            Verify email <Icon name="arrow-right" size={14} />
+          </Link>
         ) : view.status === "guest" ? (
           <Link href="/signup" className="bg-ai inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full px-5 text-[13.5px] font-semibold text-white shadow-glow">
             Create account <Icon name="arrow-right" size={14} />

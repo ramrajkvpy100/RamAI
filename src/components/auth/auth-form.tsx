@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { CountryPicker } from "@/components/app/country-picker";
 import { countryFromLocale, type Country } from "@/engine/countries";
 import { ClinicalEngineError, login, signup } from "@/lib/engine-client";
+import { clearPending, savePending, savePrefillEmail, takePrefillEmail } from "@/lib/pending-verification";
 
 import { AuthFrame, Field, FormError, PasswordField, SubmitButton } from "./auth-ui";
 
@@ -19,28 +20,56 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
   const [error, setError] = useState<string | null>(null);
   const [country, setCountry] = useState<Country>("IN");
   const [agreed, setAgreed] = useState(false);
+  /** An account from before the new sign-in: offer to sign up again with its email. */
+  const [legacy, setLegacy] = useState<string | null>(null);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // A first guess from the browser's language; the player can change it below.
   useEffect(() => setCountry(countryFromLocale(navigator.language)), []);
+  useEffect(() => {
+    if (mode !== "signup") return;
+    const email = takePrefillEmail();
+    if (email) setForm((f) => ({ ...f, email }));
+  }, [mode]);
+
+  const nextQuery = next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError(null);
+    setLegacy(null);
     try {
-      if (mode === "login") await login({ login: form.login.trim(), password: form.password });
-      else await signup({ name: form.name.trim(), username: form.username.trim(), email: form.email.trim(), password: form.password, country, acceptTerms: true });
+      if (mode === "login") {
+        await login({ login: form.login.trim(), password: form.password });
+      } else {
+        const email = form.email.trim().toLowerCase();
+        const res = await signup({ name: form.name.trim(), username: form.username.trim(), email, password: form.password, country, acceptTerms: true });
+        if (res.status === "verify") {
+          // Nothing opens up until the emailed code is entered.
+          savePending({ email, sentAt: Date.now(), next });
+          router.push("/verify-email");
+          return;
+        }
+      }
       router.replace(next);
       router.refresh();
     } catch (err) {
       const code = err instanceof ClinicalEngineError ? err.code : "UNKNOWN";
+      if (code === "VERIFY_REQUIRED") {
+        // Off to the code screen. A username isn't an email — that screen asks for it.
+        const typed = form.login.trim().toLowerCase();
+        if (typed.includes("@")) savePending({ email: typed, sentAt: 0, next });
+        else clearPending();
+        router.push("/verify-email");
+        return;
+      }
+      if (code === "LEGACY_ACCOUNT") setLegacy(form.login.trim().includes("@") ? form.login.trim().toLowerCase() : "");
       setError(code === "NETWORK" || code === "ENGINE_UNAVAILABLE" || code === "UNKNOWN" ? "Something went wrong. Please try again." : (err as Error).message);
       setBusy(false);
     }
   };
-
-  const nextQuery = next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
 
   return (
     <AuthFrame>
@@ -52,7 +81,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
           <>
             <Field label="Full name" value={form.name} onChange={(e) => set("name")(e.target.value)} autoComplete="name" required minLength={2} maxLength={60} placeholder="Asha Verma" />
             <Field label="Username" value={form.username} onChange={(e) => set("username")(e.target.value)} autoComplete="username" required minLength={3} maxLength={24} pattern="[a-zA-Z0-9._]+" placeholder="asha.verma" hint="Shown on leaderboards." />
-            <Field label="Email" type="email" value={form.email} onChange={(e) => set("email")(e.target.value)} autoComplete="email" required maxLength={120} placeholder="you@example.com" hint="We'll send a link to verify it." />
+            <Field label="Email" type="email" value={form.email} onChange={(e) => set("email")(e.target.value)} autoComplete="email" required maxLength={120} placeholder="you@example.com" hint="We'll email you a 6-digit code to verify it." />
             <PasswordField value={form.password} onChange={set("password")} autoComplete="new-password" hint="At least 8 characters." />
             <div className="flex flex-col gap-1.5">
               <span className="text-[13px] font-medium">Where you practise</span>
@@ -77,6 +106,15 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
         )}
 
         {error && <FormError>{error}</FormError>}
+        {legacy !== null && (
+          <Link
+            href={`/signup${nextQuery}`}
+            onClick={() => legacy && savePrefillEmail(legacy)}
+            className="-mt-1 inline-flex h-10 items-center justify-center gap-1.5 self-start rounded-full bg-accent-soft px-4 text-[13.5px] font-semibold text-accent-text"
+          >
+            Set my password again
+          </Link>
+        )}
 
         {mode === "signup" && (
           <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-5 text-fg-2">

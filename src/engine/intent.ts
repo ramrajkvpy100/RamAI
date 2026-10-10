@@ -31,12 +31,12 @@ const DIFFERENTIAL_RE = /^(?:ddx|d\/d|differentials?|differential diagnos[ie]s|m
 
 /** Verbs that direct an action at the clinical environment, not the patient. */
 const CLINICIAN_VERBS = [
-  "check", "measure", "record", "take", "examine", "examination", "palpate", "auscultate", "inspect", "percuss",
+  "check", "measure", "record", "take", "examine", "examination", "palpate", "auscultate", "listen to", "listen for", "inspect", "percuss",
   "look at", "look for", "elicit", "assess", "order", "send", "get", "request", "advise", "do", "perform", "give",
   "start", "administer", "prescribe", "rx", "inject", "infuse", "apply", "put", "attach", "insert", "monitor",
   "plan", "schedule", "arrange", "admit", "refer", "repeat", "test", "feel", "see", "evaluate", "screen",
 ];
-const EXAM_VERBS = ["examine", "examination", "palpate", "auscultate", "inspect", "percuss", "look at", "look for", "elicit", "feel", "test for", "check for", "assess", "look in", "see the"];
+const EXAM_VERBS = ["examine", "examination", "palpate", "auscultate", "listen to", "listen for", "inspect", "percuss", "look at", "look for", "elicit", "feel", "test for", "check for", "assess", "look in", "see the"];
 const TREATMENT_VERBS = ["give", "start", "administer", "prescribe", "rx", "inject", "infuse", "push", "bolus", "apply", "put on", "put him on", "put her on", "tab", "tablet", "cap", "capsule", "inj", "injection", "syp", "syrup", "neb", "nebulise", "nebulize", "continue", "add", "switch to", "increase", "load", "loading dose", "transfuse", "dose of"];
 const COUNSEL_VERBS = ["counsel", "counselling", "counseling", "advise", "explain", "educate", "reassure", "tell him", "tell her", "tell the patient", "teach", "instruct", "recommend", "lifestyle", "inform"];
 const PROCEDURE_VERBS = ["perform", "do a", "do an", "plan", "schedule", "take up for", "posted for", "post for", "undergo", "arrange", "proceed with", "operate"];
@@ -197,22 +197,23 @@ function vitalCandidates(rawClause: string, tk: string[]): Candidate[] {
 
 function examCandidates(rawClause: string, tk: string[], ctx: IntentContext, requireVerb: boolean): Candidate[] {
   const out: Candidate[] = [];
-  const verb = hasAny(tk, EXAM_VERBS) || hasAny(tk, ["check", "look", "see", "show me", "examine", "test", "measure", "elicit"]);
+  const verb = hasAny(tk, EXAM_VERBS) || hasAny(tk, ["check", "look", "see", "show me", "examine", "test", "measure", "elicit", "listen"]);
   // Words like "face" or "pimples" appear in counselling too — only an examination verb makes them an examination.
-  if (requireVerb && !verb) return out;
+  // Auscultation's words ("heart sounds", "breath sounds") can only mean the stethoscope, verb or not.
   for (const e of ctx.def.exam) {
+    if (requireVerb && !verb) break;
     // An override of a catalogue exam may omit `match` and inherit its phrases.
     const phrases = e.match.length ? e.match : EXAMS.find((c) => c.id === e.id)?.match ?? [];
     for (const hit of allHits(tk, phrases)) {
       out.push({ hit, priority: 4, intent: { kind: "exam", targetId: e.id, phrase: rawClause, matched: true } });
     }
   }
-  {
-    for (const e of EXAMS) {
-      if (ctx.def.exam.some((c) => c.id === e.id)) continue; // case override already listed
-      for (const hit of allHits(tk, e.match)) {
-        out.push({ hit, priority: 2, intent: { kind: "exam", targetId: e.id, phrase: rawClause, matched: true } });
-      }
+  for (const e of EXAMS) {
+    if (ctx.def.exam.some((c) => c.id === e.id)) continue; // case override already listed
+    const self = new Set(e.selfEvident ?? []);
+    const bare = new Set(e.bare ?? []);
+    for (const hit of allHits(tk, requireVerb && !verb ? [...self, ...bare] : e.match)) {
+      out.push({ hit, priority: self.has(hit.phrase) ? 5 : bare.has(hit.phrase) ? 4 : 2, intent: { kind: "exam", targetId: e.id, phrase: rawClause, matched: true } });
     }
   }
   return out;
@@ -415,8 +416,10 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     return done(list);
   }
 
-  // Questions addressed to the patient go to history first.
+  // Questions addressed to the patient go to history first — except the stethoscope's words ("heart sounds?").
   if (question && !clinicianDirected) {
+    const stethoscope = examCandidates(rawClause, tk, ctx, false).filter((c) => c.priority >= 5);
+    if (stethoscope.length > 0) return done(resolveOverlaps(stethoscope));
     const hx = resolveHistory(rawClause, tk, ctx);
     if (hx.length > 0) return done(hx);
     // "What is the BP?" / "BP?" — a request for a measurement.

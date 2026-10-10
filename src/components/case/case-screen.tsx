@@ -214,7 +214,8 @@ function Workspace() {
               </aside>
 
               <main className="flex min-h-0 flex-col" aria-label="Encounter">
-                <SceneStrip state={state} className="xl:hidden" />
+                {/* One monitor at a time: the strip steps aside whenever the full monitor is on screen (the left column, or the panel's Patient tab). */}
+                <SceneStrip state={state} className={cn("xl:hidden", panelOpen && tab === "patient" && "md:hidden")} />
                 <div className="hidden border-b border-line-2 px-4 py-2.5 sm:block sm:px-6">
                   <EncounterProgress stage={state.stage} touched={state.stagesTouched} className="mx-auto max-w-[760px]" />
                 </div>
@@ -255,7 +256,7 @@ function Workspace() {
                         End case
                       </button>
                     </div>
-                    <Coach state={state} />
+                    <Coach state={state} onTry={onSend} busy={!!snap.sending} />
                   <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} country={state.country} />
                   </div>
                 </div>

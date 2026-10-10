@@ -18,9 +18,9 @@ export default function PrivacyPage() {
         <Section title="What we collect">
           <List>
             <li>
-              <b className="text-fg">Your account:</b> name, username, email address and your password — stored only as a secure one-way hash, never
-              in readable form. Also your country and patient-language preference, plan, whether your email is verified, and when you
-              accepted our terms and this policy (and which version).
+              <b className="text-fg">Your account:</b> name, username and email address, your country and patient-language preference, plan, and
+              when you accepted our terms and this policy (and which version). Your password is handled by Supabase, our sign-in provider, which
+              stores it only as a secure one-way hash — RamAI itself never stores your password or the codes we email you.
             </li>
             <li>
               <b className="text-fg">Your progress:</b> for each case you finish — the case, its specialty, mode and level, your score, XP and the
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           <List>
             <li>To run your account and RamAI's features: cases, debriefs, progress, streaks, leaderboards and leagues.</li>
             <li>To process payments and give you the plan you paid for.</li>
-            <li>To send emails you need: verifying your address and resetting your password. We don't send marketing emails.</li>
+            <li>To send emails you need: a code to verify your address, and a link to reset your password. We don't send marketing emails.</li>
             <li>
               To send the daily reminder, if you turn it on: at most one notification a day, only when you haven&apos;t played yet. Turn it off
               any time from the menu.
@@ -68,7 +68,8 @@ export default function PrivacyPage() {
 
         <Section title="Cookies and browser storage">
           <p>
-            We use one essential cookie that keeps you signed in for up to 30 days. Your browser also stores a few settings on your device — theme,
+            We use essential cookies that keep you signed in until you log out (they're set for our sign-in provider, Supabase, and can't be read by
+            scripts on the page). Your browser also stores a few settings on your device — theme,
             sound, tips you've dismissed — and the case you're playing. There are no advertising or analytics cookies, so there's nothing to opt out
             of.
           </p>
@@ -95,7 +96,8 @@ export default function PrivacyPage() {
               delivers the daily reminder if you turn it on. Reminders are end-to-end encrypted, so the push service can&apos;t read them.
             </li>
             <li>
-              <b className="text-fg">Resend</b> — delivers account emails, once email is switched on.
+              <b className="text-fg">Supabase</b> — handles sign-in: your email address, your password (as a one-way hash), your sign-in sessions,
+              and the verification codes and reset links it emails you, directly or through the email service it&apos;s set up with.
             </li>
             <li>
               <b className="text-fg">OpenAI</b> — only if AI features are switched on: the text you type during a case and the case's details are
@@ -115,7 +117,7 @@ export default function PrivacyPage() {
             <li>Your account and progress: for as long as you have an account.</li>
             <li>Guest accounts: 7 days.</li>
             <li>Reminder details: until you turn reminders off, sign out on that device, or your browser stops accepting them.</li>
-            <li>Sign-in sessions: up to 30 days. Email links: until they expire (48 hours to verify, 1 hour to reset a password).</li>
+            <li>Sign-in sessions: until you log out. Verification codes and reset links: they expire after one hour and work once.</li>
             <li>Payment records: as long as tax and accounting law requires.</li>
           </List>
           <p>When you delete your account, we delete your data within 30 days, except records we must keep by law.</p>

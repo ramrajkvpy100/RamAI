@@ -1,17 +1,31 @@
-import { scryptSync } from "node:crypto";
-
 import { NextRequest } from "next/server";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { proxy } from "@/proxy";
 import { CheckoutSchema, SignupSchema } from "@/lib/server/schemas";
-import { authenticate, createUser, recordConsent } from "@/server/auth";
+import { createProfile, recordConsent } from "@/server/auth";
 import { db } from "@/server/db";
 import { passwordProblem } from "@/server/passwords";
 import { deleteAccount, exportData, passwordMatches } from "@/server/privacy";
 import { clearLimit, exhausted, overLimit } from "@/server/rate-limit";
 
+import { startFakeGoTrue, type FakeGoTrue } from "./support/fake-gotrue";
+
 process.env.RAMAI_DB_PATH = ":memory:";
+
+let auth: FakeGoTrue;
+beforeAll(async () => {
+  auth = await startFakeGoTrue();
+  process.env.NEXT_PUBLIC_SUPABASE_URL = auth.url;
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = auth.publishableKey;
+  process.env.SUPABASE_SECRET_KEY = auth.secretKey;
+});
+afterAll(async () => {
+  await auth.close();
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  delete process.env.SUPABASE_SECRET_KEY;
+});
 
 describe("passwords", () => {
   it("refuses short, common and personal passwords", () => {
@@ -21,17 +35,6 @@ describe("passwords", () => {
     expect(passwordProblem("Kansana@2026", { name: "Dr. Ramraj Singh Kansana" })).toMatch(/name, username or email/);
     expect(passwordProblem("meera.iyer#77", { email: "meera.iyer@example.com" })).toMatch(/name, username or email/);
     expect(passwordProblem("blue-river-quiet-87", { name: "Dr. Asha Verma", username: "asha.v" })).toBeNull();
-  });
-
-  it("upgrades an older, weaker hash the next time the player signs in", async () => {
-    const user = await createUser({ email: "rehash@example.com", username: "rehash", name: "Dr. Rehash", password: "a calm blue river 7" });
-    const salt = Buffer.alloc(16, 7);
-    const weak = ["scrypt", 512, 8, 1, salt.toString("base64url"), scryptSync("a calm blue river 7", salt, 64, { N: 512, r: 8, p: 1 }).toString("base64url")].join("$");
-    await db.run("UPDATE users SET password_hash = ? WHERE id = ?", weak, user.id);
-    await authenticate("rehash", "a calm blue river 7");
-    const stored = (await db.get<{ password_hash: string }>("SELECT password_hash FROM users WHERE id = ?", user.id))!.password_hash;
-    expect(Number(stored.split("$")[1])).toBeGreaterThan(512);
-    expect((await authenticate("rehash", "a calm blue river 7")).id).toBe(user.id);
   });
 });
 
@@ -50,7 +53,10 @@ describe("rate limits shared through the database", () => {
 
 describe("consent and data rights", () => {
   it("records consent, exports without secrets, and deletes everything but anonymous payment records", async () => {
-    const user = await createUser({ email: "rights@example.com", username: "rights", name: "Dr. Rights", password: "a calm blue river 7" });
+    // The sign-in lives in Supabase; RamAI's profile links to it.
+    const authId = "0b6f1c2a-1111-4c3d-9e8f-00000000a11c";
+    auth.users.set("rights@example.com", { id: authId, email: "rights@example.com", password: "a calm blue river 7", confirmedAt: Date.now(), meta: {}, createdAt: Date.now() });
+    const user = await createProfile({ email: "rights@example.com", username: "rights", name: "Dr. Rights", authId });
     await recordConsent(user.id, "2026-10-09");
     await db.run(
       "INSERT INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, score, xp, created_at) VALUES (?, 'r-s1', 'c', 1, 'Medicine', 'opd', 'chc', 'x', 'correct', 80, 100, ?)",
@@ -63,9 +69,10 @@ describe("consent and data rights", () => {
     expect(data?.results).toHaveLength(1);
     expect(JSON.stringify(data)).not.toMatch(/scrypt\$|password_hash|token_hash/);
 
-    expect(await passwordMatches(user.id, "wrong password")).toBe(false);
-    expect(await passwordMatches(user.id, "a calm blue river 7")).toBe(true);
-    await deleteAccount(user.id);
+    expect(await passwordMatches(user.email, "wrong password")).toBe(false);
+    expect(await passwordMatches(user.email, "a calm blue river 7")).toBe(true);
+    expect(await deleteAccount(user.id)).toEqual({ signInRemoved: true });
+    expect(auth.deleted).toContain(authId);
     expect(await db.get("SELECT id FROM users WHERE id = ?", user.id)).toBeUndefined();
     expect(await db.get("SELECT id FROM results WHERE user_id = ?", user.id)).toBeUndefined();
     expect(await db.get("SELECT id FROM payments WHERE user_id = ?", user.id)).toBeUndefined();
@@ -85,9 +92,9 @@ describe("consent and data rights", () => {
 });
 
 describe("content security policy", () => {
-  it("gives every page a fresh nonce and locks scripts, framing and plugins down", () => {
-    const a = proxy(new NextRequest("https://ram-ai.example/case")).headers.get("content-security-policy")!;
-    const b = proxy(new NextRequest("https://ram-ai.example/case")).headers.get("content-security-policy")!;
+  it("gives every page a fresh nonce and locks scripts, framing and plugins down", async () => {
+    const a = (await proxy(new NextRequest("https://ram-ai.example/case"))).headers.get("content-security-policy")!;
+    const b = (await proxy(new NextRequest("https://ram-ai.example/case"))).headers.get("content-security-policy")!;
     const nonce = (csp: string) => csp.match(/'nonce-([^']+)'/)?.[1];
     expect(nonce(a)).toBeTruthy();
     expect(nonce(a)).not.toBe(nonce(b));
@@ -96,6 +103,6 @@ describe("content security policy", () => {
     expect(a).toContain("object-src 'none'");
     expect(a).toContain("upgrade-insecure-requests");
     expect(a).not.toContain("'unsafe-eval'");
-    expect(proxy(new NextRequest("http://localhost:3218/")).headers.get("content-security-policy")).not.toContain("upgrade-insecure-requests");
+    expect((await proxy(new NextRequest("http://localhost:3218/"))).headers.get("content-security-policy")).not.toContain("upgrade-insecure-requests");
   });
 });

@@ -8,6 +8,7 @@
  * this file must be deterministic for a given (definition, records) pair.
  */
 
+import { LISTEN_SOURCE, listen, type ListenPart } from "./auscultation";
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, vitalDefinition } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { formularyDrug, type FormularyDrug } from "./formulary";
@@ -16,6 +17,7 @@ import { globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology"
 import { capitalise, describeSpan, hash, pick } from "./text";
 import type {
   ActionRecord,
+  Auscultation,
   CareSetting,
   DrugRoute,
   EcgSpec,
@@ -704,6 +706,7 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   let abnormal = false;
   let group: FactGroup = "systemic-exam";
   let media: MediaAsset | undefined;
+  let sounds: Auscultation[] | undefined;
 
   if (caseEntry) {
     label = caseEntry.label;
@@ -717,6 +720,19 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     if (hidden.examOverrides[id]) {
       finding = hidden.examOverrides[id]!;
       abnormal = true;
+    } else if (cat.listen) {
+      // Only what the stethoscope picks up, from each system's examination as it stands now.
+      const parts: ListenPart[] = cat.listen === "all" ? ["heart", "lungs"] : [cat.listen];
+      const rhythm = monitorRhythm(def);
+      const body = { hr: parseFloat(hidden.vitals.hr?.value ?? "") || 80, rr: parseFloat(hidden.vitals.rr?.value ?? "") || 16, irregular: rhythm === "afib" || /irregular/i.test(systemFinding(def, hidden, "cvs")) };
+      const heard = parts.map((part) => {
+        const source = LISTEN_SOURCE[part];
+        hidden.exams[source] ??= hidden.clock;
+        return listen(part, systemFinding(def, hidden, source), body);
+      });
+      finding = heard.length > 1 ? heard.map((h) => `${h.part === "heart" ? "Heart" : "Lungs"}: ${h.text}`).join(" ") : heard[0]!.text;
+      abnormal = heard.some((h) => h.abnormal);
+      sounds = heard.map((h) => h.sound);
     } else if (cat.covers) {
       const parts: string[] = [];
       let anyAbnormal = false;
@@ -740,7 +756,7 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   }
 
   hidden.exams[id] ??= hidden.clock;
-  fx.push({ type: "message", role: "system", kind: "finding", text: `${label} — ${finding}`, media });
+  fx.push({ type: "message", role: "system", kind: "finding", text: `${label} — ${finding}`, media, ...(sounds ? { sounds } : {}) });
   if (caseEntry?.patientReaction && !hidden.examOverrides[id]) {
     fx.push({ type: "message", role: patientRole(def), kind: "speech", text: caseEntry.patientReaction });
   }
@@ -748,6 +764,11 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   fx.push({ type: "timeline", label: `${label} examined`, category: "exam" });
   ctx.stages.push("examination");
   return fx;
+}
+
+/** A system examination's finding as it stands now: a later stage's version, the case's own, or the normal one. */
+function systemFinding(def: ClinicalCaseDefinition, hidden: HiddenState, examId: string): string {
+  return hidden.examOverrides[examId] ?? def.exam.find((e) => e.id === examId)?.finding ?? catalogExam(examId)?.finding ?? "";
 }
 
 function activeHazardStage(def: ClinicalCaseDefinition, hidden: HiddenState): HazardStage[] {

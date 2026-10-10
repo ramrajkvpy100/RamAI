@@ -4,8 +4,8 @@
  */
 import "server-only";
 
-import { verifyPassword } from "./auth";
 import { db } from "./db";
+import { supabaseAdmin, supabaseDetached } from "./supabase";
 
 interface AccountRow {
   id: string;
@@ -68,10 +68,16 @@ export async function exportData(userId: string) {
   };
 }
 
-/** Confirms a password before an irreversible step. Guests have none. */
-export async function passwordMatches(userId: string, password: string): Promise<boolean> {
-  const row = await db.get<{ password_hash: string }>("SELECT password_hash FROM users WHERE id = ?", userId);
-  return !!row && (await verifyPassword(password, row.password_hash));
+/**
+ * Confirms a password before an irreversible step, with Supabase — on a
+ * throwaway session that's signed out again at once. Guests have none.
+ */
+export async function passwordMatches(email: string, password: string): Promise<boolean> {
+  const supabase = supabaseDetached();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.session) return false;
+  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+  return true;
 }
 
 /**
@@ -81,6 +87,7 @@ export async function passwordMatches(userId: string, password: string): Promise
  */
 export async function deleteAccount(userId: string) {
   const now = Date.now();
+  const authId = (await db.get<{ auth_id: string | null }>("SELECT auth_id FROM users WHERE id = ?", userId))?.auth_id ?? null;
   await db.batch([
     {
       sql: `INSERT OR IGNORE INTO payments_archive (order_id, payment_id, amount, period, status, created_at, archived_at)
@@ -90,4 +97,21 @@ export async function deleteAccount(userId: string) {
     ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
     { sql: "DELETE FROM users WHERE id = ?", args: [userId] },
   ]);
+  return { signInRemoved: authId ? await removeSignIn(authId) : true };
+}
+
+/**
+ * Deletes the Supabase sign-in record too, when a server-only secret key is
+ * configured. Without one, the owner removes it in the Supabase dashboard
+ * (Authentication → Users) — the privacy policy allows 30 days.
+ */
+async function removeSignIn(authId: string): Promise<boolean> {
+  const admin = supabaseAdmin();
+  if (!admin) {
+    console.warn(`[ramai] Account deleted — remove Supabase user ${authId} in Authentication → Users (or set SUPABASE_SECRET_KEY to do it automatically).`);
+    return false;
+  }
+  const { error } = await admin.auth.admin.deleteUser(authId);
+  if (error) console.error("[ramai] couldn't delete the Supabase user:", error.message);
+  return !error;
 }

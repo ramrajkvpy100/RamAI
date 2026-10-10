@@ -2,7 +2,7 @@ import { createDecipheriv, createECDH, createPublicKey, hkdfSync, randomBytes, v
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createGuest, createUser } from "@/server/auth";
+import { createGuest, createProfile } from "@/server/auth";
 import { db } from "@/server/db";
 import { deleteAccount } from "@/server/privacy";
 import { encryptPayload, isPushEndpoint, vapidAuthorization, vapidPublicKey, type PushTarget } from "@/server/push";
@@ -122,8 +122,8 @@ describe("subscriptions", () => {
   });
 
   it("belongs to whoever subscribed last, keeps ten browsers, and goes with the account", async () => {
-    const ann = await createUser({ email: "ann.push@example.com", username: "ann.push", name: "Dr. Ann", password: "quiet harbour 77" });
-    const raj = await createUser({ email: "raj.push@example.com", username: "raj.push", name: "Dr. Raj", password: "quiet harbour 77" });
+    const ann = await createProfile({ email: "ann.push@example.com", username: "ann.push", name: "Dr. Ann" });
+    const raj = await createProfile({ email: "raj.push@example.com", username: "raj.push", name: "Dr. Raj" });
     const shared = browser().target;
     await saveSubscription(ann.id, shared, 1);
     await saveSubscription(raj.id, shared, 2);
@@ -166,9 +166,9 @@ describe("the evening reminder", () => {
 
   it("reaches only players who haven't played today, once a day, in the evening", async () => {
     await db.run("DELETE FROM push_subscriptions");
-    const keen = await createUser({ email: "keen@example.com", username: "keen.doc", name: "Dr. Keen", password: "quiet harbour 77" });
-    const lapsed = await createUser({ email: "lapsed@example.com", username: "lapsed.doc", name: "Dr. Lapsed", password: "quiet harbour 77" });
-    const streaky = await createUser({ email: "streaky@example.com", username: "streaky.doc", name: "Dr. Streaky", password: "quiet harbour 77" });
+    const keen = await createProfile({ email: "keen@example.com", username: "keen.doc", name: "Dr. Keen" });
+    const lapsed = await createProfile({ email: "lapsed@example.com", username: "lapsed.doc", name: "Dr. Lapsed" });
+    const streaky = await createProfile({ email: "streaky@example.com", username: "streaky.doc", name: "Dr. Streaky" });
     const guest = await createGuest();
     const devices = Object.fromEntries([keen, lapsed, streaky, guest].map((u) => [u.id, browser().target]));
     for (const [id, t] of Object.entries(devices)) await saveSubscription(id, t);
@@ -204,7 +204,7 @@ describe("the evening reminder", () => {
 
   it("forgets browsers that unsubscribed, and ones that keep failing", async () => {
     await db.run("DELETE FROM push_subscriptions");
-    const doc = await createUser({ email: "flaky@example.com", username: "flaky.doc", name: "Dr. Flaky", password: "quiet harbour 77" });
+    const doc = await createProfile({ email: "flaky@example.com", username: "flaky.doc", name: "Dr. Flaky" });
     const gone = browser().target;
     const flaky = browser().target;
     await saveSubscription(doc.id, gone);

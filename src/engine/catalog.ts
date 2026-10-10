@@ -717,6 +717,23 @@ export interface CatalogExam {
   revealsVitals?: VitalKey[];
   /** Exam ids this composite examination also covers. */
   covers?: string[];
+  /**
+   * Auscultation: what the stethoscope picks up, taken from the matching
+   * system's examination (heart → cardiovascular, lungs → respiratory,
+   * bowel → abdomen) as it stands right now.
+   */
+  listen?: "heart" | "lungs" | "bowel" | "all";
+  /**
+   * Phrases that can only mean this examination, verb or not, even put as a
+   * question ("heart sounds?") — they're never a question for the patient.
+   */
+  selfEvident?: string[];
+  /**
+   * Phrases that mean this examination without a verb — unless the patient's
+   * history answers them first ("any murmur?"). The rest ("wheeze") need a
+   * verb ("check for wheeze"): "do you wheeze?" is the patient's to answer.
+   */
+  bare?: string[];
 }
 
 export const EXAMS: CatalogExam[] = [
@@ -737,17 +754,45 @@ export const EXAMS: CatalogExam[] = [
   { id: "jvp", label: "JVP", group: "general-exam", durationMin: 1, match: ["jvp", "jugular venous pressure", "neck veins", "jugular"], finding: "JVP not raised." },
   {
     id: "cvs", label: "Cardiovascular", group: "systemic-exam", durationMin: 2,
-    match: ["cvs", "cardiovascular", "cardiovascular examination", "heart", "heart sounds", "auscultate heart", "auscultate the heart", "cardiac examination", "precordium", "murmur", "murmurs", "s1 s2"],
+    match: ["cvs", "cardiovascular", "cardiovascular examination", "cardiovascular system", "heart", "examine the heart", "cardiac examination", "precordium"],
     finding: "Apex in the 5th intercostal space, mid-clavicular line. S1 and S2 normal. No murmurs, rubs or gallops.",
   },
   {
     id: "rs", label: "Respiratory", group: "systemic-exam", durationMin: 2,
-    match: ["rs", "respiratory", "respiratory examination", "respiratory system", "chest", "chest examination", "lungs", "auscultate chest", "auscultate the chest", "auscultate lungs", "breath sounds", "air entry", "crepitations", "creps", "wheeze", "crackles"],
+    match: ["rs", "respiratory", "respiratory examination", "respiratory system", "chest", "chest examination", "lungs"],
     finding: "Trachea central. Chest expansion symmetrical. Bilateral equal air entry. Normal vesicular breath sounds. No added sounds.",
+  },
+  // Auscultation — only what the stethoscope picks up, never the rest of the system's examination.
+  {
+    id: "heart-sounds", label: "Heart sounds", group: "systemic-exam", durationMin: 1, listen: "heart",
+    selfEvident: ["heart sounds", "heart sound", "auscultate heart", "auscultate the heart", "auscultate his heart", "auscultate her heart", "listen to the heart", "listen to his heart", "listen to her heart", "listen to heart", "cardiac auscultation", "auscultate the precordium", "s1 s2", "s1 and s2"],
+    bare: ["murmur", "murmurs", "any murmur", "gallop", "s3", "s4"],
+    match: ["heart sounds", "heart sound", "auscultate heart", "auscultate the heart", "auscultate his heart", "auscultate her heart", "listen to the heart", "listen to his heart", "listen to her heart", "listen to heart", "listen to the chest for heart sounds", "cardiac auscultation", "auscultate the precordium", "s1 s2", "s1 and s2", "murmur", "murmurs", "any murmur", "gallop", "s3", "s4"],
+    finding: "S1 and S2 heard, normal. No murmurs, rubs or gallops.",
+  },
+  {
+    id: "breath-sounds", label: "Breath sounds", group: "systemic-exam", durationMin: 1, listen: "lungs",
+    selfEvident: ["breath sounds", "breath sound", "lung sounds", "chest sounds", "auscultate chest", "auscultate the chest", "auscultate his chest", "auscultate her chest", "auscultate lungs", "auscultate the lungs", "auscultate the back", "listen to the chest", "listen to his chest", "listen to her chest", "listen to the lungs", "listen to lungs", "listen to the back", "air entry", "crepitations", "creps"],
+    bare: ["crackles", "rhonchi"],
+    match: ["breath sounds", "breath sound", "lung sounds", "chest sounds", "auscultate chest", "auscultate the chest", "auscultate his chest", "auscultate her chest", "auscultate lungs", "auscultate the lungs", "auscultate the back", "listen to the chest", "listen to his chest", "listen to her chest", "listen to the lungs", "listen to lungs", "listen to the back", "air entry", "crepitations", "creps", "crackles", "wheeze", "wheezing", "rhonchi", "stridor"],
+    finding: "Bilateral equal air entry. Normal vesicular breath sounds. No added sounds.",
+  },
+  {
+    id: "bowel-sounds", label: "Bowel sounds", group: "systemic-exam", durationMin: 1, listen: "bowel",
+    selfEvident: ["bowel sounds", "bowel sound", "auscultate abdomen", "auscultate the abdomen", "listen to the abdomen", "listen to the belly", "listen to the tummy", "listen to his abdomen", "listen to her abdomen"],
+    bare: ["abdominal bruit", "renal bruit"],
+    match: ["bowel sounds", "bowel sound", "auscultate abdomen", "auscultate the abdomen", "listen to the abdomen", "listen to the belly", "listen to the tummy", "listen to his abdomen", "listen to her abdomen", "abdominal bruit", "renal bruit"],
+    finding: "Bowel sounds present and normal.",
+  },
+  {
+    id: "auscultation", label: "Auscultation", group: "systemic-exam", durationMin: 2, listen: "all",
+    selfEvident: ["auscultate", "auscultation", "auscultate the patient", "auscultate him", "auscultate her", "use the stethoscope"],
+    match: ["auscultate", "auscultation", "auscultate the patient", "auscultate him", "auscultate her", "use the stethoscope", "stethoscope"],
+    finding: "Heart: S1 and S2 heard, normal. No murmurs. Lungs: normal vesicular breath sounds, no added sounds.",
   },
   {
     id: "abdomen", label: "Abdomen", group: "systemic-exam", durationMin: 3,
-    match: ["abdomen", "abdominal", "abdominal examination", "per abdomen", "pa", "p a", "palpate abdomen", "palpate the abdomen", "examine abdomen", "examine the abdomen", "belly", "tummy", "bowel sounds", "organomegaly", "liver", "spleen", "hepatomegaly", "splenomegaly", "guarding", "rigidity", "tenderness"],
+    match: ["abdomen", "abdominal", "abdominal examination", "per abdomen", "pa", "p a", "palpate abdomen", "palpate the abdomen", "examine abdomen", "examine the abdomen", "belly", "tummy", "organomegaly", "liver", "spleen", "hepatomegaly", "splenomegaly", "guarding", "rigidity", "tenderness"],
     finding: "Abdomen soft, non-tender. No guarding or rigidity. No organomegaly. Bowel sounds present and normal.",
   },
   {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { CountryPicker } from "@/components/app/country-picker";
+import { InstallButton } from "@/components/app/install-button";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Avatar } from "@/components/game/avatar";
 import { GoalRing } from "@/components/game/goal-ring";
@@ -13,7 +14,7 @@ import { Flame } from "@/components/game/streak";
 import { PeriodToggle, PlanCards } from "@/components/pricing/plan-cards";
 import { Footer } from "@/components/shell/footer";
 import { HeartScene } from "@/components/three/heart-scene";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { countryFromLocale, type Country } from "@/engine/countries";
 import { levelMeta, trackLabel } from "@/engine/levels";
 import { RANKS } from "@/engine/progression";
@@ -34,6 +35,7 @@ export function LandingNav() {
           <Wordmark size="md" />
         </Link>
         <nav className="flex items-center gap-1" aria-label="Main">
+          <InstallButton className="mr-1 hidden sm:inline-flex" />
           <Link href="/pricing" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
             Pricing
           </Link>
@@ -185,6 +187,41 @@ function useVisitorCountry(): [Country, (country: Country) => void] {
   const [country, setCountry] = useState<Country>("IN");
   useEffect(() => setCountry(countryFromLocale(navigator.language)), []);
   return [country, setCountry];
+}
+
+/** For a first-time visitor: what happens in a case, in three steps. */
+function HowItWorks() {
+  const steps: { icon: IconName; title: string; body: string }[] = [
+    { icon: "user", title: "Meet the patient", body: "A patient arrives with a story — in the ER, the OPD or on the phone. The diagnosis is hidden. No hints, no multiple choice." },
+    { icon: "hand", title: "Do what a doctor does", body: "Type in plain English, or tap Ask, Examine, Tests and Treat. Take the history, examine — even listen with a stethoscope — order tests and treat. The patient gets better or worse." },
+    { icon: "trophy", title: "See what you missed", body: "Name your diagnosis and end the case. You get a score out of 100, what you did well, what you missed, and the ideal approach." },
+  ];
+  return (
+    <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6" aria-labelledby="how-heading">
+      <div className="micro text-accent-text">How it works</div>
+      <h2 id="how-heading" className="mt-3 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-balance sm:text-[38px]">
+        A case in three steps.
+      </h2>
+      <ol className="mt-10 grid gap-3 sm:grid-cols-3">
+        {steps.map((s, i) => (
+          <li key={s.title} className="panel relative p-5">
+            <span className="absolute top-4 right-5 text-[40px] leading-none font-semibold text-fg/[0.06] tabular" aria-hidden>
+              {i + 1}
+            </span>
+            <span className="bg-ai flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-glow">
+              <Icon name={s.icon} size={18} />
+            </span>
+            <h3 className="mt-4 text-[17px] font-semibold tracking-[-0.01em]">{s.title}</h3>
+            <p className="mt-1.5 text-[14px] leading-6 text-fg-2">{s.body}</p>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <DemoButton />
+        <span className="text-[13px] text-fg-3">A 3-minute guided case shows you everything — no sign-up needed.</span>
+      </div>
+    </section>
+  );
 }
 
 function Ladder() {
@@ -344,6 +381,7 @@ export function Landing() {
       <LandingNav />
       <main className="flex-1">
         <Hero />
+        <HowItWorks />
         <Ladder />
         <Modes />
         <Habit />

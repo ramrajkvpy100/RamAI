@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { clockAt } from "@/lib/format";
 
 import { ResultCard } from "./result-card";
+import { StethoscopePlayer } from "./stethoscope-player";
 import { figureSeed, statusAt } from "./scene/figures";
 
 interface Block {
@@ -141,6 +142,7 @@ function Finding({ m, state, isNew, highlightIds }: { m: EncounterMessage; state
           <MediaFigure media={m.media} viewerKey={m.id} title={isExam ? head : label} />
         </div>
       )}
+      {m.sounds && m.sounds.length > 0 && <StethoscopePlayer sounds={m.sounds} />}
     </div>
   );
 }

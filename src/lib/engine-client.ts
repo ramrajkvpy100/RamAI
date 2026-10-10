@@ -11,7 +11,7 @@ import type { CareLevel, CaseSession, CaseTrack, PatientLang, Specialty, TurnRes
 export const UNAVAILABLE_MESSAGE = "Clinical engine temporarily unavailable.";
 
 /** Codes whose server message is written for players and safe to show. */
-const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED", "DAILY_DONE"]);
+const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED", "DAILY_DONE", "CODE_INVALID", "LEGACY_ACCOUNT", "SIGNUP_CLOSED", "AUTH_UNAVAILABLE"]);
 
 export class ClinicalEngineError extends Error {
   constructor(public readonly code: string, message: string, public readonly retryable: boolean) {
@@ -37,7 +37,7 @@ async function call<T>(path: string, body?: unknown, signal?: AbortSignal): Prom
   if (!res.ok) {
     const code = json?.error?.code ?? "ENGINE_UNAVAILABLE";
     const message = SAFE_CODES.has(code) && json?.error?.message ? json.error.message : UNAVAILABLE_MESSAGE;
-    throw new ClinicalEngineError(code, message, code === "ENGINE_UNAVAILABLE" || code === "NETWORK" || code === "RATE_LIMITED");
+    throw new ClinicalEngineError(code, message, code === "ENGINE_UNAVAILABLE" || code === "NETWORK" || code === "RATE_LIMITED" || code === "AUTH_UNAVAILABLE");
   }
   return json as T;
 }
@@ -74,7 +74,13 @@ export const closeCase = (token: string, finalDiagnosis?: string) =>
   submitDoctorAction(token, finalDiagnosis ? `Final diagnosis: ${finalDiagnosis}. Case close.` : "Case close.");
 
 /* Accounts & billing ------------------------------------------------------- */
-export const signup = (body: { name: string; username: string; email: string; password: string; country?: Country; acceptTerms: true }) => call<{ user: unknown }>("/api/auth/signup", body);
+/** Supabase emails a six-digit code; the account opens once it's entered (verifyCode). */
+export const signup = (body: { name: string; username: string; email: string; password: string; country?: Country; acceptTerms: true }) =>
+  call<{ status: "verify"; email: string } | { status: "signed-in"; user: unknown }>("/api/auth/signup", body);
+export const verifyCode = (email: string, code: string) => call<{ user: unknown }>("/api/auth/verify", { email, code });
+/** The code in a confirmation link (Supabase's default email template). */
+export const confirmLink = (code: string) => call<{ user: unknown }>("/api/auth/verify", { code });
+export const resendCode = (email: string) => call<{ ok: true; cooldown: number }>("/api/auth/resend", { email });
 export const login = (body: { login: string; password: string }) => call<{ user: unknown }>("/api/auth/login", body);
 export const logout = () => call<{ ok: true }>("/api/auth/logout", {});
 export const deleteAccount = (password?: string) => call<{ ok: true }>("/api/me/delete", password ? { password } : {});
@@ -82,9 +88,9 @@ export const checkout = (period: "monthly" | "yearly", startNow: true) => call<{
 export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ ok: true }>("/api/billing/verify", body);
 export const demoUpgrade = () => call<{ ok: true }>("/api/billing/demo-upgrade", {});
 export const startGuest = (country?: Country) => call<{ user: { id: string } }>("/api/auth/guest", country ? { country } : {});
-export const requestVerification = () => call<{ sent: boolean; verified?: boolean; devLink?: string }>("/api/auth/verification", {});
 export const forgotPassword = (email: string) => call<{ ok: true }>("/api/auth/forgot", { email });
-export const resetPassword = (token: string, password: string) => call<{ user: unknown }>("/api/auth/reset", { token, password });
+/** The new password, with the proof from the reset link: its token hash, or Supabase's PKCE code. */
+export const resetPassword = (body: { password: string; tokenHash?: string; code?: string }) => call<{ user: unknown }>("/api/auth/reset", body);
 
 /* Preferences --------------------------------------------------------------- */
 export const updateSettings = (body: { patientLang?: PatientLang; country?: Country }) => call<unknown>("/api/me/settings", body);

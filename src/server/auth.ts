@@ -1,15 +1,19 @@
 /**
- * Accounts and sessions.
+ * Who is signed in.
  *
- * Passwords: scrypt (N=16384, r=8, p=1) with a per-user salt.
- * Sessions: a random 256-bit token in an HttpOnly cookie; only its SHA-256
- * hash is stored, so a database leak cannot be replayed. Sessions are revocable.
+ * Accounts sign in with Supabase Auth (src/server/supabase.ts): Supabase holds
+ * the passwords, sends the codes and links, and issues the session cookies.
+ * RamAI keeps only the profile and progress, linked by the Supabase user id —
+ * never a password or a code.
+ *
+ * Guests trying the demo have no password at all: a random 256-bit token in
+ * an HttpOnly cookie, of which only the SHA-256 hash is stored.
  */
 import "server-only";
 
-import { createHash, randomBytes, randomUUID, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 
+import { isAuthRetryableFetchError, type User as SupabaseUser } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 import { isCountry, type Country } from "@/engine/countries";
@@ -17,11 +21,12 @@ import type { PatientLang } from "@/engine/types";
 import type { PlanId } from "@/lib/plans";
 
 import { db, isUniqueViolation } from "./db";
-
-const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, keylen: number, opts: { N: number; r: number; p: number; maxmem: number }) => Promise<Buffer>;
+import { currentAccount, supabaseServer } from "./supabase";
 
 export const SESSION_COOKIE = "ramai_session";
 const SESSION_DAYS = 30;
+/** Marks profiles whose password lives with Supabase (the column predates Supabase). */
+const NO_PASSWORD = "!supabase";
 
 export interface User {
   id: string;
@@ -44,10 +49,10 @@ export interface User {
 
 interface UserRow {
   id: string;
+  auth_id: string | null;
   email: string;
   username: string;
   name: string;
-  password_hash: string;
   plan: string;
   plan_expires_at: number | null;
   patient_lang: string | null;
@@ -77,38 +82,6 @@ function toUser(r: UserRow): User {
   };
 }
 
-/* -------------------------------------------------------------------------- */
-/* Passwords                                                                   */
-/* -------------------------------------------------------------------------- */
-
-// OWASP's minimum for scrypt. Tests use a cheap cost so the suite stays fast.
-const N = process.env.NODE_ENV === "test" ? 1024 : 131072;
-const R = 8;
-const P = 1;
-const MAXMEM = 256 * 1024 * 1024;
-const DUMMY_HASH = `scrypt${N}$8$1$AAAAAAAAAAAAAAAAAAAAAA$AAAA`;
-
-/** Older accounts were hashed with a lower cost; they're upgraded when they next sign in. */
-const needsRehash = (stored: string) => Number(stored.split("$")[1]) < N;
-
-export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16);
-  const hash = await scrypt(password, salt, 64, { N, r: R, p: P, maxmem: MAXMEM });
-  return ["scrypt", N, R, P, salt.toString("base64url"), hash.toString("base64url")].join("$");
-}
-
-export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const [algo, n, r, p, salt, hash] = stored.split("$");
-  if (algo !== "scrypt" || !salt || !hash) return false;
-  const expected = Buffer.from(hash, "base64url");
-  const actual = await scrypt(password, Buffer.from(salt, "base64url"), expected.length, { N: Number(n), r: Number(r), p: Number(p), maxmem: MAXMEM });
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
-}
-
-/* -------------------------------------------------------------------------- */
-/* Users                                                                       */
-/* -------------------------------------------------------------------------- */
-
 export class AuthError extends Error {
   constructor(public readonly code: "EXISTS" | "INVALID" | "UNAUTHENTICATED", message: string) {
     super(message);
@@ -116,32 +89,9 @@ export class AuthError extends Error {
   }
 }
 
-/** Why an email or username can't be used — checked before writing, and again by the database's unique keys. */
-async function assertAvailable(email: string, username: string, exceptId = "") {
-  const taken = await db.get<{ email: string; username: string }>("SELECT email, username FROM users WHERE (email = ? OR username = ?) AND id != ?", email, username, exceptId);
-  if (taken) throw new AuthError("EXISTS", taken.email.toLowerCase() === email.toLowerCase() ? "An account with this email already exists." : "That username is taken.");
-}
-
-const takenMeanwhile = (err: unknown) => (isUniqueViolation(err) ? new AuthError("EXISTS", "That email or username was just taken. Try another.") : err);
-
-export async function createUser(input: { email: string; username: string; name: string; password: string; country?: Country }): Promise<User> {
-  await assertAvailable(input.email, input.username);
-  const id = randomUUID();
-  const hash = await hashPassword(input.password);
-  await db
-    .run("INSERT INTO users (id, email, username, name, password_hash, created_at, country) VALUES (?, ?, ?, ?, ?, ?, ?)", id, input.email, input.username, input.name, hash, Date.now(), input.country ?? "IN")
-    .catch((err) => Promise.reject(takenMeanwhile(err)));
-  return (await findUserById(id))!;
-}
-
-export async function authenticate(login: string, password: string): Promise<User> {
-  const row = await db.get<UserRow>("SELECT * FROM users WHERE (email = ? OR username = ?) AND is_demo = 0 AND is_guest = 0", login, login);
-  // Hash anyway so timing does not reveal whether the account exists.
-  const ok = row ? await verifyPassword(password, row.password_hash) : await verifyPassword(password, DUMMY_HASH);
-  if (!row || !ok) throw new AuthError("INVALID", "Incorrect email/username or password.");
-  if (needsRehash(row.password_hash)) await setPassword(row.id, password);
-  return toUser(row);
-}
+/* -------------------------------------------------------------------------- */
+/* Profiles                                                                    */
+/* -------------------------------------------------------------------------- */
 
 export async function findUserById(id: string): Promise<User | null> {
   const row = await db.get<UserRow>("SELECT * FROM users WHERE id = ?", id);
@@ -154,8 +104,132 @@ export async function findUserByEmail(email: string): Promise<User | null> {
   return row ? toUser(row) : null;
 }
 
-export async function setPassword(userId: string, password: string) {
-  await db.run("UPDATE users SET password_hash = ? WHERE id = ?", await hashPassword(password), userId);
+/** The email behind a username, so players can still sign in with either. */
+export async function emailForLogin(login: string): Promise<string | null> {
+  const value = login.trim();
+  if (value.includes("@")) return value.toLowerCase();
+  const row = await db.get<{ email: string }>("SELECT email FROM users WHERE username = ? AND is_demo = 0 AND is_guest = 0", value);
+  return row?.email.toLowerCase() ?? null;
+}
+
+/** An account from before Supabase sign-in that hasn't been claimed again yet. */
+export async function isLegacyAccount(email: string): Promise<boolean> {
+  return !!(await db.get("SELECT 1 AS x FROM users WHERE email = ? AND auth_id IS NULL AND is_demo = 0 AND is_guest = 0", email.trim()));
+}
+
+/** Can this email sign up? Its username must be free — or already theirs, from an account made before. */
+export async function signupProblem(email: string, username: string): Promise<string | null> {
+  const holder = await db.get<{ auth_id: string | null }>("SELECT auth_id FROM users WHERE email = ? AND is_demo = 0 AND is_guest = 0", email);
+  if (holder?.auth_id) return "An account with this email already exists. Log in instead.";
+  const owner = await db.get<{ email: string }>("SELECT email FROM users WHERE username = ?", username);
+  if (owner && owner.email.toLowerCase() !== email.toLowerCase()) return "That username is taken.";
+  return null;
+}
+
+const USERNAME = /^[a-zA-Z0-9._]{3,24}$/;
+
+/** A free username: the one asked for if possible, else a close variant. */
+async function freeUsername(wanted: string, email: string): Promise<string> {
+  const base = USERNAME.test(wanted) ? wanted : (email.split("@")[0] ?? "").replace(/[^a-zA-Z0-9._]/g, "").slice(0, 20).padEnd(3, "0");
+  for (let i = 0; i < 12; i++) {
+    const candidate = i === 0 ? base : `${base.slice(0, 19)}${randomInt(10, 99_999)}`;
+    if (!(await db.get("SELECT 1 AS x FROM users WHERE username = ?", candidate))) return candidate;
+  }
+  return `doc${randomInt(100_000, 9_999_999)}`;
+}
+
+/** What a Supabase account tells us about its owner. */
+export interface AuthIdentity {
+  id: string;
+  email: string;
+  /** Supabase has confirmed the email (the six-digit code, or a link). */
+  confirmed: boolean;
+  /** user_metadata from sign-up: name, username, country, terms version. Set by RamAI's server at sign-up. */
+  meta: Record<string, unknown>;
+}
+
+export const identityOf = (u: SupabaseUser): AuthIdentity => ({
+  id: u.id,
+  email: (u.email ?? "").toLowerCase(),
+  confirmed: !!u.email_confirmed_at,
+  meta: (u.user_metadata ?? {}) as Record<string, unknown>,
+});
+
+function detailsFrom(meta: Record<string, unknown>, email: string) {
+  const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
+  const name = str(meta.name, 60);
+  return {
+    name: name && name.length >= 2 ? name : (email.split("@")[0] ?? "Doctor").slice(0, 60),
+    username: str(meta.username, 24) ?? "",
+    country: isCountry(meta.country) ? meta.country : null,
+    termsVersion: str(meta.terms_version, 20),
+    termsAcceptedAt: typeof meta.terms_accepted_at === "number" ? meta.terms_accepted_at : null,
+  };
+}
+
+/**
+ * The RamAI profile for a verified Supabase account, made on its first visit:
+ *   · an account with this email from before Supabase sign-in is linked (the code proved the email is theirs);
+ *   · a guest who just signed up keeps the demo case they played;
+ *   · otherwise a new profile.
+ * Never for an unconfirmed email.
+ */
+export async function linkProfile(identity: AuthIdentity, opts: { guestId?: string } = {}): Promise<User | null> {
+  if (!identity.confirmed || !identity.email) return null;
+  const linked = await db.get<UserRow>("SELECT * FROM users WHERE auth_id = ?", identity.id);
+  if (linked) return toUser(linked);
+
+  const now = Date.now();
+  const d = detailsFrom(identity.meta, identity.email);
+  const sameEmail = await db.get<UserRow>("SELECT * FROM users WHERE email = ? AND is_demo = 0 AND is_guest = 0", identity.email);
+  if (sameEmail) {
+    await db.run(
+      "UPDATE users SET auth_id = ?, password_hash = ?, email_verified_at = COALESCE(email_verified_at, ?), terms_accepted_at = COALESCE(?, terms_accepted_at), terms_version = COALESCE(?, terms_version) WHERE id = ?",
+      identity.id, NO_PASSWORD, now, d.termsAcceptedAt, d.termsVersion, sameEmail.id,
+    );
+    return findUserById(sameEmail.id);
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const username = await freeUsername(d.username, identity.email);
+    try {
+      if (opts.guestId) {
+        const claimed = await db.run(
+          `UPDATE users SET auth_id = ?, email = ?, username = ?, name = ?, country = COALESCE(?, country), password_hash = ?, is_guest = 0,
+                            created_at = ?, email_verified_at = ?, terms_accepted_at = ?, terms_version = ?
+           WHERE id = ? AND is_guest = 1`,
+          identity.id, identity.email, username, d.name, d.country, NO_PASSWORD, now, now, d.termsAcceptedAt ?? now, d.termsVersion, opts.guestId,
+        );
+        if (claimed.changes === 1) return findUserById(opts.guestId);
+      }
+      const id = randomUUID();
+      await db.run(
+        `INSERT INTO users (id, auth_id, email, username, name, password_hash, created_at, country, email_verified_at, terms_accepted_at, terms_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, identity.id, identity.email, username, d.name, NO_PASSWORD, now, d.country ?? "IN", now, d.termsAcceptedAt ?? now, d.termsVersion,
+      );
+      return findUserById(id);
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      // A parallel request made it first, or the username was just taken: look again.
+      const made = await db.get<UserRow>("SELECT * FROM users WHERE auth_id = ?", identity.id);
+      if (made) return toUser(made);
+    }
+  }
+  throw new Error("Couldn't create the profile.");
+}
+
+/** A profile without Supabase — tests, and fixtures. */
+export async function createProfile(input: { email: string; username: string; name: string; country?: Country; authId?: string }): Promise<User> {
+  const id = randomUUID();
+  const now = Date.now();
+  await db
+    .run(
+      "INSERT INTO users (id, auth_id, email, username, name, password_hash, created_at, country, email_verified_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      id, input.authId ?? null, input.email.toLowerCase(), input.username, input.name, NO_PASSWORD, now, input.country ?? "IN", now,
+    )
+    .catch((err) => Promise.reject(isUniqueViolation(err) ? new AuthError("EXISTS", "That email or username is taken.") : err));
+  return (await findUserById(id))!;
 }
 
 /** Proof of consent: when this account accepted the terms and privacy policy, and which version. */
@@ -163,8 +237,16 @@ export async function recordConsent(userId: string, version: string) {
   await db.run("UPDATE users SET terms_accepted_at = ?, terms_version = ? WHERE id = ?", Date.now(), version, userId);
 }
 
-export async function markEmailVerified(userId: string) {
-  await db.run("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ?", Date.now(), userId);
+export async function setPatientLang(userId: string, lang: PatientLang) {
+  await db.run("UPDATE users SET patient_lang = ? WHERE id = ?", lang, userId);
+}
+
+export async function setCountry(userId: string, country: Country) {
+  await db.run("UPDATE users SET country = ? WHERE id = ?", country, userId);
+}
+
+export async function setPlan(userId: string, plan: PlanId, expiresAt: number | null) {
+  await db.run("UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?", plan, expiresAt, userId);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -196,37 +278,9 @@ export async function createGuest(country: Country = "IN"): Promise<User> {
   return (await findUserById(id))!;
 }
 
-/** Turns the signed-in guest into a full account, keeping the demo case they played. */
-export async function claimGuest(guestId: string, input: { email: string; username: string; name: string; password: string; country?: Country }): Promise<User> {
-  await assertAvailable(input.email, input.username, guestId);
-  const hash = await hashPassword(input.password);
-  await db
-    .run(
-      "UPDATE users SET email = ?, username = ?, name = ?, password_hash = ?, is_guest = 0, created_at = ?, country = COALESCE(?, country) WHERE id = ? AND is_guest = 1",
-      input.email, input.username, input.name, hash, Date.now(), input.country ?? null, guestId,
-    )
-    .catch((err) => Promise.reject(takenMeanwhile(err)));
-  return (await findUserById(guestId))!;
-}
-
-export async function setPatientLang(userId: string, lang: PatientLang) {
-  await db.run("UPDATE users SET patient_lang = ? WHERE id = ?", lang, userId);
-}
-
-export async function setCountry(userId: string, country: Country) {
-  await db.run("UPDATE users SET country = ? WHERE id = ?", country, userId);
-}
-
-export async function setPlan(userId: string, plan: PlanId, expiresAt: number | null) {
-  await db.run("UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?", plan, expiresAt, userId);
-}
-
-/* -------------------------------------------------------------------------- */
-/* Sessions                                                                    */
-/* -------------------------------------------------------------------------- */
-
 const tokenHash = (token: string) => createHash("sha256").update(token).digest("base64url");
 
+/** A guest's session. (Accounts' sessions belong to Supabase.) */
 export async function createSession(userId: string): Promise<{ token: string; expires: Date }> {
   const token = randomBytes(32).toString("base64url");
   const now = Date.now();
@@ -238,19 +292,15 @@ export async function createSession(userId: string): Promise<{ token: string; ex
   return { token, expires: new Date(expires) };
 }
 
-export async function userForToken(token: string | undefined): Promise<User | null> {
+/** The guest behind a session token — only guests sign in this way. */
+export async function guestForToken(token: string | undefined): Promise<User | null> {
   if (!token) return null;
-  const row = await db.get<UserRow>("SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?", tokenHash(token), Date.now());
+  const row = await db.get<UserRow>("SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ? AND u.is_guest = 1", tokenHash(token), Date.now());
   return row ? toUser(row) : null;
 }
 
 export async function deleteSession(token: string | undefined) {
   if (token) await db.run("DELETE FROM sessions WHERE token_hash = ?", tokenHash(token));
-}
-
-/** Signs the user out everywhere (after a password reset). */
-export async function deleteAllSessions(userId: string) {
-  await db.run("DELETE FROM sessions WHERE user_id = ?", userId);
 }
 
 export const sessionCookieOptions = (expires: Date) => ({
@@ -261,10 +311,44 @@ export const sessionCookieOptions = (expires: Date) => ({
   expires,
 });
 
-/** The signed-in user for the current request (server components, route handlers). */
-export async function getCurrentUser(): Promise<User | null> {
+/** The guest signed in on this request, if any. */
+export async function currentGuest(): Promise<User | null> {
   const jar = await cookies();
-  return userForToken(jar.get(SESSION_COOKIE)?.value);
+  return guestForToken(jar.get(SESSION_COOKIE)?.value);
+}
+
+/** Ends this browser's guest session (after it became a real account, or on log out). */
+export async function endGuestSession() {
+  const jar = await cookies();
+  await deleteSession(jar.get(SESSION_COOKIE)?.value);
+  jar.delete(SESSION_COOKIE);
+}
+
+/* -------------------------------------------------------------------------- */
+/* The current request                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The signed-in player (server components, route handlers): a verified
+ * Supabase account — its token checked on every request — or a guest.
+ */
+export async function getCurrentUser(): Promise<User | null> {
+  let account: Awaited<ReturnType<typeof currentAccount>> = null;
+  try {
+    account = await currentAccount();
+  } catch (err) {
+    // Supabase unreachable: say so, rather than quietly signing everyone out.
+    if (isAuthRetryableFetchError(err)) throw err;
+    console.error("[ramai] couldn't read the sign-in:", err instanceof Error ? err.message : err);
+  }
+  if (account) {
+    const row = await db.get<UserRow>("SELECT * FROM users WHERE auth_id = ?", account.id);
+    if (row) return toUser(row);
+    // Verified somewhere else (a link opened on another device): make the profile now.
+    const { data } = await (await supabaseServer()).auth.getUser();
+    return data.user ? linkProfile(identityOf(data.user)) : null;
+  }
+  return currentGuest();
 }
 
 export async function requireUser(): Promise<User> {

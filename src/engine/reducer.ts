@@ -74,7 +74,7 @@ export function applyEffects(input: CaseState, effects: readonly TurnEffect[]): 
   for (const e of effects) {
     switch (e.type) {
       case "message":
-        s.messages.push({ id: id("m"), role: e.role, kind: e.kind, text: e.text, at: at(), media: e.media, attachmentIds: e.attachmentIds });
+        s.messages.push({ id: id("m"), role: e.role, kind: e.kind, text: e.text, at: at(), media: e.media, attachmentIds: e.attachmentIds, ...(e.sounds ? { sounds: e.sounds } : {}) });
         break;
 
       case "vitals":

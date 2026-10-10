@@ -35,10 +35,23 @@ export const GuestSchema = z.object({ country: CountryField.optional() });
 
 export const ForgotSchema = z.object({ email: z.string().trim().toLowerCase().email("Enter a valid email").max(120) });
 
+/** A new password, with the proof from the emailed link: a token hash (our email template) or a PKCE code (Supabase's default). */
 export const ResetSchema = z.object({
-  token: z.string().min(20).max(200),
   password: z.string().min(8, "At least 8 characters").max(200),
+  tokenHash: z.string().min(10).max(500).optional(),
+  code: z.string().min(10).max(500).optional(),
 });
+
+/** The six-digit code from the sign-up email (Supabase can be set to send longer ones). */
+export const VerifyCodeSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email").max(120),
+  code: z.string().trim().regex(/^\d{6,10}$/, "Enter the 6-digit code from the email."),
+});
+
+/** A confirmation link from Supabase's default email: the PKCE code it carries. */
+export const ConfirmLinkSchema = z.object({ code: z.string().min(10).max(500) });
+
+export const ResendSchema = z.object({ email: z.string().trim().toLowerCase().email("Enter a valid email").max(120) });
 
 export const LoginSchema = z.object({
   login: z.string().trim().min(3).max(120),

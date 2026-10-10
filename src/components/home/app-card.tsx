@@ -10,10 +10,10 @@ const DISMISS_KEY = "ramai.appcard.dismissed";
 const QUIET_DAYS = 14;
 
 /**
- * After the first case: put RamAI on the home screen, then turn on the daily
+ * Put RamAI on the home screen; after a first case, turn on the daily
  * reminder. "Not now" keeps it away for two weeks.
  */
-export function AppCard({ guest }: { guest: boolean }) {
+export function AppCard({ guest, played }: { guest: boolean; played: boolean }) {
   const route = useInstallRoute();
   const reminder = useReminders();
   const [quiet, setQuiet] = useState(true);
@@ -36,7 +36,7 @@ export function AppCard({ guest }: { guest: boolean }) {
   };
 
   const install = route === "prompt" || route === "ios" || route === "mac-safari";
-  const remind = !guest && reminder === "off";
+  const remind = !guest && played && reminder === "off";
   if (quiet || (!install && !remind)) return null;
 
   const act = async () => {

@@ -118,7 +118,47 @@ export interface EncounterMessage {
   attachmentIds?: string[];
   /** Clinical media shown inline (photographs, dermoscopy, tracings). */
   media?: MediaAsset;
+  /** What the stethoscope picks up — played on request. Acoustic parameters only, never a label. */
+  sounds?: Auscultation[];
 }
+
+/* -------------------------------------------------------------------------- */
+/* Auscultation                                                                */
+/* -------------------------------------------------------------------------- */
+
+export interface HeartSounds {
+  kind: "heart";
+  /** Beats per minute. */
+  rate: number;
+  irregular?: boolean;
+  /** Muffled or distant heart sounds. */
+  soft?: boolean;
+  s3?: boolean;
+  s4?: boolean;
+  murmur?: { phase: "systolic" | "diastolic"; shape: "plateau" | "diamond" | "decrescendo" | "rumble" };
+  rub?: boolean;
+}
+
+export interface BreathSounds {
+  kind: "lungs";
+  /** Breaths per minute. */
+  rate: number;
+  breath: "vesicular" | "bronchial" | "reduced" | "absent";
+  crackles?: "fine" | "coarse";
+  wheeze?: boolean;
+  stridor?: boolean;
+  rub?: boolean;
+}
+
+export interface BowelSounds {
+  kind: "bowel";
+  activity: "normal" | "sluggish" | "absent" | "hyperactive" | "tinkling";
+  /** A vascular bruit heard over the abdomen (synchronous with the pulse). */
+  bruit?: boolean;
+  rate: number;
+}
+
+export type Auscultation = HeartSounds | BreathSounds | BowelSounds;
 
 /* -------------------------------------------------------------------------- */
 /* Investigations                                                              */
@@ -534,7 +574,7 @@ export interface ActionRecord {
  * render state. This keeps the interface identical for every provider.
  */
 export type TurnEffect =
-  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; media?: MediaAsset; attachmentIds?: string[] }
+  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; media?: MediaAsset; attachmentIds?: string[]; sounds?: Auscultation[] }
   | { type: "vitals"; readings: VitalPatch[] }
   | { type: "fact"; group: FactGroup; label: string; value: string; abnormal?: boolean }
   | { type: "investigation_ordered"; instanceId: string; defId: string; name: string; category: InvestigationCategory; turnaroundMin: number; cost?: number }

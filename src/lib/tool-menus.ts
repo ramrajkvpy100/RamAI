@@ -63,6 +63,7 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
       { title: "Vitals", items: [draft("All vitals", "Check vitals"), draft("BP", "Check BP"), draft("Pulse", "Check pulse"), draft("SpO₂", "Check SpO2"), draft("Temperature", "Check temperature"), draft("RBS", "Check RBS"), draft("Weight & BMI", "Check weight and BMI")] },
       { title: "General", items: [draft("General examination", "General examination"), draft("Hydration", "Check hydration"), draft("Lymph nodes", "Examine lymph nodes"), draft("JVP", "Check JVP"), draft("Pedal oedema", "Check for pedal oedema")] },
       { title: "Systemic", items: [draft("Cardiovascular", "Examine CVS"), draft("Respiratory", "Examine RS"), draft("Abdomen", "Examine abdomen"), draft("Neurological", "Neurological examination"), draft("Musculoskeletal", "Examine joints and spine"), draft("Peripheral pulses", "Examine peripheral pulses")] },
+      { title: "Auscultate", items: [draft("Heart sounds", "Auscultate the heart"), draft("Breath sounds", "Auscultate the chest"), draft("Bowel sounds", "Listen to the abdomen")] },
       { title: "Local", items: [draft("Skin / lesion", "Examine the skin lesions"), draft("Dermoscopy", "Dermoscopy"), draft("Wood's lamp", "Wood's lamp examination"), draft("Feet", "Examine the feet"), draft("Eyes & fundus", "Examine the eyes and fundus"), draft("ENT", "Examine throat and ears"), draft("Per-rectal", "Per rectal examination"), draft("Genital", "Genital examination")] },
     ],
   },

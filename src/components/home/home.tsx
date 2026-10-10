@@ -142,7 +142,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
 
         {showGuide && <GuidedCard onStart={() => void launch({ tutorial: true })} onSkip={skipGuide} starting={starting} />}
 
-        {p.history.length > 0 && <AppCard guest={me.user.isGuest} />}
+        {!showGuide && <AppCard guest={me.user.isGuest} played={p.history.length > 0} />}
 
         <LevelPath progress={p} plan={plan} library={library} starting={starting} onStart={(level) => void start({ level })} onLocked={locked} />
       </div>
