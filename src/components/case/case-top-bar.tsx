@@ -5,16 +5,15 @@ import Link from "next/link";
 import { LogoTile } from "@/components/brand/wordmark";
 import { Button, IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { StatusDot } from "@/components/ui/primitives";
 import { levelMeta, trackLabel } from "@/engine/levels";
 import type { CaseState } from "@/engine/types";
-import { caseLabel, clockAt, STATUS_LABEL, STATUS_TONE } from "@/lib/format";
+import { caseLabel, clockAt } from "@/lib/format";
 
 import { callDuration } from "./scene/call-screen";
 
 const since = (minutes: number) => (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${Math.round(minutes % 60)} min` : `${Math.round(minutes)} min`);
 
-/** Case and scene on the left; patient status and clock in the middle; sound and End case on the right. */
+/** Case and scene on the left; the clock in the middle; sound and End case on the right. The patient's condition lives in the Condition card. */
 export function CaseTopBar({
   state,
   onClose,
@@ -27,12 +26,10 @@ export function CaseTopBar({
   /** Monitor sound toggle — only offered where there is a monitor. */
   sound?: { on: boolean; toggle: () => void } | null;
 }) {
-  const tone = complete ? "neutral" : STATUS_TONE[state.patientStatus];
-  const alarming = !complete && (state.patientStatus === "deteriorating" || state.patientStatus === "critical");
   const day = Math.floor((state.arrivalMinuteOfDay + state.clock) / 1440);
   const phone = state.track === "phone";
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-[color-mix(in_srgb,var(--bg)_84%,transparent)] backdrop-blur-xl">
+    <header className="material-bar sticky top-0 z-30 border-b border-[var(--material-stroke)]">
       <div className="flex h-14 items-center gap-3 px-3 sm:px-5">
         <Link href="/" aria-label="RamAI — home" className="shrink-0 rounded-lg">
           <LogoTile size={28} />
@@ -44,18 +41,21 @@ export function CaseTopBar({
           </span>
         </div>
 
-        <div className="ml-auto flex min-w-0 items-center gap-2 text-[12.5px] sm:mx-auto" aria-live="polite">
-          <StatusDot tone={complete ? "neutral" : tone === "neutral" ? "success" : tone} pulse={alarming} />
-          <span className={alarming ? "font-semibold text-danger" : "font-medium text-fg"}>{complete ? "Complete" : STATUS_LABEL[state.patientStatus]}</span>
-          <span className="hidden text-fg-3 sm:inline">·</span>
-          <span className="hidden text-fg-2 tabular sm:inline">
+        <div className="ml-auto flex min-w-0 items-center gap-2 text-[12.5px] sm:mx-auto">
+          {complete && (
+            <>
+              <span className="font-medium text-fg">Complete</span>
+              <span className="text-fg-3">·</span>
+            </>
+          )}
+          <span className="truncate text-fg-2 tabular">
             {phone ? (
               <>Call · {callDuration(state.clock)}</>
             ) : (
               <>
                 {day > 0 ? `Day ${day + 1}, ` : ""}
                 {clockAt(state.arrivalMinuteOfDay, state.clock)}
-                {state.track === "emergency" && state.clock > 0 && <span className="text-fg-3"> · {since(state.clock)} since arrival</span>}
+                {state.track === "emergency" && state.clock > 0 && <span className="hidden text-fg-3 sm:inline"> · {since(state.clock)} since arrival</span>}
               </>
             )}
           </span>

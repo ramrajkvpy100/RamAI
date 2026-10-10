@@ -28,21 +28,23 @@ const CTA = "inline-flex h-12 items-center justify-center gap-2 rounded-full px-
 
 export function LandingNav() {
   return (
-    <header className="relative z-20 mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-      <Link href="/" aria-label="RamAI — home" className="rounded-lg">
-        <Wordmark size="md" />
-      </Link>
-      <nav className="flex items-center gap-1" aria-label="Main">
-        <Link href="/pricing" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
-          Pricing
+    <header className="material-bar sticky top-0 z-30 border-b border-[var(--material-stroke)]">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" aria-label="RamAI — home" className="rounded-lg">
+          <Wordmark size="md" />
         </Link>
-        <Link href="/login" className="rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg">
-          Log in
-        </Link>
-        <Link href="/signup" className="bg-ai ml-1 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white shadow-glow">
-          Start free
-        </Link>
-      </nav>
+        <nav className="flex items-center gap-1" aria-label="Main">
+          <Link href="/pricing" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
+            Pricing
+          </Link>
+          <Link href="/login" className="rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg">
+            Log in
+          </Link>
+          <Link href="/signup" className="bg-ai ml-1 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white shadow-glow">
+            Start free
+          </Link>
+        </nav>
+      </div>
     </header>
   );
 }
@@ -136,7 +138,7 @@ function Hero() {
       <div className="relative z-10 animate-rise">
         <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12.5px] font-medium text-fg-2">
           <span className="bg-ai h-1.5 w-1.5 rounded-full" />
-          Clinical simulation for Indian doctors
+          Clinical simulation for doctors · India, USA &amp; UK
         </span>
         <h1 className="mt-6 text-[44px] leading-[1.02] font-semibold tracking-[-0.04em] text-balance sm:text-[58px] lg:text-[66px]">
           Think like a doctor.

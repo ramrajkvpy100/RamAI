@@ -20,7 +20,7 @@ export const tutHypoglycaemia: ClinicalCaseDefinition = {
   briefing: "08:40. A 62-year-old man is helped into the emergency room by his wife — sweaty, confused and slurring his words.",
   initialStatus: "deteriorating",
   opening: [
-    { role: "nurse", kind: "action", text: "Triage: confused and sweating, brought by his wife. Vitals on the board." },
+    { role: "system", kind: "action", text: "Triage: confused and sweating, brought by his wife. Vitals on the board." },
     { role: "attendant", kind: "speech", text: "Doctor, please see him — since his morning walk he isn't making any sense!" },
     { role: "patient", kind: "speech", text: "Hmm… where… where am I?" },
   ],
@@ -113,7 +113,7 @@ export const tutHypoglycaemia: ClinicalCaseDefinition = {
 
   therapeutics: [
     { id: "dextrose", kind: "drug", drugIds: ["dextrose-25"], label: "IV 25% dextrose", appropriateness: "ideal",
-      response: [{ role: "nurse", kind: "action", text: "25% dextrose going in through the IV line." }],
+      response: [{ role: "system", kind: "action", text: "25% dextrose going in through the IV line." }],
       rescues: ["neuroglycopenia"],
       praise: "Gave IV dextrose without delay." },
     { id: "glucagon", kind: "drug", drugIds: ["glucagon"], label: "IM glucagon", appropriateness: "acceptable",

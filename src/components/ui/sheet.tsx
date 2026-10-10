@@ -83,7 +83,7 @@ export function Sheet({
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        "border border-line bg-surface p-0 text-fg shadow-lg backdrop:bg-[rgb(11_13_16/0.32)] backdrop:backdrop-blur-[2px] open:flex open:flex-col open:animate-sheet",
+        "material-thick p-0 text-fg backdrop:bg-[rgb(0_0_0/0.2)] backdrop:backdrop-blur-[6px] open:flex open:flex-col open:animate-sheet",
         layout,
         className,
       )}

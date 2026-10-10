@@ -14,7 +14,7 @@ export const surgAppendicitis: ClinicalCaseDefinition = {
   briefing: "22:40. A 24-year-old man has been wheeled into the emergency department by his roommate.",
   initialStatus: "guarded",
   opening: [
-    { role: "nurse", kind: "action", text: "Triage: abdominal pain since this morning, vomited twice. Vitals on the board." },
+    { role: "system", kind: "action", text: "Triage: abdominal pain since this morning, vomited twice. Vitals on the board." },
     { role: "patient", kind: "speech", text: "Doctor, my stomach has been hurting since morning. It's getting worse." },
   ],
   baselineVitals: {
@@ -203,7 +203,7 @@ export const surgAppendicitis: ClinicalCaseDefinition = {
     { id: "antispasmodic", kind: "drug", drugIds: ["drotaverine", "hyoscine"], label: "Antispasmodic", appropriateness: "unnecessary" },
     { id: "surgical-consult", kind: "referral", label: "Surgical consultation", appropriateness: "acceptable",
       match: ["surgery consult", "surgical consult", "call surgeon", "call the surgeon", "surgery opinion", "surgical opinion", "refer to surgery", "general surgery", "surgery referral", "surgical referral", "inform surgeon", "surgery team"],
-      response: [{ role: "nurse", kind: "action", text: "Surgery resident informed — on the way." }],
+      response: [{ role: "system", kind: "action", text: "Surgery resident informed — on the way." }],
       praise: "Involved the surgical team early." },
     { id: "admit", kind: "admit", measureIds: ["admit"], label: "Admit under surgery", appropriateness: "acceptable" },
     { id: "consent", kind: "counsel", label: "Informed consent", appropriateness: "acceptable",

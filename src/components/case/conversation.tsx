@@ -178,6 +178,18 @@ function SystemLine({ m, isNew }: { m: EncounterMessage; isNew: boolean }) {
       </div>
     );
   }
+  const triage = m.text.match(/^Triage:\s*([\s\S]*)$/);
+  if (triage) {
+    return (
+      <div className={cn("flex items-start gap-2.5 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5", isNew && "animate-enter")}>
+        <Icon name="file" size={15} className="mt-[3px] shrink-0 text-fg-3" />
+        <p className="text-[13.5px] leading-6 text-fg-2">
+          <span className="mr-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-fg-3 uppercase">Triage</span>
+          {triage[1]}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className={cn("flex items-start gap-2 pl-1 text-[12.5px] leading-5 text-fg-2", isNew && "animate-enter")}>
       <Icon name="check" size={13} className="mt-[3px] shrink-0 text-success" />
@@ -265,7 +277,13 @@ export function Conversation({
             <>
               <DoctorSpeech texts={[sendingInput]} isNew pending />
               <div className="flex animate-enter items-end gap-2.5" aria-live="polite">
-                {asking ? <SpeakerFigure state={state} role={phone ? "attendant" : "patient"} at={state.clock} /> : <NurseFigure size={34} className="rounded-full ring-1 ring-line" />}
+                {asking ? (
+                  <SpeakerFigure state={state} role={phone ? "attendant" : "patient"} at={state.clock} />
+                ) : (
+                  <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-surface-3 text-fg-3 ring-1 ring-line">
+                    <Icon name="clock" size={15} />
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 rounded-[18px] rounded-bl-[6px] border border-line bg-surface px-4 py-3 shadow-sm">
                   <span className="sr-only">{asking ? "Waiting for the reply" : "Carrying out your orders"}</span>
                   {[0, 1, 2].map((i) => (

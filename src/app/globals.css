@@ -17,11 +17,11 @@
   --line: #e2e7f0;
   --line-2: #edf1f7;
 
-  --accent: #2563eb;
-  --accent-hover: #1d4fd8;
-  --accent-text: #2563eb;
-  --accent-soft: #ebf2ff;
-  --accent-line: #c3d6fd;
+  --accent: #007aff;
+  --accent-hover: #0066d6;
+  --accent-text: #0062cc;
+  --accent-soft: rgb(0 122 255 / 0.1);
+  --accent-line: rgb(0 122 255 / 0.28);
   --on-accent: #ffffff;
   --cyan: #06b6d4;
   --violet: #7c3aed;
@@ -45,8 +45,20 @@
   --shadow-md: 0 1px 2px rgb(11 18 32 / 0.05), 0 10px 30px -14px rgb(11 18 32 / 0.18);
   --shadow-lg: 0 2px 8px rgb(11 18 32 / 0.05), 0 30px 60px -28px rgb(11 18 32 / 0.3);
   --shadow-glow: 0 10px 40px -12px rgb(37 99 235 / 0.55);
-  --ring: rgb(37 99 235 / 0.42);
+  --ring: rgb(0 122 255 / 0.42);
   --highlight: rgb(255 255 255 / 0.9);
+
+  /* Apple-style materials: translucent fills that blur what's behind them. */
+  --material-regular: rgb(255 255 255 / 0.62);
+  --material-thick: rgb(248 249 252 / 0.86);
+  --material-bar: rgb(246 247 250 / 0.72);
+  --material-edge: rgb(255 255 255 / 0.75);
+  --material-stroke: rgb(15 23 42 / 0.08);
+  /* The wallpaper the glass sits on. */
+  --wall-1: rgb(0 122 255 / 0.2);
+  --wall-2: rgb(175 82 222 / 0.15);
+  --wall-3: rgb(52 199 89 / 0.11);
+  --wall-4: rgb(255 149 0 / 0.1);
 
   --ecg-paper: #fffdfc;
   --ecg-grid-major: rgb(220 90 80 / 0.28);
@@ -66,11 +78,11 @@
     --fg-3: #657089;
     --line: #1b2436;
     --line-2: #131b2a;
-    --accent: #2f6ff0;
-    --accent-hover: #4a83f5;
-    --accent-text: #79acff;
-    --accent-soft: rgb(47 111 240 / 0.15);
-    --accent-line: rgb(121 172 255 / 0.32);
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
+    --accent-text: #5aa9ff;
+    --accent-soft: rgb(10 132 255 / 0.16);
+    --accent-line: rgb(90 169 255 / 0.32);
     --cyan: #22d3ee;
     --violet: #a78bfa;
     --success: #3fbf8f;
@@ -86,8 +98,17 @@
     --shadow-md: 0 1px 2px rgb(0 0 0 / 0.5), 0 14px 36px -18px rgb(0 0 0 / 0.8);
     --shadow-lg: 0 2px 8px rgb(0 0 0 / 0.5), 0 34px 70px -30px rgb(0 0 0 / 0.9);
     --shadow-glow: 0 12px 44px -10px rgb(47 111 240 / 0.6);
-    --ring: rgb(121 172 255 / 0.5);
+    --ring: rgb(90 169 255 / 0.5);
     --highlight: rgb(255 255 255 / 0.06);
+    --material-regular: rgb(28 32 44 / 0.55);
+    --material-thick: rgb(24 27 37 / 0.86);
+    --material-bar: rgb(12 15 22 / 0.7);
+    --material-edge: rgb(255 255 255 / 0.08);
+    --material-stroke: rgb(255 255 255 / 0.09);
+    --wall-1: rgb(10 132 255 / 0.24);
+    --wall-2: rgb(191 90 242 / 0.18);
+    --wall-3: rgb(48 209 88 / 0.1);
+    --wall-4: rgb(255 159 10 / 0.08);
     --ecg-paper: #111620;
     --ecg-grid-major: rgb(239 111 102 / 0.22);
     --ecg-grid-minor: rgb(239 111 102 / 0.07);
@@ -106,11 +127,11 @@
   --fg-3: #657089;
   --line: #1b2436;
   --line-2: #131b2a;
-  --accent: #2f6ff0;
-  --accent-hover: #4a83f5;
-  --accent-text: #79acff;
-  --accent-soft: rgb(47 111 240 / 0.15);
-  --accent-line: rgb(121 172 255 / 0.32);
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-text: #5aa9ff;
+  --accent-soft: rgb(10 132 255 / 0.16);
+  --accent-line: rgb(90 169 255 / 0.32);
   --cyan: #22d3ee;
   --violet: #a78bfa;
   --success: #3fbf8f;
@@ -126,8 +147,17 @@
   --shadow-md: 0 1px 2px rgb(0 0 0 / 0.5), 0 14px 36px -18px rgb(0 0 0 / 0.8);
   --shadow-lg: 0 2px 8px rgb(0 0 0 / 0.5), 0 34px 70px -30px rgb(0 0 0 / 0.9);
   --shadow-glow: 0 12px 44px -10px rgb(47 111 240 / 0.6);
-  --ring: rgb(121 172 255 / 0.5);
+  --ring: rgb(90 169 255 / 0.5);
   --highlight: rgb(255 255 255 / 0.06);
+  --material-regular: rgb(28 32 44 / 0.55);
+  --material-thick: rgb(24 27 37 / 0.86);
+  --material-bar: rgb(12 15 22 / 0.7);
+  --material-edge: rgb(255 255 255 / 0.08);
+  --material-stroke: rgb(255 255 255 / 0.09);
+  --wall-1: rgb(10 132 255 / 0.24);
+  --wall-2: rgb(191 90 242 / 0.18);
+  --wall-3: rgb(48 209 88 / 0.1);
+  --wall-4: rgb(255 159 10 / 0.08);
   --ecg-paper: #111620;
   --ecg-grid-major: rgb(239 111 102 / 0.22);
   --ecg-grid-minor: rgb(239 111 102 / 0.07);
@@ -135,7 +165,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-geist-sans), "Segoe UI", system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
   --color-bg: var(--bg);
@@ -238,7 +268,20 @@
 
 @layer base {
   html { -webkit-text-size-adjust: 100%; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-  body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); font-feature-settings: "ss01", "cv11"; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); letter-spacing: -0.006em; }
+  /* A soft colour wallpaper behind everything, so glass surfaces have something to frost. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -20;
+    pointer-events: none;
+    background:
+      radial-gradient(48% 42% at 8% 4%, var(--wall-1), transparent 72%),
+      radial-gradient(40% 38% at 96% 10%, var(--wall-2), transparent 72%),
+      radial-gradient(50% 44% at 82% 98%, var(--wall-3), transparent 72%),
+      radial-gradient(42% 40% at 2% 92%, var(--wall-4), transparent 72%);
+  }
   ::selection { background: var(--accent-soft); color: var(--fg); }
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 6px; }
   button, [role="button"] { cursor: pointer; }
@@ -260,28 +303,53 @@
 @utility bg-ai { background: var(--grad-ai); }
 @utility bg-flame { background: var(--grad-flame); }
 
+/* Apple-style materials. Regular: cards. Thick: menus, sheets, popovers. Bar: top bars and toolbars. */
+@utility material {
+  background: var(--material-regular);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--material-stroke);
+  box-shadow: inset 0 1px 0 var(--material-edge), var(--shadow-md);
+}
+@utility material-thick {
+  background: var(--material-thick);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  backdrop-filter: blur(40px) saturate(190%);
+  border: 1px solid var(--material-stroke);
+  box-shadow: inset 0 1px 0 var(--material-edge), var(--shadow-lg);
+}
+@utility material-bar {
+  background: var(--material-bar);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
 /* Glass surface with an inner top highlight. */
 @utility glass {
-  background: color-mix(in srgb, var(--surface) 74%, transparent);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
-  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-md);
+  background: var(--material-regular);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--material-stroke);
+  box-shadow: inset 0 1px 0 var(--material-edge), var(--shadow-md);
 }
 
-/* Solid menu surface: floats over busy pages without letting them show through. */
+/* Menus: thick frosted glass — translucent, but always easy to read. */
 @utility popover {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-lg);
+  background: var(--material-thick);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  backdrop-filter: blur(40px) saturate(190%);
+  border: 1px solid var(--material-stroke);
+  box-shadow: inset 0 1px 0 var(--material-edge), var(--shadow-lg);
 }
 
-/* Elevated card with depth. */
+/* Cards: frosted glass with depth. */
 @utility panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-md);
+  background: var(--material-regular);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--material-stroke);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 var(--material-edge), var(--shadow-md);
 }
 
 /* Gradient hairline border (1px) without extra markup. */
@@ -404,3 +472,19 @@ html[data-coach="end-case"] [data-coach-target="end-case"] {
 .fig-blink { transform-box: fill-box; transform-origin: 50% 50%; animation: fig-blink 5.5s ease-in-out infinite; }
 .fig-sweat { animation: fig-sweat 2.4s ease-in infinite; }
 .fig-puff { animation: fig-puff 1.4s ease-in-out infinite; }
+
+/* "Reduce transparency" (iOS/macOS setting), or no blur support: solid surfaces instead of glass. */
+@media (prefers-reduced-transparency: reduce) {
+  :root:root:root {
+    --material-regular: var(--surface);
+    --material-thick: var(--surface);
+    --material-bar: var(--bg);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root:root:root {
+    --material-regular: var(--surface);
+    --material-thick: var(--surface);
+    --material-bar: var(--bg);
+  }
+}

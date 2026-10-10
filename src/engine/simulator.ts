@@ -481,7 +481,8 @@ function applyStage(hidden: HiddenState, stage: HazardStage): TurnEffect[] {
     hidden.status = stage.status;
     fx.push({ type: "patient_status", status: stage.status, notice: "Patient status changed." });
     fx.push({ type: "timeline", label: stage.status === "deceased" ? "Patient died" : "Patient status changed", category: "status" });
-    if (worse && stage.status !== "deceased") fx.push({ type: "message", role: "system", kind: "status", text: "Patient status changed." });
+    // A change is noticed through the nurse, the family or the monitor; the generic notice is only for when none of them says anything.
+    if (worse && stage.status !== "deceased" && !stage.observation) fx.push({ type: "message", role: "system", kind: "status", text: "Patient status changed." });
   }
   if (stage.observation) {
     fx.push({ type: "message", role: stage.observation.role, kind: stage.observation.role === "nurse" || stage.observation.role === "system" ? "status" : "speech", text: stage.observation.text });
@@ -847,7 +848,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const fx: TurnEffect[] = [];
   const drug = intent.targetId ? formularyDrug(intent.targetId) : undefined;
   if (!drug) {
-    fx.push({ type: "message", role: hidden.setting === "OPD" ? "system" : "nurse", kind: "action", text: "Which medicine, dose and route?" });
+    fx.push({ type: "message", role: "system", kind: "action", text: "Which medicine, dose and route?" });
     return fx;
   }
   const p = intent.payload ?? {};
@@ -894,7 +895,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     fx.push({ type: "message", role: "attendant", kind: "speech", text: `Okay, doctor — ${pronoun} taking the ${drug.generic.toLowerCase()} now.` });
   } else if (mode === "given") {
     const verb = route === "IV" && drug.fluid ? "running" : route === "NEB" ? "nebulisation started" : "given";
-    fx.push({ type: "message", role: "nurse", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}.` });
+    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}.` });
   } else {
     fx.push({ type: "message", role: "system", kind: "action", text: `Prescribed — ${prescriptionLine({ generic: drug.generic, dose, route, frequency, duration })}` });
   }
@@ -993,7 +994,7 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
       break;
     default:
       fx.push({ type: "timeline", label: rule.label, category: "treatment" });
-      if (!rule.response?.length) fx.push({ type: "message", role: hidden.setting === "OPD" ? "system" : "nurse", kind: "action", text: `${rule.label} — done.` });
+      if (!rule.response?.length) fx.push({ type: "message", role: "system", kind: "action", text: `${rule.label} — done.` });
   }
   for (const r of rule.response ?? []) fx.push({ type: "message", role: r.role, kind: r.kind, text: r.text });
   if (rule.settingAfter && rule.settingAfter !== hidden.setting) {
@@ -1020,7 +1021,8 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
   record(hidden, `measure:${m.id}`);
   hidden.clock += m.durationMin;
   if (m.durationMin > 0) fx.push({ type: "advance_time", minutes: m.durationMin });
-  const actor: MessageRole = hidden.setting === "OPD" ? "system" : "nurse";
+  // Routine orders are logged quietly; the nurse speaks up only when something's wrong.
+  const actor: MessageRole = "system";
 
   switch (m.id) {
     case "monitor": {
@@ -1084,9 +1086,9 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       break;
     case "cpr":
       if (hidden.status === "deceased") {
-        fx.push({ type: "message", role: "nurse", kind: "status", text: "CPR continued for 20 minutes per ACLS. No return of spontaneous circulation." });
+        fx.push({ type: "message", role: "system", kind: "status", text: "CPR continued for 20 minutes per ACLS. No return of spontaneous circulation." });
       } else {
-        fx.push({ type: "message", role: "nurse", kind: "action", text: "The patient has a pulse — CPR is not indicated." });
+        fx.push({ type: "message", role: "system", kind: "action", text: "The patient has a pulse — CPR is not indicated." });
       }
       fx.push({ type: "timeline", label: "Resuscitation", category: "procedure" });
       break;

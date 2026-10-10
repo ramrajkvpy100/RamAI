@@ -15,7 +15,7 @@ export const grAip: ClinicalCaseDefinition = {
   briefing: "02:10. Emergency department of a tertiary hospital. A 26-year-old woman with severe abdominal pain — her third emergency visit this month.",
   initialStatus: "guarded",
   opening: [
-    { role: "nurse", kind: "action", text: "Triage: severe abdominal pain with vomiting. Third visit this month — discharged twice with 'gastritis'. Vitals on the board." },
+    { role: "system", kind: "action", text: "Triage: severe abdominal pain with vomiting. Third visit this month — discharged twice with 'gastritis'. Vitals on the board." },
     { role: "patient", kind: "speech", text: "Please… this pain is unbearable. Every time, the tests are normal and they send me home." },
   ],
   baselineVitals: {
@@ -195,7 +195,7 @@ export const grAip: ClinicalCaseDefinition = {
   therapeutics: [
     { id: "haem", kind: "drug", drugIds: ["haem-arginate"], label: "IV haem arginate (Normosang)", appropriateness: "ideal",
       doseRange: { min: 100, max: 250, unit: "mg" }, rescues: ["porphyric-crisis", "porphyrinogenic-drug"],
-      response: [{ role: "nurse", kind: "action", text: "Haem arginate diluted in 100 mL of 20% albumin — running over 30 minutes through the large-bore cannula." }],
+      response: [{ role: "system", kind: "action", text: "Haem arginate diluted in 100 mL of 20% albumin — running over 30 minutes through the large-bore cannula." }],
       praise: "Gave haem arginate early — the only treatment that switches off hepatic ALA synthase." },
     { id: "glucose", kind: "drug", drugIds: ["d10", "dextrose-25", "d5"], label: "Carbohydrate loading (IV dextrose)", appropriateness: "acceptable",
       praise: "Started IV carbohydrate while arranging haem." },
@@ -217,7 +217,7 @@ export const grAip: ClinicalCaseDefinition = {
       praise: "Admitted to a monitored bed — neuropathy can reach the respiratory muscles." },
     { id: "breath-monitor", kind: "supportive", label: "Serial single-breath count / FVC", appropriateness: "ideal", durationMin: 2,
       match: ["monitor breath count", "serial single breath count", "serial breath count", "monitor vital capacity", "serial fvc", "monitor respiratory function", "4 hourly breath count", "chart breath count", "respiratory monitoring"],
-      response: [{ role: "nurse", kind: "action", text: "Single-breath count and neck flexion every 4 hours — I'll call you if it falls below 15." }],
+      response: [{ role: "system", kind: "action", text: "Single-breath count and neck flexion charted every 4 hours — the nurse will call if it falls below 15." }],
       praise: "Set up serial respiratory monitoring." },
     { id: "surgery", kind: "procedure", label: "Surgical exploration", appropriateness: "harmful", durationMin: 90,
       match: ["laparotomy", "exploratory laparotomy", "diagnostic laparoscopy", "laparoscopy", "operate", "surgical exploration", "take her to theatre", "explore the abdomen"],

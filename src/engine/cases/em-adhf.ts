@@ -14,7 +14,7 @@ export const emAdhf: ClinicalCaseDefinition = {
   briefing: "03:20. A 68-year-old woman is wheeled into the emergency department by her son, sitting bolt upright on the stretcher.",
   initialStatus: "deteriorating",
   opening: [
-    { role: "nurse", kind: "action", text: "Triage: breathless at rest, brought by son. Vitals on the board. She won't lie back." },
+    { role: "system", kind: "action", text: "Triage: breathless at rest, brought by son. Vitals on the board. She won't lie back." },
     { role: "patient", kind: "speech", text: "Can't… breathe… doctor." },
   ],
   baselineVitals: {
@@ -167,7 +167,7 @@ export const emAdhf: ClinicalCaseDefinition = {
     { id: "diuretic", kind: "drug", drugIds: ["furosemide", "torsemide"], label: "IV loop diuretic", appropriateness: "ideal",
       doseRange: { min: 20, max: 200, unit: "mg" },
       vitalsAfter: [{ key: "urine", value: "180" }, { key: "rr", value: "24" }, { key: "spo2", value: "92" }],
-      response: [{ role: "nurse", kind: "action", text: "Furosemide pushed. I'll put a urine bag and start an input–output chart." }],
+      response: [{ role: "system", kind: "action", text: "Furosemide pushed. Urine bag on; input–output chart started." }],
       rescues: ["respiratory-failure", "fluid-overload"] },
     { id: "nitrate", kind: "drug", drugIds: ["gtn", "isosorbide-dinitrate"], label: "Nitrate (GTN)", appropriateness: "ideal",
       vitalsAfter: [{ key: "bp", value: "142/86" }],

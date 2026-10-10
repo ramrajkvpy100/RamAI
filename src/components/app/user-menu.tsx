@@ -42,7 +42,7 @@ export function UserMenu({ me }: { me: Me }) {
         <Avatar name={me.user.name} size={32} />
       </button>
       {open && (
-        <div role="menu" className="popover absolute top-full right-0 z-50 mt-2 w-[300px] animate-enter rounded-2xl p-2">
+        <div role="menu" className="popover absolute top-full right-0 z-50 mt-2 w-[324px] max-w-[calc(100vw-24px)] animate-enter rounded-[20px] p-2">
           <div className="flex items-center gap-3 px-2.5 pt-2 pb-3">
             <Avatar name={me.user.name} size={38} />
             <div className="min-w-0">
@@ -106,7 +106,7 @@ export function UserMenu({ me }: { me: Me }) {
           </div>
           <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-[13.5px]">
             <span className="flex items-center gap-2.5">
-              <Icon name="globe" size={15} className="text-fg-2" /> Practise in
+              <Icon name="globe" size={15} className="text-fg-2" /> <span className="whitespace-nowrap">Practise in</span>
             </span>
             <CountryPicker />
           </div>

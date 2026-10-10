@@ -20,7 +20,7 @@ export function AppHeader({ initial }: { initial: Me }) {
   const me = useMe(initial) ?? initial;
   const path = usePathname();
   return (
-    <header className="sticky top-0 z-40 border-b border-line/70 bg-[color-mix(in_srgb,var(--bg)_78%,transparent)] backdrop-blur-xl">
+    <header className="material-bar sticky top-0 z-40 border-b border-[var(--material-stroke)]">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Link href="/" aria-label="RamAI — home" className="rounded-lg">
           <Wordmark />

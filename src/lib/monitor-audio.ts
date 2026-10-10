@@ -95,6 +95,17 @@ export function alarm(level: "medium" | "high") {
   }
 }
 
+const nibpBeeped = new Set<string>();
+
+/** The monitor's short double beep when a cuff reading is ready. */
+export function nibpDone(key: string) {
+  if (nibpBeeped.has(key)) return;
+  nibpBeeped.add(key);
+  if (!readEnabled()) return;
+  tone(988, 0, 0.08, 0.035);
+  tone(988, 0.13, 0.08, 0.035);
+}
+
 /** A soft two-note cue when the patient's status changes. */
 export function chime(worse: boolean) {
   if (!readEnabled()) return;

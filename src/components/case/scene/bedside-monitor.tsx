@@ -13,6 +13,7 @@ import { useScene } from "./context";
 import { useLiveMonitorView, type LiveMonitor } from "./live-monitor";
 import { MonitorSignal } from "./monitor-signal";
 import { MonitorSweep } from "./monitor-sweep";
+import { useNibp } from "./nibp";
 import { alarmingKeys, monitorSince, vitalNumber } from "./scene";
 
 export interface AlarmState {
@@ -66,8 +67,23 @@ function Live({ state, k, label, unit, value, size, className }: { state: CaseSt
 /** Non-invasive BP: measured by the cuff at a moment in time, with the mean arterial pressure. */
 function Nibp({ state }: { state: CaseState }) {
   const r = state.vitals.bp?.current;
+  const cuff = useNibp(state);
   const m = r?.value.match(/^(\d+)\s*\/\s*(\d+)/);
   const map = m ? Math.round(Number(m[2]) + (Number(m[1]) - Number(m[2])) / 3) : null;
+  if (cuff.measuring) {
+    return (
+      <div className="min-w-0 rounded-lg px-2 py-1.5" aria-live="polite">
+        <Label aside={cuff.phase === "inflating" ? "inflating" : "measuring"}>NIBP</Label>
+        <div className="flex items-baseline gap-1.5 font-mono text-white/70 tabular">
+          <span className="text-[19px] leading-none font-medium tracking-[-0.03em]">{cuff.cuff}</span>
+          <span className="text-[10px] text-white/35">mmHg</span>
+        </div>
+        <div className="mt-1 h-[3px] overflow-hidden rounded-full bg-white/10" aria-hidden>
+          <div className="h-full rounded-full bg-white/60" style={{ width: `${Math.min(100, ((cuff.cuff ?? 0) / 250) * 100)}%` }} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={cn("min-w-0 rounded-lg px-2 py-1.5", alarmingKeys(state).has("bp") && FLASH)}>
       {/* On the monitor the cuff cycles automatically every 15 minutes; the time is its last reading. */}
@@ -182,12 +198,13 @@ export function BedsideMonitor({ state, alarm, className }: { state: CaseState; 
 /** The compact monitor strip above the conversation on smaller screens. */
 export function MonitorStrip({ state, alarm, onOpen }: { state: CaseState; alarm: AlarmState; onOpen: () => void }) {
   const { numbers, signal, running } = useMonitor(state);
+  const cuff = useNibp(state);
   const alarming = alarmingKeys(state);
   const items: { k: VitalKey; label: string; value: string | number | null | undefined }[] = [
     { k: "hr", label: "HR", value: numbers.hr },
     { k: "spo2", label: "SpO₂", value: numbers.spo2 },
     { k: "rr", label: "RR", value: numbers.rr },
-    { k: "bp", label: "BP", value: state.vitals.bp?.current.value },
+    { k: "bp", label: "BP", value: cuff.measuring ? `${cuff.cuff}…` : state.vitals.bp?.current.value },
   ];
   return (
     <div className="flex w-full items-center gap-2 bg-[#07090d] pr-2 text-white">
