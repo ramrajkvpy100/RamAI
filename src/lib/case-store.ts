@@ -12,7 +12,7 @@ import { useSyncExternalStore } from "react";
 import type { Country } from "@/engine/countries";
 import type { CaseDebrief, CaseRewards, CaseState, PatientLang, TurnEffect } from "@/engine/types";
 
-import { ClinicalEngineError, resumeCase, simulateCase, submitDoctorAction, UNAVAILABLE_MESSAGE, updateSettings, type CaseChoice } from "./engine-client";
+import { ClinicalEngineError, resumeCase, simulateCase, submitDoctorAction, tickCase, UNAVAILABLE_MESSAGE, updateSettings, type CaseChoice } from "./engine-client";
 import { primeMe, refreshMe, type Me } from "./me-store";
 import { readJSON, writeJSON } from "./storage";
 
@@ -109,6 +109,27 @@ export async function send(input: string): Promise<boolean> {
     update({ sending: null, error });
     if (error.code === "BAD_SESSION") update({ session: null });
     return false;
+  }
+}
+
+/**
+ * Real-time mode: a minute passes. Never overlaps a turn, and a tick that comes
+ * back after the player has acted is dropped — the player's order always wins.
+ */
+let ticking = false;
+export async function tick(): Promise<void> {
+  const session = snapshot.session;
+  if (!session || ticking || snapshot.sending || session.debrief) return;
+  ticking = true;
+  try {
+    const res = await tickCase(session.token);
+    if (snapshot.session?.token !== session.token || snapshot.sending) return;
+    const changed = res.effects.some((e) => e.type !== "advance_time");
+    update({ session: { ...snapshot.session, token: res.token, state: res.state }, ...(changed && { lastEffects: res.effects, turn: snapshot.turn + 1 }) });
+  } catch {
+    /* the next tick tries again */
+  } finally {
+    ticking = false;
   }
 }
 

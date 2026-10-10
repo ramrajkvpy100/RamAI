@@ -28,12 +28,16 @@ import type { ClinicalProvider } from "./providers/types";
 import { applyEffects, createInitialState } from "./reducer";
 import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
-import { createHiddenState, openingEffects, runTurn, type HiddenState } from "./simulator";
+import { createHiddenState, isTick, openingEffects, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
 import type { ActionRecord, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, PatientLang, Specialty, TurnResponse } from "./types";
 
 export const MAX_INPUT_LENGTH = 1000;
 export const MAX_ACTIONS = 300;
+/** Real-time ticks don't use up the player's actions, but a case can't grow forever. */
+export const MAX_RECORDS = 1200;
+/** Real-time mode: one minute of case time per tick. */
+export const TICK_MINUTES = 1;
 
 export type EngineErrorCode = "BAD_INPUT" | "BAD_SESSION" | "CASE_CLOSED" | "LIMIT" | "NO_CASES";
 
@@ -153,7 +157,9 @@ export async function submitDoctorAction(token: string, input: string, userId: s
 
   const provider = await getProvider();
   const payload = open(token, userId);
-  if (payload.a.length >= MAX_ACTIONS) throw new EngineError("LIMIT", "This case has reached its action limit. Close the case to review it.");
+  if (payload.a.filter((r) => !isTick(r)).length >= MAX_ACTIONS || payload.a.length >= MAX_RECORDS) {
+    throw new EngineError("LIMIT", "This case has reached its action limit. Close the case to review it.");
+  }
 
   const { def, hidden, state, country } = rebuild(payload, provider);
   if (hidden.closed) throw new EngineError("CASE_CLOSED", "This case is already closed.");
@@ -182,6 +188,29 @@ export async function submitDoctorAction(token: string, input: string, userId: s
     effects: presentEffects(localizeEffects(effects, def.id, def.patient, shown), country),
     debrief,
   };
+}
+
+/**
+ * Real-time mode: the clock moves on while the player thinks. The minute is
+ * recorded like any action, so the case replays exactly.
+ */
+export async function advanceRealTime(token: string, userId: string, lang: PatientLang = "en"): Promise<TurnResponse> {
+  const provider = await getProvider();
+  const payload = open(token, userId);
+  if (payload.a.length >= MAX_RECORDS) throw new EngineError("LIMIT", "This case has run for too long. Close it to review it.");
+  const { def, hidden, state, country } = rebuild(payload, provider);
+  if (hidden.closed) throw new EngineError("CASE_CLOSED", "This case is already closed.");
+  const record: ActionRecord = {
+    id: `a${payload.a.length + 1}`,
+    at: hidden.clock,
+    raw: "",
+    intents: [{ kind: "wait", phrase: "", matched: true, payload: { minutes: TICK_MINUTES, silent: true } }],
+  };
+  const effects = runTurn(def, hidden, record);
+  const next = applyEffects(state, effects);
+  payload.a.push(record);
+  const shown = speechIn(country, lang);
+  return { token: seal(payload), state: render(next, def, country, lang), effects: presentEffects(localizeEffects(effects, def.id, def.patient, shown), country) };
 }
 
 /* Convenience wrappers — every action is natural language underneath. */

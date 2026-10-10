@@ -61,6 +61,8 @@ export interface CaseChoice {
 
 export const simulateCase = (choice: CaseChoice) => call<CaseSession>("/api/cases", choice);
 export const submitDoctorAction = (token: string, input: string) => call<TurnResponse>("/api/cases/turn", { token, input });
+/** Real-time mode: one minute of case time passes. */
+export const tickCase = (token: string) => call<TurnResponse>("/api/cases/tick", { token });
 export const resumeCase = (token: string) => call<CaseSession>("/api/cases/resume", { token });
 export const getLibrary = () => call<LibraryInfo>("/api/cases/library");
 

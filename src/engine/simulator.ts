@@ -1194,9 +1194,10 @@ function handleWait(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const advance = advanceClock(def, hidden, hidden.clock + minutes, true);
   const elapsed = hidden.clock - before;
   const fx: TurnEffect[] = [];
-  if (elapsed >= 2 && !intent.payload?.untilResults) fx.push({ type: "message", role: "system", kind: "status", text: `${describeSpan(elapsed)} later` });
+  const silent = intent.payload?.silent === true;
+  if (!silent && elapsed >= 2 && !intent.payload?.untilResults) fx.push({ type: "message", role: "system", kind: "status", text: `${describeSpan(elapsed)} later` });
   fx.push(...advance.effects);
-  fx.push({ type: "timeline", label: `Observed for ${describeSpan(elapsed)}`, category: "monitor" });
+  if (!silent) fx.push({ type: "timeline", label: `Observed for ${describeSpan(elapsed)}`, category: "monitor" });
   return fx;
 }
 
@@ -1216,16 +1217,21 @@ function handleReassess(ctx: TurnContext): TurnEffect[] {
 /* Turn                                                                        */
 /* -------------------------------------------------------------------------- */
 
+/** A real-time tick: the clock running on its own, recorded so replays stay exact. */
+export const isTick = (record: ActionRecord) => record.raw === "" && record.intents.length === 1 && record.intents[0]!.kind === "wait" && record.intents[0]!.payload?.silent === true;
+
 const SIGNIFICANT: ResolvedIntent["kind"][] = ["history", "vitals", "exam", "investigation", "drug", "action", "followup", "reassess", "diagnosis", "differential", "wait"];
 
 export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record: ActionRecord): TurnEffect[] {
   const fx: TurnEffect[] = [];
   const ctx: TurnContext = { def, hidden, record, sent: [], stages: [], notices: [] };
   const conversational = record.intents.some((i) => i.kind === "history" || i.kind === "greeting" || (i.kind === "unknown" && i.payload?.question));
-  fx.push({ type: "message", role: "doctor", kind: conversational ? "speech" : "action", text: record.raw.trim() });
+  // A real-time tick has no words: time passes without the doctor saying anything.
+  const tick = isTick(record);
+  if (!tick) fx.push({ type: "message", role: "doctor", kind: conversational ? "speech" : "action", text: record.raw.trim() });
 
   if (hidden.closed) return fx;
-  if (record.intents.some((i) => i.matched && SIGNIFICANT.includes(i.kind))) hidden.actionCount += 1;
+  if (!tick && record.intents.some((i) => i.matched && SIGNIFICANT.includes(i.kind))) hidden.actionCount += 1;
 
   // Several vitals in one instruction are one measurement ("Check BP and RBS").
   const vitalKeys = record.intents.filter((i) => i.kind === "vitals").flatMap((i) => (i.targetId ?? "").split(",").filter(Boolean)) as VitalKey[];

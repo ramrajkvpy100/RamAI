@@ -20,6 +20,7 @@ export function CaseTopBar({
   complete,
   sound,
   voices,
+  realtime,
 }: {
   state: CaseState;
   onClose?: () => void;
@@ -28,6 +29,8 @@ export function CaseTopBar({
   sound?: { on: boolean; toggle: () => void } | null;
   /** Patients and families speak aloud. */
   voices?: { on: boolean; toggle: () => void } | null;
+  /** Real-time mode (emergency cases): the clock runs on its own. */
+  realtime?: { on: boolean; running: boolean; toggle: () => void } | null;
 }) {
   const day = Math.floor((state.arrivalMinuteOfDay + state.clock) / 1440);
   const phone = state.track === "phone";
@@ -51,6 +54,11 @@ export function CaseTopBar({
               <span className="text-fg-3">·</span>
             </>
           )}
+          {realtime?.running && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-[10.5px] font-bold tracking-[0.08em] text-danger" title="Real-time: one minute passes every 20 seconds">
+              <span className="pulse-ring h-1.5 w-1.5 rounded-full bg-danger" /> LIVE
+            </span>
+          )}
           <span className="truncate text-fg-2 tabular">
             {phone ? (
               <>Call · {callDuration(state.clock)}</>
@@ -65,6 +73,16 @@ export function CaseTopBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {realtime && !complete && (
+            <IconButton
+              label={realtime.on ? "Real-time on — the clock runs while you think. Turn off" : "Real-time mode: let the clock run while you think"}
+              size="sm"
+              onClick={realtime.toggle}
+              className={realtime.on ? "text-danger" : "text-fg-3"}
+            >
+              <Icon name="clock" size={17} />
+            </IconButton>
+          )}
           {voices && !complete && (
             <IconButton label={voices.on ? "Patient voices on — turn off" : "Hear patients speak"} size="sm" onClick={voices.toggle} className={voices.on ? "text-accent-text" : "text-fg-3"}>
               <Icon name="ear" size={17} />
