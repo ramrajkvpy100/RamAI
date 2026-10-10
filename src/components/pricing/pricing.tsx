@@ -44,6 +44,8 @@ export function Pricing({ initial }: { initial: Me | null }) {
   const [busy, setBusy] = useState(false);
   const [demo, setDemo] = useState(false);
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  // Consumer law (UK/EU digital content): Pro may only start inside the cancellation period if the buyer asks for it.
+  const [startNow, setStartNow] = useState(false);
 
   const done = async () => {
     await refreshMe();
@@ -56,7 +58,11 @@ export function Pricing({ initial }: { initial: Me | null }) {
     setBusy(true);
     setMessage(null);
     try {
-      const res = await checkout(period);
+      if (!startNow) {
+        setMessage({ tone: "error", text: "Please tick the box to confirm Pro should start straight away." });
+        return;
+      }
+      const res = await checkout(period, true);
       if (res.mode === "demo") {
         setDemo(true);
         return;
@@ -156,6 +162,20 @@ export function Pricing({ initial }: { initial: Me | null }) {
             Activate demo Pro
           </button>
         </div>
+      )}
+
+      {me && (
+        <label className="mt-6 flex max-w-xl cursor-pointer items-start gap-2.5 rounded-xl border border-line bg-surface px-4 py-3 text-left text-[13px] leading-5 text-fg-2">
+          <input type="checkbox" checked={startNow} onChange={(e) => setStartNow(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+          <span>
+            Start Pro as soon as I pay. I understand that where the law gives a 14-day right to cancel digital purchases (such as in the UK or EU),
+            I lose it once Pro starts — RamAI&apos;s{" "}
+            <Link href="/refund-policy" className="font-medium text-accent-text hover:underline">
+              7-day money-back guarantee
+            </Link>{" "}
+            still applies.
+          </span>
+        </label>
       )}
 
       <div className="mt-8 w-full">

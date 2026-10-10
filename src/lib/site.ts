@@ -18,7 +18,9 @@ export const SITE = {
   /** How quickly support replies. */
   replyWithin: "2 working days",
   /** When the legal pages last changed. */
-  updated: "9 October 2026",
+  updated: "10 October 2026",
+  /** Recorded with each account's consent; change it whenever the terms or privacy policy change. */
+  termsVersion: "2026-10-10",
 } as const;
 
 /** "RamAI" — or "RamAI, run by <owner>" once the owner is filled in. */

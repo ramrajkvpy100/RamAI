@@ -16,6 +16,8 @@ import { caseLabel, xp } from "@/lib/format";
 import { useMe, type Me } from "@/lib/me-store";
 import { PLANS } from "@/lib/plans";
 
+import { YourData } from "./your-data";
+
 const BADGE_ICON: Record<string, IconName> = {
   "first-case": "user",
   "ten-cases": "users",
@@ -232,6 +234,8 @@ export function Profile({ initial }: { initial: Me }) {
           </ul>
         )}
       </section>
+
+      <YourData me={me} />
     </div>
   );
 }

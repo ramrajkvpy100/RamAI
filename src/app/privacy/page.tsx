@@ -19,7 +19,8 @@ export default function PrivacyPage() {
           <List>
             <li>
               <b className="text-fg">Your account:</b> name, username, email address and your password — stored only as a secure one-way hash, never
-              in readable form. Also your country and patient-language preference, plan, and whether your email is verified.
+              in readable form. Also your country and patient-language preference, plan, whether your email is verified, and when you
+              accepted our terms and this policy (and which version).
             </li>
             <li>
               <b className="text-fg">Your progress:</b> for each case you finish — the case, its specialty, mode and level, your score, XP and the
@@ -87,8 +88,9 @@ export default function PrivacyPage() {
             </li>
           </List>
           <p>
-            These providers may process data outside your country, including in the United States. We don't sell or rent personal information, and
-            we only disclose it if the law requires us to.
+            These providers may process data outside your country, including in the United States, under contracts with data-protection
+            safeguards (such as Standard Contractual Clauses or the UK International Data Transfer Addendum, where those laws require them). We
+            don't sell or rent personal information, and we only disclose it if the law requires us to.
           </p>
         </Section>
 
@@ -104,21 +106,28 @@ export default function PrivacyPage() {
 
         <Section title="Keeping it safe">
           <p>
-            Passwords and sign-in tokens are stored only as secure hashes, everything travels over encrypted connections, case sessions are
-            encrypted, and access to the database is restricted. No system is perfectly secure, but we work to protect your data and will tell you
-            promptly if a breach affects you.
+            Passwords and sign-in tokens are stored only as strong one-way hashes, everything travels over encrypted connections, case sessions are
+            encrypted, sign-in attempts are limited, and access to the database is restricted. No system is perfectly secure, but we work to
+            protect your data.
+          </p>
+          <p>
+            If a breach affects your personal data, we'll tell you without undue delay, and notify the authorities where the law requires — the Data
+            Protection Board of India, or the UK Information Commissioner's Office within 72 hours.
           </p>
         </Section>
 
         <Section title="Your rights">
           <p>
-            Wherever you live, you can ask us to see the data we hold about you, correct it, delete your account, or withdraw consent. Write to{" "}
-            <Email /> from the email address on your account and we'll respond within 30 days.
+            Wherever you live, you can see, correct or delete your data and withdraw your consent. Two are self-serve, on your{" "}
+            <A href="/profile">Profile</A>: <b className="text-fg">Download my data</b> gives you a copy of everything we hold, and{" "}
+            <b className="text-fg">Delete account</b> erases it. For anything else, write to <Email /> from the email address on your account and
+            we'll respond within 30 days.
           </p>
           <List>
             <li>
               <b className="text-fg">India:</b> you have the rights given by the Digital Personal Data Protection Act, 2023, including grievance
-              redressal and nominating someone to exercise your rights. Our grievance contact is on the <A href="/contact">Contact</A> page.
+              redressal and nominating someone to exercise your rights. Our grievance officer is on the <A href="/contact">Contact</A> page; if
+              you're not satisfied with our response, you can complain to the Data Protection Board of India.
             </li>
             <li>
               <b className="text-fg">UK and EU:</b> we use your data to provide the service you signed up for (contract) and to keep it secure
@@ -130,6 +139,13 @@ export default function PrivacyPage() {
               correct or delete their data.
             </li>
           </List>
+        </Section>
+
+        <Section title="Automated decisions">
+          <p>
+            Scores, ranks and league places are calculated automatically from your play. They're for learning and motivation only and have no legal or
+            similarly significant effect on you.
+          </p>
         </Section>
 
         <Section title="Children">

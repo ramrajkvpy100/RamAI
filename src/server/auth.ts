@@ -18,7 +18,7 @@ import type { PlanId } from "@/lib/plans";
 
 import { db, isUniqueViolation } from "./db";
 
-const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, keylen: number, opts: { N: number; r: number; p: number }) => Promise<Buffer>;
+const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, keylen: number, opts: { N: number; r: number; p: number; maxmem: number }) => Promise<Buffer>;
 
 export const SESSION_COOKIE = "ramai_session";
 const SESSION_DAYS = 30;
@@ -81,13 +81,19 @@ function toUser(r: UserRow): User {
 /* Passwords                                                                   */
 /* -------------------------------------------------------------------------- */
 
-const N = 16384;
+// OWASP's minimum for scrypt. Tests use a cheap cost so the suite stays fast.
+const N = process.env.NODE_ENV === "test" ? 1024 : 131072;
 const R = 8;
 const P = 1;
+const MAXMEM = 256 * 1024 * 1024;
+const DUMMY_HASH = `scrypt${N}$8$1$AAAAAAAAAAAAAAAAAAAAAA$AAAA`;
+
+/** Older accounts were hashed with a lower cost; they're upgraded when they next sign in. */
+const needsRehash = (stored: string) => Number(stored.split("$")[1]) < N;
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
-  const hash = await scrypt(password, salt, 64, { N, r: R, p: P });
+  const hash = await scrypt(password, salt, 64, { N, r: R, p: P, maxmem: MAXMEM });
   return ["scrypt", N, R, P, salt.toString("base64url"), hash.toString("base64url")].join("$");
 }
 
@@ -95,7 +101,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const [algo, n, r, p, salt, hash] = stored.split("$");
   if (algo !== "scrypt" || !salt || !hash) return false;
   const expected = Buffer.from(hash, "base64url");
-  const actual = await scrypt(password, Buffer.from(salt, "base64url"), expected.length, { N: Number(n), r: Number(r), p: Number(p) });
+  const actual = await scrypt(password, Buffer.from(salt, "base64url"), expected.length, { N: Number(n), r: Number(r), p: Number(p), maxmem: MAXMEM });
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
@@ -131,8 +137,9 @@ export async function createUser(input: { email: string; username: string; name:
 export async function authenticate(login: string, password: string): Promise<User> {
   const row = await db.get<UserRow>("SELECT * FROM users WHERE (email = ? OR username = ?) AND is_demo = 0 AND is_guest = 0", login, login);
   // Hash anyway so timing does not reveal whether the account exists.
-  const ok = row ? await verifyPassword(password, row.password_hash) : await verifyPassword(password, "scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA$AAAA");
+  const ok = row ? await verifyPassword(password, row.password_hash) : await verifyPassword(password, DUMMY_HASH);
   if (!row || !ok) throw new AuthError("INVALID", "Incorrect email/username or password.");
+  if (needsRehash(row.password_hash)) await setPassword(row.id, password);
   return toUser(row);
 }
 
@@ -149,6 +156,11 @@ export async function findUserByEmail(email: string): Promise<User | null> {
 
 export async function setPassword(userId: string, password: string) {
   await db.run("UPDATE users SET password_hash = ? WHERE id = ?", await hashPassword(password), userId);
+}
+
+/** Proof of consent: when this account accepted the terms and privacy policy, and which version. */
+export async function recordConsent(userId: string, version: string) {
+  await db.run("UPDATE users SET terms_accepted_at = ?, terms_version = ? WHERE id = ?", Date.now(), version, userId);
 }
 
 export async function markEmailVerified(userId: string) {

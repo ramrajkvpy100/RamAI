@@ -18,6 +18,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [country, setCountry] = useState<Country>("IN");
+  const [agreed, setAgreed] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // A first guess from the browser's language; the player can change it below.
@@ -29,7 +30,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
     setError(null);
     try {
       if (mode === "login") await login({ login: form.login.trim(), password: form.password });
-      else await signup({ name: form.name.trim(), username: form.username.trim(), email: form.email.trim(), password: form.password, country });
+      else await signup({ name: form.name.trim(), username: form.username.trim(), email: form.email.trim(), password: form.password, country, acceptTerms: true });
       router.replace(next);
       router.refresh();
     } catch (err) {
@@ -77,22 +78,26 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
 
         {error && <FormError>{error}</FormError>}
 
+        {mode === "signup" && (
+          <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-5 text-fg-2">
+            <input type="checkbox" required checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+            <span>
+              I'm 18 or over, I agree to the{" "}
+              <Link href="/terms" target="_blank" className="font-medium text-accent-text underline-offset-2 hover:underline">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="font-medium text-accent-text underline-offset-2 hover:underline">
+                Privacy policy
+              </Link>
+              , and I understand RamAI is for education only — not medical advice.
+            </span>
+          </label>
+        )}
         <SubmitButton busy={busy} busyLabel={mode === "login" ? "Logging in…" : "Creating account…"}>
           {mode === "login" ? "Log in" : "Create account"}
         </SubmitButton>
-        {mode === "signup" && (
-          <p className="text-center text-[12px] leading-5 text-fg-3">
-            By creating an account you agree to the{" "}
-            <Link href="/terms" className="underline underline-offset-2 hover:text-fg">
-              Terms
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="underline underline-offset-2 hover:text-fg">
-              Privacy policy
-            </Link>
-            , and that RamAI is for education only.
-          </p>
-        )}
+
       </form>
 
       <p className="mt-6 text-center text-[13.5px] text-fg-2">

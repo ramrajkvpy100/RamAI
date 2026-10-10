@@ -70,10 +70,11 @@ export const closeCase = (token: string, finalDiagnosis?: string) =>
   submitDoctorAction(token, finalDiagnosis ? `Final diagnosis: ${finalDiagnosis}. Case close.` : "Case close.");
 
 /* Accounts & billing ------------------------------------------------------- */
-export const signup = (body: { name: string; username: string; email: string; password: string; country?: Country }) => call<{ user: unknown }>("/api/auth/signup", body);
+export const signup = (body: { name: string; username: string; email: string; password: string; country?: Country; acceptTerms: true }) => call<{ user: unknown }>("/api/auth/signup", body);
 export const login = (body: { login: string; password: string }) => call<{ user: unknown }>("/api/auth/login", body);
 export const logout = () => call<{ ok: true }>("/api/auth/logout", {});
-export const checkout = (period: "monthly" | "yearly") => call<{ mode: "demo" } | { mode: "razorpay"; order: { orderId: string; amount: number; currency: string; keyId: string; name: string; email: string } }>("/api/billing/checkout", { period });
+export const deleteAccount = (password?: string) => call<{ ok: true }>("/api/me/delete", password ? { password } : {});
+export const checkout = (period: "monthly" | "yearly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: { orderId: string; amount: number; currency: string; keyId: string; name: string; email: string } }>("/api/billing/checkout", { period, startNow });
 export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ ok: true }>("/api/billing/verify", body);
 export const demoUpgrade = () => call<{ ok: true }>("/api/billing/demo-upgrade", {});
 export const startGuest = (country?: Country) => call<{ user: { id: string } }>("/api/auth/guest", country ? { country } : {});

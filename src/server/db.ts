@@ -109,6 +109,20 @@ CREATE TABLE IF NOT EXISTS league_members (
   PRIMARY KEY (week, user_id)
 );
 CREATE INDEX IF NOT EXISTS league_cohort ON league_members(week, tier, cohort);
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  window_start INTEGER NOT NULL,
+  count INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS payments_archive (
+  order_id TEXT PRIMARY KEY,
+  payment_id TEXT,
+  amount INTEGER NOT NULL,
+  period TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  archived_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -273,6 +287,12 @@ async function migrate(b: Backend) {
   if (!columns.includes("league_tier")) add.push("ALTER TABLE users ADD COLUMN league_tier INTEGER NOT NULL DEFAULT 0");
   if (!columns.includes("is_guest")) add.push("ALTER TABLE users ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0");
   if (!columns.includes("country")) add.push("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT 'IN'");
+  // Proof of consent: when the terms and privacy policy were accepted, and which version.
+  if (!columns.includes("terms_accepted_at")) add.push("ALTER TABLE users ADD COLUMN terms_accepted_at INTEGER");
+  if (!columns.includes("terms_version")) add.push("ALTER TABLE users ADD COLUMN terms_version TEXT");
+  const paymentColumns = (await b.all<{ name: string }>("PRAGMA table_info(payments)")).map((c) => c.name);
+  // When the buyer asked for Pro to start at once (giving up a statutory cancellation period, where one applies).
+  if (!paymentColumns.includes("waiver_at")) add.push("ALTER TABLE payments ADD COLUMN waiver_at INTEGER");
   const startColumns = (await b.all<{ name: string }>("PRAGMA table_info(case_starts)")).map((c) => c.name);
   if (!startColumns.includes("tutorial")) add.push("ALTER TABLE case_starts ADD COLUMN tutorial INTEGER NOT NULL DEFAULT 0");
   if (add.length) await b.batch(add.map((sql) => ({ sql })));

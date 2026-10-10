@@ -25,6 +25,8 @@ export const SignupSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email").max(120),
   password: z.string().min(8, "At least 8 characters").max(200),
   country: CountryField.optional(),
+  /** Ticked by the player: 18 or over, and agrees to the Terms and Privacy policy. */
+  acceptTerms: z.literal(true, { error: "Please confirm you're 18 or over and accept the Terms and Privacy policy." }),
 });
 
 export const GuestSchema = z.object({ country: CountryField.optional() });
@@ -41,7 +43,11 @@ export const LoginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
-export const CheckoutSchema = z.object({ period: z.enum(["monthly", "yearly"]) });
+export const CheckoutSchema = z.object({
+  period: z.enum(["monthly", "yearly"]),
+  /** The buyer asked for Pro to start at once (giving up a statutory cancellation period, where one applies). */
+  startNow: z.literal(true, { error: "Please confirm you want Pro to start straight away." }),
+});
 export const VerifySchema = z.object({ orderId: z.string().max(80), paymentId: z.string().max(80), signature: z.string().max(200) });
 
 export const TurnSchema = z.object({

@@ -60,7 +60,11 @@ export default function TermsPage() {
               {PRICES.yearly.label} for {PRICES.yearly.days} days.
             </li>
             <li>Pro is a one-time payment for a fixed period. It does not renew automatically, so there's nothing to cancel.</li>
-            <li>Prices are in Indian rupees. Payments are processed by Razorpay; any taxes that apply are shown at checkout.</li>
+            <li>Prices are in Indian rupees and include applicable taxes. Payments are processed securely by Razorpay.</li>
+            <li>
+              At checkout you ask for Pro to start straight away. Where the law gives a 14-day right to cancel digital purchases (such as in the UK
+              or EU), that right ends once Pro starts — our 7-day money-back guarantee still applies.
+            </li>
             <li>We may change prices or features in future. Changes never affect a period you've already paid for.</li>
             <li>
               Refunds follow our <A href="/refund-policy">refund policy</A> — including a 7-day money-back guarantee.
@@ -97,21 +101,37 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="10. Law and disputes">
+        <Section title="10. Your statutory rights">
+          <p>
+            Nothing in these terms takes away rights you have by law. In the UK, digital content must be as described, fit for purpose and of
+            satisfactory quality (Consumer Rights Act 2015). In India, you can also contact the National Consumer Helpline on 1915 or at{" "}
+            <A href="https://consumerhelpline.gov.in">consumerhelpline.gov.in</A>.
+          </p>
+        </Section>
+
+        <Section id="security" title="11. Security research">
+          <p>
+            If you find a security weakness, please tell us at <Email /> before telling anyone else, and give us reasonable time to fix it. Don't
+            access other people's data, disrupt the service or run automated attacks. We won't take action against good-faith research that follows
+            these rules.
+          </p>
+        </Section>
+
+        <Section title="12. Law and disputes">
           <p>
             These terms are governed by the laws of India, and the courts of India have jurisdiction over disputes. If you're a consumer elsewhere,
             you also keep the protections of your local law. Please contact us first — most problems are quick to solve.
           </p>
         </Section>
 
-        <Section title="11. Changes to these terms">
+        <Section title="13. Changes to these terms">
           <p>
             We'll update the date above when these terms change, and tell you in advance if a change significantly affects you. Using RamAI after a
             change means you accept the new terms.
           </p>
         </Section>
 
-        <Section title="12. Contact">
+        <Section title="14. Contact">
           <p>
             Questions about these terms: <Email />.
           </p>

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import type { Country } from "@/engine/countries";
 import { createGuest, createSession, getCurrentUser, SESSION_COOKIE, sessionCookieOptions } from "@/server/auth";
-import { crossSite, handleError, rateLimited } from "@/lib/server/http";
+import { overLimit } from "@/server/rate-limit";
+import { apiError, clientIp, crossSite, handleError, rateLimited } from "@/lib/server/http";
 import { GuestSchema } from "@/lib/server/schemas";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ export async function POST(req: Request) {
   const blocked = crossSite(req) ?? rateLimited(req, 5);
   if (blocked) return blocked;
   try {
+  if (await overLimit(`guest:${clientIp(req)}`, 20, 3600000)) return apiError(429, "RATE_LIMITED", "Too many demo sessions from this network. Please try again later.");
     const current = await getCurrentUser();
     if (current) return NextResponse.json({ user: current });
     const body = GuestSchema.safeParse(await req.json().catch(() => ({})));

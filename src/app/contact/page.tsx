@@ -49,8 +49,9 @@ export default function ContactPage() {
 
         <Section title="Grievance officer">
           <p>
-            Complaints about RamAI, including privacy concerns, can be sent to our grievance officer{SITE.owner ? `, ${SITE.owner},` : ""} at <Email />.
-            We acknowledge complaints within {SITE.replyWithin} and aim to resolve them within 15 days.
+            Complaints about RamAI, including privacy concerns, can be sent to our grievance officer{SITE.owner ? `, ${SITE.owner} (Founder),` : ""}{" "}
+            at <Email />. We acknowledge every complaint within 48 hours and resolve it within one month. In India you can also contact the
+            National Consumer Helpline on 1915 or at <A href="https://consumerhelpline.gov.in">consumerhelpline.gov.in</A>.
           </p>
         </Section>
 
@@ -75,6 +76,21 @@ export default function ContactPage() {
             </List>
           </Section>
         )}
+
+        <Section id="security" title="Report a security issue">
+          <p>
+            Found a vulnerability? Email <Email /> with the details and steps to reproduce. Please don&apos;t access other people&apos;s data or disrupt
+            the service, and give us time to fix it before telling others. Our security contact is also published at{" "}
+            <A href="/.well-known/security.txt">/.well-known/security.txt</A>.
+          </p>
+        </Section>
+
+        <Section title="Accessibility">
+          <p>
+            We want RamAI to work for everyone, including with screen readers and keyboard-only use. If something is hard to use, tell us and
+            we&apos;ll fix it or help another way.
+          </p>
+        </Section>
 
         <Section title="In a medical emergency">
           <p>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 
 import "./globals.css";
 
@@ -26,11 +27,13 @@ export const viewport: Viewport = {
 /** Applies the stored theme before first paint — no flash — and follows the system theme live on every page. */
 const THEME_SCRIPT = `(function(){try{var m=matchMedia("(prefers-color-scheme: dark)");var a=function(){try{var p=localStorage.getItem("ramai.theme");var d=p==="dark"||((!p||p==="system")&&m.matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}};a();m.addEventListener("change",a);}catch(e){}})();`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The per-request nonce from src/proxy.ts — the Content-Security-Policy only runs scripts that carry it.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-dvh bg-bg text-fg antialiased">{children}</body>
     </html>

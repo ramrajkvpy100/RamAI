@@ -48,6 +48,20 @@ export default function RefundPolicyPage() {
           </p>
         </Section>
 
+        <Section title="Your legal rights">
+          <List>
+            <li>
+              <b className="text-fg">UK and EU:</b> the law gives 14 days to cancel online purchases. For digital services like Pro, that right ends
+              once Pro starts at your request — which you confirm at checkout. Our 7-day guarantee applies on top of your other legal rights, for
+              example if Pro doesn&apos;t work as described.
+            </li>
+            <li>
+              <b className="text-fg">India:</b> if we can&apos;t resolve a complaint, you can contact the National Consumer Helpline on 1915 or at{" "}
+              <A href="https://consumerhelpline.gov.in">consumerhelpline.gov.in</A>.
+            </li>
+          </List>
+        </Section>
+
         <Section title="Cancellation">
           <p>
             As there's no subscription, there's nothing to cancel: Pro simply ends when your period does, and you carry on with the free plan. To

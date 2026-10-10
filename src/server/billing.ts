@@ -33,9 +33,11 @@ export async function createOrder(user: User, period: BillingPeriod) {
   });
   if (!res.ok) throw new BillingError(`Payment provider responded ${res.status}`);
   const order = (await res.json()) as { id: string; amount: number; currency: string };
+  const now = Date.now();
+  // waiver_at: the buyer asked for Pro to start immediately (recorded as consumer-law evidence).
   await db.run(
-    "INSERT INTO payments (id, user_id, provider, order_id, amount, period, status, created_at) VALUES (?, ?, 'razorpay', ?, ?, ?, 'created', ?)",
-    randomUUID(), user.id, order.id, order.amount, period, Date.now(),
+    "INSERT INTO payments (id, user_id, provider, order_id, amount, period, status, created_at, waiver_at) VALUES (?, ?, 'razorpay', ?, ?, ?, 'created', ?, ?)",
+    randomUUID(), user.id, order.id, order.amount, period, now, now,
   );
   return { orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID!, name: user.name, email: user.email };
 }
