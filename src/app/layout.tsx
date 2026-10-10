@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 
+import { ServiceWorker } from "@/components/app/service-worker";
+
 import "./globals.css";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" });
@@ -11,6 +13,10 @@ export const metadata: Metadata = {
   title: { default: "RamAI — Think like a doctor, every day", template: "%s · RamAI" },
   description: "Clinical case simulation for doctors and medical students. Real patients, hidden diagnoses, no hints — from first-contact care to the world's hardest cases. India, USA and UK.",
   applicationName: "RamAI",
+  // Added to an iPhone's Home Screen it opens full-screen, named RamAI.
+  appleWebApp: { capable: true, title: "RamAI", statusBarStyle: "default" },
+  // Vitals and doses aren't phone numbers.
+  formatDetection: { telephone: false },
   robots: { index: false, follow: false },
 };
 
@@ -35,7 +41,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="min-h-dvh bg-bg text-fg antialiased">{children}</body>
+      <body className="min-h-dvh bg-bg text-fg antialiased">
+        {children}
+        <ServiceWorker />
+      </body>
     </html>
   );
 }

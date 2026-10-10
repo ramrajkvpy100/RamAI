@@ -182,7 +182,7 @@ async function purgeStaleGuests(now: number) {
   purgedAt = now;
   const before = now - GUEST_DAYS * 86_400_000;
   // Children first, explicitly: cascades depend on a per-connection setting the cloud database may not keep.
-  const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments"];
+  const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments", "push_subscriptions"];
   await db.batch([...children.map((t) => ({ sql: `DELETE FROM ${t} WHERE user_id IN (${STALE_GUEST})`, args: [before] })), { sql: "DELETE FROM users WHERE is_guest = 1 AND created_at < ?", args: [before] }]);
 }
 

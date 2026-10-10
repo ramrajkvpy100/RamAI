@@ -123,6 +123,16 @@ CREATE TABLE IF NOT EXISTS payments_archive (
   created_at INTEGER NOT NULL,
   archived_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  endpoint TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  seen_at INTEGER NOT NULL,
+  last_sent_day TEXT,
+  failures INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS push_subscriptions_user ON push_subscriptions(user_id);
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

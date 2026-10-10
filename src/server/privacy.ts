@@ -27,7 +27,7 @@ const iso = (ms: number | null | undefined) => (typeof ms === "number" ? new Dat
 
 /** Everything RamAI holds about a player, in a portable form (no password or token hashes). */
 export async function exportData(userId: string) {
-  const [account, results, starts, leagues, payments] = await Promise.all([
+  const [account, results, starts, leagues, payments, devices] = await Promise.all([
     db.get<AccountRow>(
       "SELECT id, email, username, name, plan, plan_expires_at, patient_lang, country, created_at, email_verified_at, terms_accepted_at, terms_version, is_guest FROM users WHERE id = ?",
       userId,
@@ -39,6 +39,7 @@ export async function exportData(userId: string) {
     db.all<{ created_at: number; tutorial: number }>("SELECT created_at, tutorial FROM case_starts WHERE user_id = ? ORDER BY created_at", userId),
     db.all<Record<string, unknown>>("SELECT week, tier, cohort, joined_at, final_rank, outcome FROM league_members WHERE user_id = ? ORDER BY week", userId),
     db.all<Record<string, unknown> & { created_at: number }>("SELECT order_id, payment_id, amount, period, status, created_at FROM payments WHERE user_id = ? ORDER BY created_at", userId),
+    db.all<{ endpoint: string; seen_at: number; last_sent_day: string | null }>("SELECT endpoint, seen_at, last_sent_day FROM push_subscriptions WHERE user_id = ? ORDER BY seen_at", userId),
   ]);
   if (!account) return null;
   return {
@@ -63,6 +64,7 @@ export async function exportData(userId: string) {
     caseStarts: starts.map((s) => ({ startedAt: iso(s.created_at), guidedDemo: s.tutorial === 1 })),
     weeklyLeagues: leagues.map((l) => ({ ...l, week: iso(l.week as number), joined_at: iso(l.joined_at as number) })),
     payments: payments.map((p) => ({ ...p, created_at: iso(p.created_at) })),
+    dailyReminders: devices.map((d) => ({ pushService: new URL(d.endpoint).hostname, lastConfirmed: iso(d.seen_at), lastSentDay: d.last_sent_day })),
   };
 }
 
@@ -85,7 +87,7 @@ export async function deleteAccount(userId: string) {
             SELECT order_id, payment_id, amount, period, status, created_at, ? FROM payments WHERE user_id = ?`,
       args: [now, userId],
     },
-    ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
+    ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
     { sql: "DELETE FROM users WHERE id = ?", args: [userId] },
   ]);
 }

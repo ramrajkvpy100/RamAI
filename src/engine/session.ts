@@ -74,6 +74,9 @@ function key(): Buffer {
   return createHash("sha256").update("clinical/session/v1:").update(secret).digest();
 }
 
+/** A key for another purpose (signing reminders), derived from the same secret — nothing extra to configure. */
+export const deriveSecret = (label: string) => createHmac("sha256", key()).update(label).digest();
+
 const b64 = (b: Buffer) => b.toString("base64url");
 const unb64 = (s: string) => Buffer.from(s, "base64url");
 

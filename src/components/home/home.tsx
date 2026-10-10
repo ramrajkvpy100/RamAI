@@ -23,6 +23,7 @@ import { CasePicker } from "./case-picker";
 import { GuidedCard } from "./guided-card";
 import { LevelPath } from "./level-path";
 import { UpgradeSheet } from "./upgrade-sheet";
+import { AppCard } from "./app-card";
 import { DailyCard } from "./daily-card";
 import { useLauncher } from "./use-launcher";
 import { LeagueCard } from "./week-board";
@@ -140,6 +141,8 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
         <DailyCard onPlay={() => void launch({ daily: true })} starting={starting} />
 
         {showGuide && <GuidedCard onStart={() => void launch({ tutorial: true })} onSkip={skipGuide} starting={starting} />}
+
+        {p.history.length > 0 && <AppCard guest={me.user.isGuest} />}
 
         <LevelPath progress={p} plan={plan} library={library} starting={starting} onStart={(level) => void start({ level })} onLocked={locked} />
       </div>

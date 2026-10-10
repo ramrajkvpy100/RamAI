@@ -40,7 +40,7 @@ export const config = {
   matcher: [
     {
       // Pages only: API routes return JSON, and static files don't need a policy.
-      source: "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|\\.well-known).*)",
+      source: "/((?!api|_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest|sw.js|\\.well-known).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

@@ -6,12 +6,14 @@ import { useEffect, useRef, useState } from "react";
 
 import { LangToggle } from "@/components/case/lang-toggle";
 import { CountryPicker } from "@/components/app/country-picker";
+import { AppOptions } from "@/components/app/app-options";
 import { useLauncher } from "@/components/home/use-launcher";
 import { Avatar } from "@/components/game/avatar";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Icon } from "@/components/ui/icon";
 import { rankFor } from "@/engine/progression";
 import { cn } from "@/lib/cn";
+import { disableReminders } from "@/lib/app-install";
 import { logout } from "@/lib/engine-client";
 import { clearMe, type Me } from "@/lib/me-store";
 import { useThemePref, type ThemePref } from "@/lib/theme";
@@ -118,10 +120,13 @@ export function UserMenu({ me }: { me: Me }) {
               <LangToggle />
             </div>
           )}
+          <AppOptions guest={me.user.isGuest} onNavigate={() => setOpen(false)} />
           <button
             role="menuitem"
             type="button"
             onClick={async () => {
+              // Reminders belong to this account, not to whoever uses this browser next.
+              await disableReminders().catch(() => null);
               await logout().catch(() => null);
               clearMe();
               router.push("/");

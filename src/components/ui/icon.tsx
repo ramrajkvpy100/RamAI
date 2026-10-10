@@ -80,6 +80,13 @@ const PATHS = {
   "chevron-left": "M15 6l-6 6 6 6",
   "bell-off": "M9 17v1a3 3 0 0 0 6 0v-1M6.5 6.5A6 6 0 0 0 6 9c0 5-2 6-2 6h11M18 13c0-1.2 0-2.6 0-4a6 6 0 0 0-9-5.2M3 3l18 18",
   sliders: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4",
+  bell: "M9 17v1a3 3 0 0 0 6 0v-1M18 9a6 6 0 0 0-12 0c0 5-2 6-2 6h16s-2-1-2-6z",
+  /** Safari's Share button. */
+  "share-ios": "M12 15V3M8 7l4-4 4 4M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2",
+  /** "Add to Home Screen". */
+  "plus-square": "M12 8v8M8 12h8M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z",
+  /** An installed app. */
+  device: "M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2",
 } as const;
 
 export type IconName = keyof typeof PATHS;

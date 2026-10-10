@@ -4,12 +4,24 @@ import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import type { CaseRewards, CaseScore } from "@/engine/types";
+import { enableReminders, useReminders } from "@/lib/app-install";
 import { dailyNumber, shareResult, shareText, squares } from "@/lib/daily";
+import { useMe } from "@/lib/me-store";
 
 /** After the daily case: your place today and a spoiler-free card to share. */
 export function DailyShare({ dayKey, score, minutes, place }: { dayKey: string; score: CaseScore; minutes: number; place?: CaseRewards["daily"] }) {
   const number = dailyNumber(dayKey);
   const [note, setNote] = useState<string | null>(null);
+  const me = useMe();
+  const reminder = useReminders();
+  const [reminded, setReminded] = useState(false);
+  const remind = async () => {
+    try {
+      if ((await enableReminders()) === "on") setReminded(true);
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : null);
+    }
+  };
   const share = async () => {
     const how = await shareResult(shareText({ number, score, minutes, url: window.location.origin }));
     setNote(how === "copied" ? "Copied — paste it anywhere" : how === "shared" ? "Shared" : null);
@@ -41,6 +53,11 @@ export function DailyShare({ dayKey, score, minutes, place }: { dayKey: string; 
         <button type="button" onClick={() => void share()} className="bg-ai inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-[13.5px] font-semibold text-white shadow-glow">
           <Icon name="send" size={14} /> Share result
         </button>
+        {me && !me.user.isGuest && (reminder === "off" || reminded) && (
+          <button type="button" onClick={() => void remind()} disabled={reminded} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-medium text-fg hover:bg-surface-3 disabled:text-success">
+            <Icon name={reminded ? "check" : "bell"} size={14} /> {reminded ? "We'll remind you" : "Remind me tomorrow"}
+          </button>
+        )}
         {note && <span className="text-[12.5px] font-medium text-success">{note}</span>}
       </div>
     </section>

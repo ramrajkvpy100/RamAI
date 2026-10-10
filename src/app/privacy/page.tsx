@@ -35,6 +35,10 @@ export default function PrivacyPage() {
               details go to Razorpay, not to us.
             </li>
             <li>
+              <b className="text-fg">Daily reminders, only if you turn them on:</b> the delivery address your browser gives us for notifications,
+              the keys that encrypt them, and the last day we sent one.
+            </li>
+            <li>
               <b className="text-fg">Technical data:</b> your IP address is used briefly to stop abuse (such as too many sign-in attempts), and our
               hosting provider keeps standard server logs.
             </li>
@@ -50,6 +54,10 @@ export default function PrivacyPage() {
             <li>To run your account and RamAI's features: cases, debriefs, progress, streaks, leaderboards and leagues.</li>
             <li>To process payments and give you the plan you paid for.</li>
             <li>To send emails you need: verifying your address and resetting your password. We don't send marketing emails.</li>
+            <li>
+              To send the daily reminder, if you turn it on: at most one notification a day, only when you haven&apos;t played yet. Turn it off
+              any time from the menu.
+            </li>
             <li>To keep RamAI secure and working, and to fix problems.</li>
           </List>
           <p>
@@ -64,6 +72,10 @@ export default function PrivacyPage() {
             sound, tips you've dismissed — and the case you're playing. There are no advertising or analytics cookies, so there's nothing to opt out
             of.
           </p>
+          <p>
+            If you install RamAI as an app, a small background script in your browser (a service worker) shows an offline page and your reminders.
+            It doesn&apos;t store your data.
+          </p>
         </Section>
 
         <Section title="Who helps us run RamAI">
@@ -77,6 +89,10 @@ export default function PrivacyPage() {
             </li>
             <li>
               <b className="text-fg">Razorpay</b> — processes payments.
+            </li>
+            <li>
+              <b className="text-fg">Your browser&apos;s push service</b> (Google, Apple, Mozilla or Microsoft, depending on your browser) —
+              delivers the daily reminder if you turn it on. Reminders are end-to-end encrypted, so the push service can&apos;t read them.
             </li>
             <li>
               <b className="text-fg">Resend</b> — delivers account emails, once email is switched on.
@@ -98,6 +114,7 @@ export default function PrivacyPage() {
           <List>
             <li>Your account and progress: for as long as you have an account.</li>
             <li>Guest accounts: 7 days.</li>
+            <li>Reminder details: until you turn reminders off, sign out on that device, or your browser stops accepting them.</li>
             <li>Sign-in sessions: up to 30 days. Email links: until they expire (48 hours to verify, 1 hour to reset a password).</li>
             <li>Payment records: as long as tax and accounting law requires.</li>
           </List>
