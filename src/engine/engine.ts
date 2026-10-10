@@ -27,7 +27,7 @@ import { getProvider } from "./providers";
 import type { ClinicalProvider } from "./providers/types";
 import { applyEffects, createInitialState } from "./reducer";
 import { seal, SessionError, unseal, type SessionPayload } from "./session";
-import { TUTORIAL_CASE } from "./cases";
+import { dailyCase, TUTORIAL_CASE } from "./cases";
 import { createHiddenState, openingEffects, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
 import type { ActionRecord, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, PatientLang, Specialty, TurnResponse } from "./types";
@@ -71,6 +71,7 @@ function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
   state = applyEffects(state, openingEffects(def, hidden));
   for (const record of payload.a) state = applyEffects(state, runTurn(def, hidden, record));
   if (hidden.closed) state = { ...state, specialty: def.specialty };
+  if (payload.d) state = { ...state, daily: payload.d };
   return { def, hidden, state, country };
 }
 
@@ -108,27 +109,33 @@ export interface StartCaseOptions {
   tutorial?: boolean;
   /** Where the player practises; fixed for the life of the case. */
   country?: Country;
+  /** Today's daily case (IST day key) instead of a pick from the library. */
+  daily?: string;
 }
 
 export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession> {
   const provider = await getProvider();
   let src;
   try {
-    src = opts.tutorial ? ({ kind: "library", id: TUTORIAL_CASE.id } as const) : await provider.createCase(opts);
+    src = opts.tutorial
+      ? ({ kind: "library", id: TUTORIAL_CASE.id } as const)
+      : opts.daily
+        ? ({ kind: "library", id: dailyCase(opts.daily).id } as const)
+        : await provider.createCase(opts);
   } catch (err) {
     if (err instanceof NoCaseError) throw new EngineError("NO_CASES", err.message);
     throw err;
   }
   const country = opts.country ?? "IN";
-  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }) };
+  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }), ...(opts.daily && { d: opts.daily }) };
   const { def, state } = rebuild(payload, provider);
   return { token: seal(payload), state: render(state, def, country, opts.lang ?? "en") };
 }
 
 /** The library reference and owner of a sealed session (server use only). */
-export function sessionInfo(token: string): { sessionId: string; userId: string } {
+export function sessionInfo(token: string): { sessionId: string; userId: string; daily?: string } {
   const p = unseal(token);
-  return { sessionId: p.sid, userId: p.u };
+  return { sessionId: p.sid, userId: p.u, daily: p.d };
 }
 
 /** Re-renders a session; also how a language switch takes effect mid-case. */

@@ -11,7 +11,7 @@ import type { CareLevel, CaseSession, CaseTrack, PatientLang, Specialty, TurnRes
 export const UNAVAILABLE_MESSAGE = "Clinical engine temporarily unavailable.";
 
 /** Codes whose server message is written for players and safe to show. */
-const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED"]);
+const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED", "DAILY_DONE"]);
 
 export class ClinicalEngineError extends Error {
   constructor(public readonly code: string, message: string, public readonly retryable: boolean) {
@@ -52,6 +52,8 @@ export interface LibraryInfo {
 export interface CaseChoice {
   /** The guided demo case. */
   tutorial?: boolean;
+  /** Today's daily case. */
+  daily?: boolean;
   specialty?: Specialty;
   track?: CaseTrack;
   level?: CareLevel;
@@ -84,3 +86,20 @@ export const resetPassword = (token: string, password: string) => call<{ user: u
 
 /* Preferences --------------------------------------------------------------- */
 export const updateSettings = (body: { patientLang?: PatientLang; country?: Country }) => call<unknown>("/api/me/settings", body);
+
+export interface DailyInfo {
+  dayKey: string;
+  number: number;
+  endsAt: number;
+  track: CaseTrack;
+  level: CareLevel;
+  started: boolean;
+  me: { position: number; score: number; minutes: number; grid: string | null } | null;
+  top: { position: number; userId: string; name: string; username: string; score: number; minutes: number }[];
+  total: number;
+}
+
+export async function fetchDaily(): Promise<DailyInfo | null> {
+  const res = await fetch("/api/daily", { cache: "no-store" }).catch(() => null);
+  return res?.ok ? ((await res.json()) as DailyInfo) : null;
+}

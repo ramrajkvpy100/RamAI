@@ -6,6 +6,8 @@ import "server-only";
 
 import type { ClinicalCaseDefinition } from "../case-definition";
 import type { Country } from "../countries";
+import { dailyNumber } from "@/lib/daily";
+import { prngFrom } from "@/lib/prng";
 import type { CareLevel, CaseTrack, Specialty } from "../types";
 import { dermAcne } from "./derm-acne";
 import { dermMelasma } from "./derm-melasma";
@@ -57,6 +59,22 @@ export function filterCases(f: CaseFilter): ClinicalCaseDefinition[] {
       (!f.allowedLevels || f.allowedLevels.includes(c.level)) &&
       playableIn(c, f.country),
   );
+}
+
+/**
+ * Today's case for everyone: a fixed shuffle of the cases every country can
+ * play, one a day, round and round — so no case repeats until all have run.
+ */
+export function dailyCase(dayKey: string): ClinicalCaseDefinition {
+  const pool = CASE_LIBRARY.filter((c) => !c.countries);
+  const order = [...pool];
+  const rand = prngFrom(20261010);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const n = dailyNumber(dayKey) - 1;
+  return order[((n % order.length) + order.length) % order.length]!;
 }
 
 /** Counts per specialty, mode and level — never ids. */

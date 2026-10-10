@@ -34,6 +34,8 @@ export interface SessionPayload {
   t: number;
   /** Country the case is set in (India when absent). Fixed for the life of the case. */
   c?: Country;
+  /** The daily case's day (IST), e.g. "2026-10-10". */
+  d?: string;
 }
 
 export class SessionError extends Error {

@@ -295,7 +295,14 @@ async function migrate(b: Backend) {
   if (!paymentColumns.includes("waiver_at")) add.push("ALTER TABLE payments ADD COLUMN waiver_at INTEGER");
   const startColumns = (await b.all<{ name: string }>("PRAGMA table_info(case_starts)")).map((c) => c.name);
   if (!startColumns.includes("tutorial")) add.push("ALTER TABLE case_starts ADD COLUMN tutorial INTEGER NOT NULL DEFAULT 0");
+  // The daily case: which day a start or a ranked result belongs to, and how long it took.
+  if (!startColumns.includes("daily_key")) add.push("ALTER TABLE case_starts ADD COLUMN daily_key TEXT");
+  const resultColumns = (await b.all<{ name: string }>("PRAGMA table_info(results)")).map((c) => c.name);
+  if (!resultColumns.includes("daily_key")) add.push("ALTER TABLE results ADD COLUMN daily_key TEXT");
+  if (!resultColumns.includes("elapsed_min")) add.push("ALTER TABLE results ADD COLUMN elapsed_min INTEGER");
+  if (!resultColumns.includes("grid")) add.push("ALTER TABLE results ADD COLUMN grid TEXT");
   if (add.length) await b.batch(add.map((sql) => ({ sql })));
+  await b.exec("CREATE INDEX IF NOT EXISTS results_daily ON results(daily_key, score); CREATE INDEX IF NOT EXISTS case_starts_daily ON case_starts(user_id, daily_key)");
 }
 
 const inTx = new AsyncLocalStorage<Db>();

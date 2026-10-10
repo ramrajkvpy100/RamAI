@@ -23,6 +23,7 @@ import { CasePicker } from "./case-picker";
 import { GuidedCard } from "./guided-card";
 import { LevelPath } from "./level-path";
 import { UpgradeSheet } from "./upgrade-sheet";
+import { DailyCard } from "./daily-card";
 import { useLauncher } from "./use-launcher";
 import { LeagueCard } from "./week-board";
 
@@ -135,6 +136,8 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
             </p>
           )}
         </section>
+
+        <DailyCard onPlay={() => void launch({ daily: true })} starting={starting} />
 
         {showGuide && <GuidedCard onStart={() => void launch({ tutorial: true })} onSkip={skipGuide} starting={starting} />}
 

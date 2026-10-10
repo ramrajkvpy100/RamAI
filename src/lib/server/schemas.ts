@@ -14,6 +14,8 @@ const Token = z.string().min(20).max(400_000);
 export const StartSchema = z.object({
   /** The guided demo case. */
   tutorial: z.boolean().optional(),
+  /** Today's daily case — the same patient for everyone. */
+  daily: z.boolean().optional(),
   specialty: Specialty.optional(),
   track: z.enum(CASE_TRACKS as unknown as [string, ...string[]]).optional(),
   level: z.enum(CARE_LEVELS as unknown as [string, ...string[]]).optional(),

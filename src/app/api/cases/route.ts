@@ -1,7 +1,8 @@
 import { simulateCase } from "@/engine/engine";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
-import { casesStartedToday, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
+import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
+import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { StartSchema } from "@/lib/server/schemas";
@@ -20,14 +21,19 @@ export async function POST(req: Request) {
     const user = await requireUser();
     await ensureDemoPlayers();
     const tutorial = body.tutorial === true;
+    const daily = !tutorial && body.daily === true ? dailyKeyFor() : undefined;
     if (user.isGuest && !tutorial) {
       return apiError(403, "SIGNUP_REQUIRED", "Create a free account to play more cases — it takes 30 seconds.");
     }
+    if (daily && (await dailyBoard(daily, user.id, 0)).me) {
+      return apiError(409, "DAILY_DONE", "You've played today's case. A new one unlocks at midnight IST.");
+    }
     const plan = PLANS[user.plan];
-    if (!tutorial && body.level && !plan.levels.includes(body.level as CareLevel)) {
+    // The daily case is free for everyone, whatever its level, and doesn't use up the day's cases.
+    if (!tutorial && !daily && body.level && !plan.levels.includes(body.level as CareLevel)) {
       return apiError(402, "PRO_REQUIRED", "This level is part of RamAI Pro.");
     }
-    if (!tutorial && plan.dailyCases !== null && (await casesStartedToday(user.id)) >= plan.dailyCases) {
+    if (!tutorial && !daily && plan.dailyCases !== null && (await casesStartedToday(user.id)) >= plan.dailyCases) {
       return apiError(402, "DAILY_LIMIT", `You've used today's ${plan.dailyCases} free cases. They refresh at midnight — or go Pro for unlimited cases.`);
     }
     const session = await simulateCase({
@@ -41,8 +47,9 @@ export async function POST(req: Request) {
       lang: user.patientLang,
       tutorial,
       country: user.country,
+      daily,
     });
-    await recordCaseStart(user.id, session.state.sessionId, tutorial);
+    await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);
     return ok(session);
   } catch (err) {
     return handleError(err);

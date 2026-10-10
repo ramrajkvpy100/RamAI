@@ -471,6 +471,8 @@ export interface CaseState {
   guided?: boolean;
   /** Where the case is set: units, money and names on screen follow it. */
   country?: Country;
+  /** The daily case's day (IST) — the same patient for everyone that day. */
+  daily?: string;
   /** Monotonic counter so generated ids are stable across replay. */
   seq: number;
 }
@@ -846,4 +848,6 @@ export interface CaseRewards {
   weeklyPositionBefore?: number;
   leagueTier?: number;
   newBadges: Badge[];
+  /** The daily case: your place today (ranked = your first attempt of the day). */
+  daily?: { position: number; total: number; ranked: boolean };
 }
