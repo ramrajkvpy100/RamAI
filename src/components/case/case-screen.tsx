@@ -16,6 +16,7 @@ import { abandonCase, beginEncounter, dismissError, hydrate, retry, send, useCas
 import { cn } from "@/lib/cn";
 import { primeMe, useMe, type Me } from "@/lib/me-store";
 import { alarm, chime, setSoundEnabled, useSoundEnabled } from "@/lib/monitor-audio";
+import { setVoicesEnabled, usePatientVoices, useVoicesEnabled, voicesSupported } from "@/lib/voices";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 import { Briefing } from "./briefing";
@@ -157,6 +158,10 @@ function Workspace() {
   const { newIds, flash, highlight } = useTurnHighlights(state, snap.lastEffects, snap.turn);
   const alarmState = useMonitorAlarms(state);
   const speaking = useCallerSpeaking(state, newIds, snap.turn);
+  usePatientVoices(state, newIds, snap.turn);
+  const voicesOn = useVoicesEnabled();
+  const [canSpeak, setCanSpeak] = useState(false);
+  useEffect(() => setCanSpeak(voicesSupported()), []);
   const viewerItems = useViewerItems(state);
   const scene = sceneFor(state);
 
@@ -188,7 +193,12 @@ function Workspace() {
       <LiveMonitorProvider state={state}>
         <MediaViewerProvider items={viewerItems}>
           <div className="flex h-dvh flex-col">
-            <CaseTopBar state={state} onClose={() => setEnding(true)} sound={scene === "monitor" ? { on: alarmState.sound, toggle: () => setSoundEnabled(!alarmState.sound) } : null} />
+            <CaseTopBar
+              state={state}
+              onClose={() => setEnding(true)}
+              sound={scene === "monitor" ? { on: alarmState.sound, toggle: () => setSoundEnabled(!alarmState.sound) } : null}
+              voices={canSpeak ? { on: voicesOn, toggle: () => setVoicesEnabled(!voicesOn) } : null}
+            />
             <div
               className={cn(
                 "grid min-h-0 flex-1 grid-cols-1 transition-[grid-template-columns] duration-200 ease-out",

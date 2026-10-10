@@ -19,12 +19,15 @@ export function CaseTopBar({
   onClose,
   complete,
   sound,
+  voices,
 }: {
   state: CaseState;
   onClose?: () => void;
   complete?: boolean;
   /** Monitor sound toggle — only offered where there is a monitor. */
   sound?: { on: boolean; toggle: () => void } | null;
+  /** Patients and families speak aloud. */
+  voices?: { on: boolean; toggle: () => void } | null;
 }) {
   const day = Math.floor((state.arrivalMinuteOfDay + state.clock) / 1440);
   const phone = state.track === "phone";
@@ -62,6 +65,11 @@ export function CaseTopBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {voices && !complete && (
+            <IconButton label={voices.on ? "Patient voices on — turn off" : "Hear patients speak"} size="sm" onClick={voices.toggle} className={voices.on ? "text-accent-text" : "text-fg-3"}>
+              <Icon name="ear" size={17} />
+            </IconButton>
+          )}
           {sound && !complete && (
             <IconButton label={sound.on ? "Monitor sounds on — turn off" : "Turn on monitor sounds"} size="sm" onClick={sound.toggle} className={sound.on ? "text-accent-text" : "text-fg-3"}>
               <Icon name={sound.on ? "volume" : "volume-off"} size={17} />
