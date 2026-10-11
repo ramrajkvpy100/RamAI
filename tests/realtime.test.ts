@@ -21,7 +21,8 @@ describe("real-time mode", () => {
     const start = await simulateCase({ userId: "rt2", caseNumber: 1, tutorial: true });
     let token = start.token;
     let res;
-    for (let i = 0; i < 26; i++) {
+    // The demo patient seizes at half an hour without sugar (time enough for a first-timer).
+    for (let i = 0; i < 32; i++) {
       res = await advanceRealTime(token, "rt2");
       token = res.token;
     }

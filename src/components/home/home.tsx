@@ -80,7 +80,11 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
   const start = async (choice: Parameters<typeof launch>[0]) => {
     if (left === 0) {
       setPicker(false);
-      setGate({ code: "DAILY_LIMIT", message: `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.` });
+      setGate(
+        me.user.isGuest
+          ? { code: "SIGNUP_REQUIRED", message: `That's today's ${limit} guest cases. Create a free account for ${PLANS.free.dailyCases} cases every day — it takes 30 seconds.` }
+          : { code: "DAILY_LIMIT", message: `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.` },
+      );
       return;
     }
     await launch(choice);
@@ -197,7 +201,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           {left !== null && limit !== null && (
             <div className="mt-4 border-t border-line-2 pt-4">
               <div className="flex items-center justify-between text-[13px]">
-                <span className="font-medium">Free cases today</span>
+                <span className="font-medium">{me.user.isGuest ? "Guest cases today" : "Free cases today"}</span>
                 <span className="text-fg-2 tabular">
                   {left} of {limit} left
                 </span>
@@ -207,8 +211,8 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
                   <span key={i} className={cn("h-1.5 flex-1 rounded-full", i < limit - left ? "bg-surface-3" : "bg-ai")} />
                 ))}
               </div>
-              <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-accent-text hover:underline">
-                Unlimited cases with Pro <Icon name="arrow-right" size={13} />
+              <Link href={me.user.isGuest ? "/signup" : "/pricing"} className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-accent-text hover:underline">
+                {me.user.isGuest ? `Sign up free — ${PLANS.free.dailyCases} cases a day` : "Unlimited cases with Pro"} <Icon name="arrow-right" size={13} />
               </Link>
             </div>
           )}

@@ -18,6 +18,7 @@ import { DailyShare } from "./daily-share";
 import { RewardsPanel } from "./rewards";
 import { ScoreBreakdown, ScoreRing } from "./score";
 import {
+  AuscultationSection,
   DecisionTreeSection,
   DiagnosisSection,
   DrugsSection,
@@ -66,6 +67,23 @@ function Section({ n, title, summary, children, defaultOpen = false }: { n: numb
   );
 }
 
+/** After the guided demo: what just happened, and what real cases are like. */
+function DemoDone({ name, won }: { name: string; won: boolean }) {
+  return (
+    <section className="panel mt-8 flex animate-rise items-start gap-3.5 p-4 sm:p-5" aria-label="Demo complete">
+      <span className="bg-ai flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-glow">
+        <Icon name={won ? "check" : "sparkles"} size={19} strokeWidth={2.2} />
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[16px] font-semibold">{won ? `You saved ${name}. Demo complete!` : "Demo complete."}</h2>
+        <p className="mt-1 text-[13.5px] leading-6 text-fg-2">
+          That&apos;s every case: talk, examine, test, treat and decide — then see your score and what to do next time. Real cases are new patients with hidden diagnoses, and no tips.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function DebriefView({
   session,
   progress,
@@ -87,6 +105,7 @@ export function DebriefView({
   const [showScore, setShowScore] = useState(false);
 
   const verdict = VERDICT[d.verdict];
+  const won = d.score.total >= 70 && (d.finalStatus === "improving" || d.finalStatus === "recovered" || d.finalStatus === "stable");
   const majors = d.missed.filter((m) => m.severity === "major").length;
   const hasImages = d.severityBands.some((b) => b.media);
 
@@ -94,6 +113,7 @@ export function DebriefView({
     { title: "Diagnosis", summary: "History → examination → investigation → diagnosis", body: <DiagnosisSection d={d} />, open: true },
     { title: "What you did well", summary: d.didWell.length ? `${d.didWell.length} strengths` : "—", body: d.didWell.length ? <Bullets items={d.didWell} marker="check" /> : <p className="text-[14px] text-fg-2">Little went to plan this time — the sections below show how to approach it next time.</p> },
     { title: "What you missed", summary: d.missed.length ? `${d.missed.length} item${d.missed.length === 1 ? "" : "s"}${majors ? ` · ${majors} major` : ""}` : "Nothing significant", body: <MissesSection d={d} /> },
+    ...(d.auscultation?.length ? [{ title: "Auscultation", summary: `What the stethoscope picked up · ${d.auscultation.filter((a) => a.listened).length} of ${d.auscultation.length} listened to`, body: <AuscultationSection d={d} /> }] : []),
     { title: "Disease decision tree", summary: `${d.severityBands.length} severity bands · treatment failure pathway`, body: <DecisionTreeSection d={d} /> },
     ...(hasImages ? [{ title: "Severity comparison", summary: "Clinical images by severity", body: <SeveritySection d={d} /> }] : []),
     { title: "Treatment", summary: d.routines.length ? `Plan and ${d.routines.length} practical routine${d.routines.length === 1 ? "" : "s"}` : "The plan for this patient", body: <TreatmentSection d={d} /> },
@@ -125,6 +145,8 @@ export function DebriefView({
             <ScoreRing score={d.score.total} />
           </div>
         </section>
+
+        {state.guided && <DemoDone name={state.patient.name ?? "your patient"} won={won} />}
 
         {/* Rewards ------------------------------------------------------------ */}
         <div className="mt-10 animate-rise [animation-delay:120ms]">
@@ -209,11 +231,14 @@ export function DebriefView({
             Home
           </Link>
           {guest ? (
-            <div className="flex items-center gap-3">
-              <span className="hidden text-[13px] text-fg-2 sm:block">Keep this case, start a streak, join the league.</span>
-              <Link href="/signup" className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow">
-                Create free account <Icon name="arrow-right" size={16} />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Link href="/signup" title="Keep your cases, start a streak, join the league" className="text-[13.5px] font-semibold text-accent-text hover:underline">
+                Sign up free
               </Link>
+              <button type="button" onClick={onNext} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-5 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70 sm:px-6">
+                {starting ? "Preparing case…" : state.guided ? "Play a real case" : "Next case"}
+                {!starting && <Icon name="arrow-right" size={16} />}
+              </button>
             </div>
           ) : (
             <button type="button" onClick={onNext} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">

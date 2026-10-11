@@ -46,8 +46,8 @@ export function useRealtimeEnabled(): boolean {
   );
 }
 
-/** Emergency cases only, while the case is live. */
-export const realtimeEligible = (state: CaseState) => state.track === "emergency" && state.status === "active" && state.patientStatus !== "deceased";
+/** Emergency cases only, while the case is live — never the guided demo, where first-timers read at their own pace. */
+export const realtimeEligible = (state: CaseState) => state.track === "emergency" && !state.guided && state.status === "active" && state.patientStatus !== "deceased";
 
 /** Runs the clock while real-time mode is on. Returns whether it's running. */
 export function useRealtimeClock(state: CaseState): boolean {

@@ -142,7 +142,7 @@ function Finding({ m, state, isNew, highlightIds }: { m: EncounterMessage; state
           <MediaFigure media={m.media} viewerKey={m.id} title={isExam ? head : label} />
         </div>
       )}
-      {m.sounds && m.sounds.length > 0 && <StethoscopePlayer sounds={m.sounds} />}
+      {m.stethoscope && m.stethoscope.length > 0 && <StethoscopePlayer sessionId={state.sessionId} messageId={m.id} areas={m.stethoscope} />}
     </div>
   );
 }

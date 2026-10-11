@@ -118,9 +118,17 @@ export interface EncounterMessage {
   attachmentIds?: string[];
   /** Clinical media shown inline (photographs, dermoscopy, tracings). */
   media?: MediaAsset;
-  /** What the stethoscope picks up — played on request. Acoustic parameters only, never a label. */
+  /**
+   * Where the stethoscope was placed: the player listens there (the sound is
+   * made on the server). No words describe what is heard — that's for the
+   * player's ears, and the debrief.
+   */
+  stethoscope?: ListenArea[];
+  /** The sound's acoustic parameters — SERVER ONLY, stripped before the state reaches the browser. */
   sounds?: Auscultation[];
 }
+
+export type ListenArea = "heart" | "lungs" | "bowel";
 
 /* -------------------------------------------------------------------------- */
 /* Auscultation                                                                */
@@ -574,7 +582,7 @@ export interface ActionRecord {
  * render state. This keeps the interface identical for every provider.
  */
 export type TurnEffect =
-  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; media?: MediaAsset; attachmentIds?: string[]; sounds?: Auscultation[] }
+  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; media?: MediaAsset; attachmentIds?: string[]; stethoscope?: ListenArea[]; sounds?: Auscultation[] }
   | { type: "vitals"; readings: VitalPatch[] }
   | { type: "fact"; group: FactGroup; label: string; value: string; abnormal?: boolean }
   | { type: "investigation_ordered"; instanceId: string; defId: string; name: string; category: InvestigationCategory; turnaroundMin: number; cost?: number }
@@ -798,6 +806,8 @@ export interface CaseDebrief {
   followUp: FollowUpPlan;
   treatmentFailure: TreatmentFailurePath;
   pearl: string;
+  /** What the stethoscope would have picked up — revealed only once the case is over. */
+  auscultation?: { area: ListenArea; heard: string; listened: boolean }[];
   /** Where the case was set; money in this debrief is in that country's currency. */
   country?: Country;
 }

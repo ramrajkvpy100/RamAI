@@ -86,13 +86,13 @@ export function DailyCard({ onPlay, starting }: { onPlay: () => void; starting: 
                 Resume today&apos;s case <Icon name="arrow-right" size={15} />
               </Link>
             ) : (
-              <button type="button" onClick={onPlay} disabled={starting || me?.user.isGuest} className="shine inline-flex h-10 items-center gap-2 rounded-full px-5 text-[14px] font-semibold text-white shadow-glow disabled:opacity-60">
+              <button type="button" onClick={onPlay} disabled={starting} className="shine inline-flex h-10 items-center gap-2 rounded-full px-5 text-[14px] font-semibold text-white shadow-glow disabled:opacity-60">
                 {starting ? "Preparing…" : info.started ? "Play again (practice)" : "Play today's case"}
                 {!starting && <Icon name="arrow-right" size={15} />}
               </button>
             )}
             <span className="text-[12.5px] text-fg-3">
-              {me?.user.isGuest ? "Create a free account to play" : info.total ? `${info.total} played so far` : "Be the first today"}
+              {me?.user.isGuest ? "Practice as a guest — sign up to be ranked" : info.total ? `${info.total} played so far` : "Be the first today"}
             </span>
           </div>
           {info.started && !resume && <p className="mt-2 text-[12px] text-fg-3">Only your first attempt counts for today&apos;s ranking.</p>}

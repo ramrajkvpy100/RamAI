@@ -6,7 +6,7 @@ import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { StartSchema } from "@/lib/server/schemas";
-import { PLANS } from "@/lib/plans";
+import { dailyLimitFor, PLANS } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +22,6 @@ export async function POST(req: Request) {
     await ensureDemoPlayers();
     const tutorial = body.tutorial === true;
     const daily = !tutorial && body.daily === true ? dailyKeyFor() : undefined;
-    if (user.isGuest && !tutorial) {
-      return apiError(403, "SIGNUP_REQUIRED", "Create a free account to play more cases — it takes 30 seconds.");
-    }
     if (daily && (await dailyBoard(daily, user.id, 0)).me) {
       return apiError(409, "DAILY_DONE", "You've played today's case. A new one unlocks at midnight IST.");
     }
@@ -33,8 +30,11 @@ export async function POST(req: Request) {
     if (!tutorial && !daily && body.level && !plan.levels.includes(body.level as CareLevel)) {
       return apiError(402, "PRO_REQUIRED", "This level is part of RamAI Pro.");
     }
-    if (!tutorial && !daily && plan.dailyCases !== null && (await casesStartedToday(user.id)) >= plan.dailyCases) {
-      return apiError(402, "DAILY_LIMIT", `You've used today's ${plan.dailyCases} free cases. They refresh at midnight — or go Pro for unlimited cases.`);
+    // Guests get a few real cases a day before signing up; accounts get the plan's allowance.
+    const limit = dailyLimitFor(user);
+    if (!tutorial && !daily && limit !== null && (await casesStartedToday(user.id)) >= limit) {
+      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's today's ${limit} guest cases. Create a free account for ${PLANS.free.dailyCases} cases every day — it takes 30 seconds.`);
+      return apiError(402, "DAILY_LIMIT", `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.`);
     }
     const session = await simulateCase({
       userId: user.id,

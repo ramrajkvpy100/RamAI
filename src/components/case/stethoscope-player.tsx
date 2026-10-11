@@ -3,47 +3,66 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
-import type { Auscultation } from "@/engine/types";
+import type { ListenArea } from "@/engine/types";
+import { caseSnapshot } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
-import { LISTEN_SECONDS, playSounds, stethoscopeSupported } from "@/lib/stethoscope";
 
 const AREA = { heart: "heart", lungs: "chest", bowel: "abdomen" } as const;
+/** A moment of silence: playing it inside the tap lets iPhone play the real sound once it arrives. */
+const SILENCE = "data:audio/wav;base64,UklGRuwAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+/** Sounds already fetched this visit, by session and message. */
+const heard = new Map<string, string>();
 
-/** Listen through the stethoscope — the sounds themselves, never a label for them. */
-export function StethoscopePlayer({ sounds }: { sounds: Auscultation[] }) {
-  const [left, setLeft] = useState<number | null>(null);
-  const stop = useRef<(() => void) | null>(null);
-  const [supported, setSupported] = useState(true);
-  useEffect(() => setSupported(stethoscopeSupported()), []);
-  useEffect(() => () => stop.current?.(), []);
-  useEffect(() => {
-    if (left === null) return;
-    const t = window.setTimeout(() => setLeft((s) => (s === null ? null : Math.max(0, s - 1))), 1000);
-    return () => window.clearTimeout(t);
-  }, [left]);
+/**
+ * Listen through the stethoscope. The sound is rendered on the server from
+ * the patient's findings and arrives as audio — nothing on the page says
+ * what it is, so the only way to know is to listen.
+ */
+export function StethoscopePlayer({ sessionId, messageId, areas }: { sessionId: string; messageId: string; areas: ListenArea[] }) {
+  const [phase, setPhase] = useState<"idle" | "loading" | "playing" | "failed">("idle");
+  const [left, setLeft] = useState(0);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => () => audio.current?.pause(), []);
 
-  if (!supported) return null;
-  const playing = left !== null;
-  const toggle = () => {
-    if (playing) return stop.current?.();
-    setLeft(LISTEN_SECONDS);
-    stop.current = playSounds(sounds, LISTEN_SECONDS, () => {
-      setLeft(null);
-      stop.current = null;
-    });
+  const stop = () => {
+    audio.current?.pause();
+    setPhase("idle");
   };
-  const where = sounds.map((s) => AREA[s.kind]).join(", then ");
 
+  const play = async () => {
+    const el = (audio.current ??= new Audio());
+    el.onended = () => setPhase("idle");
+    el.ontimeupdate = () => setLeft(Math.max(0, Math.ceil((el.duration || 12) - el.currentTime)));
+    const key = `${sessionId}:${messageId}`;
+    let url = heard.get(key);
+    if (!url) {
+      el.src = SILENCE;
+      void el.play().catch(() => {});
+      setPhase("loading");
+      const token = caseSnapshot().session?.token;
+      const res = token ? await fetch("/api/cases/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, messageId }) }).catch(() => null) : null;
+      if (!res?.ok) return setPhase("failed");
+      url = URL.createObjectURL(await res.blob());
+      heard.set(key, url);
+    }
+    el.src = url;
+    setLeft(12);
+    setPhase("playing");
+    await el.play().catch(() => setPhase("failed"));
+  };
+
+  const where = areas.map((a) => AREA[a]).join(", then ");
+  const playing = phase === "playing";
   return (
     <div className="flex items-center gap-3 border-t border-line-2 px-3.5 py-2.5">
       <button
         type="button"
-        onClick={toggle}
+        onClick={() => (playing || phase === "loading" ? stop() : void play())}
         aria-pressed={playing}
         className={cn("inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-semibold transition-colors", playing ? "bg-fg text-bg" : "bg-accent-soft text-accent-text hover:bg-accent-soft/80")}
       >
         <Icon name={playing ? "x" : "ear"} size={14} />
-        {playing ? `Stop · 0:${String(left).padStart(2, "0")}` : "Listen"}
+        {playing ? `Stop · 0:${String(left).padStart(2, "0")}` : phase === "loading" ? "Placing the stethoscope…" : "Listen"}
       </button>
       <span className="flex min-w-0 items-center gap-2 text-[12px] text-fg-3">
         {playing ? (
@@ -53,7 +72,9 @@ export function StethoscopePlayer({ sounds }: { sounds: Auscultation[] }) {
             ))}
           </span>
         ) : null}
-        <span className="truncate">{playing ? `Listening over the ${where}` : `Stethoscope on the ${where} · headphones help`}</span>
+        <span className="truncate">
+          {phase === "failed" ? "Couldn't play that — tap Listen to try again." : playing ? `Listening over the ${where}` : `Stethoscope on the ${where} · headphones help`}
+        </span>
       </span>
     </div>
   );

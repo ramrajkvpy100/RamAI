@@ -427,3 +427,24 @@ export function FollowUpSection({ d }: { d: CaseDebrief }) {
     </dl>
   );
 }
+
+/* Auscultation — what the stethoscope picked up, named only now ---------- */
+
+const LISTENED_OVER = { heart: "Heart", lungs: "Chest", bowel: "Abdomen" } as const;
+
+export function AuscultationSection({ d }: { d: CaseDebrief }) {
+  const rows = d.auscultation ?? [];
+  return (
+    <div className="flex flex-col divide-y divide-line-2 overflow-hidden rounded-lg border border-line">
+      {rows.map((r) => (
+        <div key={r.area} className="flex flex-col gap-1 bg-surface px-4 py-3 sm:flex-row sm:items-start sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:w-36">
+            <span className="text-[13.5px] font-semibold">{LISTENED_OVER[r.area]}</span>
+            <Badge tone={r.listened ? "success" : "warning"}>{r.listened ? "listened" : "not listened"}</Badge>
+          </div>
+          <p className="text-[13.5px] leading-[1.6] text-fg-2">{r.heard}</p>
+        </div>
+      ))}
+    </div>
+  );
+}

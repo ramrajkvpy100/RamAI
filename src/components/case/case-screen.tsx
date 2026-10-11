@@ -26,7 +26,6 @@ import { Coach } from "./coach";
 import { Composer } from "./composer";
 import { ComposerProvider } from "./composer-context";
 import { Conversation } from "./conversation";
-import { EncounterProgress } from "./encounter-progress";
 import { EndCaseDialog } from "./end-case";
 import { PatientPanel } from "./patient-panel";
 import { ResultsList } from "./results-list";
@@ -201,7 +200,7 @@ function Workspace() {
               onClose={() => setEnding(true)}
               sound={scene === "monitor" ? { on: alarmState.sound, toggle: () => setSoundEnabled(!alarmState.sound) } : null}
               voices={canSpeak ? { on: voicesOn, toggle: () => setVoicesEnabled(!voicesOn) } : null}
-              realtime={state.track === "emergency" ? { on: realtimeOn, running: realtimeRunning, toggle: () => setRealtimeEnabled(!realtimeOn) } : null}
+              realtime={state.track === "emergency" && !state.guided ? { on: realtimeOn, running: realtimeRunning, toggle: () => setRealtimeEnabled(!realtimeOn) } : null}
             />
             <div
               className={cn(
@@ -216,9 +215,6 @@ function Workspace() {
               <main className="flex min-h-0 flex-col" aria-label="Encounter">
                 {/* One monitor at a time: the strip steps aside whenever the full monitor is on screen (the left column, or the panel's Patient tab). */}
                 <SceneStrip state={state} className={cn("xl:hidden", panelOpen && tab === "patient" && "md:hidden")} />
-                <div className="hidden border-b border-line-2 px-4 py-2.5 sm:block sm:px-6">
-                  <EncounterProgress stage={state.stage} touched={state.stagesTouched} className="mx-auto max-w-[760px]" />
-                </div>
                 <Conversation state={state} sendingInput={snap.sending?.input ?? null} newIds={newIds} highlightIds={highlight} />
 
                 <div className="px-3 pt-1 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6">

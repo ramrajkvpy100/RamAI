@@ -37,7 +37,7 @@ export function UpgradeSheet({ gate, onClose }: { gate: Gate | null; onClose: ()
   );
 }
 
-/** Guests have played the demo; everything else starts with a free account. */
+/** Guests have played their cases for today; more start with a free account. */
 function SignupSheet({ gate, onClose }: { gate: Gate; onClose: () => void }) {
   return (
     <Sheet open onClose={onClose} title="Create your free account" placement="center">
@@ -47,7 +47,7 @@ function SignupSheet({ gate, onClose }: { gate: Gate; onClose: () => void }) {
         </span>
         <p className="mt-4 max-w-sm text-[14.5px] leading-6 text-fg-2">{gate.message}</p>
         <ul className="mt-5 flex w-full flex-col gap-2 text-left">
-          {["3 free cases every day", "Your demo case, streak and XP are kept", "Weekly leagues and ranks"].map((f) => (
+          {[`${PLANS.free.dailyCases} free cases every day`, "Everything you've played so far is kept", "Streaks, weekly leagues and the daily leaderboard"].map((f) => (
             <li key={f} className="flex items-center gap-2.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13.5px]">
               <Icon name="check" size={14} strokeWidth={2.2} className="text-success" />
               {f}

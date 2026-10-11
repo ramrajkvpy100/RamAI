@@ -30,7 +30,7 @@ import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
 import { createHiddenState, isTick, openingEffects, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
-import type { ActionRecord, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, PatientLang, Specialty, TurnResponse } from "./types";
+import type { ActionRecord, Auscultation, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, PatientLang, Specialty, TurnEffect, TurnResponse } from "./types";
 
 export const MAX_INPUT_LENGTH = 1000;
 export const MAX_ACTIONS = 300;
@@ -84,7 +84,25 @@ const speechIn = (country: Country, lang: PatientLang): PatientLang => (country 
 
 /** What the player sees: the patient's language, then the country's units, money and names. */
 function render(state: CaseState, def: ClinicalCaseDefinition, country: Country, lang: PatientLang): CaseState {
-  return presentState(localizeState(state, def.id, speechIn(country, lang)), country);
+  return withoutSoundParams(presentState(localizeState(state, def.id, speechIn(country, lang)), country));
+}
+
+/**
+ * The stethoscope's sound parameters stay on the server: the browser only
+ * learns where it was placed, and fetches the sound itself (stethoscopeSounds).
+ */
+function withoutSoundParams(state: CaseState): CaseState {
+  if (!state.messages.some((m) => m.sounds)) return state;
+  return { ...state, messages: state.messages.map(({ sounds: _hidden, ...m }) => m) };
+}
+const effectsForPlayer = (effects: TurnEffect[]): TurnEffect[] =>
+  effects.map((e) => (e.type === "message" && e.sounds ? (({ sounds: _hidden, ...m }) => m)(e) : e));
+
+/** The sounds a stethoscope message plays — rendered to audio on the server, never sent as parameters. */
+export async function stethoscopeSounds(token: string, userId: string, messageId: string): Promise<Auscultation[] | null> {
+  const payload = open(token, userId);
+  const { state } = rebuild(payload, await getProvider());
+  return state.messages.find((m) => m.id === messageId)?.sounds ?? null;
 }
 
 function open(token: string, userId: string): SessionPayload {
@@ -185,7 +203,7 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   return {
     token: seal(payload),
     state: render(next, def, country, lang),
-    effects: presentEffects(localizeEffects(effects, def.id, def.patient, shown), country),
+    effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country)),
     debrief,
   };
 }
@@ -210,7 +228,7 @@ export async function advanceRealTime(token: string, userId: string, lang: Patie
   const next = applyEffects(state, effects);
   payload.a.push(record);
   const shown = speechIn(country, lang);
-  return { token: seal(payload), state: render(next, def, country, lang), effects: presentEffects(localizeEffects(effects, def.id, def.patient, shown), country) };
+  return { token: seal(payload), state: render(next, def, country, lang), effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country)) };
 }
 
 /* Convenience wrappers — every action is natural language underneath. */

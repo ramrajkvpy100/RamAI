@@ -8,7 +8,7 @@
  * this file must be deterministic for a given (definition, records) pair.
  */
 
-import { LISTEN_SOURCE, listen, type ListenPart } from "./auscultation";
+import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, vitalDefinition } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { formularyDrug, type FormularyDrug } from "./formulary";
@@ -102,6 +102,8 @@ export interface HiddenState {
   history: Record<string, number>;
   exams: Record<string, number>;
   examOverrides: Record<string, string>;
+  /** What the stethoscope picked up each time the player listened — for the debrief, never for the encounter. */
+  heard: { part: ListenPart; text: string; at: number }[];
   patientSays?: string;
   investigations: OrderedInvestigation[];
   invSeq: number;
@@ -153,6 +155,7 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
     history: {},
     exams: {},
     examOverrides: {},
+    heard: [],
     investigations: [],
     invSeq: 0,
     unavailable: [],
@@ -707,6 +710,11 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   let group: FactGroup = "systemic-exam";
   let media: MediaAsset | undefined;
   let sounds: Auscultation[] | undefined;
+  let stethoscope: ListenPart[] | undefined;
+  const body = () => {
+    const rhythm = monitorRhythm(def);
+    return { hr: parseFloat(hidden.vitals.hr?.value ?? "") || 80, rr: parseFloat(hidden.vitals.rr?.value ?? "") || 16, irregular: rhythm === "afib" || /irregular/i.test(systemFinding(def, hidden, "cvs")) };
+  };
 
   if (caseEntry) {
     label = caseEntry.label;
@@ -721,18 +729,19 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       finding = hidden.examOverrides[id]!;
       abnormal = true;
     } else if (cat.listen) {
-      // Only what the stethoscope picks up, from each system's examination as it stands now.
+      // The stethoscope, and nothing else: no words for what's heard — the player listens and decides.
       const parts: ListenPart[] = cat.listen === "all" ? ["heart", "lungs"] : [cat.listen];
-      const rhythm = monitorRhythm(def);
-      const body = { hr: parseFloat(hidden.vitals.hr?.value ?? "") || 80, rr: parseFloat(hidden.vitals.rr?.value ?? "") || 16, irregular: rhythm === "afib" || /irregular/i.test(systemFinding(def, hidden, "cvs")) };
+      const now = body();
       const heard = parts.map((part) => {
         const source = LISTEN_SOURCE[part];
         hidden.exams[source] ??= hidden.clock;
-        return listen(part, systemFinding(def, hidden, source), body);
+        return listen(part, systemFinding(def, hidden, source), now);
       });
-      finding = heard.length > 1 ? heard.map((h) => `${h.part === "heart" ? "Heart" : "Lungs"}: ${h.text}`).join(" ") : heard[0]!.text;
-      abnormal = heard.some((h) => h.abnormal);
+      for (const h of heard) hidden.heard.push({ part: h.part, text: h.text, at: hidden.clock });
+      finding = parts.length > 1 ? "Stethoscope over the heart, then the chest — listen." : `Stethoscope over the ${parts[0] === "heart" ? "heart" : parts[0] === "lungs" ? "chest" : "abdomen"} — listen.`;
+      abnormal = false;
       sounds = heard.map((h) => h.sound);
+      stethoscope = parts;
     } else if (cat.covers) {
       const parts: string[] = [];
       let anyAbnormal = false;
@@ -755,19 +764,36 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     finding = "No abnormality detected on that examination.";
   }
 
+  let factValue = caseEntry?.fact && !hidden.examOverrides[id] ? caseEntry.fact : finding;
+  // A whole system's examination: what's seen and felt in words, what's heard only through the stethoscope.
+  const part = SOUND_PART[id];
+  if (part) {
+    const heard = listen(part, finding, body());
+    hidden.heard.push({ part, text: heard.text, at: hidden.clock });
+    finding = withoutSounds(finding, part);
+    factValue = withoutSounds(factValue, part);
+    abnormal = abnormal && signsAbnormal(finding);
+    sounds = [heard.sound];
+    stethoscope = [part];
+  }
+  if (stethoscope) factValue = part ? factValue : "Listened with the stethoscope.";
+
   hidden.exams[id] ??= hidden.clock;
-  fx.push({ type: "message", role: "system", kind: "finding", text: `${label} — ${finding}`, media, ...(sounds ? { sounds } : {}) });
+  fx.push({ type: "message", role: "system", kind: "finding", text: `${label} — ${finding}`, media, ...(stethoscope ? { stethoscope, sounds } : {}) });
   if (caseEntry?.patientReaction && !hidden.examOverrides[id]) {
     fx.push({ type: "message", role: patientRole(def), kind: "speech", text: caseEntry.patientReaction });
   }
-  fx.push({ type: "fact", group, label, value: caseEntry?.fact && !hidden.examOverrides[id] ? caseEntry.fact : finding, abnormal });
+  fx.push({ type: "fact", group, label, value: factValue, abnormal });
   fx.push({ type: "timeline", label: `${label} examined`, category: "exam" });
   ctx.stages.push("examination");
   return fx;
 }
 
+/** The system examinations whose findings include something the stethoscope picks up. */
+const SOUND_PART: Partial<Record<string, ListenPart>> = { cvs: "heart", rs: "lungs", abdomen: "bowel" };
+
 /** A system examination's finding as it stands now: a later stage's version, the case's own, or the normal one. */
-function systemFinding(def: ClinicalCaseDefinition, hidden: HiddenState, examId: string): string {
+export function systemFinding(def: ClinicalCaseDefinition, hidden: HiddenState, examId: string): string {
   return hidden.examOverrides[examId] ?? def.exam.find((e) => e.id === examId)?.finding ?? catalogExam(examId)?.finding ?? "";
 }
 

@@ -3,9 +3,10 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
-import { glucoseLabel, type Country } from "@/engine/countries";
+import { glucoseLabel } from "@/engine/countries";
 import type { CaseState } from "@/engine/types";
 import { cn } from "@/lib/cn";
+import { demoScript, type DemoScript } from "@/lib/demo-script";
 
 /**
  * The guided demo case's tips. Each step is worked out from the case itself,
@@ -14,24 +15,10 @@ import { cn } from "@/lib/cn";
  * (elements marked with data-coach-target).
  */
 
-/** What to type, in the words used where the case is set. */
-interface Words {
-  check: string;
-  recheck: string;
-  bolus: string;
-  drip: string;
-}
-
-const WORDS: Record<Country, Words> = {
-  IN: { check: "Check RBS", recheck: "Recheck RBS", bolus: "Give 25% dextrose 100 mL IV", drip: "Start 10% dextrose infusion" },
-  US: { check: "Check glucose", recheck: "Recheck glucose", bolus: "Give D50 50 mL IV", drip: "Start D10 infusion" },
-  UK: { check: "Check CBG", recheck: "Recheck CBG", bolus: "Give 20% glucose 100 mL IV", drip: "Start 10% glucose infusion" },
-};
-
 interface Step {
   id: string;
   title: string;
-  body: (w: Words, s: CaseState) => React.ReactNode;
+  body: (t: DemoScript, s: CaseState) => React.ReactNode;
   target: "composer" | "condition" | "end-case";
   done: (s: CaseState) => boolean;
 }
@@ -39,19 +26,30 @@ interface Step {
 const HISTORY = ["complaint", "hpi", "past", "medication", "allergy", "family", "social", "diet", "systemic"];
 const historyFacts = (s: CaseState) => s.facts.filter((f) => HISTORY.includes(f.group)).length;
 const measuredRbsAgain = (s: CaseState) => (s.vitals.rbs?.history.length ?? 0) > 0;
+const doctorTurns = (s: CaseState) => s.messages.filter((m) => m.role === "doctor").length;
+const examinedNeuro = (s: CaseState) => s.facts.some((f) => f.group === "systemic-exam" && /neuro|cns/i.test(f.label));
+const listened = (s: CaseState) => s.messages.some((m) => m.stethoscope);
+const gaveDrip = (s: CaseState) => s.drugs.some((d) => /10%|d10/i.test(`${d.generic} ${d.brand ?? ""}`));
+const named = (s: CaseState) => !!s.workingDiagnosis;
 
 /** Something to try: tap it and it's done, exactly as if typed. */
 const TryContext = createContext<{ onTry?: (text: string) => void; busy?: boolean }>({});
 
-function Q({ children }: { children: string }) {
+function Q({ children, done }: { children: string; done?: boolean }) {
   const { onTry, busy } = useContext(TryContext);
+  if (done)
+    return (
+      <span className="mx-0.5 my-0.5 inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-0.5 text-[12.5px] font-semibold text-success">
+        <Icon name="check" size={11} strokeWidth={2.4} /> {children}
+      </span>
+    );
   if (!onTry) return <span className="rounded-md bg-surface-3 px-1.5 py-0.5 font-medium text-fg">{children}</span>;
   return (
     <button
       type="button"
       disabled={busy}
       onClick={() => onTry(children)}
-      className="mx-0.5 my-0.5 inline-flex items-center gap-1 rounded-full border border-accent-line bg-accent-soft px-2.5 py-0.5 text-[12.5px] font-semibold text-accent-text transition-transform hover:-translate-y-px active:scale-[0.97] disabled:opacity-50"
+      className="mx-0.5 my-0.5 inline-flex items-center gap-1 rounded-full border border-accent-line bg-accent-soft px-2.5 py-0.5 text-left text-[12.5px] font-semibold text-accent-text transition-transform hover:-translate-y-px active:scale-[0.97] disabled:opacity-50"
     >
       {children}
       <Icon name="arrow-right" size={11} />
@@ -61,13 +59,14 @@ function Q({ children }: { children: string }) {
 
 const INTRO_KEY = "ramai.coach.intro";
 
+/** Eight short steps — every part of a case, one tap each. Follow them and he walks out well. */
 const STEPS: Step[] = [
   {
     id: "talk",
     title: "Talk to the family",
-    body: (w, s) => (
+    body: (t) => (
       <>
-        His wife is with him. Ask what happened — tap <Q>What happened?</Q> or type it in your own words. <b>Ask</b> below the box has more ideas.
+        His wife brought him in. Ask what happened — tap <Q>{t.talk}</Q> or type it in your own words.
       </>
     ),
     target: "composer",
@@ -76,20 +75,20 @@ const STEPS: Step[] = [
   {
     id: "history",
     title: "Find the cause",
-    body: (w, s) => (
+    body: (t) => (
       <>
-        Good. Dig a little deeper: <Q>Is he diabetic?</Q> <Q>What medicines does he take?</Q> <Q>When did he last eat?</Q>
+        You can ask several things at once: <Q>{t.history}</Q> More questions are under <b>Ask</b>.
       </>
     ),
     target: "composer",
-    done: (s) => historyFacts(s) >= 3 || !!s.vitals.rbs,
+    done: (s) => historyFacts(s) >= 3,
   },
   {
     id: "check",
     title: "Check his sugar",
-    body: (w, s) => (
+    body: (t) => (
       <>
-        A confused, sweaty diabetic needs his sugar checked first: tap <Q>{w.check}</Q>, or find it under <b>Examine</b>.
+        Confused and sweaty in a diabetic: check the sugar first. <Q>{t.check}</Q> All tests are under <b>Tests</b>.
       </>
     ),
     target: "composer",
@@ -98,9 +97,9 @@ const STEPS: Step[] = [
   {
     id: "treat",
     title: "Treat it — now",
-    body: (w, s) => (
+    body: (t, s) => (
       <>
-        {glucoseLabel(s.country)} {s.vitals.rbs?.current.value ?? "42"} is dangerously low. Sugar into the vein, now: <Q>{w.bolus}</Q> — or choose it under <b>Treat</b>.
+        {glucoseLabel(s.country)} {s.vitals.rbs?.current.value ?? "42"} is dangerously low. Sugar into the vein: <Q>{t.bolus}</Q> Drugs and fluids are under <b>Treat</b>.
       </>
     ),
     target: "composer",
@@ -108,27 +107,60 @@ const STEPS: Step[] = [
   },
   {
     id: "watch",
-    title: "Watch him respond",
-    body: (w, s) => (
+    title: "Watch him wake up",
+    body: (t) => (
       <>
-        See the condition bar and the monitor move, and hear him wake up. Confirm it: <Q>{w.recheck}</Q>.
+        The monitor and the condition bar move with what you do. Make sure it worked: <Q>{t.recheck}</Q>
       </>
     ),
     target: "condition",
-    done: (s) => measuredRbsAgain(s) || s.messages.filter((m) => m.role === "doctor").length >= 9,
+    done: (s) => measuredRbsAgain(s) || doctorTurns(s) >= 9,
+  },
+  {
+    id: "examine",
+    title: "Examine him",
+    body: (t, s) => (
+      <>
+        Now look for anything else: <Q done={examinedNeuro(s)}>{t.examine}</Q> Then the stethoscope: <Q done={listened(s)}>{t.listen}</Q>
+        {listened(s) && <> — tap <b>Listen</b> on the card to hear it (headphones help).</>}
+      </>
+    ),
+    target: "composer",
+    done: (s) => examinedNeuro(s) && listened(s),
+  },
+  {
+    id: "plan",
+    title: "Plan, then name it",
+    body: (t, s) => (
+      <>
+        Glimepiride lows come back for hours. The plan in one tap: <Q done={gaveDrip(s)}>{t.plan}</Q> Then say what it is: <Q done={named(s)}>{t.diagnosis}</Q>
+      </>
+    ),
+    target: "composer",
+    done: (s) => gaveDrip(s) && named(s),
   },
   {
     id: "finish",
-    title: "Make a plan, then finish",
-    body: (w, s) => (
+    title: "Finish the case",
+    body: () => (
       <>
-        Glimepiride lows come back for hours. A good plan: <Q>{w.drip}</Q> <Q>Stop glimepiride</Q> <Q>Admit</Q>. Then tap <b>End case</b> for your score and debrief.
+        Well done — he&apos;s safe. Tap <b>End case</b> for your score out of 100 and what you did well.
       </>
     ),
     target: "end-case",
     done: (s) => s.status !== "active",
   },
 ];
+
+/** The step to show: the one after the furthest the player has got — doing things out of order never leaves them stuck. */
+function currentStep(state: CaseState): number {
+  let furthest = -1;
+  STEPS.forEach((s, i) => {
+    if (s.done(state)) furthest = i;
+  });
+  const next = STEPS.findIndex((s, i) => i > furthest && !s.done(state));
+  return next;
+}
 
 const HIDE_KEY = "ramai.coach.hidden";
 
@@ -148,7 +180,7 @@ export function Coach({ state, className, onTry, busy }: { state: CaseState; cla
     } catch {}
   };
 
-  const index = useMemo(() => STEPS.findIndex((s) => !s.done(state)), [state]);
+  const index = useMemo(() => currentStep(state), [state]);
   const step = index >= 0 ? STEPS[index] : undefined;
   const active = !!state.guided && !hidden && !!step && state.status === "active";
 
@@ -185,7 +217,7 @@ export function Coach({ state, className, onTry, busy }: { state: CaseState; cla
                 <b className="text-fg">3. End the case</b> — for your score out of 100 and exactly what you missed.
               </li>
             </ol>
-            <p className="mt-2 text-[12.5px] text-fg-3">In this demo, tips guide every step — tap a suggestion to try it. Real cases have no hints.</p>
+            <p className="mt-2 text-[12.5px] text-fg-3">In this demo, a tip shows the next step — just tap the blue suggestion. Real cases have no tips.</p>
             <button type="button" onClick={finishIntro} className="bg-ai mt-3 inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold text-white shadow-glow">
               Got it — start <Icon name="arrow-right" size={13} />
             </button>
@@ -215,7 +247,7 @@ export function Coach({ state, className, onTry, busy }: { state: CaseState; cla
             </span>
           </div>
           <TryContext.Provider value={{ onTry, busy }}>
-            <p className="mt-1 text-[13px] leading-[1.9] text-fg-2">{step.body(WORDS[state.country ?? "IN"], state)}</p>
+            <p className="mt-1 text-[13px] leading-[1.9] text-fg-2">{step.body(demoScript(state.country ?? "IN"), state)}</p>
           </TryContext.Provider>
         </div>
         <button type="button" onClick={hide} className="shrink-0 rounded-full px-2 py-1 text-[12px] font-medium text-fg-3 hover:bg-surface-3 hover:text-fg">

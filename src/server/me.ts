@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { Me } from "@/lib/me-store";
-import { PLANS } from "@/lib/plans";
+import { dailyLimitFor } from "@/lib/plans";
 
 import { getCurrentUser, type User } from "./auth";
 import { casesStartedToday, progressFor } from "./results";
@@ -15,7 +15,7 @@ export async function meFor(user: User): Promise<Me> {
   return {
     user,
     progress: { ...progress, history: progress.history.slice(-HISTORY_SENT) },
-    usage: { casesToday, dailyLimit: PLANS[user.plan].dailyCases },
+    usage: { casesToday, dailyLimit: dailyLimitFor(user) },
     ...(admin ? { admin: true, newSuggestions: await newSuggestionCount() } : {}),
   };
 }

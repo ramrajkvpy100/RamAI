@@ -43,6 +43,27 @@ export function heardIn(systemFinding: string, part: ListenPart): string {
   return heard.length ? `${heard.map(capitalise).join(". ")}.` : NORMAL_SOUNDS[part];
 }
 
+/** Said instead of what was heard: the player listens for themselves. */
+export const LISTEN_LINE: Record<ListenPart, string> = {
+  heart: "Heart sounds: listen with the stethoscope.",
+  lungs: "Breath sounds: listen with the stethoscope.",
+  bowel: "Bowel sounds: listen with the stethoscope.",
+};
+
+/** The system examination with what the stethoscope would pick up taken out — the player hears it instead. */
+export function withoutSounds(systemFinding: string, part: ListenPart): string {
+  const kept = pieces(systemFinding).filter((p) => !TERMS[part].test(p));
+  return [...kept.map((p) => `${capitalise(p)}.`), LISTEN_LINE[part]].join(" ");
+}
+
+const ABNORMAL_SIGN =
+  /\b(displaced|raised|elevated|heav\w*|thrill|irregular\w*|tender\w*|guarding|rigid\w*|distend\w*|dull\w*|hyper-?resonan\w*|deviat\w*|tachyp\w*|accessory|recession|cyanos\w*|clubb\w*|oedema|edema|mass|organomegaly|hepatomegaly|splenomegaly|ascites|shifting|rebound|weak|absent|bounding|collapsing|thready|cold|mottled|pale|palpable|scars?|out of proportion)\b/i;
+
+/** Whether what's left after the sounds are taken out is itself abnormal — so its emphasis never hints at a sound. */
+export function signsAbnormal(text: string): boolean {
+  return pieces(text).some((p) => !/^(no|not)\b/i.test(p) && !p.endsWith("listen with the stethoscope") && ABNORMAL_SIGN.test(p.replace(/\bno\b[^]*$/i, "")));
+}
+
 /** Drops the negatives ("no murmurs, rubs or gallops") so only what is present is read. */
 const present = (text: string) =>
   pieces(text)

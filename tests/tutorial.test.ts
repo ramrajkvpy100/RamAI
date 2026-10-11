@@ -4,6 +4,8 @@ import { CASE_LIBRARY, getCase, pickCase, TUTORIAL_CASE } from "@/engine/cases";
 import { generateDebrief } from "@/engine/debrief";
 import { simulateCase, submitDoctorAction } from "@/engine/engine";
 
+import { demoLines } from "@/lib/demo-script";
+
 import { messagesOf, play } from "./helpers";
 
 process.env.RAMAI_SESSION_SECRET = "test-secret-test-secret-test-secret-123";
@@ -35,8 +37,9 @@ describe("guided demo case", () => {
     expect(messagesOf(exam.turns[1]!.effects).join(" ")).toMatch(/Awake, alert and oriented/);
   });
 
-  it("without sugar, he has a seizure at 20 minutes", () => {
-    const { state, turns } = play(TUTORIAL_CASE, ["Wait 25 minutes"]);
+  it("without sugar, he has a seizure at half an hour — time enough for a first-timer", () => {
+    expect(play(TUTORIAL_CASE, ["Wait 25 minutes"]).state.patientStatus).not.toBe("critical");
+    const { state, turns } = play(TUTORIAL_CASE, ["Wait 35 minutes"]);
     expect(state.patientStatus).toBe("critical");
     expect(messagesOf(turns[0]!.effects).join(" ")).toMatch(/fitting/);
   });
@@ -73,5 +76,27 @@ describe("guided demo case abroad — the coach's words work", () => {
     expect(debrief.verdict).toBe("correct");
     expect(debrief.score.total).toBeGreaterThanOrEqual(80);
     expect(debrief.missed.map((m) => m.what).join(" ")).not.toMatch(/dextrose|infusion|glimepiride/i);
+  });
+});
+
+describe("guided demo — tapping every tip wins", () => {
+  for (const country of ["IN", "US", "UK"] as const) {
+    it(`in ${country}: a clean, correct case with a winning score`, () => {
+      const def = { ...TUTORIAL_CASE };
+      const { hidden, state } = play(def, [...demoLines(country), "End case"]);
+      const d = generateDebrief(def, hidden, state);
+      expect(d.verdict).toBe("correct");
+      expect(d.missed).toEqual([]);
+      expect(d.score.total).toBeGreaterThanOrEqual(85);
+      expect(["improving", "recovered", "stable"]).toContain(state.patientStatus);
+      // Every tip did what it says: one line, several actions.
+      expect(state.messages.some((m) => m.stethoscope)).toBe(true);
+      expect(state.workingDiagnosis).toBeTruthy();
+    });
+  }
+
+  it("the demo never runs out of time on a first-timer who reads every tip", () => {
+    const { state } = play(TUTORIAL_CASE, ["What happened?", "Any fever?", "Did he fall?", "Previous episodes?", "Does he drink?", "Examine the patient", "Check RBS"]);
+    expect(state.patientStatus).not.toBe("critical");
   });
 });

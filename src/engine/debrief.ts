@@ -6,11 +6,12 @@
  * rescue episodes, and the score.
  */
 
+import { heardIn, LISTEN_SOURCE, listen, type ListenPart } from "./auscultation";
 import { catalogInvestigation } from "./catalog";
 import type { ClinicalCaseDefinition } from "./case-definition";
 import { hazardLibrary } from "./physiology";
 import { calculateScore, diagnosisVerdict } from "./scoring";
-import type { HiddenState } from "./simulator";
+import { systemFinding, type HiddenState } from "./simulator";
 import { describeSpan } from "./text";
 import type { CaseDebrief, CaseState, DebriefMiss, InvestigationTeaching, RescueEpisode } from "./types";
 
@@ -184,5 +185,27 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     followUp: def.teaching.followUp,
     treatmentFailure: def.teaching.treatmentFailure,
     pearl: def.teaching.pearl,
+    auscultation: auscultationReview(def, hidden),
   };
 }
+
+/**
+ * What the stethoscope would have picked up — words only now that the case is
+ * over: what the player heard each time they listened, and anything abnormal
+ * they didn't listen for.
+ */
+function auscultationReview(def: ClinicalCaseDefinition, hidden: HiddenState): CaseDebrief["auscultation"] {
+  if (def.track === "phone") return undefined;
+  const out: NonNullable<CaseDebrief["auscultation"]> = [];
+  for (const part of ["heart", "lungs", "bowel"] as ListenPart[]) {
+    const last = [...hidden.heard].reverse().find((h) => h.part === part);
+    if (last) {
+      out.push({ area: part, heard: last.text, listened: true });
+      continue;
+    }
+    const finding = systemFinding(def, hidden, LISTEN_SOURCE[part]);
+    if (listen(part, finding, { hr: 80, rr: 16, irregular: false }).abnormal) out.push({ area: part, heard: heardIn(finding, part), listened: false });
+  }
+  return out.length ? out : undefined;
+}
+

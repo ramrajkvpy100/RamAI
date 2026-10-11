@@ -4,6 +4,7 @@ import { ecg } from "./media";
 /**
  * The guided demo case: short, classic and forgiving, built for learning the
  * screen — talk to the family, check the sugar, treat, and watch him wake up.
+ * Follow the tips and he walks out well: a first case should feel like a win.
  * Never picked at random; started from "Try a demo case" or the guided-case card.
  */
 export const tutHypoglycaemia: ClinicalCaseDefinition = {
@@ -137,7 +138,7 @@ export const tutHypoglycaemia: ClinicalCaseDefinition = {
 
   hazards: [
     { id: "neuroglycopenia", label: "Prolonged severe hypoglycaemia — seizure",
-      omission: { byMinute: 20, preventedBy: ["dextrose", "glucagon"] },
+      omission: { byMinute: 30, preventedBy: ["dextrose", "glucagon"] },
       stages: [
         { afterMin: 0, status: "critical", interrupts: true,
           vitals: [{ key: "rbs", value: "31" }, { key: "gcs", value: "8" }, { key: "hr", value: "126" }, { key: "spo2", value: "93" }],
@@ -207,7 +208,7 @@ export const tutHypoglycaemia: ClinicalCaseDefinition = {
     idealTreatment: [["dextrose", "glucagon"], ["d10"], ["hold-glimepiride"], ["admit"]],
     expertActionCount: 8,
     expectsReassessment: true,
-    definitiveTreatment: { ids: ["dextrose", "glucagon"], byMinute: 20, label: "IV dextrose" },
+    definitiveTreatment: { ids: ["dextrose", "glucagon"], byMinute: 30, label: "IV dextrose" },
     misses: {
       meds: { what: "Did not ask about his diabetes medicines.", why: "The recent glimepiride increase is the cause — and it decides how long he must be watched.", better: "In every confused diabetic, ask what they take and what changed.", severity: "major" },
       meal: { what: "Did not ask when he last ate.", why: "A sulfonylurea on an empty stomach is the classic set-up for a low.", better: "Ask about the last meal and recent intake.", severity: "moderate" },
@@ -297,7 +298,7 @@ export const tutHypoglycaemia: ClinicalCaseDefinition = {
     pearl: "Check the sugar in every confused, sweaty, drowsy or 'stroke-like' patient — before the CT, before the antibiotics, before anything. It takes a minute, and the cure takes a minute more. And a sulfonylurea low is a long low: one bolus is never enough.",
     hazardTeaching: {
       title: "What could have gone wrong",
-      body: "Without glucose in the next 20 minutes his brain would have run out of fuel: a seizure, then coma, and possibly permanent injury.",
+      body: "Without glucose in the next half hour his brain would have run out of fuel: a seizure, then coma, and possibly permanent injury.",
       sequence: ["Capillary glucose immediately", "IV 25% dextrose 50–100 mL (or IM glucagon)", "Recheck in 15 minutes", "10% dextrose infusion", "Admit; stop the sulfonylurea"],
     },
   },
