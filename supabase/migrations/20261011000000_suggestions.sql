@@ -18,16 +18,17 @@ drop policy if exists "an admin can see their own row" on public.admins;
 create policy "an admin can see their own row" on public.admins
   for select to authenticated using (user_id = (select auth.uid()));
 
+-- Runs with the caller's own rights: a signed-in user can only ever see their own admins row.
 create or replace function public.is_admin()
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
   select exists (select 1 from public.admins where user_id = (select auth.uid()));
 $$;
-revoke all on function public.is_admin() from public;
+revoke all on function public.is_admin() from public, anon;
 grant execute on function public.is_admin() to authenticated;
 
 -- The site owner becomes an admin as soon as their email is confirmed.
@@ -44,6 +45,8 @@ begin
   return new;
 end;
 $$;
+-- A trigger function, never meant to be called through the API.
+revoke all on function public.grant_owner_admin() from public, anon, authenticated;
 drop trigger if exists grant_owner_admin on auth.users;
 create trigger grant_owner_admin
   after insert or update of email_confirmed_at on auth.users

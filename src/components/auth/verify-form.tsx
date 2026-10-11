@@ -196,7 +196,7 @@ export function VerifyForm({ linkCode, linkError }: { linkCode: string | null; l
       </span>
       <h1 className="mt-5 text-[30px] leading-tight font-semibold tracking-[-0.03em]">Check your email</h1>
       <p className="mt-2 text-[15px] leading-6 text-fg-2">
-        We sent a {OTP_LENGTH}-digit code to <span className="font-medium break-all text-fg">{pending.email}</span>. Enter it below to verify your account.
+        We emailed <span className="font-medium break-all text-fg">{pending.email}</span>. Enter the {OTP_LENGTH}-digit code from it below — or just open the link in the email.
       </p>
 
       <form
