@@ -16,6 +16,10 @@ export interface Me {
   user: { id: string; email: string; username: string; name: string; plan: PlanId; planExpiresAt: number | null; patientLang: PatientLang; createdAt: number; emailVerified: boolean; isGuest: boolean; leagueTier: number; country: Country };
   progress: PlayerProgress;
   usage: { casesToday: number; dailyLimit: number | null };
+  /** Runs the site: sees and answers everyone's suggestions. */
+  admin?: boolean;
+  /** For admins: suggestions nobody has looked at yet. */
+  newSuggestions?: number;
 }
 
 let snapshot: Me | null = null;

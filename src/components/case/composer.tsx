@@ -104,7 +104,7 @@ export function Composer({
   return (
     <div className="relative" ref={menuRef}>
       {active && (
-        <div className="absolute right-0 bottom-full left-0 z-20 mb-2 animate-enter rounded-2xl border border-line bg-surface p-3.5 shadow-lg" role="dialog" aria-label={`${active.label} shortcuts`}>
+        <div className="popover absolute right-0 bottom-full left-0 z-20 mb-2 animate-enter rounded-2xl p-3.5" role="dialog" aria-label={`${active.label} shortcuts`}>
           <div className="mb-2.5 flex items-center justify-between">
             <div className="micro text-fg-2">{active.label}</div>
             <IconButton label="Close shortcuts" size="sm" onClick={() => setMenu(null)} className="-mt-1 -mr-1.5">

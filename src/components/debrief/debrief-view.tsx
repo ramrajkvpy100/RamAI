@@ -203,7 +203,7 @@ export function DebriefView({
       </main>
 
       {/* Next case -------------------------------------------------------- */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] backdrop-blur-md">
+      <div className="material-bar fixed inset-x-0 bottom-0 z-20 border-t border-[var(--material-stroke)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6">
           <Link href="/" onClick={onHome} className="text-[13.5px] font-medium text-fg-2 hover:text-fg">
             Home

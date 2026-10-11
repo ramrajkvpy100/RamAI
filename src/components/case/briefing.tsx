@@ -97,7 +97,7 @@ export function Briefing({ state, onBegin }: { state: CaseState; onBegin: () => 
         : "radial-gradient(45% 40% at 32% 28%, rgb(239 68 68 / 0.16), transparent 70%), radial-gradient(45% 40% at 68% 28%, rgb(59 130 246 / 0.16), transparent 70%)";
 
   return (
-    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-bg text-fg">
+    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden text-fg">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10" style={{ background: glow }} />
       <div aria-hidden className="grid-fade pointer-events-none absolute inset-0 -z-10" />
 

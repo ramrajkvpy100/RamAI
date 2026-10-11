@@ -4,83 +4,35 @@
  *
  *   npx next build && RAMAI_E2E=1 npx vitest run tests/e2e
  */
-import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { startFakeGoTrue, type FakeGoTrue } from "../support/fake-gotrue";
+import { Browser as BaseBrowser, E2E, startStack, type Stack } from "./harness";
+import type { FakeGoTrue } from "../support/fake-gotrue";
 
-const RUN = process.env.RAMAI_E2E === "1" && existsSync(".next/BUILD_ID");
 const PORT = 3299;
 const BASE = `http://localhost:${PORT}`;
+const RUN = E2E;
 
-/** A browser, minus the rendering: keeps cookies and sends requests like one. */
-class Browser {
-  jar = new Map<string, string>();
-  async go(p: string, init: { json?: unknown; method?: string } = {}) {
-    const headers = new Headers({ origin: BASE });
-    if (this.jar.size) headers.set("cookie", [...this.jar].map(([k, v]) => `${k}=${v}`).join("; "));
-    if (init.json !== undefined) headers.set("content-type", "application/json");
-    const res = await fetch(p.startsWith("http") ? p : BASE + p, { method: init.method ?? (init.json !== undefined ? "POST" : "GET"), headers, body: init.json !== undefined ? JSON.stringify(init.json) : undefined, redirect: "manual" });
-    for (const raw of res.headers.getSetCookie()) {
-      const [pair = "", ...attrs] = raw.split(";");
-      const at = pair.indexOf("=");
-      const name = pair.slice(0, at).trim();
-      const value = pair.slice(at + 1);
-      const gone = !value || attrs.some((a) => /^\s*max-age=0\s*$/i.test(a)) || attrs.some((a) => /^\s*expires=/i.test(a) && Date.parse(a.split("=")[1]!) < Date.now());
-      if (gone) this.jar.delete(name);
-      else this.jar.set(name, value);
-    }
-    return res;
+class Browser extends BaseBrowser {
+  constructor() {
+    super(BASE);
   }
-  post = (p: string, json: unknown = {}) => this.go(p, { json });
-  async api(p: string, json?: unknown) {
-    const res = json === undefined ? await this.go(p) : await this.post(p, json);
-    const body = (await res.json().catch(() => null)) as { error?: { code: string; message: string } } & Record<string, unknown>;
-    return { status: res.status, body, code: body?.error?.code };
-  }
-  signedIn = () => [...this.jar.keys()].some((k) => /^sb-.*-auth-token(\.\d+)?$/.test(k));
 }
 
 describe.skipIf(!RUN)("accounts end to end (Supabase Auth stand-in)", () => {
   let auth: FakeGoTrue;
-  let server: ChildProcess;
-  let dir: string;
+  let stack: Stack;
   const email = "e2e.doctor@example.com";
   const password = "violet kestrel 2026";
   const browser = new Browser();
 
   beforeAll(async () => {
-    auth = await startFakeGoTrue();
-    dir = mkdtempSync(path.join(tmpdir(), "ramai-e2e-"));
-    server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(PORT)], {
-      env: {
-        ...process.env,
-        NODE_ENV: "production",
-        RAMAI_DB_PATH: path.join(dir, "e2e.db"),
-        RAMAI_BACKUP_INTERVAL_HOURS: "0",
-        RAMAI_SESSION_SECRET: "e2e-secret-e2e-secret-e2e-secret-123",
-        RAMAI_APP_URL: BASE,
-        NEXT_PUBLIC_SUPABASE_URL: auth.url,
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: auth.publishableKey,
-        SUPABASE_SECRET_KEY: auth.secretKey,
-      },
-      stdio: "ignore",
-    });
-    for (let i = 0; i < 80; i++) {
-      if ((await fetch(BASE).catch(() => null))?.ok) return;
-      await new Promise((r) => setTimeout(r, 250));
-    }
-    throw new Error("server didn't start");
+    stack = await startStack(PORT);
+    auth = stack.auth;
   }, 60_000);
 
   afterAll(async () => {
-    server?.kill();
-    await auth?.close();
-    if (dir) rmSync(dir, { recursive: true, force: true });
+    await stack?.stop();
   });
 
   const signupBody = (over: Record<string, unknown> = {}) => ({ name: "Dr. Eve Tester", username: "eve.tester", email, password, country: "IN", acceptTerms: true, ...over });

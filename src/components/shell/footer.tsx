@@ -12,9 +12,14 @@ export function Footer() {
             <Wordmark tile={false} className="text-fg-2" />
             <span>Clinical simulation for education. Cases are fictional — not medical advice.</span>
           </div>
-          <Link href="/pricing" className="hover:text-fg">
-            Pricing
-          </Link>
+          <span className="flex items-center gap-5">
+            <Link href="/suggestions" className="hover:text-fg">
+              Suggestions
+            </Link>
+            <Link href="/pricing" className="hover:text-fg">
+              Pricing
+            </Link>
+          </span>
         </div>
         <nav aria-label="Company and policies" className="flex flex-wrap gap-x-5 gap-y-2">
           {LEGAL_LINKS.map((l) => (

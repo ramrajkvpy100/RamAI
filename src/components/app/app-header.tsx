@@ -34,7 +34,7 @@ export function AppHeader({ initial }: { initial: Me }) {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2.5">
-          <InstallButton className="hidden sm:inline-flex" />
+          <InstallButton />
           <StreakPill days={me.progress.streakDays} />
           <Link href="/profile" className="hidden items-center sm:flex" aria-label="Daily goal">
             <GoalRing value={me.progress.dailyXp} goal={me.progress.dailyGoal} size={32} stroke={4}>

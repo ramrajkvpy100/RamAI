@@ -35,7 +35,7 @@ export function LandingNav() {
           <Wordmark size="md" />
         </Link>
         <nav className="flex items-center gap-1" aria-label="Main">
-          <InstallButton className="mr-1 hidden sm:inline-flex" />
+          <InstallButton className="mr-1" />
           <Link href="/pricing" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
             Pricing
           </Link>

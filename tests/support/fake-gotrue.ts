@@ -65,6 +65,12 @@ export interface FakeGoTrue {
   users: Map<string, FakeUser>;
   /** Users whose sign-in was deleted through the admin API. */
   deleted: string[];
+  /** The data API's stand-in for public.suggestions (same rules as the migration's row-level security). */
+  suggestions: Record<string, unknown>[];
+  /** Makes a user an admin (public.admins). */
+  makeAdmin(email: string): void;
+  /** Pretends the suggestions migration hasn't been run. */
+  setSuggestionsTable(present: boolean): void;
   close(): Promise<void>;
 }
 
@@ -79,6 +85,9 @@ export async function startFakeGoTrue(port = 0): Promise<FakeGoTrue> {
   const outbox: Mail[] = [];
   const deleted: string[] = [];
   let skew = 0;
+  const suggestions: Record<string, unknown>[] = [];
+  const admins = new Set<string>();
+  let suggestionsTable = true;
   let accessTtl = 3600;
   const now = () => Date.now() + skew;
   const publishableKey = "sb_publishable_fake";
@@ -171,6 +180,7 @@ export async function startFakeGoTrue(port = 0): Promise<FakeGoTrue> {
     const apikey = req.headers.apikey;
     if (path !== "/verify" && apikey !== publishableKey && apikey !== secretKey) return fail(res, 401, "no_authorization", "Invalid API key");
 
+    if (url.pathname.startsWith("/rest/v1/")) return rest(req, res, url);
     if (req.method === "GET" && path === "/.well-known/jwks.json") return send(res, 200, { keys: [jwk] });
 
     if (req.method === "POST" && path === "/signup") {
@@ -321,6 +331,91 @@ export async function startFakeGoTrue(port = 0): Promise<FakeGoTrue> {
     fail(res, 404, "not_found", `No fake for ${req.method} ${path}`);
   });
 
+  /** A small PostgREST: public.suggestions and rpc/is_admin, enforcing the migration's rules. */
+  async function rest(req: IncomingMessage, res: ServerResponse, url: URL) {
+    const who = bearer(req);
+    const uid = who?.user.id ?? null;
+    const admin = !!uid && admins.has(uid);
+    const pg = (status: number, code: string, message: string) => send(res, status, { code, message, details: null, hint: null });
+    if (url.pathname === "/rest/v1/rpc/is_admin") return send(res, 200, admin);
+    if (url.pathname !== "/rest/v1/suggestions") return pg(404, "PGRST205", `Could not find the table '${url.pathname.slice(9)}' in the schema cache`);
+    if (!suggestionsTable) return pg(404, "PGRST205", "Could not find the table 'public.suggestions' in the schema cache");
+    if (!uid) return pg(401, "42501", "permission denied for table suggestions");
+
+    const params = url.searchParams;
+    const filters = [...params].filter(([k]) => !["select", "order", "limit", "columns"].includes(k));
+    const matches = (r: Record<string, unknown>) =>
+      filters.every(([k, v]) => {
+        const [op, ...rest] = v.split(".");
+        const value = rest.join(".");
+        if (op === "eq") return String(r[k]) === value;
+        if (op === "ilike") return new RegExp(`^${value.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/[%*]/g, ".*")}$`, "i").test(String(r[k] ?? ""));
+        return true;
+      });
+    const visible = suggestions.filter((r) => admin || r.user_id === uid);
+    const columns = (params.get("select") ?? "*").split(",").map((c) => c.trim());
+    const project = (r: Record<string, unknown>) => (columns[0] === "*" ? r : Object.fromEntries(columns.map((c) => [c, r[c] ?? null])));
+    const respond = (rows: Record<string, unknown>[], status = 200) => {
+      const wantsOne = (req.headers.accept ?? "").includes("vnd.pgrst.object");
+      if ((req.headers.prefer ?? "").includes("count=exact")) res.setHeader("Content-Range", `0-${Math.max(0, rows.length - 1)}/${rows.length}`);
+      if (req.method === "HEAD") return send(res, 200);
+      if (wantsOne) {
+        if (rows.length !== 1) return pg(406, "PGRST116", `JSON object requested, multiple (or no) rows returned`);
+        return send(res, status, project(rows[0]!));
+      }
+      return send(res, status, rows.map(project));
+    };
+
+    if (req.method === "GET" || req.method === "HEAD") {
+      let rows = visible.filter(matches);
+      const order = params.get("order");
+      if (order) {
+        const [col, dir] = order.split(".");
+        rows = [...rows].sort((a, b) => String(a[col!]).localeCompare(String(b[col!])) * (dir === "desc" ? -1 : 1));
+      }
+      const limit = Number(params.get("limit") ?? 0);
+      return respond(limit ? rows.slice(0, limit) : rows);
+    }
+    if (req.method === "POST") {
+      const body = await body_(req);
+      const list = Array.isArray(body) ? body : [body];
+      const made: Record<string, unknown>[] = [];
+      for (const b of list as Record<string, unknown>[]) {
+        const row = { ...b, user_id: b.user_id ?? uid } as Record<string, unknown>;
+        if (row.user_id !== uid) return pg(403, "42501", "new row violates row-level security policy for table \"suggestions\"");
+        const message = String(row.message ?? "");
+        if (!["idea", "problem", "case", "other"].includes(String(row.category)) || message.length < 10 || message.length > 2000) return pg(400, "23514", "new row violates check constraint");
+        const now = new Date().toISOString();
+        if (!admin) Object.assign(row, { status: "new", reply: null });
+        made.push(Object.assign(row, { id: randomUUID(), status: row.status ?? "new", reply: row.reply ?? null, replied_at: row.reply ? now : null, page: row.page ?? null, created_at: now, updated_at: now }));
+      }
+      suggestions.push(...made);
+      return respond(made, 201);
+    }
+    if (req.method === "PATCH") {
+      const patch = (await body_(req)) as Record<string, unknown>;
+      if (patch.status !== undefined && !["new", "reviewing", "planned", "done", "declined"].includes(String(patch.status))) return pg(400, "23514", "check constraint");
+      const rows = admin ? visible.filter(matches) : [];
+      const now = new Date().toISOString();
+      for (const r of rows) {
+        if (patch.status !== undefined) r.status = patch.status;
+        if (patch.reply !== undefined && patch.reply !== r.reply) {
+          r.reply = patch.reply;
+          r.replied_at = patch.reply === null ? null : now;
+        }
+        r.updated_at = now;
+      }
+      return respond(rows);
+    }
+    if (req.method === "DELETE") {
+      const rows = admin ? visible.filter(matches) : [];
+      for (const r of rows) suggestions.splice(suggestions.indexOf(r), 1);
+      return respond(rows);
+    }
+    return pg(405, "PGRST117", "Unsupported method");
+  }
+  const body_ = body;
+
   await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
   const address = server.address();
   base = `http://127.0.0.1:${typeof address === "object" && address ? address.port : port}`;
@@ -331,6 +426,12 @@ export async function startFakeGoTrue(port = 0): Promise<FakeGoTrue> {
     outbox,
     users,
     deleted,
+    suggestions,
+    makeAdmin: (email) => {
+      const u = users.get(email.toLowerCase());
+      if (u) admins.add(u.id);
+    },
+    setSuggestionsTable: (present) => void (suggestionsTable = present),
     lastMail: (to, kind) => [...outbox].reverse().find((m) => m.to === to.toLowerCase() && (!kind || m.kind === kind)),
     advance: (ms) => void (skew += ms),
     setAccessTokenTtl: (s) => void (accessTtl = s),

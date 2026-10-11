@@ -301,7 +301,7 @@ export function Conversation({
         <button
           type="button"
           onClick={() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" })}
-          className="absolute bottom-3 left-1/2 flex h-8 -translate-x-1/2 animate-enter items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-ui text-fg shadow-md"
+          className="popover absolute bottom-3 left-1/2 flex h-8 -translate-x-1/2 animate-enter items-center gap-1.5 rounded-full px-3 text-ui text-fg"
         >
           <Icon name="chevron-down" size={14} /> New activity
         </button>

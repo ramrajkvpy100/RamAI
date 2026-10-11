@@ -22,10 +22,12 @@ export function InstallButton({ className, label = "Get the app" }: { className?
       <button
         type="button"
         onClick={() => (route === "prompt" ? void promptInstall() : setHowTo(true))}
-        className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface/70 px-3 text-[12.5px] font-semibold text-fg shadow-sm transition-colors hover:bg-surface-3", className)}
+        aria-label={label}
+        className={cn("inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-[12.5px] font-semibold text-fg shadow-sm transition-colors hover:bg-surface-3 sm:px-3", className)}
       >
         <Icon name="device" size={14} className="text-accent-text" />
-        <span>{label}</span>
+        {/* Just the icon on phones, where the header is tight. */}
+        <span className="hidden sm:inline">{label}</span>
       </button>
       <InstallSheet route={route} open={howTo} onClose={() => setHowTo(false)} />
     </>

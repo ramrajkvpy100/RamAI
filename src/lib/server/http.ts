@@ -9,6 +9,7 @@ import { isAuthError } from "@supabase/supabase-js";
 
 import { AuthError } from "@/server/auth";
 import { AuthConfigError } from "@/server/supabase";
+import { SuggestionsError } from "@/server/suggestions";
 
 export interface ApiErrorBody {
   error: { code: string; message: string };
@@ -45,6 +46,10 @@ export function handleError(err: unknown) {
   if (err instanceof EngineError) {
     const status = err.code === "BAD_SESSION" ? 410 : err.code === "CASE_CLOSED" ? 409 : err.code === "LIMIT" ? 429 : err.code === "NO_CASES" ? 404 : 400;
     return apiError(status, err.code, err.message);
+  }
+  if (err instanceof SuggestionsError) {
+    const status = err.code === "UNAVAILABLE" ? 503 : err.code === "NOT_FOUND" ? 404 : err.code === "FORBIDDEN" ? 403 : 400;
+    return apiError(status, err.code === "UNAVAILABLE" ? "SUGGESTIONS_UNAVAILABLE" : err.code, err.message);
   }
   if (err instanceof AuthConfigError) {
     console.error("[ramai] sign-in is not configured:", err.message);

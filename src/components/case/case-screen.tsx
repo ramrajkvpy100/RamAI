@@ -209,7 +209,7 @@ function Workspace() {
                 panelOpen ? "md:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[340px_minmax(0,1fr)_360px]" : "md:grid-cols-[minmax(0,1fr)_48px] xl:grid-cols-[340px_minmax(0,1fr)_48px]",
               )}
             >
-              <aside className="scroll-area hidden border-r border-line bg-[color-mix(in_srgb,var(--surface-2)_60%,transparent)] px-5 py-5 xl:block" aria-label="Patient">
+              <aside className="material-bar scroll-area hidden border-r border-[var(--material-stroke)] px-5 py-5 xl:block" aria-label="Patient">
                 <PatientPanel state={state} flashKeys={flash} />
               </aside>
 
@@ -262,7 +262,7 @@ function Workspace() {
                 </div>
               </main>
 
-              <aside className="hidden min-h-0 overflow-hidden border-l border-line md:flex md:flex-col" aria-label="Clinical information">
+              <aside className="material-bar hidden min-h-0 overflow-hidden border-l border-[var(--material-stroke)] md:flex md:flex-col" aria-label="Clinical information">
                 {panelOpen ? (
                   // Fixed width inside a clipping column: the panel slides rather than squeezes.
                   <div className="h-full min-h-0 w-[340px] xl:w-[360px]">

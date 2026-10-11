@@ -94,6 +94,15 @@ export function UserMenu({ me }: { me: Me }) {
           >
             <Icon name="sparkles" size={15} className="text-fg-2" /> {starting ? "Opening…" : "Guided demo case"}
           </button>
+          <Link role="menuitem" href="/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
+            <Icon name="bulb" size={15} className="text-fg-2" /> Suggest an improvement
+          </Link>
+          {me.admin && (
+            <Link role="menuitem" href="/admin/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium hover:bg-surface-3">
+              <Icon name="shield" size={15} className="text-accent-text" /> Admin · Suggestions
+              {!!me.newSuggestions && <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white tabular">{me.newSuggestions} new</span>}
+            </Link>
+          )}
           <div className="flex items-center justify-between rounded-lg px-3 py-2 text-[13.5px]">
             <span className="flex items-center gap-2.5">
               <Icon name="moon" size={15} className="text-fg-2" /> Theme
