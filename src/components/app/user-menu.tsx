@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { LangToggle } from "@/components/case/lang-toggle";
 import { CountryPicker } from "@/components/app/country-picker";
 import { AppOptions } from "@/components/app/app-options";
+import { TOUR_EVENT } from "@/components/home/home-tour";
 import { useLauncher } from "@/components/home/use-launcher";
 import { Avatar } from "@/components/game/avatar";
 import { RankBadge } from "@/components/game/rank-badge";
@@ -39,7 +40,7 @@ export function UserMenu({ me }: { me: Me }) {
   }, [open]);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} data-tour="menu">
       <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex items-center rounded-full p-0.5 transition-shadow hover:shadow-[0_0_0_3px_var(--accent-soft)]" aria-label="Account menu">
         <Avatar name={me.user.name} size={32} />
       </button>
@@ -93,6 +94,18 @@ export function UserMenu({ me }: { me: Me }) {
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3 disabled:opacity-60"
           >
             <Icon name="sparkles" size={15} className="text-fg-2" /> {starting ? "Opening…" : "Guided demo case"}
+          </button>
+          <button
+            role="menuitem"
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              if (window.location.pathname === "/") window.dispatchEvent(new Event(TOUR_EVENT));
+              else router.push("/?tour=1");
+            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3"
+          >
+            <Icon name="target" size={15} className="text-fg-2" /> Quick tour of RamAI
           </button>
           <Link role="menuitem" href="/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
             <Icon name="bulb" size={15} className="text-fg-2" /> Suggest an improvement

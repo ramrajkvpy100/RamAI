@@ -23,6 +23,7 @@ export function InstallButton({ className, label = "Get the app" }: { className?
         type="button"
         onClick={() => (route === "prompt" ? void promptInstall() : setHowTo(true))}
         aria-label={label}
+        data-tour="install"
         className={cn("inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-[12.5px] font-semibold text-fg shadow-sm transition-colors hover:bg-surface-3 sm:px-3", className)}
       >
         <Icon name="device" size={14} className="text-accent-text" />

@@ -21,6 +21,7 @@ import { PLANS } from "@/lib/plans";
 
 import { CasePicker } from "./case-picker";
 import { GuidedCard } from "./guided-card";
+import { HomeTour, TOUR_EVENT, tourSeen, type TourStop } from "./home-tour";
 import { LevelPath } from "./level-path";
 import { UpgradeSheet } from "./upgrade-sheet";
 import { AppCard } from "./app-card";
@@ -73,6 +74,39 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
   };
   const streakAtRisk = p.streakDays > 0 && p.dailyXp === 0;
 
+  // The tour: once, after the first case (usually the demo) — and whenever asked for from the account menu.
+  const [tour, setTour] = useState(false);
+  useEffect(() => {
+    const ask = () => setTour(true);
+    window.addEventListener(TOUR_EVENT, ask);
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("tour") === "1") {
+      url.searchParams.delete("tour");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      setTour(true);
+    }
+    return () => window.removeEventListener(TOUR_EVENT, ask);
+  }, []);
+  const played = p.history.length > 0;
+  useEffect(() => {
+    if (!snap.hydrated || active || !played || tourSeen()) return;
+    const t = window.setTimeout(() => setTour(true), 900);
+    return () => window.clearTimeout(t);
+  }, [snap.hydrated, active, played]);
+  const stops: TourStop[] = [
+    { target: "start", title: "Start a case", body: "A new patient every time — the diagnosis is hidden and there are no tips. Choose case lets you pick the specialty, the mode (OPD, emergency or phone) and the hospital level." },
+    { target: "daily", title: "Today's case", body: "One patient for every doctor today. Play it, see where you rank, and share your result." },
+    { target: "levels", title: "Your path", body: "Climb from a primary health centre to grand rounds. Score 70 or more to clear a level and unlock harder hospitals." },
+    {
+      target: "today",
+      title: "Your day",
+      body: `Each case earns XP towards your daily goal and keeps your streak alive. ${limit === null ? "Your cases are unlimited." : `You get ${limit} ${me.user.isGuest ? "guest" : "free"} cases a day${me.user.isGuest ? ` — a free account gives you ${PLANS.free.dailyCases}` : ""}.`}`,
+    },
+    { target: "league", title: "Weekly league", body: "Your XP counts towards a weekly league. Finish near the top to move up a league." },
+    { target: "install", title: "Get the app", body: "Add RamAI to your home screen — it opens full-screen, like an app, with a daily reminder if you want one." },
+    { target: "menu", title: "Your menu", body: "Your profile, the language patients speak (English, Hindi or Hinglish), where you practise, light or dark mode, the demo case again — and a box to send us suggestions." },
+  ];
+
   const locked = (level: CareLevel) => {
     setPicker(false);
     setGate({ code: "PRO_REQUIRED", message: `${levelMeta(level, me.user.country).label} cases are part of RamAI Pro — along with unlimited cases every day.` });
@@ -120,7 +154,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           {!snap.hydrated ? (
             <div className="mt-7 h-12" aria-hidden />
           ) : (
-            <div className="mt-7 flex animate-fade flex-wrap items-center gap-2.5">
+            <div className="mt-7 flex animate-fade flex-wrap items-center gap-2.5" data-tour="start">
               {active ? (
                 <Link href="/case" className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow">
                   Resume {caseLabel(active.state.caseNumber)} <Icon name="arrow-right" size={16} />
@@ -143,18 +177,22 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           )}
         </section>
 
-        <DailyCard onPlay={() => void launch({ daily: true })} starting={starting} />
+        <div data-tour="daily">
+          <DailyCard onPlay={() => void launch({ daily: true })} starting={starting} />
+        </div>
 
         {showGuide && <GuidedCard onStart={() => void launch({ tutorial: true })} onSkip={skipGuide} starting={starting} />}
 
         {!showGuide && <AppCard guest={me.user.isGuest} played={p.history.length > 0} />}
 
-        <LevelPath progress={p} plan={plan} library={library} starting={starting} onStart={(level) => void start({ level })} onLocked={locked} />
+        <div data-tour="levels">
+          <LevelPath progress={p} plan={plan} library={library} starting={starting} onStart={(level) => void start({ level })} onLocked={locked} />
+        </div>
       </div>
 
       <div className="flex min-w-0 flex-col gap-5">
         {/* Today ----------------------------------------------------------- */}
-        <section className="panel p-5" aria-labelledby="today-heading">
+        <section className="panel p-5" aria-labelledby="today-heading" data-tour="today">
           <h2 id="today-heading" className="sr-only">
             Today
           </h2>
@@ -218,7 +256,9 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           )}
         </section>
 
-        <LeagueCard meId={me.user.id} />
+        <div data-tour="league">
+          <LeagueCard meId={me.user.id} />
+        </div>
       </div>
 
       <CasePicker
@@ -232,6 +272,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
         activeCase={active?.state.caseNumber}
       />
       <UpgradeSheet gate={gate} onClose={closeGate} />
+      <HomeTour stops={stops} open={tour} onClose={() => setTour(false)} />
     </div>
   );
 }
