@@ -143,7 +143,7 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
       heart.position.set(-asset.center[0], -asset.center[1], -asset.center[2]);
       const pivot = new THREE.Group();
       pivot.add(heart);
-      pivot.scale.setScalar(1.36);
+      pivot.scale.setScalar(1.42);
 
       /* Light ---------------------------------------------------------------- */
       const key = new THREE.DirectionalLight(0xfff0ea, 2.2);
