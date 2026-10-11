@@ -122,7 +122,8 @@ describe("what the stethoscope picks up", () => {
 
 describe("through the engine — the browser gets a stethoscope, not a description", () => {
   it("strips the acoustic parameters from what the browser sees; the server can still render them", async () => {
-    const start = await simulateCase({ userId: "u-steth", caseNumber: 1, exclude: CASE_LIBRARY.filter((c) => c.id !== emAdhf.id).map((c) => c.id) });
+    // The demo case: always the same patient, so the test never depends on which case is picked.
+    const start = await simulateCase({ userId: "u-steth", caseNumber: 1, tutorial: true });
     const turn = await submitDoctorAction(start.token, "Auscultate the heart", "u-steth");
     const msg = turn.state.messages.find((m) => m.stethoscope);
     expect(msg).toBeDefined();
