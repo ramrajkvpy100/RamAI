@@ -92,7 +92,8 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
       <div className="flex min-w-0 flex-col gap-5">
         {/* Hero ------------------------------------------------------------ */}
         <section className="ink relative isolate overflow-hidden rounded-[22px] p-6 sm:p-8" aria-label="Your rank">
-          <HeartScene className="pointer-events-none absolute -top-12 -right-24 -z-10 h-[340px] w-[340px] opacity-80 sm:-right-6 sm:h-[380px] sm:w-[380px] sm:opacity-100" density="compact" tone="dark" />
+          {/* Faint on phones, where the text runs across it; full strength beside the text on wider screens. */}
+          <HeartScene className="pointer-events-none absolute -top-12 -right-24 -z-10 h-[340px] w-[340px] opacity-30 sm:-right-6 sm:h-[380px] sm:w-[380px] sm:opacity-100" density="compact" tone="dark" />
           <p className="text-[13.5px] text-white/60">
             {hello}, Dr. {firstName(me.user.name)}
           </p>
