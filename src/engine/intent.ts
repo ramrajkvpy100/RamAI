@@ -159,7 +159,7 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
       const best = matchHistory(tokens(normalise(seg)), ctx.def)[0];
       if (best && !ids.includes(best.id)) ids.push(best.id);
     }
-    if (ids.length > 1) return ids.slice(0, 3).map((id) => ({ kind: "history", targetId: id, phrase: rawClause, matched: true }));
+    if (ids.length > 1) return ids.slice(0, 4).map((id) => ({ kind: "history", targetId: id, phrase: rawClause, matched: true }));
   }
   const best = matchHistory(tk, ctx.def)[0];
   if (best) return [{ kind: "history", targetId: best.id, phrase: rawClause, matched: true }];

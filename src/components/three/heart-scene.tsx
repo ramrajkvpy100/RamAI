@@ -1,24 +1,32 @@
 "use client";
 
 /**
- * An anatomical heart — ventricles and atria, the great vessels, and the
- * coronary arteries in their fat — built from maths in the browser (see
- * heart-model), lit like wet tissue and beating lub-dub. three.js loads
- * lazily, the model builds in slices so the page never stalls, rendering
- * pauses off-screen, reduced motion gets a single still frame, and without
+ * An anatomical heart — ventricles, atria and auricles, the great vessels with
+ * their open ends, coronary arteries and veins in their fat — lit like wet
+ * tissue in a studio and beating: the ventricles squeeze, the atria contract
+ * just before. The model is built ahead of time (heart-model, scripts/
+ * build-heart.mjs) and loaded as a small file; three.js loads lazily,
+ * rendering pauses off-screen, reduced motion gets a still frame, and without
  * WebGL a soft glow stands in.
  */
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 
-/** Lub-dub at ~72 bpm. */
-function beat(t: number) {
-  const ph = (t % 0.83) / 0.83;
-  return Math.exp(-(((ph - 0.04) / 0.045) ** 2)) + 0.62 * Math.exp(-(((ph - 0.25) / 0.05) ** 2));
+/** One heartbeat, ~70 a minute: the atria kick, then the ventricles squeeze and relax. */
+function cardiac(t: number) {
+  const ph = (t % 0.86) / 0.86;
+  const s = (a: number, b: number, x: number) => {
+    const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return k * k * (3 - 2 * k);
+  };
+  const systole = s(0.02, 0.13, ph) * (1 - s(0.3, 0.52, ph));
+  const atrial = Math.exp(-(((ph - 0.9) / 0.045) ** 2)) + Math.exp(-(((ph + 0.1) / 0.045) ** 2));
+  return { systole, atrial };
 }
 
-const nextTick = () => new Promise<void>((r) => setTimeout(r, 0));
+/** Coronary arteries and cardiac veins (sRGB). */
+const VESSEL_HEX = { artery: 0xd0384f, vein: 0x5243aa } as const;
 
 export function HeartScene({ className, density = "hero", tone = "auto" }: { className?: string; density?: "hero" | "compact"; /** "dark" when drawn on an always-dark surface. */ tone?: "auto" | "dark" }) {
   const host = useRef<HTMLDivElement>(null);
@@ -29,25 +37,27 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
     if (!el) return;
     let disposed = false;
     let cleanup = () => {};
+    const abort = new AbortController();
 
     (async () => {
       const probe = document.createElement("canvas");
-      if (!(probe.getContext("webgl2") ?? probe.getContext("webgl"))) {
+      if (!(probe.getContext("webgl2") ?? probe.getContext("webgl")) || typeof DecompressionStream === "undefined") {
         setFallback(true);
         return;
       }
-      const [THREE, { RoomEnvironment }, { buildHeartModel, VESSEL_HEX }] = await Promise.all([import("three"), import("three/examples/jsm/environments/RoomEnvironment.js"), import("./heart-model")]);
-      if (disposed) return;
-      const model = await buildHeartModel(density === "hero" ? 0.026 : 0.034, nextTick);
+      // The detailed model for large screens; a lighter one for phones and small cards.
+      const detailed = density === "hero" && Math.max(window.innerWidth, window.innerHeight) >= 900;
+      const [THREE, { loadHeart }, { studioScene, wetTissue }] = await Promise.all([import("three"), import("./heart-asset"), import("./heart-material")]);
+      const asset = await loadHeart(detailed ? "/models/heart-hd.bin.gz" : "/models/heart-sd.bin.gz", abort.signal);
       if (disposed) return;
 
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const canvas = document.createElement("canvas");
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: window.devicePixelRatio < 1.5, alpha: true, powerPreference: "high-performance" });
+      // Smooth edges everywhere: the outline of a glossy organ against a light page shows every jagged pixel.
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setClearColor(0x000000, 0);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 0.98;
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.display = "block";
@@ -55,75 +65,97 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
 
       const scene = new THREE.Scene();
       const pmrem = new THREE.PMREMGenerator(renderer);
-      const room = new RoomEnvironment();
-      const env = pmrem.fromScene(room, 0.04).texture;
+      const studio = studioScene(THREE);
+      const env = pmrem.fromScene(studio, 0.02).texture;
       scene.environment = env;
-      scene.environmentIntensity = 0.6;
-      const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
-      camera.position.set(0, 0.1, 7.4);
+      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+      camera.position.set(0, 0.05, 7.6);
 
       const isDark = () => tone === "dark" || document.documentElement.getAttribute("data-theme") === "dark";
 
       /* The heart --------------------------------------------------------- */
-      const bodyGeo = new THREE.BufferGeometry();
-      bodyGeo.setAttribute("position", new THREE.BufferAttribute(model.body.positions, 3));
-      bodyGeo.setAttribute("color", new THREE.BufferAttribute(model.body.colors, 3));
-      bodyGeo.setIndex(new THREE.BufferAttribute(model.body.indices, 1));
-      bodyGeo.setAttribute("normal", new THREE.BufferAttribute(model.body.normals, 3));
-      // Wet tissue: muscle under a glossy clear coat, with a faint sheen at the edges.
-      const wet = { metalness: 0, clearcoat: 0.9, clearcoatRoughness: 0.24 } as const;
-      const tissue = new THREE.MeshPhysicalMaterial({ ...wet, vertexColors: true, roughness: 0.52, sheen: 0.18, sheenRoughness: 0.6, sheenColor: new THREE.Color("#ffb0a0") });
-      const body = new THREE.Mesh(bodyGeo, tissue);
-
-      // Vessels drawn as tubes — the coronaries in their fat, and the thinner great vessels with their open, cut ends.
-      const mats = {
-        artery: new THREE.MeshPhysicalMaterial({ ...wet, color: VESSEL_HEX.artery, roughness: 0.4 }),
-        vein: new THREE.MeshPhysicalMaterial({ ...wet, color: VESSEL_HEX.vein, roughness: 0.42 }),
-        aorta: new THREE.MeshPhysicalMaterial({ ...wet, color: VESSEL_HEX.aorta, roughness: 0.48 }),
-        pulmonary: new THREE.MeshPhysicalMaterial({ ...wet, color: VESSEL_HEX.pulmonary, roughness: 0.48 }),
-        pvein: new THREE.MeshPhysicalMaterial({ ...wet, color: VESSEL_HEX.pvein, roughness: 0.48 }),
-        lumen: new THREE.MeshStandardMaterial({ color: VESSEL_HEX.lumen, roughness: 0.9, side: THREE.DoubleSide }),
-      };
-      const curveOf = (points: Float32Array) => {
-        const pts: InstanceType<typeof THREE.Vector3>[] = [];
-        for (let i = 0; i < points.length; i += 3) pts.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
-        return new THREE.CatmullRomCurve3(pts);
-      };
-      const geos: InstanceType<typeof THREE.BufferGeometry>[] = [bodyGeo];
-      const tubes = model.vessels.map((v) => {
-        const g = new THREE.TubeGeometry(curveOf(v.points), Math.max(32, (v.points.length / 3) * 3), v.radius, 8, false);
-        geos.push(g);
-        return new THREE.Mesh(g, v.kind === "artery" ? mats.artery : mats.vein);
-      });
-      const great = model.great.flatMap((v) => {
-        const curve = curveOf(v.points);
-        const g = new THREE.TubeGeometry(curve, 48, v.radius, 14, false);
-        const capGeo = new THREE.CircleGeometry(v.radius * 0.97, 18);
-        geos.push(g, capGeo);
-        // The cut end: a dark lumen inside the vessel wall.
-        const end = curve.getPoint(1);
-        const cap = new THREE.Mesh(capGeo, mats.lumen);
-        cap.position.copy(end).addScaledVector(curve.getTangent(1), -0.004);
-        cap.lookAt(end.clone().add(curve.getTangent(1)));
-        return [new THREE.Mesh(g, mats[v.tissue]), cap];
-      });
-
+      const { material, uniforms } = wetTissue(THREE, { bump: detailed ? 0.012 : 0.009 });
+      const geos: InstanceType<typeof THREE.BufferGeometry>[] = [];
+      const body = new THREE.BufferGeometry();
+      body.setAttribute("position", new THREE.BufferAttribute(asset.positions, 3));
+      body.setAttribute("color", new THREE.BufferAttribute(asset.colors, 3));
+      body.setAttribute("aAttr", new THREE.BufferAttribute(asset.attrs, 4, true));
+      body.setIndex(new THREE.BufferAttribute(asset.indices, 1));
+      body.computeVertexNormals();
+      geos.push(body);
       const heart = new THREE.Group();
-      heart.add(body, ...tubes, ...great);
-      heart.position.set(-model.center[0], -model.center[1], -model.center[2]);
+      heart.add(new THREE.Mesh(body, material));
+
+      // Coronary arteries and cardiac veins: tubes that taper to a point, lying in the fat.
+      const tint = { artery: new THREE.Color(VESSEL_HEX.artery), vein: new THREE.Color(VESSEL_HEX.vein) };
+      for (const v of asset.vessels) {
+        const count = v.points.length / 3;
+        const sides = detailed ? 10 : 8;
+        const pos = new Float32Array(count * sides * 3);
+        const nrm = new Float32Array(count * sides * 3);
+        const col = new Float32Array(count * sides * 3);
+        const att = new Uint8Array(count * sides * 4);
+        const P = (i: number) => new THREE.Vector3(v.points[i * 3], v.points[i * 3 + 1], v.points[i * 3 + 2]);
+        let normal = new THREE.Vector3();
+        for (let i = 0; i < count; i++) {
+          const tangent = P(Math.min(count - 1, i + 1)).sub(P(Math.max(0, i - 1))).normalize();
+          if (i === 0) normal = new THREE.Vector3(0, 1, 0).cross(tangent).normalize();
+          else normal.sub(tangent.clone().multiplyScalar(normal.dot(tangent))).normalize();
+          const binormal = tangent.clone().cross(normal);
+          const left = count - 1 - i;
+          const r = v.radii[i]! * Math.sqrt(Math.min(1, left / 3 + 0.05));
+          const c = P(i);
+          const shade = v.attrs[i * 3]!;
+          for (let s = 0; s < sides; s++) {
+            const a = (s / sides) * Math.PI * 2;
+            const n = normal.clone().multiplyScalar(Math.cos(a)).addScaledVector(binormal, Math.sin(a));
+            const k = (i * sides + s) * 3;
+            pos[k] = c.x + n.x * r;
+            pos[k + 1] = c.y + n.y * r;
+            pos[k + 2] = c.z + n.z * r;
+            nrm[k] = n.x;
+            nrm[k + 1] = n.y;
+            nrm[k + 2] = n.z;
+            col[k] = tint[v.kind].r;
+            col[k + 1] = tint[v.kind].g;
+            col[k + 2] = tint[v.kind].b;
+            const q = (i * sides + s) * 4;
+            att[q] = Math.round(shade * 255);
+            att[q + 2] = Math.round(v.attrs[i * 3 + 1]! * 255);
+            att[q + 3] = Math.round(v.attrs[i * 3 + 2]! * 255);
+          }
+        }
+        const idx: number[] = [];
+        for (let i = 0; i < count - 1; i++)
+          for (let s = 0; s < sides; s++) {
+            const a = i * sides + s, b = i * sides + ((s + 1) % sides), c = (i + 1) * sides + s, d = (i + 1) * sides + ((s + 1) % sides);
+            idx.push(a, b, c, b, d, c);
+          }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        g.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+        g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+        g.setAttribute("aAttr", new THREE.BufferAttribute(att, 4, true));
+        g.setIndex(idx);
+        geos.push(g);
+        heart.add(new THREE.Mesh(g, material));
+      }
+      heart.position.set(-asset.center[0], -asset.center[1], -asset.center[2]);
       const pivot = new THREE.Group();
       pivot.add(heart);
-      const size = 1.42;
+      pivot.scale.setScalar(1.36);
 
       /* Light ---------------------------------------------------------------- */
-      const hemi = new THREE.HemisphereLight(0xffffff, 0x3a1416, 0.5);
-      const key = new THREE.DirectionalLight(0xfff1e6, 2.5);
+      const key = new THREE.DirectionalLight(0xfff0ea, 2.2);
       key.position.set(-3, 4, 5);
-      const rim = new THREE.DirectionalLight(0x8fd3ff, 2.4);
+      // Brand-coloured rims: violet from behind right, cyan from behind left.
+      const rim = new THREE.DirectionalLight(0xb99cff, 2.6);
       rim.position.set(4, 1.5, -4);
-      const fill = new THREE.DirectionalLight(0xffc4b4, 0.7);
-      fill.position.set(3, -2.5, 3);
-      scene.add(hemi, key, rim, fill);
+      const rim2 = new THREE.DirectionalLight(0x7fdcff, 1.8);
+      rim2.position.set(-4.5, 0.5, -3);
+      const under = new THREE.DirectionalLight(0xffc6d0, 0.5);
+      under.position.set(2, -4, 3);
+      scene.add(key, rim, rim2, under);
 
       /* A soft glow behind, and drifting dust for depth ---------------------- */
       const glowCanvas = document.createElement("canvas");
@@ -131,17 +163,31 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
       const g2 = glowCanvas.getContext("2d")!;
       const grad = g2.createRadialGradient(64, 64, 0, 64, 64, 64);
       grad.addColorStop(0, "rgba(255,255,255,1)");
-      grad.addColorStop(0.45, "rgba(255,255,255,0.35)");
+      grad.addColorStop(0.45, "rgba(255,255,255,0.32)");
       grad.addColorStop(1, "rgba(255,255,255,0)");
       g2.fillStyle = grad;
       g2.fillRect(0, 0, 128, 128);
       const glowTex = new THREE.CanvasTexture(glowCanvas);
       const glowMat = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false });
       const glow = new THREE.Sprite(glowMat);
-      glow.scale.setScalar(5.2);
-      glow.position.set(0, 0, -1.6);
+      glow.scale.setScalar(5.4);
+      glow.position.set(0, 0, -1.8);
 
-      const dustCount = density === "hero" ? 420 : 220;
+      const shadowCanvas = document.createElement("canvas");
+      shadowCanvas.width = shadowCanvas.height = 64;
+      const s2 = shadowCanvas.getContext("2d")!;
+      const sg = s2.createRadialGradient(32, 32, 0, 32, 32, 32);
+      sg.addColorStop(0, "rgba(40,20,60,0.55)");
+      sg.addColorStop(1, "rgba(40,20,60,0)");
+      s2.fillStyle = sg;
+      s2.fillRect(0, 0, 64, 64);
+      const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+      const shadowMat = new THREE.SpriteMaterial({ map: shadowTex, transparent: true, depthWrite: false });
+      const shadow = new THREE.Sprite(shadowMat);
+      shadow.scale.set(2.4, 0.42, 1);
+      shadow.position.set(0.15, -1.92, -0.6);
+
+      const dustCount = detailed ? 360 : 180;
       const dust = new Float32Array(dustCount * 3);
       for (let i = 0; i < dustCount; i++) {
         const r = 2.6 + Math.random() * 2.4;
@@ -153,21 +199,23 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
       }
       const dustGeo = new THREE.BufferGeometry();
       dustGeo.setAttribute("position", new THREE.BufferAttribute(dust, 3));
-      const dustMat = new THREE.PointsMaterial({ color: 0x93c5fd, size: 0.022, transparent: true, opacity: 0.5, depthWrite: false });
+      const dustMat = new THREE.PointsMaterial({ color: 0x93c5fd, size: 0.02, transparent: true, opacity: 0.45, depthWrite: false });
       const dustPts = new THREE.Points(dustGeo, dustMat);
-
-      scene.add(glow, dustPts, pivot);
+      scene.add(glow, shadow, dustPts, pivot);
 
       let dark = isDark();
       const applyTheme = () => {
         dark = isDark();
-        rim.intensity = dark ? 2.8 : 1.3;
-        hemi.intensity = dark ? 0.38 : 0.5;
-        scene.environmentIntensity = dark ? 0.42 : 0.5;
-        glowMat.color.set(dark ? 0xff3b5c : 0xff8fa3);
+        renderer.toneMappingExposure = dark ? 1.05 : 1.1;
+        scene.environmentIntensity = dark ? 0.55 : 0.85;
+        rim.intensity = dark ? 2.8 : 1.4;
+        rim2.intensity = dark ? 2 : 0.9;
+        key.intensity = dark ? 2.2 : 2.0;
+        glowMat.color.set(dark ? 0xc04cff : 0xe7a6ff);
+        shadowMat.opacity = dark ? 0 : 0.55;
         glowMat.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
         dustMat.color.set(dark ? 0x93c5fd : 0x3b82f6);
-        dustMat.opacity = dark ? 0.5 : 0.28;
+        dustMat.opacity = dark ? 0.45 : 0.22;
         dustMat.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
         glowMat.needsUpdate = true;
         dustMat.needsUpdate = true;
@@ -183,7 +231,7 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
         renderer.setSize(width, height, false);
         camera.aspect = width / height;
         // Narrow canvases step the camera back so the whole heart, vessels and all, stays in frame.
-        camera.position.z = width / height < 0.9 ? 7.4 / Math.max(0.55, width / height / 0.9) : 7.4;
+        camera.position.z = width / height < 0.9 ? 7.6 / Math.max(0.55, width / height / 0.9) : 7.6;
         camera.updateProjectionMatrix();
       };
       resize();
@@ -206,15 +254,16 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
 
       const clock = new THREE.Clock();
       let raf = 0;
-      // Turned a little to the left, so the apex, the aortic arch and the coronaries all show.
-      pivot.rotation.set(0.08, -0.32, 0.02);
+      // Turned a little to the left, so the apex, the arch and the coronaries all show.
+      pivot.rotation.set(0.06, -0.3, 0.02);
       const render = () => {
         const t = clock.getElapsedTime();
-        const b = reduce ? 0.15 : beat(t);
-        pivot.scale.set(size * (1 - 0.022 * b), size * (1 - 0.032 * b), size * (1 - 0.022 * b));
-        pivot.rotation.y += ((reduce ? -0.32 : Math.sin(t * 0.3) * 0.55 - 0.25 + pointer.x * 0.6) - pivot.rotation.y) * 0.05;
-        pivot.rotation.x += ((reduce ? 0.08 : pointer.y * 0.22 + 0.08) - pivot.rotation.x) * 0.05;
-        glowMat.opacity = (dark ? 0.3 : 0.26) + b * 0.06;
+        const beat = reduce ? { systole: 0, atrial: 0 } : cardiac(t);
+        uniforms.uSystole.value = beat.systole;
+        uniforms.uAtrial.value = beat.atrial;
+        pivot.rotation.y += ((reduce ? -0.3 : Math.sin(t * 0.28) * 0.5 - 0.22 + pointer.x * 0.5) - pivot.rotation.y) * 0.05;
+        pivot.rotation.x += ((reduce ? 0.06 : pointer.y * 0.2 + 0.06) - pivot.rotation.x) * 0.05;
+        glowMat.opacity = (dark ? 0.28 : 0.24) + beat.systole * 0.06;
         dustPts.rotation.y = -t * 0.03;
         renderer.render(scene, camera);
       };
@@ -264,21 +313,30 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
         window.removeEventListener("pointermove", onPointer);
         document.removeEventListener("visibilitychange", onVisibility);
         geos.forEach((g) => g.dispose());
-        tissue.dispose();
-        Object.values(mats).forEach((m) => m.dispose());
+        material.dispose();
         glowTex.dispose();
         glowMat.dispose();
+        shadowTex.dispose();
+        shadowMat.dispose();
         dustGeo.dispose();
         dustMat.dispose();
         env.dispose();
         pmrem.dispose();
+        studio.traverse((o) => {
+          const m = o as InstanceType<typeof THREE.Mesh>;
+          if (m.isMesh) {
+            m.geometry.dispose();
+            (m.material as InstanceType<typeof THREE.Material>).dispose();
+          }
+        });
         renderer.dispose();
         canvas.remove();
       };
-    })().catch(() => setFallback(true));
+    })().catch(() => !disposed && setFallback(true));
 
     return () => {
       disposed = true;
+      abort.abort();
       cleanup();
     };
   }, [density, tone]);

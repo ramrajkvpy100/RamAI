@@ -92,6 +92,9 @@ describe("guided demo — tapping every tip wins", () => {
       // Every tip did what it says: one line, several actions.
       expect(state.messages.some((m) => m.stethoscope)).toBe(true);
       expect(state.workingDiagnosis).toBeTruthy();
+      // The history tip really asks all four things — allergies included, before any drug.
+      expect(Object.keys(hidden.history)).toEqual(expect.arrayContaining(["diabetes", "meds", "meal", "allergy"]));
+      expect(d.score.lines.find((l) => l.category === "drugSafety")?.earned).toBe(d.score.lines.find((l) => l.category === "drugSafety")?.max);
     });
   }
 
