@@ -72,3 +72,34 @@ export function ScoreBreakdown({ score }: { score: CaseScore }) {
     </div>
   );
 }
+
+/** Under the score, without opening anything: every mark that was lost, and why. */
+export function LostMarks({ score }: { score: CaseScore }) {
+  const lost = score.lines.filter((l) => l.lost?.length).sort((a, b) => b.max - b.earned - (a.max - a.earned));
+  const gap = Math.max(0, Math.round(score.max - score.total));
+  const fmt = (n: number) => (Number.isInteger(Math.round(n * 10) / 10) ? String(Math.round(n)) : n.toFixed(1));
+  return (
+    <section className="card mt-6 p-5 sm:p-6" aria-labelledby="lost-heading">
+      <h2 id="lost-heading" className="text-[15px] font-semibold">
+        {gap === 0 ? "Full marks — nothing lost" : `Where your ${gap} mark${gap === 1 ? "" : "s"} went`}
+      </h2>
+      {lost.length > 0 && (
+        <ul className="mt-2 flex flex-col divide-y divide-line-2">
+          {lost.map((l) => (
+            <li key={l.category} className="flex gap-3 py-2.5">
+              <span className="w-12 shrink-0 text-[13.5px] font-semibold text-danger tabular">−{fmt(l.max - l.earned)}</span>
+              <div className="min-w-0">
+                <div className="text-[13.5px] font-medium">{l.label}</div>
+                {l.lost!.map((r) => (
+                  <p key={r} className="mt-0.5 text-[13px] leading-5 text-fg-2">
+                    {r}
+                  </p>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

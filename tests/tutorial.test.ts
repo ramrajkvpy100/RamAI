@@ -100,3 +100,12 @@ describe("guided demo — tapping every tip wins", () => {
     expect(state.patientStatus).not.toBe("critical");
   });
 });
+
+describe("guided demo — every lost mark has a reason", () => {
+  it("explains each mark below 100 in plain words", () => {
+    const { hidden, state } = play(TUTORIAL_CASE, [...demoLines("IN"), "End case"]);
+    const { score } = generateDebrief(TUTORIAL_CASE, hidden, state);
+    for (const l of score.lines) if (l.earned < l.max - 0.05) expect(l.lost?.length, l.category).toBeGreaterThan(0);
+    expect(score.lines.find((l) => l.category === "differential")?.lost?.join(" ")).toMatch(/differential/i);
+  });
+});

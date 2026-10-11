@@ -645,6 +645,8 @@ export interface ScoreLine {
   max: number;
   /** Short, factual notes shown in the score breakdown after closure. */
   notes: string[];
+  /** Why marks were lost here, in plain words with what to do next time — present only when some were. */
+  lost?: string[];
 }
 
 export interface CaseScore {

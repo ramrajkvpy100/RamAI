@@ -16,7 +16,7 @@ import { money, STATUS_LABEL } from "@/lib/format";
 import { Bullets } from "./flow";
 import { DailyShare } from "./daily-share";
 import { RewardsPanel } from "./rewards";
-import { ScoreBreakdown, ScoreRing } from "./score";
+import { LostMarks, ScoreBreakdown, ScoreRing } from "./score";
 import {
   AuscultationSection,
   DecisionTreeSection,
@@ -147,6 +147,7 @@ export function DebriefView({
         </section>
 
         {state.guided && <DemoDone name={state.patient.name ?? "your patient"} won={won} />}
+        <LostMarks score={d.score} />
 
         {/* Rewards ------------------------------------------------------------ */}
         <div className="mt-10 animate-rise [animation-delay:120ms]">

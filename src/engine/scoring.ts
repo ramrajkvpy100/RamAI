@@ -39,6 +39,11 @@ const LABELS: Record<ScoreCategory, string> = {
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
+/** "Previous episodes" → "previous episodes"; leaves abbreviations (BP, LMP, HbA1c) alone. */
+const lower = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0]!.toLowerCase() + s.slice(1) : s);
+/** "a", "a and b", "a, b and c". */
+const listOf = (items: string[]) => (items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`);
+
 export function judgeDiagnosis(def: ClinicalCaseDefinition, text: string | undefined): DiagnosisVerdict {
   if (!text?.trim()) return "not-recorded";
   const tk = tokens(normalise(text));
@@ -82,11 +87,13 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
   const lines: ScoreLine[] = [];
   const penalties: ScoreAdjustment[] = [];
   const bonuses: ScoreAdjustment[] = [];
-  const line = (category: ScoreCategory, fraction: number, notes: string[]) => {
+  /** `lost`: why marks were dropped, in plain words — shown only when some were. */
+  const line = (category: ScoreCategory, fraction: number, notes: string[], lost: string[] = []) => {
     const max = W[category];
     // A category weighted 0 for this case (e.g. examination on a phone call) is not shown.
     if (max <= 0) return;
-    lines.push({ category, label: LABELS[category], max, earned: Math.round(max * clamp01(fraction) * 10) / 10, notes });
+    const earned = Math.round(max * clamp01(fraction) * 10) / 10;
+    lines.push({ category, label: LABELS[category], max, earned, notes, ...(earned < max - 0.05 && lost.length ? { lost } : {}) });
   };
 
   const verdict = diagnosisVerdict(def, hidden);
@@ -107,7 +114,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     if (missed.length) notes.push(`Key history not obtained: ${missed.join(", ")}`);
     if (missedUseful.length) notes.push(`Also worth asking: ${missedUseful.slice(0, 5).join(", ")}${missedUseful.length > 5 ? "…" : ""}`);
     if (!notes.length) notes.push("Thorough, focused history");
-    line("history", split(essential.length - missed.length, essential.length, useful.length - missedUseful.length, useful.length), notes);
+    const lost: string[] = [];
+    if (missed.length) lost.push(`You didn't ask about ${listOf(missed.map(lower))} — key to this case.`);
+    if (missedUseful.length) lost.push(`You didn't ask about ${listOf(missedUseful.map(lower))}.`);
+    line("history", split(essential.length - missed.length, essential.length, useful.length - missedUseful.length, useful.length), notes, lost);
   }
   {
     const essential = def.exam.filter((e) => e.importance === "essential");
@@ -130,7 +140,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     if (!notes.length) notes.push("Complete, focused examination");
     const essentialTotal = essential.length + vitalsDue;
     const essentialDone = essential.length - essential.filter((e) => hidden.exams[e.id] === undefined).length + vitalsDone;
-    line("examination", split(essentialDone, essentialTotal, useful.length - missedUseful.length, useful.length), notes);
+    const lostExam: string[] = [];
+    if (missed.length) lostExam.push(`Not examined or measured: ${listOf(missed.map(lower))}.`);
+    if (missedUseful.length) lostExam.push(`Also worth examining: ${listOf(missedUseful.map(lower))}.`);
+    line("examination", split(essentialDone, essentialTotal, useful.length - missedUseful.length, useful.length), notes, lostExam);
   }
 
   /* Differential reasoning --------------------------------------------- */
@@ -155,7 +168,14 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     );
     if (hidden.differentials.length === 0) notes.push("No differential recorded");
     else notes.push(`${credited.length} of ${hidden.differentials.length} differentials reasonable`);
-    line("differential", base + ddxCredit + (verdict === "correct" && hidden.differentials.length === 0 ? 0.15 : 0), notes);
+    const lostDdx: string[] = [];
+    if (verdict === "implied") lostDdx.push("You treated it correctly but never named the diagnosis — type “Diagnosis: …” before ending the case.");
+    else if (verdict === "partial") lostDdx.push(`Your diagnosis was only partly right — it was ${lower(def.truth.diagnosis)}.`);
+    else if (verdict === "incorrect") lostDdx.push(`Your diagnosis was incorrect — it was ${lower(def.truth.diagnosis)}.`);
+    else if (verdict === "not-recorded") lostDdx.push("No diagnosis was stated.");
+    if (hidden.differentials.length === 0) lostDdx.push(`No differential diagnoses recorded — list the alternatives you considered${def.rubric.differentials.length ? ` (here: ${listOf(def.rubric.differentials.slice(0, 3))})` : ""}, e.g. “Differentials: …”.`);
+    else if (credited.length < hidden.differentials.length) lostDdx.push(`${hidden.differentials.length - credited.length} of your differentials didn't fit this presentation.`);
+    line("differential", base + ddxCredit + (verdict === "correct" && hidden.differentials.length === 0 ? 0.15 : 0), notes, lostDdx);
   }
 
   /* Investigation selection -------------------------------------------- */
@@ -178,7 +198,12 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     if (unnecessary.length) notes.push(`Unnecessary: ${unnecessary.map((u) => u.name).join(", ")}`);
     if (!notes.length) notes.push("Well-targeted work-up");
     const frac = essentials.length === 0 && useful.length === 0 ? 1 - penalty : 0.7 * essFrac + 0.3 * usefulFrac - penalty;
-    line("investigationSelection", frac, notes);
+    const nameOf = (i: { id: string; short?: string; name?: string }) => i.short ?? catalogInvestigation(i.id)?.short ?? i.name ?? i.id;
+    const lostInv: string[] = [];
+    if (missed.length) lostInv.push(`Not ordered: ${listOf(missed)} — needed to confirm it.`);
+    if (usefulFrac < 1) lostInv.push(`Also useful here: ${listOf(useful.filter((i) => !ordered.has(i.id)).map(nameOf))}.`);
+    if (unnecessary.length) lostInv.push(`Not needed: ${listOf(unnecessary.map((u) => u.name))} (₹${spendWasted.toLocaleString("en-IN")}).`);
+    line("investigationSelection", frac, notes, lostInv);
 
     const spend = hidden.investigations.reduce((s, i) => s + i.cost, 0);
     const essentialSpend = essentials.reduce((s, i) => s + (i.cost ?? catalogInvestigation(i.id)?.cost ?? 0), 0);
@@ -210,7 +235,11 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     if (verdict === "incorrect" && essentials.length > 0 && essentials.every((e) => ordered.has(e.id))) {
       penalties.push({ label: "Diagnosis not revised", points: 0, reason: "The results available pointed elsewhere" });
     }
-    line("investigationInterpretation", frac, notes);
+    const lostInt: string[] = [];
+    if (notes.some((n) => /not reviewed/.test(n))) lostInt.push("Key results weren't back (or weren't looked at) before you named the diagnosis.");
+    if (penalties.some((p) => p.label === "Premature closure")) lostInt.push("You ended the case with key results still pending.");
+    if (verdictFactor < 1) lostInt.push(verdict === "implied" ? "The diagnosis wasn't named, so the results weren't tied to it." : "The final diagnosis didn't match what the results showed.");
+    line("investigationInterpretation", frac, notes, lostInt);
   }
 
   /* Treatment ------------------------------------------------------------ */
@@ -238,7 +267,14 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     }
     if (quality === "harmful") frac = Math.min(frac, 0.5);
     notes.unshift(satisfied === groups.length ? "Complete, appropriate treatment" : `${satisfied} of ${groups.length} essential treatment elements given`);
-    line("treatment", frac, notes);
+    const lostTx: string[] = [];
+    const notDone = groups.filter((g) => !g.some(done)).map((g) => lower(def.therapeutics.find((t) => t.id === g[0])?.label ?? g[0]!));
+    if (notDone.length) lostTx.push(`Not done: ${listOf(notDone)}.`);
+    if (unnecessaryDrugs.length) lostTx.push(`Not needed: ${listOf(unnecessaryDrugs)}.`);
+    const late = penalties.find((p) => p.label === "Delayed treatment");
+    if (late && definitive) lostTx.push(late.reason.endsWith("never done") ? `${definitive.label} was never given.` : `${definitive.label} came after the first ${definitive.byMinute} minutes.`);
+    if (quality === "harmful") lostTx.push("Part of the treatment could harm this patient.");
+    line("treatment", frac, notes, lostTx);
   }
 
   /* Drug safety ---------------------------------------------------------- */
@@ -279,7 +315,7 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
       }
     }
     if (!notes.length) notes.push("No safety concerns");
-    line("drugSafety", frac, notes);
+    line("drugSafety", frac, notes, notes.filter((n) => n !== "No safety concerns").map((n) => (n === "Prescribed before asking about allergies" ? "You gave a drug before asking about allergies." : `${n}.`)));
   }
 
   /* Reassessment --------------------------------------------------------- */
@@ -301,14 +337,19 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
       else if (hidden.monitored) { frac += 0.5; notes.push("Monitored continuously"); }
       if (frac === 0) penalties.push({ label: "Failure to reassess", points: -W.reassessment, reason: "No repeat assessment, monitoring or follow-up" });
     }
-    line("reassessment", frac, notes);
+    const lostRe: string[] = [];
+    if (notes.includes("No reassessment after treatment")) lostRe.push("You didn't recheck the patient after treating — repeat the key test or vitals to confirm it worked.");
+    if (notes.includes("Follow-up arranged, interval not ideal")) lostRe.push("Follow-up was arranged, but not at the right interval.");
+    if (notes.includes("No follow-up arranged")) lostRe.push("No follow-up was arranged.");
+    if ((def.rubric.expectsReassessment || hidden.hazards.some((h) => h.manifestedAt !== undefined)) && !hidden.followUps[0] && !hidden.monitored) lostRe.push("No continuous monitoring or follow-up — attach the monitor (Monitor, below the box) or arrange a review.");
+    line("reassessment", frac, notes, lostRe);
   }
 
   /* Efficiency ----------------------------------------------------------- */
   {
     const ratio = hidden.actionCount / Math.max(1, def.rubric.expertActionCount);
     const frac = ratio <= 1.3 ? 1 : ratio <= 2 ? 0.7 : ratio <= 3 ? 0.4 : 0.15;
-    line("efficiency", frac, [`${hidden.actionCount} actions (expert: ~${def.rubric.expertActionCount})`]);
+    line("efficiency", frac, [`${hidden.actionCount} actions (expert: ~${def.rubric.expertActionCount})`], [`You took ${hidden.actionCount} actions; an expert needs about ${def.rubric.expertActionCount}. Fewer, more focused steps score higher.`]);
     if (ratio <= 1.3 && (verdict === "correct" || verdict === "implied")) bonuses.push({ label: "Efficient diagnosis", points: 0, reason: `Reached the diagnosis in ${hidden.actionCount} actions` });
   }
 
@@ -331,7 +372,7 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
       frac = quality === "ideal" ? 1 : quality === "acceptable" ? 0.7 : quality === "untreated" ? 0.3 : 0.1;
       notes.push(quality === "ideal" ? "Expected full recovery" : quality === "acceptable" ? "Likely recovery, suboptimal plan" : quality === "untreated" ? "Condition left untreated" : "Treatment likely to cause harm");
     }
-    line("outcome", frac, notes);
+    line("outcome", frac, notes, notes.map((n) => `${n}.`));
   }
 
   const total = Math.round(lines.reduce((s, l) => s + l.earned, 0));
