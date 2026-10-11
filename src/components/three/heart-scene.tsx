@@ -26,7 +26,7 @@ function cardiac(t: number) {
 }
 
 /** Coronary arteries and cardiac veins (sRGB). */
-const VESSEL_HEX = { artery: 0xd0384f, vein: 0x5243aa } as const;
+const VESSEL_HEX = { artery: 0xd04a74, vein: 0x6a5ee0 } as const;
 
 export function HeartScene({ className, density = "hero", tone = "auto" }: { className?: string; density?: "hero" | "compact"; /** "dark" when drawn on an always-dark surface. */ tone?: "auto" | "dark" }) {
   const host = useRef<HTMLDivElement>(null);
@@ -206,7 +206,9 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
       let dark = isDark();
       const applyTheme = () => {
         dark = isDark();
-        renderer.toneMappingExposure = dark ? 1.05 : 1.1;
+        renderer.toneMappingExposure = dark ? 0.98 : 1.08;
+        // Softer colour than a photo would have, so it sits with the page rather than shouting over it.
+        uniforms.uSaturation.value = dark ? 0.88 : 0.8;
         scene.environmentIntensity = dark ? 0.55 : 0.85;
         rim.intensity = dark ? 2.8 : 1.4;
         rim2.intensity = dark ? 2 : 0.9;

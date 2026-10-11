@@ -18,9 +18,9 @@ export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: "free",
     label: "Free",
-    dailyCases: 10,
+    dailyCases: 5,
     levels: ["phc", "chc", "district"],
-    features: ["10 cases a day", "The first three care levels", "OPD, phone and emergency modes", "Full debrief and score", "Weekly leaderboards"],
+    features: ["5 cases a day", "The first three care levels", "OPD, phone and emergency modes", "Full debrief and score", "Weekly leaderboards"],
   },
   pro: {
     id: "pro",
@@ -32,7 +32,7 @@ export const PLANS: Record<PlanId, Plan> = {
 };
 
 /** Before signing up: the demo, then a few real cases a day — enough to see what RamAI is like. */
-export const GUEST_DAILY_CASES = 3;
+export const GUEST_DAILY_CASES = 2;
 
 /** How many cases this player can start today (null = unlimited). The daily case and the demo don't count. */
 export const dailyLimitFor = (user: { plan: PlanId; isGuest: boolean }): number | null => (user.isGuest ? GUEST_DAILY_CASES : PLANS[user.plan].dailyCases);

@@ -17,6 +17,8 @@ export interface HeartUniforms {
   uSystole: { value: number };
   uAtrial: { value: number };
   uBump: { value: number };
+  /** 1 = full colour; lower blends towards grey. */
+  uSaturation: { value: number };
 }
 
 const VERTEX_PARS = /* glsl */ `
@@ -53,6 +55,7 @@ const FRAGMENT_PARS = /* glsl */ `
 varying vec4 vAttr;
 varying vec3 vObj;
 uniform float uBump;
+uniform float uSaturation;
 float tHash(vec3 p) {
   p = fract(p * 0.1031);
   p += dot(p, p.zyx + 31.32);
@@ -91,6 +94,8 @@ const FRAGMENT_COLOR = /* glsl */ `
   // Living tissue isn't one flat colour: a soft mottle over the muscle, a paler sheen on the fat.
   float m = tNoise(vObj * 30.0);
   diffuseColor.rgb *= mix(0.88 + 0.22 * m, 0.95 + 0.1 * tNoise(vObj * 55.0), vAttr.y);
+  float luma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+  diffuseColor.rgb = mix(vec3(luma), diffuseColor.rgb, uSaturation);
 }
 `;
 
@@ -131,7 +136,7 @@ const FRAGMENT_AO = /* glsl */ `
 
 /** The tissue material; returns it with the uniforms that drive the beat. */
 export function wetTissue(THREE: Three, opts: { bump: number }): { material: THREE_NS.MeshPhysicalMaterial; uniforms: HeartUniforms } {
-  const uniforms: HeartUniforms = { uSystole: { value: 0 }, uAtrial: { value: 0 }, uBump: { value: opts.bump } };
+  const uniforms: HeartUniforms = { uSystole: { value: 0 }, uAtrial: { value: 0 }, uBump: { value: opts.bump }, uSaturation: { value: 0.85 } };
   // Lacquered: a deep glossy coat, a rose sheen at the edges and the faintest pearl shimmer.
   const material = new THREE.MeshPhysicalMaterial({
     vertexColors: true,
@@ -141,7 +146,7 @@ export function wetTissue(THREE: Three, opts: { bump: number }): { material: THR
     clearcoatRoughness: 0.12,
     sheen: 0.55,
     sheenRoughness: 0.45,
-    sheenColor: new THREE.Color("#ff8ea2"),
+    sheenColor: new THREE.Color("#ff9ccf"),
     specularIntensity: 0.7,
     iridescence: 0.28,
     iridescenceIOR: 1.3,
@@ -158,7 +163,7 @@ export function wetTissue(THREE: Three, opts: { bump: number }): { material: THR
       .replace("#include <clearcoat_normal_fragment_maps>", FRAGMENT_CLEARCOAT)
       .replace("#include <aomap_fragment>", FRAGMENT_AO);
   };
-  material.customProgramCacheKey = () => "ramai-wet-tissue-2";
+  material.customProgramCacheKey = () => "ramai-wet-tissue-3";
   return { material, uniforms };
 }
 

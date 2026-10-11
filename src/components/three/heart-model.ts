@@ -372,22 +372,22 @@ const linear = (hex: number): V3 => {
   return [ch((hex >> 16) & 255), ch((hex >> 8) & 255), ch(hex & 255)];
 };
 
-/** A crimson-and-violet palette — the brand's colours — rather than a textbook's. */
+/** Berry and violet — the site's own colours — rather than a textbook's red and blue. */
 const TISSUE: Record<Tissue, V3> = {
-  lv: linear(0x8a1b2c),
-  rv: linear(0x982233),
-  conus: linear(0x9c2436),
-  atrium: linear(0x7a1d38),
-  auricle: linear(0x8a2343),
-  aorta: linear(0xbf2e45),
-  pulmonary: linear(0x4b42a0),
-  cava: linear(0x3d3890),
-  pvein: linear(0x8a2c52),
+  lv: linear(0x7c2340),
+  rv: linear(0x8a2a49),
+  conus: linear(0x8e2c4c),
+  atrium: linear(0x6a2448),
+  auricle: linear(0x7a2952),
+  aorta: linear(0xb03a5e),
+  pulmonary: linear(0x4f46a8),
+  cava: linear(0x433e9c),
+  pvein: linear(0x7e2f63),
 };
-// The grooves and vessel tracks catch a soft rose light instead of yellow fat.
-const FAT = linear(0xd57c86);
-const FAT_DEEP = linear(0xb65a6b);
-const FAT_PALE = linear(0xe9a7ac);
+// The grooves and vessel tracks catch a soft orchid light instead of yellow fat.
+const FAT = linear(0xc97d9c);
+const FAT_DEEP = linear(0xa65d82);
+const FAT_PALE = linear(0xe2a9c0);
 const LUMEN = linear(0x2e070b);
 
 const mix3 = (a: V3, b: V3, t: number): [number, number, number] => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
