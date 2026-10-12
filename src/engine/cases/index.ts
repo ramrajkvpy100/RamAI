@@ -46,11 +46,17 @@ export interface CaseFilter {
   allowedLevels?: readonly CareLevel[];
   /** The player's country: cases set only elsewhere are left out. */
   country?: Country;
+  /** Newcomers: easy outpatient cases first (ignored when none fit). */
+  easy?: boolean;
 }
 
 const playableIn = (c: ClinicalCaseDefinition, country?: Country) => !country || !c.countries || c.countries.includes(country);
 
 export function filterCases(f: CaseFilter): ClinicalCaseDefinition[] {
+  if (f.easy) {
+    const easy = filterCases({ ...f, easy: false }).filter((c) => c.difficulty <= 2 && c.track === "opd");
+    if (easy.length) return easy;
+  }
   return CASE_LIBRARY.filter(
     (c) =>
       (!f.specialty || c.specialty === f.specialty) &&

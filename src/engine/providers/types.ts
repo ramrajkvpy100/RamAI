@@ -13,6 +13,8 @@ import type { CareLevel, CaseDebrief, CaseTrack, EncounterMessage, PatientLang, 
 export type CaseSource = { kind: "library"; id: string } | { kind: "generated"; def: ClinicalCaseDefinition };
 
 export interface StartOptions {
+  /** A newcomer: an easy, classic case. */
+  easy?: boolean;
   specialty?: Specialty;
   track?: CaseTrack;
   level?: CareLevel;

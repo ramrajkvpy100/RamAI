@@ -23,13 +23,23 @@ describe("information is revealed only when obtained", () => {
     expect(state.vitals.rr).toBeUndefined();
   });
 
-  it("lab results arrive only after their turnaround", () => {
+  it("results arrive the moment a test is ordered", () => {
     const { state } = play(surgAppendicitis, ["Order CBC"]);
-    expect(state.investigations[0]?.status).toBe("pending");
-    const later = play(surgAppendicitis, ["Order CBC", "Wait for results"]);
-    const cbc = later.state.investigations[0];
+    const cbc = state.investigations[0];
     expect(cbc?.status).toBe("resulted");
     expect(cbc?.rows?.find((r) => r.analyte === "Total leucocyte count")?.flag).toBe("high");
+    expect(state.messages.some((m) => /result available/.test(m.text))).toBe(true);
+  });
+
+  it("asking for results shows them again; nothing ordered is said plainly; a bare '?' asks for a real question", () => {
+    const none = play(surgAppendicitis, ["result of test"]);
+    expect(none.state.messages.at(-1)?.text).toBe("No tests have been ordered yet.");
+    const again = play(surgAppendicitis, ["Order CBC", "result of test"]);
+    expect(again.state.messages.at(-1)?.attachmentIds?.length).toBe(1);
+    const named = play(surgAppendicitis, ["Order CBC", "CBC report?"]);
+    expect(named.state.messages.at(-1)?.text).toMatch(/showing the result again/);
+    const blank = play(surgAppendicitis, ["?"]);
+    expect(blank.state.messages.at(-1)?.text).toMatch(/full question or order/);
   });
 
   it("no message ever contains the hidden diagnosis during play", () => {

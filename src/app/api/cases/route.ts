@@ -10,6 +10,8 @@ import { dailyLimitFor, PLANS } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Inventing a new patient can take most of a minute. */
+export const maxDuration = 60;
 
 /** POST /api/cases — start a case within the player's plan, or the free guided demo case. */
 export async function POST(req: Request) {
@@ -36,8 +38,12 @@ export async function POST(req: Request) {
       if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's today's ${limit} guest cases. Create a free account for ${PLANS.free.dailyCases} cases every day — it takes 30 seconds.`);
       return apiError(402, "DAILY_LIMIT", `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.`);
     }
+    // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
+    const picked = !!(body.specialty || body.track || body.level);
+    const easy = !tutorial && !daily && !picked && (user.isGuest || (await totalCasesStarted(user.id)) <= 3);
     const session = await simulateCase({
       userId: user.id,
+      easy,
       caseNumber: (await totalCasesStarted(user.id)) + 1,
       specialty: body.specialty as Specialty | undefined,
       track: body.track as CaseTrack | undefined,

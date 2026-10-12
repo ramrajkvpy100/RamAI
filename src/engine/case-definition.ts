@@ -302,6 +302,8 @@ export interface OpeningBeat {
 
 export interface ClinicalCaseDefinition {
   id: string;
+  /** AI-made cases: what each picture shows, by reference — server only, never sent to the browser. */
+  pictures?: Record<string, { type: import("./types").PictureType; view: string; describe: string }>;
   /** The guided demo case: on-screen tips are allowed, and it's never picked at random. */
   guided?: boolean;
   /** Countries the case is set in. Omitted: every country (localised for each). */

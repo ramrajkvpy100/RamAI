@@ -310,9 +310,18 @@ export interface RadiographFeature {
 
 export type MediaSpec = EcgSpec | DermSpec | RadiographSpec;
 
+/** What kind of picture the image model draws. */
+export type PictureType = "photo" | "xray" | "ct" | "mri" | "usg" | "fundus" | "endoscopy" | "slide";
+
 export interface MediaAsset {
   /** Procedural spec; rendered as vector graphics. */
   spec?: MediaSpec;
+  /**
+   * A picture drawn by the image model at the moment the case reaches it. Only
+   * this reference reaches the browser; what the picture shows stays on the
+   * server with the case.
+   */
+  ai?: { ref: string; type: PictureType; view: string };
   /** Real asset URL. Takes precedence over `spec` when present. */
   src?: string;
   /** Required: screen-reader description. Must not interpret the finding. */
@@ -543,6 +552,8 @@ export type IntentKind =
   | "diagnosis"
   | "differential"
   | "close"
+  /** "Result of the test?" — what's back and what's still pending. */
+  | "results"
   | "unknown";
 
 export interface ResolvedIntent {

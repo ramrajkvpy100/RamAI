@@ -382,6 +382,9 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
   const question = isQuestion(rawClause, norm);
   const clinicianDirected = hasClinicianVerb(tk);
 
+  // Nothing but punctuation ("?"): nothing to act on.
+  if (tk.length === 0) return done([{ kind: "unknown", phrase: rawClause, matched: false, payload: { empty: true } }]);
+
   // Follow-up scheduling.
   if (hasAny(tk, ["follow up", "review", "come back", "revisit", "see you", "see him", "see her", "next visit", "recall"]) && !question) {
     let days: number | null = null;
@@ -414,6 +417,13 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     if (span !== null && hasAny(tk, ["after", "in"])) list.push({ kind: "wait", phrase: rawClause, matched: true, payload: { minutes: Math.min(span, 1440) } });
     list.push({ kind: "reassess", phrase: rawClause, matched: true });
     return done(list);
+  }
+
+  // Asking about results ("result of the test?", "is the CBC report ready?"): show what's back, say what's pending — never a new order.
+  if (hasAny(tk, ["result", "results", "report", "reports", "findings"]) && !hasAny(tk, ["order", "send", "send for", "request", "repeat"])) {
+    const named = resolveOverlaps(investigationCandidates(rawClause, tk, ctx));
+    if (named.length > 0) return done(named.map((i) => ({ ...i, payload: { ...i.payload, reshow: true } })));
+    return done([{ kind: "results", phrase: rawClause, matched: true }]);
   }
 
   // Questions addressed to the patient go to history first — except the stethoscope's words ("heart sounds?").

@@ -808,6 +808,27 @@ function activeHazardStage(def: ClinicalCaseDefinition, hidden: HiddenState): Ha
   return out;
 }
 
+/** "Result of the test?" — the results that are back (shown again), and anything still pending. */
+function handleResults(ctx: TurnContext): TurnEffect[] {
+  const { hidden } = ctx;
+  const ordered = hidden.investigations;
+  if (ordered.length === 0) return [{ type: "message", role: "system", kind: "status", text: "No tests have been ordered yet." }];
+  const fx: TurnEffect[] = [];
+  const ready = ordered.filter((i) => i.delivered).slice(-4);
+  const pending = ordered.filter((i) => !i.delivered);
+  if (ready.length > 0) {
+    fx.push({ type: "message", role: "system", kind: "finding", text: ready.length === 1 ? `${ready[0]!.name} — result.` : `Results: ${ready.map((i) => i.name).join(", ")}.`, attachmentIds: ready.map((i) => i.instanceId) });
+  }
+  if (pending.length > 0) {
+    const left = (i: OrderedInvestigation) => Math.max(1, Math.round(i.resultAt - hidden.clock));
+    fx.push({ type: "message", role: "system", kind: "status", text: `Still pending: ${pending.map((i) => `${i.name} — about ${left(i)} min`).join(", ")}.` });
+  }
+  return fx;
+}
+
+/** Results arrive the moment a test is ordered — no waiting for the lab (a product decision). */
+const INSTANT_RESULTS = true;
+
 function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const id = intent.targetId ?? "";
@@ -841,7 +862,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
 
   const name = override?.short ?? cat?.short ?? override?.name ?? id;
   const category = override?.category ?? cat?.category ?? "lab";
-  const turnaround = override?.turnaroundMin ?? cat?.turnaroundMin ?? 30;
+  const turnaround = INSTANT_RESULTS ? 0 : (override?.turnaroundMin ?? cat?.turnaroundMin ?? 30);
   const cost = override?.cost ?? cat?.cost ?? 0;
 
   // Result composition: catalogue default → case override → time phase → active hazard stage.
@@ -1324,6 +1345,9 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       case "reassess":
         fx.push(...handleReassess(ctx));
         break;
+      case "results":
+        fx.push(...handleResults(ctx));
+        break;
       case "diagnosis": {
         const text = String(intent.payload?.text ?? "").trim();
         if (!text) break;
@@ -1352,9 +1376,11 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       case "unknown":
         hidden.unrecognised += 1;
         fx.push(
-          intent.payload?.question
-            ? { type: "message", role: patientRole(def), kind: "speech", text: "Sorry, doctor — I didn't quite follow." }
-            : { type: "message", role: "system", kind: "status", text: "Instruction not recognised. Rephrase it, or use the shortcuts under the message box." },
+          intent.payload?.empty
+            ? { type: "message", role: "system", kind: "status", text: "Type a full question or order — as you'd say it at the bedside." }
+            : intent.payload?.question
+              ? { type: "message", role: patientRole(def), kind: "speech", text: "Sorry, doctor — I didn't quite follow." }
+              : { type: "message", role: "system", kind: "status", text: "Instruction not recognised. Rephrase it, or use the shortcuts under the message box." },
         );
         break;
     }
@@ -1365,7 +1391,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     fx.push({ type: "timeline", label: `${ctx.sent.map((i) => i.name).join(", ")} ordered`, category: "investigation" });
     const quick = ctx.sent.filter((i) => i.resultAt - i.orderedAt <= 15 && (i.category === "bedside" || i.category === "ecg"));
     const slow = ctx.sent.filter((i) => !quick.includes(i));
-    if (slow.length > 0) {
+    if (slow.length > 0 && !INSTANT_RESULTS) {
       fx.push({ type: "message", role: "system", kind: "action", text: `Sent — ${slow.map((i) => i.name).join(", ")}.` });
     }
     if (quick.length > 0 && !hidden.closed) {

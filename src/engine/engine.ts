@@ -129,6 +129,8 @@ export interface StartCaseOptions {
   lang?: PatientLang;
   /** The guided demo case instead of a pick from the library. */
   tutorial?: boolean;
+  /** A newcomer: an easy, classic case. */
+  easy?: boolean;
   /** Where the player practises; fixed for the life of the case. */
   country?: Country;
   /** Today's daily case (IST day key) instead of a pick from the library. */
