@@ -128,9 +128,11 @@ Case therapeutic rule ids: ${rules}
 Formulary drug ids: ${FORMULARY.map((d) => d.id).join(", ")}
 
 Return JSON:
-{"type":"patient_response","message":"<what the patient says, if the doctor addressed the patient; otherwise empty>","new_information":[],"intents":[{"kind":"history|vitals|exam|investigation|drug|action|followup|wait|reassess|diagnosis|differential|close|results|unknown","targetId":"<id from the lists above>","phrase":"<the doctor's words>","payload":{}}]}
+{"type":"patient_response","speaker":"patient|attendant|nurse","message":"<the reply spoken in the room — see below>","new_information":[],"intents":[{"kind":"history|vitals|exam|investigation|drug|action|followup|wait|reassess|diagnosis|differential|close|results|unknown","targetId":"<id from the lists above>","phrase":"<the doctor's words>","payload":{}}]}
 Use kind "results" when the doctor asks about the results of tests already sent.
-Map to existing ids whenever the meaning matches. For history questions with no matching entry, use kind "history", targetId "generated", and put the patient's reply in "message", in ${language(country, lang)}.
+Map to existing ids whenever the meaning matches — the game answers those itself.
+For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" (or "attendant" if the doctor spoke to the relative), and put the reply in "message", in ${language(country, lang)}.
+For anything else no id covers — a remark, reassurance, small talk, a request the ward can't carry out, or words that are unclear — use kind "unknown" and always write "message": the brief, natural reply of whoever would answer. The patient or relative answers if the doctor spoke to them (in ${language(country, lang)}); otherwise the nurse answers (speaker "nurse", plain English, one or two short sentences). The nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If it can't be done here, the nurse says so plainly; if the words are unclear, the nurse asks briefly what exactly the doctor wants.
 
 The doctor said: """${clause}"""`,
     },
@@ -409,19 +411,31 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
     const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx.country, ctx.lang), 800, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
+    const { message, speaker } = parsed.data;
     const intents: ResolvedIntent[] = [];
     const generated: Record<string, string> = {};
+    // The one reply goes to the first intent that needs words: a question the case file doesn't cover, or anything no id covers.
+    const say = (index: number) => {
+      if (!message || Object.keys(generated).length > 0) return false;
+      generated[String(index)] = message;
+      return true;
+    };
     for (const i of parsed.data.intents) {
       const intent: ResolvedIntent = { kind: i.kind, targetId: i.targetId, phrase: i.phrase || text, matched: i.kind !== "unknown", payload: i.payload };
       if (i.kind === "history" && (!i.targetId || i.targetId === "generated" || !ctx.def.history.some((h) => h.id === i.targetId))) {
         intent.targetId = "generated";
-        if (parsed.data.message) generated[String(intents.length)] = parsed.data.message;
+        if (say(intents.length) && speaker === "attendant") intent.payload = { ...i.payload, speaker };
       }
+      if (i.kind === "unknown" && say(intents.length)) intent.payload = { ...i.payload, speaker: speaker ?? "nurse" };
       intents.push(intent);
     }
-    if (intents.length === 0 && parsed.data.message) {
-      intents.push({ kind: "history", targetId: "generated", phrase: text, matched: true });
-      generated["0"] = parsed.data.message;
+    if (intents.length === 0 && message) {
+      intents.push(
+        speaker === "nurse"
+          ? { kind: "unknown", phrase: text, matched: false, payload: { speaker } }
+          : { kind: "history", targetId: "generated", phrase: text, matched: true, ...(speaker === "attendant" ? { payload: { speaker } } : {}) },
+      );
+      generated["0"] = message;
     }
     return intents.length ? { intents, generated } : { intents: ruled };
   } catch (err) {
@@ -500,11 +514,12 @@ export function createOpenAIProvider(): ClinicalProvider {
     },
 
     async interpret(text, ctx): Promise<Interpretation> {
-      // Rules first: instant and free. The guided demo stays fully scripted.
+      // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
       const ruled = (await mockProvider.interpret(text, ctx)).intents;
-      if (ctx.def.guided) return { intents: ruled };
       const unresolved = ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:")));
       if (unresolved) return understand(text, ctx, ruled);
+      // The demo's scripted replies stay as written.
+      if (ctx.def.guided) return { intents: ruled };
       if (openAIConfig().voice === "all") return voice(text, ctx, ruled);
       return { intents: ruled };
     },

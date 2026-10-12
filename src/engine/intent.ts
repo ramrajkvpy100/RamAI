@@ -202,8 +202,9 @@ function examCandidates(rawClause: string, tk: string[], ctx: IntentContext, req
   // Auscultation's words ("heart sounds", "breath sounds") can only mean the stethoscope, verb or not.
   for (const e of ctx.def.exam) {
     if (requireVerb && !verb) break;
-    // An override of a catalogue exam may omit `match` and inherit its phrases.
-    const phrases = e.match.length ? e.match : EXAMS.find((c) => c.id === e.id)?.match ?? [];
+    // A case's own version of a catalogue exam answers to the catalogue's phrases as well as its own
+    // ("examine the patient" still means the general examination when the case writes that one itself).
+    const phrases = [...new Set([...e.match, ...(EXAMS.find((c) => c.id === e.id)?.match ?? [])])];
     for (const hit of allHits(tk, phrases)) {
       out.push({ hit, priority: 4, intent: { kind: "exam", targetId: e.id, phrase: rawClause, matched: true } });
     }

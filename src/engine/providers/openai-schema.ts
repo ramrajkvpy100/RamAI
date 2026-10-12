@@ -15,12 +15,20 @@ export const IntentSchema = z.object({
   payload: z.record(z.string(), z.union([z.string().max(300), z.number(), z.boolean()])).optional(),
 });
 
-/** The structured patient response contract (spec §42). */
+/** The structured patient response contract (spec §42). Lenient: one malformed intent is dropped, not the whole answer. */
 export const PatientResponseSchema = z.object({
-  type: z.literal("patient_response"),
-  message: z.string().max(800),
-  new_information: z.array(z.object({ label: z.string().max(60), value: z.string().max(300) })).max(6).default([]),
-  intents: z.array(IntentSchema).max(8).default([]),
+  type: z.literal("patient_response").optional().catch(undefined),
+  message: z.string().catch("").default("").transform((t) => t.trim().slice(0, 800)),
+  /** Who says `message`: the patient, a relative, or the nurse (an instruction or remark no listed id covers). */
+  speaker: z.enum(["patient", "attendant", "nurse"]).optional().catch(undefined),
+  new_information: z.array(z.object({ label: z.string().max(60), value: z.string().max(300) })).max(6).default([]).catch([]),
+  intents: z.unknown().optional().transform((v) =>
+    (Array.isArray(v) ? v : [])
+      .map((x) => IntentSchema.safeParse(x))
+      .filter((r) => r.success)
+      .map((r) => r.data)
+      .slice(0, 8),
+  ),
   /** Engine-owned fields are accepted for contract compatibility but ignored. */
   vitals: z.record(z.string(), z.unknown()).optional(),
   state_changes: z.array(z.unknown()).optional(),

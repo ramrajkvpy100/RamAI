@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { ClinicalCaseDefinition, ExamEntry } from "@/engine/case-definition";
 import { dermAcne } from "@/engine/cases/derm-acne";
 import { emAdhf } from "@/engine/cases/em-adhf";
 import { medPad } from "@/engine/cases/med-pad";
@@ -40,6 +41,20 @@ describe("information is revealed only when obtained", () => {
     expect(named.state.messages.at(-1)?.text).toMatch(/showing the result again/);
     const blank = play(surgAppendicitis, ["?"]);
     expect(blank.state.messages.at(-1)?.text).toMatch(/full question or order/);
+  });
+
+  it("an instruction nothing can place gets the nurse's reply — never an error line", () => {
+    const { state } = play(surgAppendicitis, ["Dim the lights"]);
+    expect(state.messages.at(-1)).toMatchObject({ role: "nurse", kind: "speech" });
+    expect(state.messages.some((m) => /not recognised/i.test(m.text))).toBe(false);
+  });
+
+  it("a case's own general examination still answers 'examine the patient'", () => {
+    const general: ExamEntry = { id: "general", group: "general-exam", label: "General examination", match: ["general examination"], finding: "Febrile and flushed. Breathing fast.", importance: "essential", abnormal: true };
+    const def: ClinicalCaseDefinition = { ...surgAppendicitis, exam: [general, ...surgAppendicitis.exam.filter((e) => e.id !== "general")] };
+    for (const said of ["Examine the patient", "Examine him", "General examination"]) {
+      expect(play(def, [said]).state.messages.at(-1)?.text).toBe("General examination — Febrile and flushed. Breathing fast.");
+    }
   });
 
   it("no message ever contains the hidden diagnosis during play", () => {

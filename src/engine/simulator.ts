@@ -631,7 +631,8 @@ function handleHistory(ctx: TurnContext, intent: ResolvedIntent, index: number):
   fx.push({ type: "advance_time", minutes: 1 });
   const generated = record.generated?.[String(index)];
   const entry = def.history.find((h) => h.id === intent.targetId);
-  const reply = generated ? { text: generated, role: entry?.speaker === "attendant" ? ("attendant" as const) : patientRole(def) } : getPatientResponse(def, hidden, intent, hash(record.id + index));
+  const attendant = entry ? entry.speaker === "attendant" : intent.payload?.speaker === "attendant";
+  const reply = generated ? { text: generated, role: attendant ? ("attendant" as const) : patientRole(def) } : getPatientResponse(def, hidden, intent, hash(record.id + index));
   fx.push({ type: "message", role: reply.role, kind: "speech", text: reply.text });
 
   if (entry) {
@@ -1285,6 +1286,9 @@ function handleReassess(ctx: TurnContext): TurnEffect[] {
 /* Turn                                                                        */
 /* -------------------------------------------------------------------------- */
 
+/** When nothing could make sense of an instruction (the model unreachable too), the nurse asks — never an error line. */
+const NURSE_UNSURE = ["Sorry, doctor — what would you like me to do?", "Doctor, could you say that once more? I want to get it right."] as const;
+
 /** A real-time tick: the clock running on its own, recorded so replays stay exact. */
 export const isTick = (record: ActionRecord) => record.raw === "" && record.intents.length === 1 && record.intents[0]!.kind === "wait" && record.intents[0]!.payload?.silent === true;
 
@@ -1293,7 +1297,7 @@ const SIGNIFICANT: ResolvedIntent["kind"][] = ["history", "vitals", "exam", "inv
 export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record: ActionRecord): TurnEffect[] {
   const fx: TurnEffect[] = [];
   const ctx: TurnContext = { def, hidden, record, sent: [], stages: [], notices: [] };
-  const conversational = record.intents.some((i) => i.kind === "history" || i.kind === "greeting" || (i.kind === "unknown" && i.payload?.question));
+  const conversational = record.intents.some((i) => i.kind === "history" || i.kind === "greeting" || (i.kind === "unknown" && (i.payload?.question || i.payload?.speaker === "patient" || i.payload?.speaker === "attendant")));
   // A real-time tick has no words: time passes without the doctor saying anything.
   const tick = isTick(record);
   if (!tick) fx.push({ type: "message", role: "doctor", kind: conversational ? "speech" : "action", text: record.raw.trim() });
@@ -1373,16 +1377,23 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
         fx.push({ type: "timeline", label: "Case closed", category: "closure" });
         fx.push({ type: "case_status", status: "complete" });
         break;
-      case "unknown":
+      case "unknown": {
         hidden.unrecognised += 1;
+        // The model's answer, when it wrote one: whoever in the room would reply.
+        const said = record.generated?.[String(index)];
+        const speaker = intent.payload?.speaker;
+        const role: MessageRole = speaker === "nurse" && def.track !== "phone" ? "nurse" : speaker === "attendant" ? "attendant" : patientRole(def);
         fx.push(
           intent.payload?.empty
             ? { type: "message", role: "system", kind: "status", text: "Type a full question or order — as you'd say it at the bedside." }
-            : intent.payload?.question
-              ? { type: "message", role: patientRole(def), kind: "speech", text: "Sorry, doctor — I didn't quite follow." }
-              : { type: "message", role: "system", kind: "status", text: "Instruction not recognised. Rephrase it, or use the shortcuts under the message box." },
+            : said
+              ? { type: "message", role, kind: "speech", text: said }
+              : intent.payload?.question || def.track === "phone"
+                ? { type: "message", role: patientRole(def), kind: "speech", text: "Sorry, doctor — I didn't quite follow." }
+                : { type: "message", role: "nurse", kind: "speech", text: pick(NURSE_UNSURE, hash(record.id + index)) },
         );
         break;
+      }
     }
   });
 
