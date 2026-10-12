@@ -9,7 +9,9 @@ import { createGuest, createProfile, createSession, deleteSession, findUserById,
 import { verifyPayment } from "@/server/billing";
 import { db } from "@/server/db";
 import { casesStartedToday, historyFor, leaderboard, progressFor, recordCase, recordCaseStart } from "@/server/results";
+import { ownResultId, progressCard, readShareId, resultCard, shareIdFor } from "@/server/share";
 import { answerSuggestion, deleteSuggestion, mySuggestions, sendOpenSuggestion } from "@/server/suggestions";
+import { dailyKeyFor } from "@/lib/daily";
 
 import { play } from "./helpers";
 
@@ -103,6 +105,30 @@ describe("results and rewards", () => {
 
     const phone = await leaderboard("phone", "week");
     expect(phone.rows.map((r) => r.userId)).toEqual([kabir.id]);
+  });
+});
+
+describe("sharing a result or progress", () => {
+  it("links are signed: a forged or altered one shows nothing", () => {
+    const id = shareIdFor("r", 42);
+    expect(readShareId(id)).toEqual({ kind: "r", value: "42" });
+    expect(readShareId(id.replace("r42", "r43"))).toBeNull();
+    expect(readShareId("r42.AAAAAAAAAAAAAAAA")).toBeNull();
+    expect(readShareId(shareIdFor("u", asha.id))).toEqual({ kind: "u", value: asha.id });
+  });
+
+  it("only your own result; a daily case's card never names the diagnosis; first names only", async () => {
+    const { hidden, state } = play(dermAcne, ["What brings you here?", "Final diagnosis: acne vulgaris. Case close."]);
+    const debrief = generateDebrief(dermAcne, hidden, state);
+    const day = dailyKeyFor();
+    await recordCaseStart(asha.id, "share-daily", false, day);
+    await recordCase(asha, "share-daily", debrief, { daily: day });
+    const id = (await ownResultId(asha.id, "share-daily"))!;
+    expect(await ownResultId(kabir.id, "share-daily")).toBeNull();
+    const card = (await resultCard(id))!;
+    expect(card).toMatchObject({ kind: "result", name: "Dr. Asha", diagnosis: null, score: debrief.score.total });
+    expect(card.daily?.grid).toBeTruthy();
+    expect(await progressCard(asha.id)).toMatchObject({ kind: "progress", name: "Dr. Asha" });
   });
 });
 

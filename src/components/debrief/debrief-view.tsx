@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import { CaseTopBar } from "@/components/case/case-top-bar";
 import { Timeline } from "@/components/case/timeline";
+import { ShareSheet } from "@/components/share/share-sheet";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Icon } from "@/components/ui/icon";
 import { Badge, Label } from "@/components/ui/primitives";
@@ -134,6 +135,7 @@ export function DebriefView({
   const startingLabel = useStartingMessage(starting);
   const state = session.state;
   const [showScore, setShowScore] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const verdict = VERDICT[d.verdict];
   const won = d.score.total >= 70 && (d.finalStatus === "improving" || d.finalStatus === "recovered" || d.finalStatus === "stable");
@@ -173,9 +175,15 @@ export function DebriefView({
                 <Badge tone={verdict.tone}>{verdict.label}</Badge>
               </div>
             </div>
-            <ScoreRing score={d.score.total} />
+            <div className="flex flex-col items-start gap-3 lg:items-center">
+              <ScoreRing score={d.score.total} />
+              <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-3">
+                <Icon name="share-ios" size={15} /> Share result
+              </button>
+            </div>
           </div>
         </section>
+        <ShareSheet open={sharing} onClose={() => setSharing(false)} target={{ kind: "result", sessionId: state.sessionId }} title="Share your result" />
 
         {state.guided && <DemoDone name={state.patient.name ?? "your patient"} won={won} />}
         <LostMarks score={d.score} />

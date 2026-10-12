@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 
 import { ServiceWorker } from "@/components/app/service-worker";
+import { SITE } from "@/lib/site";
 
 import "./globals.css";
 
@@ -10,6 +11,8 @@ const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display:
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
+  // Shared cards' link previews need absolute addresses.
+  metadataBase: new URL(SITE.url),
   title: { default: "RamAI — Think like a doctor, every day", template: "%s · RamAI" },
   description: "Clinical case simulation for doctors and medical students. Real patients, hidden diagnoses, no hints — from first-contact care to the world's hardest cases. India, USA and UK.",
   applicationName: "RamAI",

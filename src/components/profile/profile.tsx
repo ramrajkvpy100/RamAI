@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { Avatar } from "@/components/game/avatar";
 import { DoctorFigure } from "@/components/game/caricature";
 import { LEVEL_STYLE, levelGradient } from "@/components/game/level-style";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
+import { ShareSheet } from "@/components/share/share-sheet";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { ProgressBar } from "@/components/ui/primitives";
 import { levelMeta, trackLabel } from "@/engine/levels";
@@ -54,6 +56,7 @@ export function Profile({ initial }: { initial: Me }) {
   const earned = new Set(p.badges.map((b) => b.id));
   const mastery = p.mastery.filter((m) => m.cases > 0).sort((a, b) => b.cases - a.cases);
   const recent = [...p.history].reverse().slice(0, 10);
+  const [sharing, setSharing] = useState(false);
 
   return (
     <div className="flex flex-col gap-5">
@@ -96,6 +99,13 @@ export function Profile({ initial }: { initial: Me }) {
           </div>
         </div>
       </section>
+
+      <div className="-mt-1 flex justify-end">
+        <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold ring-1 ring-line transition-colors hover:bg-surface-3">
+          <Icon name="share-ios" size={15} /> Share my progress
+        </button>
+      </div>
+      <ShareSheet open={sharing} onClose={() => setSharing(false)} target={{ kind: "progress" }} title="Share your progress" />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Statistics">
         <Stat icon={<Icon name="user" size={20} className="text-accent-text" />} value={p.casesCompleted} label="Cases completed" />

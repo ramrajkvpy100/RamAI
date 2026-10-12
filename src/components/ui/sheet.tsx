@@ -83,7 +83,7 @@ export function Sheet({
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        "material-thick bg-[var(--popover-bg)] p-0 text-fg backdrop:bg-[rgb(0_0_0/0.35)] backdrop:backdrop-blur-[6px] open:flex open:flex-col open:animate-sheet",
+        "popover p-0 text-fg backdrop:bg-[rgb(0_0_0/0.35)] backdrop:backdrop-blur-[6px] open:flex open:flex-col open:animate-sheet",
         layout,
         className,
       )}
