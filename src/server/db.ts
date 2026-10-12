@@ -133,6 +133,18 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   failures INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS push_subscriptions_user ON push_subscriptions(user_id);
+-- What the AI made for one case while it was played: its pictures and teaching notes. Kept for 30 days.
+CREATE TABLE IF NOT EXISTS case_ai (
+  session_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (session_id, key)
+);
+CREATE INDEX IF NOT EXISTS case_ai_user ON case_ai(user_id);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

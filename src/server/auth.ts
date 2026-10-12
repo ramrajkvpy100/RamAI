@@ -264,8 +264,13 @@ async function purgeStaleGuests(now: number) {
   purgedAt = now;
   const before = now - GUEST_DAYS * 86_400_000;
   // Children first, explicitly: cascades depend on a per-connection setting the cloud database may not keep.
-  const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments", "push_subscriptions"];
-  await db.batch([...children.map((t) => ({ sql: `DELETE FROM ${t} WHERE user_id IN (${STALE_GUEST})`, args: [before] })), { sql: "DELETE FROM users WHERE is_guest = 1 AND created_at < ?", args: [before] }]);
+  const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments", "push_subscriptions", "case_ai"];
+  await db.batch([
+    ...children.map((t) => ({ sql: `DELETE FROM ${t} WHERE user_id IN (${STALE_GUEST})`, args: [before] })),
+    { sql: "DELETE FROM users WHERE is_guest = 1 AND created_at < ?", args: [before] },
+    // AI pictures and notes are kept for a month, for reopening recent cases.
+    { sql: "DELETE FROM case_ai WHERE created_at < ?", args: [now - 30 * 86_400_000] },
+  ]);
 }
 
 /** A throwaway account for the demo case. Unclaimed guests are removed after a week. */

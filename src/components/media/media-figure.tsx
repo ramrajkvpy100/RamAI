@@ -6,12 +6,14 @@ import { Icon } from "@/components/ui/icon";
 import type { MediaAsset } from "@/engine/types";
 import { cn } from "@/lib/cn";
 
+import { AiPicture } from "./ai-picture";
 import { DermPhoto } from "./derm";
 import { EcgTrace } from "./ecg";
 import { MediaViewer, useMediaViewer } from "./media-viewer";
 import { RadiographImage } from "./radiograph";
 
 function Render({ media }: { media: MediaAsset }) {
+  if (media.ai) return <AiPicture media={media} />;
   if (media.src) {
     // Real, licensed imagery takes precedence over procedural specs.
     // eslint-disable-next-line @next/next/no-img-element
@@ -28,7 +30,7 @@ function Render({ media }: { media: MediaAsset }) {
 export function MediaFigure({ media, className, compact = false, viewerKey, title }: { media: MediaAsset; className?: string; compact?: boolean; viewerKey?: string; title?: string }) {
   const viewer = useMediaViewer();
   const [local, setLocal] = useState(false);
-  const square = media.spec && media.spec.kind !== "ecg" && media.spec.kind !== "derm";
+  const square = !!media.ai || (media.spec && media.spec.kind !== "ecg" && media.spec.kind !== "derm");
   const open = () => {
     if (viewer) viewer.open(viewerKey ?? media, title);
     else setLocal(true);

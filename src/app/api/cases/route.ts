@@ -1,4 +1,7 @@
-import { simulateCase } from "@/engine/engine";
+import { after } from "next/server";
+
+import { sessionInfo, simulateCase, teachingFor } from "@/engine/engine";
+import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
@@ -56,6 +59,13 @@ export async function POST(req: Request) {
       daily,
     });
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);
+    // An invented patient: write its debrief teaching now, in the background, so the debrief is ready when the case ends.
+    if (sessionInfo(session.token).generated) {
+      after(async () => {
+        const pack = await teachingFor(session.token, user.id).catch(() => undefined);
+        if (pack) await putCaseAI(session.state.sessionId, "teaching", user.id, "application/json", JSON.stringify(pack)).catch(() => undefined);
+      });
+    }
     return ok(session);
   } catch (err) {
     return handleError(err);

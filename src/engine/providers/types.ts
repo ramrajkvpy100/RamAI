@@ -48,6 +48,13 @@ export interface FeedbackInput {
 
 export type CoachFeedback = NonNullable<CaseDebrief["coach"]>;
 
+/** An invented case's debrief teaching and misses. */
+export interface TeachingPack {
+  teaching: Omit<ClinicalCaseDefinition["teaching"], "treatmentByBand">;
+  misses: ClinicalCaseDefinition["rubric"]["misses"];
+  strengths: ClinicalCaseDefinition["rubric"]["strengths"];
+}
+
 export interface Interpretation {
   intents: ResolvedIntent[];
   /** Replies generated for specific intents (keyed by intent index), recorded for replay. */
@@ -61,6 +68,8 @@ export interface ClinicalProvider {
   interpret(text: string, ctx: InterpretContext): Promise<Interpretation>;
   /** Feedback in words for the debrief (optional). The score never depends on it. */
   feedback?(input: FeedbackInput): Promise<CoachFeedback | undefined>;
+  /** For an invented case: the debrief's teaching and misses, written while it's played (optional). */
+  teach?(def: ClinicalCaseDefinition): Promise<TeachingPack | undefined>;
   /** Number of available cases per specialty, mode and level, in the player's country. */
   availability(country?: Country): Promise<{
     specialties: Partial<Record<Specialty, number>>;

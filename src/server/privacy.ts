@@ -94,7 +94,7 @@ export async function deleteAccount(userId: string) {
             SELECT order_id, payment_id, amount, period, status, created_at, ? FROM payments WHERE user_id = ?`,
       args: [now, userId],
     },
-    ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
+    ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions", "case_ai"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
     { sql: "DELETE FROM users WHERE id = ?", args: [userId] },
   ]);
   return { signInRemoved: authId ? await removeSignIn(authId) : true };

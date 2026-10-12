@@ -8,7 +8,8 @@
  *               rules can't place it · feedback in words for the debrief.
  *   Backend:    the rules the case is played by — time, physiology, how results
  *               arrive, scoring and access control. The written case library is
- *               only a backup for when the model can't be reached.
+ *               only a backup for when the model can't be reached, and the
+ *               guided demo and the daily case stay written.
  *
  * One model only: OPENAI_MODEL (gpt-6-luna by default). When a request fails,
  * the turn falls back to the scripted reply — it never tries another model.
@@ -33,7 +34,9 @@ import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Spe
 import { CARE_LEVELS, CASE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
 import { mockProvider } from "./mock";
-import { FeedbackSchema, GeneratedCaseSchema, PatientResponseSchema, VoiceSchema, type GeneratedCase, type GeneratedMedia } from "./openai-schema";
+import type { z } from "zod";
+
+import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
 interface ChatMessage {
@@ -210,27 +213,12 @@ ${debrief.didWell.length ? `Done well: ${debrief.didWell.join("; ")}` : ""}`,
 }
 
 /* -------------------------------------------------------------------------- */
-/* Inventing a patient                                                         */
+/* Inventing a patient: a quick outline, then three parts written in parallel  */
 /* -------------------------------------------------------------------------- */
 
-/** How long a new patient may take to invent before the written backup is used (the request itself may run 60 s). */
-const GENERATION_TIMEOUT_MS = 48_000;
-
-const GENERATED_CASE_SHAPE = `{ specialty, setting: "OPD"|"ER"|"IPD"|"ICU"|"Ward"|"Teleconsult", difficulty: 1|2|3,
-  patient: { name?, age, sex: "Male"|"Female", city, occupation?, context? }, arrivalMinuteOfDay, briefing,
-  opening: [{ role, kind, text, media? }], baselineVitals: { bp: "158/96", hr: "88", rr, temp (°F), spo2, rbs, weight, height, gcs?, pain? },
-  triageVitals?: VitalKey[], profile: { allergies?, currentDrugs?, pregnancyPossible?, asthma?, ckd?, heartFailure?, thrombocytopenia? },
-  history: [{ id, group, label, match: string[], reply, fact?, abnormal?, importance: "essential"|"useful"|"minor", speaker?: "patient"|"attendant" }],
-  exam: [{ id, group: "general-exam"|"systemic-exam"|"local-exam", label, match: string[], finding, fact?, abnormal?, importance, patientReaction?, media? }],
-  investigations: [{ id, name?, short?, category?, match?, turnaroundMin?, cost?, rows?: [{ analyte, value, unit?, reference?, flag: "normal"|"low"|"high"|"critical" }], report?, media?, priority: "essential"|"useful"|"situational"|"unnecessary", teaching: { whenToOrder, whatItTellsYou } }],
-  therapeutics: [{ id, kind: "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", drugIds?, drugClasses?, measureIds?, concernsDrugs?, match?, label, appropriateness: "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", note?, critique?: { what, why, better, severity }, praise? }],
-  truth: { diagnosis, qualifier?, reasoning: [{stage:"History",text},{stage:"Examination",text},{stage:"Investigation",text},{stage:"Diagnosis",text}] },
-  rubric: { diagnosisAccept: string[], diagnosisPartial: string[], differentials: string[], idealTreatment: string[][], expertActionCount, followUpDays?: { min, max }, expectsReassessment, misses: Record<id, { what, why, better, severity }>, strengths: Record<id, string> },
-  followUp: [{ when: "ideal"|"acceptable"|"harmful"|"untreated"|"any", status, lines: [{ role, kind, text }] }],
-  teaching: { patientBand?, severityBands: [{ id, label, recognition[], investigation[], treatment[], followUp[] }], drugs: [{ generic, brand, dose, route, frequency, duration, indication, mechanism, whyItWorks, avoidWhen[], adverseEffects[], monitoring[] }], routines: [], followUp: { interval, reassess[], redFlags[], whenToEscalate[] }, treatmentFailure: { steps[] }, pearl } }
-media = { spec: ECG | PICTURE, alt, caption? }
-  ECG = { kind: "ecg", rate, rhythm: "sinus"|"afib"|"aflutter"|"svt"|"vt"|"paced"|"junctional", morphology?: { st?: {lead: mm}, t?: {lead: multiplier}, q?: {lead: mm}, qrsScale?: {lead: multiplier}, pr?, qrs?, qt? (ms), pWaves?, peakedT? } }  leads: I II III aVR aVL aVF V1–V6
-  PICTURE = { kind: "picture", type: "photo"|"xray"|"ct"|"mri"|"usg"|"fundus"|"endoscopy"|"slide", view, describe }`;
+/** The whole invention must finish inside the request's minute; past this, the written backup is used. */
+const OUTLINE_TIMEOUT_MS = 16_000;
+const PART_TIMEOUT_MS = 32_000;
 
 const pickOne = <T>(xs: readonly T[], random = Math.random): T => xs[Math.floor(random() * xs.length)]!;
 
@@ -245,36 +233,77 @@ function caseBrief(opts: StartOptions) {
   const age = specialty === "Pediatrics" ? pickOne(["an infant", "a toddler", "a school-age child", "an adolescent"]) : pickOne(["a young adult", "an adult in their 30s or 40s", "a middle-aged adult", "an older adult"]);
   return { track, level, specialty, sex, age };
 }
+type Brief = ReturnType<typeof caseBrief>;
 
-function generationPrompt(opts: StartOptions, brief: ReturnType<typeof caseBrief>): ChatMessage[] {
+const authoring = (country: Country) => {
+  const c = COUNTRY[country];
+  return `${simulationRules(country)}
+You author realistic, guideline-accurate clinical cases for ${c.name}. Patients are fictional and culturally realistic, never stereotyped; places, food, drug brands and services are local (the ambulance number is ${c.emergency}). Lab values in conventional units (mg/dL, g/dL, °F); costs in Indian rupees (the app converts them).`;
+};
+
+function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
   const country = COUNTRY[opts.country ?? "IN"];
   const level = levelMeta(brief.level, country.id);
-  const difficulty = opts.easy
-    ? "1 — EASY: a common, classic presentation with clear findings and a straightforward plan; ideal for a doctor's first cases"
-    : "matched to the setting (1 easy, 2 moderate, 3 hard)";
+  const difficulty = opts.easy ? "1 — EASY: a common, classic presentation with clear findings and a straightforward plan, for a doctor's first cases" : "matched to the setting (1 easy, 2 moderate, 3 hard)";
   return [
-    {
-      role: "system",
-      content: `${simulationRules(country.id)}
-You author realistic, guideline-accurate clinical cases for ${country.name}. Patients are fictional and culturally realistic, never stereotyped; places, food, drug brands and services are local (the ambulance number is ${country.emergency}). Write lab values in conventional units (mg/dL, g/dL, °F) and costs in Indian rupees: the app converts units and money for the player.
-
-Return JSON matching this shape exactly (all teaching content is shown only after the case closes):
-${GENERATED_CASE_SHAPE}
-
-Rules for the case file:
-- history: 8–14 entries. Every POSITIVE finding must be authored; "match" holds 3–8 short lowercase phrases a doctor might type. Include the presenting complaint, its history, past history, medicines and allergies.
-- exam: 3–8 entries. Use these standard examination ids where they fit: ${EXAMS.map((e) => e.id).join(", ")}; new ids for special signs.
-- investigations: 6–12, with their real results — abnormal where the disease makes them so, plus a few relevant normal ones. Use these ids where they fit: ${INVESTIGATIONS.map((i) => i.id).join(", ")}. Labs as rows; imaging and bedside tests as a report that describes findings only, never an impression or a diagnosis.
-- Pictures: attach media wherever a doctor would look at one — a skin, wound, eye or mouth finding as a "photo" on that exam entry; an X-ray, CT, MRI, ultrasound or fundus image as its type on that investigation. "describe" is a precise, medically accurate visual description for an image generator: the view or projection, the anatomical site, the patient's skin tone (Fitzpatrick type) for photos, and every visible abnormality with its size, number, colour, shape, distribution, side and extent. No text, labels, arrows or measurements in the picture.
-- ECGs: use the ECG media (rate, rhythm, per-lead ST in mm with + for elevation, T multiplier with negative to invert, Q depth in mm, QRS scale, PR/QRS/QT in ms). The site draws it accurately from these numbers.
-- alt says what the picture is of without interpreting it; caption gives acquisition details only (e.g. "PA erect", "Left cheek · close-up").
-- therapeutics: 6–12. drugIds only from: ${FORMULARY.map((d) => d.id).join(", ")}. measureIds only from: ${MEASURES.map((m) => m.id).join(", ")}.
-- rubric.idealTreatment is an AND-of-ORs over therapeutic ids; misses and strengths are keyed by history, exam, investigation or therapeutic ids.
-- Keep the teaching section concise.`,
-    },
+    { role: "system", content: authoring(country.id) },
     {
       role: "user",
-      content: `Write one complete case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. The patient is ${brief.age}, ${brief.sex.toLowerCase()}. Difficulty: ${difficulty}. Choose a realistic condition that fits; vary it — not always the most common one.`,
+      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. The patient is ${brief.age}, ${brief.sex.toLowerCase()}. Difficulty: ${difficulty}. ${opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : "Choose a realistic condition that fits; vary it — not always the most common one."}
+Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
+    },
+  ];
+}
+
+const partHead = (concept: Concept, brief: Brief) =>
+  `THE CASE (every part must agree with it):\n${JSON.stringify({ ...concept, setting: brief.track === "phone" ? "Teleconsult" : brief.track === "emergency" ? "ER" : "OPD" })}\n\n`;
+
+function dialoguePrompt(opts: StartOptions, concept: Concept, brief: Brief): ChatMessage[] {
+  return [
+    { role: "system", content: authoring(opts.country ?? "IN") },
+    {
+      role: "user",
+      content: `${partHead(concept, brief)}Write what the patient and family say, and the vital signs. Return JSON:
+{ "opening": [{ "role": "patient"|"attendant"|"nurse"|"system", "kind": "speech"|"action"|"status", "text" }] (1–3 lines: how the patient arrives and their first words — no diagnosis),
+  "baselineVitals": { "bp": "128/82", "hr": "88", "rr", "temp" (°F), "spo2", "rbs", "weight", "height", "gcs"?, "pain"? },
+  "triageVitals": ["vitals already on the board on arrival"],
+  "profile": { "allergies": [], "currentDrugs": [], "pregnancyPossible"?, "asthma"?, "ckd"?, "heartFailure"? },
+  "history": [{ "id": "short_snake_case", "group": "complaint"|"hpi"|"past"|"medication"|"allergy"|"family"|"social"|"diet"|"sexual"|"obstetric"|"systemic", "label", "match": ["3–8 short lowercase phrases a doctor might type"], "reply": "what the patient says, lay words", "fact": "the fact in clinical shorthand", "abnormal"?, "importance": "essential"|"useful"|"minor", "speaker"?: "attendant" }] }
+history: 8–12 entries — the presenting complaint, its course, relevant positives and negatives, past history, medicines and allergies. Every positive in the case must be here.`,
+    },
+  ];
+}
+
+function findingsPrompt(opts: StartOptions, concept: Concept, brief: Brief): ChatMessage[] {
+  return [
+    { role: "system", content: authoring(opts.country ?? "IN") },
+    {
+      role: "user",
+      content: `${partHead(concept, brief)}Write what the doctor finds. Return JSON:
+{ "exam": [{ "id", "group": "general-exam"|"systemic-exam"|"local-exam", "label", "match": [], "finding": "what is seen, felt and heard, objectively", "fact", "abnormal"?, "importance", "media"? }],
+  "investigations": [{ "id", "name", "short", "category": "lab"|"bedside"|"ecg"|"imaging"|"photo"|"micro"|"histopath"|"function", "match": ["phrases a doctor might type"], "cost" (INR), "rows"?: [{ "analyte", "value", "unit", "reference", "flag": "normal"|"low"|"high"|"critical" }], "report"?: "findings only — never an impression or diagnosis", "media"?, "priority": "essential"|"useful"|"situational"|"unnecessary", "teaching": { "whenToOrder", "whatItTellsYou" } }] }
+media = { "spec": { …ECG or PICTURE fields… }, "alt": "what it is a picture of, without interpreting it", "caption": "acquisition details only, e.g. 'PA erect', 'Left cheek · close-up'" }
+  e.g. "media": { "spec": { "kind": "picture", "type": "xray", "view": "PA erect", "describe": "…" }, "alt": "Chest radiograph, PA view", "caption": "PA erect" }
+  ECG = { "kind": "ecg", "rate", "rhythm": "sinus"|"afib"|"aflutter"|"svt"|"vt"|"paced"|"junctional", "morphology"?: { "st"?: {"lead": mm, + = elevation}, "t"?: {"lead": multiplier, negative inverts}, "q"?: {"lead": mm}, "qrsScale"?: {"lead": multiplier}, "pr"?, "qrs"?, "qt"? (ms), "pWaves"?, "peakedT"? } } — leads I II III aVR aVL aVF V1–V6; the site draws it accurately from these numbers.
+  PICTURE = { "kind": "picture", "type": "photo"|"xray"|"ct"|"mri"|"usg"|"fundus"|"endoscopy"|"slide", "view", "describe": "a precise, medically accurate visual description for an image generator — the view or projection, the anatomical site, the patient's skin tone (Fitzpatrick type) for photos, and every visible abnormality with its size, number, colour, shape, distribution, side and extent" }
+exam: 3–7 entries; use these ids where they fit: ${EXAMS.map((e) => e.id).join(", ")}. A visible skin, wound, eye or mouth finding gets a photo (never photograph the genitals or breasts — describe those in words).
+investigations: 6–9, with real results — abnormal where the disease makes them so, plus a few relevant normal ones; use these ids where they fit: ${INVESTIGATIONS.map((i) => i.id).join(", ")}. X-ray, CT, MRI, ultrasound and fundus results get their picture; an ECG gets ECG media.
+Be concise: lab rows only for the analytes that matter (at most 10 per test); reports in one to three sentences; teaching in one sentence each.`,
+    },
+  ];
+}
+
+function managementPrompt(opts: StartOptions, concept: Concept, brief: Brief): ChatMessage[] {
+  return [
+    { role: "system", content: authoring(opts.country ?? "IN") },
+    {
+      role: "user",
+      content: `${partHead(concept, brief)}Write the management and the marking key. Return JSON:
+{ "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why", "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
+  "reasoning": [{ "stage": "History", "text" }, { "stage": "Examination", "text" }, { "stage": "Investigation", "text" }, { "stage": "Diagnosis", "text" }],
+  "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": [], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
+  "followUp": [{ "when": "ideal"|"acceptable"|"harmful"|"untreated"|"any", "status": "recovered"|"improving"|"stable"|"guarded"|"deteriorating"|"critical", "lines": [{ "role", "kind", "text" }] }] }
+therapeutics: 5–10 — the right treatments and common wrong or harmful ones. drugIds only from: ${FORMULARY.map((d) => d.id).join(", ")}. measureIds only from: ${MEASURES.map((m) => m.id).join(", ")}.`,
     },
   ];
 }
@@ -293,38 +322,81 @@ function mediaOf(m: GeneratedMedia | undefined, pictures: NonNullable<ClinicalCa
 
 const DRUG_IDS = new Set(FORMULARY.map((d) => d.id));
 const MEASURE_IDS = new Set(MEASURES.map((m) => m.id));
+/** The debrief's teaching arrives later (written in the background); until then, an empty frame. */
+const NO_TEACHING: ClinicalCaseDefinition["teaching"] = { severityBands: [], treatmentByBand: {}, drugs: [], routines: [], followUp: { interval: "", reassess: [], redFlags: [], whenToEscalate: [] }, treatmentFailure: { steps: [] }, pearl: "" } as unknown as ClinicalCaseDefinition["teaching"];
 
-function toDefinition(g: GeneratedCase, brief: ReturnType<typeof caseBrief>, opts: StartOptions): ClinicalCaseDefinition {
+function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.infer<typeof FindingsSchema>, m: z.infer<typeof ManagementSchema>, brief: Brief, opts: StartOptions): ClinicalCaseDefinition {
   const pictures: NonNullable<ClinicalCaseDefinition["pictures"]> = {};
-  const id = `gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const unique = <T extends { id: string }>(xs: T[]) => xs.filter((x, i) => x.id && xs.findIndex((y) => y.id === x.id) === i);
+  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)) }));
+  const known = new Set(therapeutics.map((t) => t.id));
   return {
-    id,
+    id: `gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     pictures,
-    specialty: g.specialty,
+    specialty: concept.specialty,
     track: brief.track,
     level: brief.level,
-    setting: brief.track === "phone" ? "Teleconsult" : brief.track === "emergency" ? "ER" : g.setting,
+    setting: brief.track === "phone" ? "Teleconsult" : brief.track === "emergency" ? "ER" : "OPD",
     weight: 1,
-    difficulty: (opts.easy ? 1 : g.difficulty) as 1 | 2 | 3,
+    difficulty: (opts.easy ? 1 : concept.difficulty) as 1 | 2 | 3,
     ...(opts.country ? { countries: [opts.country] } : {}),
-    patient: g.patient as ClinicalCaseDefinition["patient"],
-    arrivalMinuteOfDay: g.arrivalMinuteOfDay,
-    briefing: g.briefing,
-    opening: g.opening.map((o) => ({ ...o, media: mediaOf(o.media, pictures) })) as ClinicalCaseDefinition["opening"],
-    baselineVitals: Object.fromEntries(Object.entries(g.baselineVitals).map(([k, v]) => [k, { key: k, value: v }])) as ClinicalCaseDefinition["baselineVitals"],
-    triageVitals: g.triageVitals as ClinicalCaseDefinition["triageVitals"],
-    profile: g.profile,
-    history: g.history as ClinicalCaseDefinition["history"],
-    exam: g.exam.map((e) => ({ ...e, media: mediaOf(e.media, pictures) })) as ClinicalCaseDefinition["exam"],
-    investigations: g.investigations.map((i) => ({ ...i, media: mediaOf(i.media, pictures) })) as ClinicalCaseDefinition["investigations"],
+    patient: { name: concept.patient.name, age: concept.patient.age, sex: concept.patient.sex, city: concept.patient.city, occupation: concept.patient.occupation, context: brief.track === "emergency" ? "Emergency" : brief.track === "phone" ? "Phone" : "OPD" } as ClinicalCaseDefinition["patient"],
+    arrivalMinuteOfDay: 8 * 60 + Math.floor(Math.random() * 10 * 60),
+    briefing: concept.briefing,
+    opening: (d.opening.length ? d.opening : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }]) as ClinicalCaseDefinition["opening"],
+    baselineVitals: Object.fromEntries(Object.entries({ bp: "122/78", hr: "84", rr: "16", temp: "98.4", spo2: "98", weight: "62", ...d.baselineVitals }).map(([k, v]) => [k, { key: k, value: v }])) as ClinicalCaseDefinition["baselineVitals"],
+    triageVitals: d.triageVitals as ClinicalCaseDefinition["triageVitals"],
+    profile: d.profile,
+    history: unique(d.history).filter((h) => h.match.length > 0) as ClinicalCaseDefinition["history"],
+    exam: unique(f.exam).map((e) => ({ ...e, media: mediaOf(e.media, pictures) })) as ClinicalCaseDefinition["exam"],
+    investigations: unique(f.investigations).map((i) => ({ ...i, rows: i.rows.length ? i.rows : undefined, media: mediaOf(i.media, pictures) })) as ClinicalCaseDefinition["investigations"],
     // Only drugs and measures the engine knows: anything else could never be matched.
-    therapeutics: g.therapeutics.map((t) => ({ ...t, drugIds: t.drugIds?.filter((d) => DRUG_IDS.has(d)), measureIds: t.measureIds?.filter((m) => MEASURE_IDS.has(m)) })) as ClinicalCaseDefinition["therapeutics"],
+    therapeutics: therapeutics as ClinicalCaseDefinition["therapeutics"],
     hazards: [],
-    followUp: g.followUp as ClinicalCaseDefinition["followUp"],
-    truth: g.truth,
-    rubric: g.rubric as ClinicalCaseDefinition["rubric"],
-    teaching: { ...g.teaching, treatmentByBand: {} } as ClinicalCaseDefinition["teaching"],
+    followUp: m.followUp as ClinicalCaseDefinition["followUp"],
+    truth: {
+      diagnosis: concept.diagnosis,
+      qualifier: concept.qualifier,
+      reasoning: (["History", "Examination", "Investigation", "Diagnosis"] as const).map((stage) => ({ stage, text: m.reasoning.find((r) => r.stage === stage)?.text ?? "" })),
+    },
+    rubric: {
+      diagnosisAccept: m.rubric.diagnosisAccept.length ? m.rubric.diagnosisAccept : [concept.diagnosis],
+      diagnosisPartial: m.rubric.diagnosisPartial,
+      differentials: m.rubric.differentials.length ? m.rubric.differentials : concept.differentials,
+      idealTreatment: m.rubric.idealTreatment.map((g) => g.filter((id) => known.has(id))).filter((g) => g.length > 0),
+      expertActionCount: m.rubric.expertActionCount,
+      followUpDays: m.rubric.followUpDays,
+      expectsReassessment: m.rubric.expectsReassessment,
+      misses: {},
+      strengths: {},
+    } as ClinicalCaseDefinition["rubric"],
+    teaching: NO_TEACHING,
   };
+}
+
+/** The debrief's teaching and misses, for an invented case — written while it's being played. */
+function teachingPrompt(def: ClinicalCaseDefinition): ChatMessage[] {
+  const items = [
+    ...def.history.map((h) => `${h.id} (history: ${h.label}, ${h.importance})`),
+    ...def.exam.map((e) => `${e.id} (exam: ${e.label}, ${e.importance})`),
+    ...def.investigations.map((i) => `${i.id} (test: ${i.name ?? i.id}, ${i.priority})`),
+    ...def.therapeutics.map((t) => `${t.id} (treatment: ${t.label}, ${t.appropriateness})`),
+  ];
+  return [
+    { role: "system", content: "You write concise, guideline-accurate teaching for a clinical simulation's debrief (shown only after the case). Output JSON only." },
+    {
+      role: "user",
+      content: `Case: ${def.patient.age}-year-old ${def.patient.sex}. ${def.briefing}
+Diagnosis: ${def.truth.diagnosis}${def.truth.qualifier ? ` — ${def.truth.qualifier}` : ""}.
+Items in the case (id, what, importance): ${items.join("; ")}
+
+Return JSON:
+{ "teaching": { "patientBand": "the id of this patient's severity band", "severityBands": [{ "id", "label", "recognition": [], "investigation": [], "treatment": [], "followUp": [] }] (2–4 bands), "drugs": [{ "generic", "brand", "dose", "route": "PO"|"IV"|"IM"|"SC"|"SL"|"PR"|"TOP"|"INH"|"NEB"|"IN", "frequency", "duration", "indication", "mechanism", "whyItWorks", "avoidWhen": [], "adverseEffects": [], "monitoring": [] }] (1–4), "routines": [], "followUp": { "interval", "reassess": [], "redFlags": [], "whenToEscalate": [] }, "treatmentFailure": { "steps": [] }, "pearl": "one memorable teaching point" },
+  "misses": { "<id of an essential or useful item>": { "what": "what the doctor didn't do", "why": "why it matters here", "better": "the better approach", "severity": "minor"|"moderate"|"major" } },
+  "strengths": { "<id>": "what doing it well shows" } }
+misses and strengths: one for each essential item and the most useful ones; keys must be ids from the list.`,
+    },
+  ];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -389,17 +461,35 @@ export function createOpenAIProvider(): ClinicalProvider {
 
     /** A new patient, invented now. If the model can't (offline, slow, no credit, a file that fails its checks), a written case is the backup. */
     async createCase(opts) {
-      // Inventing patients switches on with RAMAI_AI_CASES=1 while the picture side is finished.
-      if (process.env.RAMAI_AI_CASES !== "1") return mockProvider.createCase(opts);
+      // Every real case is invented now (RAMAI_AI_CASES=0 turns it off: written cases only).
+      if (process.env.RAMAI_AI_CASES === "0") return mockProvider.createCase(opts);
       const brief = caseBrief(opts);
       try {
-        const raw = await chatJSON(generationPrompt(opts, brief), 9000, false, GENERATION_TIMEOUT_MS);
-        const parsed = GeneratedCaseSchema.safeParse(raw);
-        if (!parsed.success) throw new UpstreamError(`case failed its checks: ${parsed.error.issues.slice(0, 3).map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
-        return { kind: "generated", def: toDefinition(parsed.data, brief, opts) };
+        const outline = ConceptSchema.safeParse(await chatJSON(outlinePrompt(opts, brief), 900, false, OUTLINE_TIMEOUT_MS));
+        if (!outline.success || !outline.data.diagnosis) throw new UpstreamError("the outline failed its checks");
+        const concept = outline.data;
+        const [d, f, m] = await Promise.all([
+          chatJSON(dialoguePrompt(opts, concept, brief), 2600, false, PART_TIMEOUT_MS).then((x) => DialogueSchema.parse(x)),
+          chatJSON(findingsPrompt(opts, concept, brief), 4600, false, PART_TIMEOUT_MS).then((x) => FindingsSchema.parse(x)),
+          chatJSON(managementPrompt(opts, concept, brief), 2400, false, PART_TIMEOUT_MS).then((x) => ManagementSchema.parse(x)),
+        ]);
+        if (d.history.length < 4 || f.exam.length < 1 || m.therapeutics.length < 2) {
+          throw new UpstreamError(`a part came back too thin (history ${d.history.length}, exam ${f.exam.length}, treatments ${m.therapeutics.length})`);
+        }
+        return { kind: "generated", def: toDefinition(concept, d, f, m, brief, opts) };
       } catch (err) {
         console.error("[ramai] couldn't invent a patient; using a written case", err instanceof Error ? err.message : err);
         return mockProvider.createCase(opts);
+      }
+    },
+
+    async teach(def) {
+      try {
+        const parsed = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 3000, false, 45_000));
+        return parsed.success ? parsed.data : undefined;
+      } catch (err) {
+        console.error("[ramai] teaching unavailable", err instanceof Error ? err.message : err);
+        return undefined;
       }
     },
     resolveCase: (src) => mockProvider.resolveCase(src),

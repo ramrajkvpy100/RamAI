@@ -24,7 +24,7 @@ import { generateDebrief } from "./debrief";
 import { localizeCase, presentDebrief, presentEffects, presentState } from "./i18n/country";
 import { localizeEffects, localizeState } from "./i18n/hinglish";
 import { getProvider } from "./providers";
-import type { ClinicalProvider } from "./providers/types";
+import type { ClinicalProvider, TeachingPack } from "./providers/types";
 import { applyEffects, createInitialState } from "./reducer";
 import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
@@ -55,10 +55,32 @@ interface Rebuilt {
   country: Country;
 }
 
+/** Where an invented case's debrief teaching is kept once the case closes: on its closing action. */
+const TEACH_KEY = "teach";
+
+function storedTeaching(payload: SessionPayload): TeachingPack | undefined {
+  for (let i = payload.a.length - 1; i >= 0; i--) {
+    const raw = payload.a[i]!.generated?.[TEACH_KEY];
+    if (!raw) continue;
+    try {
+      return JSON.parse(raw) as TeachingPack;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/** An invented case with its teaching and misses filled in. */
+function withTeaching(def: ClinicalCaseDefinition, pack: TeachingPack | undefined): ClinicalCaseDefinition {
+  if (!pack) return def;
+  return { ...def, teaching: { ...pack.teaching, treatmentByBand: {} } as ClinicalCaseDefinition["teaching"], rubric: { ...def.rubric, misses: pack.misses, strengths: pack.strengths } };
+}
+
 /** Deterministically rebuilds hidden and visible state from a sealed payload. */
 function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
   const country = payload.c ?? "IN";
-  const def = localizeCase(provider.resolveCase(payload.src), country);
+  const def = localizeCase(withTeaching(provider.resolveCase(payload.src), storedTeaching(payload)), country);
   const hidden = createHiddenState(def);
   let state = createInitialState({
     sessionId: payload.sid,
@@ -157,9 +179,30 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
 }
 
 /** The library reference and owner of a sealed session (server use only). */
-export function sessionInfo(token: string): { sessionId: string; userId: string; daily?: string } {
+export function sessionInfo(token: string): { sessionId: string; userId: string; daily?: string; generated: boolean } {
   const p = unseal(token);
-  return { sessionId: p.sid, userId: p.u, daily: p.d };
+  return { sessionId: p.sid, userId: p.u, daily: p.d, generated: p.src.kind === "generated" };
+}
+
+/** An invented case's debrief teaching, written while it's being played (server use: stored with the case). */
+export async function teachingFor(token: string, userId: string): Promise<TeachingPack | undefined> {
+  const provider = await getProvider();
+  const payload = open(token, userId);
+  if (payload.src.kind !== "generated" || !provider.teach) return undefined;
+  return provider.teach(provider.resolveCase(payload.src));
+}
+
+/**
+ * What an AI picture should show — only once the case has reached it (the
+ * finding examined, the test resulted), so nothing can be seen early.
+ */
+export async function pictureFor(token: string, userId: string, ref: string): Promise<NonNullable<ClinicalCaseDefinition["pictures"]>[string] | null> {
+  const payload = open(token, userId);
+  const { def, state } = rebuild(payload, await getProvider());
+  const picture = def.pictures?.[ref];
+  if (!picture) return null;
+  const reached = state.messages.some((m) => m.media?.ai?.ref === ref) || state.investigations.some((i) => i.media?.ai?.ref === ref);
+  return reached ? picture : null;
 }
 
 /** Where the debrief's feedback in words is kept: on the closing action, so reopening a case never asks the model again. */
@@ -187,7 +230,7 @@ export async function resumeCase(token: string, userId: string, lang: PatientLan
   return { token, state: render(state, def, country, lang), debrief: hidden.closed ? presentDebrief({ ...generateDebrief(def, hidden, state), ...(coach ? { coach } : {}) }, country) : undefined };
 }
 
-export async function submitDoctorAction(token: string, input: string, userId: string, lang: PatientLang = "en"): Promise<TurnResponse> {
+export async function submitDoctorAction(token: string, input: string, userId: string, lang: PatientLang = "en", teaching?: TeachingPack): Promise<TurnResponse> {
   const text = input.replace(/\s+$/g, "").replace(/^\s+/g, "");
   if (!text) throw new EngineError("BAD_INPUT", "Say or order something.");
   if (text.length > MAX_INPUT_LENGTH) throw new EngineError("BAD_INPUT", "That instruction is too long.");
@@ -216,9 +259,18 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   let debrief: CaseDebrief | undefined;
   if (hidden.closed) {
     next = { ...next, specialty: def.specialty };
-    const marked = generateDebrief(def, hidden, next);
+    // An invented case's teaching: written in the background while it was played, or now if that didn't finish.
+    let full = def;
+    if (payload.src.kind === "generated" && !storedTeaching(payload)) {
+      const pack = teaching ?? (provider.teach ? await provider.teach(provider.resolveCase(payload.src)) : undefined);
+      if (pack) {
+        record.generated = { ...record.generated, [TEACH_KEY]: JSON.stringify(pack) };
+        full = localizeCase(withTeaching(provider.resolveCase(payload.src), pack), country);
+      }
+    }
+    const marked = generateDebrief(full, hidden, next);
     // Feedback in words from the model, when there is one — kept with the case; the score is the marking rules' alone.
-    const coach = provider.feedback ? await provider.feedback({ def, hidden, transcript: next.messages, debrief: marked, country }) : undefined;
+    const coach = provider.feedback ? await provider.feedback({ def: full, hidden, transcript: next.messages, debrief: marked, country }) : undefined;
     if (coach) record.generated = { ...record.generated, [COACH_KEY]: JSON.stringify(coach) };
     debrief = presentDebrief(coach ? { ...marked, coach } : marked, country);
   }

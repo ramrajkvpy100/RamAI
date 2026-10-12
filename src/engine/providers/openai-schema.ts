@@ -48,97 +48,176 @@ export const FeedbackSchema = z.object({
 });
 
 /* -------------------------------------------------------------------------- */
-/* An AI-made case: the whole patient file, checked before it is used          */
+/* An AI-made case, in four pieces: an outline, then three parts in parallel   */
+/* Forgiving on purpose: small slips are fixed or dropped, not fatal.          */
 /* -------------------------------------------------------------------------- */
 
-const Flag = z.enum(["normal", "low", "high", "critical", "unknown"]).default("normal");
-const LabRow = z.object({ analyte: z.string().max(80), value: z.string().max(40), unit: z.string().max(30).optional(), reference: z.string().max(60).optional(), flag: Flag });
+/** Text (numbers accepted), trimmed and capped. A missing value is missing — never the word "undefined". */
+const str = (max: number) => z.preprocess((v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v), z.string()).transform((t) => t.trim().slice(0, max));
+/** Optional text: missing, null or malformed all mean "not given". */
+const optStr = (max: number) => str(max).optional().catch(undefined);
+/** A list from whatever arrived: an array, one value, or a semicolon-separated string. */
+const strs = (maxItems: number, maxLen = 220) =>
+  z.unknown().optional().transform((v) => (Array.isArray(v) ? v : typeof v === "string" ? v.split(/;\s*|\n/) : v == null ? [] : [v]).map((x) => String(x).trim().slice(0, maxLen)).filter(Boolean).slice(0, maxItems));
+/** A list of objects: items that don't fit are dropped, the rest kept. */
+const listOf = <T extends z.ZodType>(item: T, maxItems: number) =>
+  z.unknown().optional().transform((v) =>
+    (Array.isArray(v) ? v : v == null ? [] : [v])
+      .map((x) => item.safeParse(x))
+      .filter((r) => r.success)
+      .map((r) => r.data as z.output<T>)
+      .slice(0, maxItems),
+  );
+const num = (fallback: number) => z.coerce.number().catch(fallback);
+
+const Flag = z.enum(["normal", "low", "high", "critical", "unknown"]).catch("normal");
+const LabRow = z.object({ analyte: str(80), value: str(40), unit: optStr(30), reference: optStr(60), flag: Flag });
 const VitalKey = z.enum(["bp", "hr", "rr", "temp", "spo2", "rbs", "weight", "height", "bmi", "gcs", "pain", "urine"]);
-const FactGroup = z.enum(["demographics", "complaint", "hpi", "past", "medication", "allergy", "family", "social", "diet", "sexual", "obstetric", "systemic", "general-exam", "systemic-exam", "local-exam"]);
-const Importance = z.enum(["essential", "useful", "minor"]);
+const FactGroup = z.enum(["demographics", "complaint", "hpi", "past", "medication", "allergy", "family", "social", "diet", "sexual", "obstetric", "systemic"]).catch("hpi");
+const Importance = z.enum(["essential", "useful", "minor"]).catch("useful");
 const Specialty = z.enum(["Medicine", "Dermatology", "Surgery", "Pediatrics", "OBGYN", "Emergency", "Cardiology", "Neurology", "Respiratory", "Gastroenterology", "Nephrology", "Endocrinology", "Psychiatry", "ENT", "Ophthalmology", "Orthopedics", "Urology", "Infectious Disease"]);
 const Lead = z.enum(["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]);
-const PerLead = z.partialRecord(Lead, z.number().min(-12).max(12)).optional();
+const PerLead = z.partialRecord(Lead, z.coerce.number().min(-12).max(12)).optional().catch(undefined);
+const Role = z.enum(["patient", "attendant", "nurse", "system"]).catch("system");
+const Kind = z.enum(["speech", "action", "finding", "status"]).catch("speech");
 
 /** An ECG: the findings only — the site's ECG engine draws them, accurately. */
 const EcgMedia = z.object({
   kind: z.literal("ecg"),
-  rate: z.number().min(20).max(250),
-  rhythm: z.enum(["sinus", "afib", "aflutter", "svt", "vt", "paced", "junctional"]),
+  rate: z.coerce.number().min(20).max(250),
+  rhythm: z.enum(["sinus", "afib", "aflutter", "svt", "vt", "paced", "junctional"]).catch("sinus"),
   morphology: z
     .object({
       st: PerLead,
       t: PerLead,
       q: PerLead,
       qrsScale: PerLead,
-      pr: z.number().min(60).max(400).optional(),
-      qrs: z.number().min(60).max(240).optional(),
-      qt: z.number().min(200).max(700).optional(),
-      pWaves: z.boolean().optional(),
-      peakedT: z.boolean().optional(),
+      pr: z.coerce.number().min(60).max(400).optional().catch(undefined),
+      qrs: z.coerce.number().min(60).max(240).optional().catch(undefined),
+      qt: z.coerce.number().min(200).max(700).optional().catch(undefined),
+      pWaves: z.boolean().optional().catch(undefined),
+      peakedT: z.boolean().optional().catch(undefined),
     })
-    .optional(),
+    .optional()
+    .catch(undefined),
 });
 /** A picture: a precise description the image model draws from when the case reaches it. Never shown to the player. */
 const PictureMedia = z.object({
   kind: z.literal("picture"),
   type: z.enum(["photo", "xray", "ct", "mri", "usg", "fundus", "endoscopy", "slide"]),
-  view: z.string().max(80),
-  describe: z.string().min(20).max(900),
+  view: str(80),
+  describe: str(900).refine((t) => t.length >= 20),
 });
-const GenMedia = z.object({ spec: z.union([EcgMedia, PictureMedia]), alt: z.string().max(220), caption: z.string().max(120).optional() });
+/** Accepts the details nested in "spec" or written flat beside alt and caption (both happen). */
+function normaliseMedia(v: unknown): unknown {
+  if (!v || typeof v !== "object") return v;
+  const m = v as Record<string, unknown>;
+  if (m.spec && typeof m.spec === "object") return m;
+  const { alt, caption, spec, ...rest } = m;
+  const label = typeof spec === "string" ? spec.toLowerCase() : "";
+  const kind = typeof rest.kind === "string" ? rest.kind.toLowerCase() : label.includes("ecg") ? "ecg" : label.includes("picture") ? "picture" : undefined;
+  return { alt, caption, spec: { ...rest, kind } };
+}
+const GenMedia = z.preprocess(normaliseMedia, z.object({ spec: z.union([EcgMedia, PictureMedia]), alt: str(220), caption: optStr(120) }));
 export type GeneratedMedia = z.infer<typeof GenMedia>;
+const media = GenMedia.optional().catch(undefined);
 
-const Miss = z.object({ what: z.string(), why: z.string(), better: z.string(), severity: z.enum(["minor", "moderate", "major"]).default("moderate") });
+const Miss = z.object({ what: str(300), why: str(300), better: str(300), severity: z.enum(["minor", "moderate", "major"]).catch("moderate") });
 
-export const GeneratedCaseSchema = z.object({
-  specialty: Specialty,
-  setting: z.enum(["OPD", "IPD", "ER", "ICU", "Ward", "Teleconsult"]),
-  difficulty: z.number().int().min(1).max(3).default(2),
-  patient: z.object({ name: z.string().max(60).optional(), age: z.number().int().min(0).max(110), sex: z.enum(["Male", "Female", "Other"]), city: z.string().max(80), occupation: z.string().max(80).optional(), context: z.string().max(80).optional() }),
-  arrivalMinuteOfDay: z.number().int().min(0).max(1439).default(600),
-  briefing: z.string().max(260),
-  opening: z.array(z.object({ role: z.enum(["patient", "attendant", "nurse", "system"]), kind: z.enum(["speech", "action", "finding", "status"]), text: z.string().max(400), media: GenMedia.optional() })).min(1).max(4),
-  baselineVitals: z.partialRecord(VitalKey, z.string().max(20)),
-  triageVitals: z.array(VitalKey).optional(),
-  profile: z
-    .object({
-      allergies: z.array(z.string()).optional(),
-      currentDrugs: z.array(z.string()).optional(),
-      pregnancyPossible: z.boolean().optional(),
-      pregnant: z.boolean().optional(),
-      asthma: z.boolean().optional(),
-      ckd: z.boolean().optional(),
-      heartFailure: z.boolean().optional(),
-      thrombocytopenia: z.boolean().optional(),
-      fluidToleranceMl: z.number().optional(),
-    })
-    .default({}),
-  history: z.array(z.object({ id: z.string().max(40), group: FactGroup, label: z.string().max(60), match: z.array(z.string().max(60)).min(1).max(20), reply: z.string().max(500), fact: z.string().max(200).optional(), abnormal: z.boolean().optional(), importance: Importance, speaker: z.enum(["patient", "attendant"]).optional() })).min(6).max(30),
-  exam: z.array(z.object({ id: z.string().max(40), group: z.enum(["general-exam", "systemic-exam", "local-exam"]), label: z.string().max(60), match: z.array(z.string().max(60)).max(12).default([]), finding: z.string().max(600), fact: z.string().max(200).optional(), abnormal: z.boolean().optional(), importance: Importance, patientReaction: z.string().max(200).optional(), media: GenMedia.optional() })).min(2).max(24),
-  investigations: z.array(z.object({ id: z.string().max(40), name: z.string().max(80).optional(), short: z.string().max(30).optional(), category: z.enum(["lab", "bedside", "ecg", "imaging", "photo", "micro", "histopath", "function"]).optional(), match: z.array(z.string().max(60)).max(12).optional(), turnaroundMin: z.number().min(1).max(10080).optional(), cost: z.number().min(0).max(100000).optional(), rows: z.array(LabRow).max(30).optional(), report: z.string().max(900).optional(), media: GenMedia.optional(), priority: z.enum(["essential", "useful", "situational", "unnecessary"]), teaching: z.object({ whenToOrder: z.string().max(300), whatItTellsYou: z.string().max(300) }) })).max(24),
-  therapeutics: z.array(z.object({ id: z.string().max(40), kind: z.enum(["drug", "procedure", "counsel", "referral", "admit", "discharge", "supportive"]), drugIds: z.array(z.string()).optional(), drugClasses: z.array(z.string()).optional(), measureIds: z.array(z.string()).optional(), concernsDrugs: z.array(z.string()).optional(), match: z.array(z.string().max(60)).max(12).optional(), label: z.string().max(80), appropriateness: z.enum(["ideal", "acceptable", "neutral", "unnecessary", "harmful", "dangerous"]), note: z.string().max(300).optional(), critique: Miss.optional(), praise: z.string().max(200).optional() })).max(30),
-  truth: z.object({ diagnosis: z.string().max(120), qualifier: z.string().max(400).optional(), reasoning: z.array(z.object({ stage: z.enum(["History", "Examination", "Investigation", "Diagnosis"]), text: z.string().max(500) })).length(4) }),
-  rubric: z.object({
-    diagnosisAccept: z.array(z.string()).min(1),
-    diagnosisPartial: z.array(z.string()).default([]),
-    differentials: z.array(z.string()).default([]),
-    idealTreatment: z.array(z.array(z.string()).min(1)).default([]),
-    expertActionCount: z.number().int().min(4).max(60).default(14),
-    followUpDays: z.object({ min: z.number(), max: z.number() }).optional(),
-    expectsReassessment: z.boolean().default(false),
-    misses: z.record(z.string(), Miss).default({}),
-    strengths: z.record(z.string(), z.string()).default({}),
-  }),
-  followUp: z.array(z.object({ when: z.enum(["ideal", "acceptable", "harmful", "untreated", "any"]), status: z.enum(["stable", "guarded", "deteriorating", "critical", "improving", "recovered"]), lines: z.array(z.object({ role: z.enum(["patient", "attendant", "nurse", "system"]), kind: z.enum(["speech", "action", "finding", "status"]), text: z.string().max(400) })).min(1).max(4) })).max(4).default([]),
-  teaching: z.object({
-    patientBand: z.string().optional(),
-    severityBands: z.array(z.object({ id: z.string(), label: z.string(), recognition: z.array(z.string()), investigation: z.array(z.string()), treatment: z.array(z.string()), followUp: z.array(z.string()) })).max(5).default([]),
-    drugs: z.array(z.object({ generic: z.string(), brand: z.string().optional(), dose: z.string(), route: z.enum(["PO", "IV", "IM", "SC", "SL", "PR", "TOP", "INH", "NEB", "OD-eye", "IN"]), frequency: z.string(), duration: z.string(), indication: z.string(), mechanism: z.string(), whyItWorks: z.string(), avoidWhen: z.array(z.string()), adverseEffects: z.array(z.string()), monitoring: z.array(z.string()) })).max(6).default([]),
-    routines: z.array(z.object({ label: z.string(), steps: z.array(z.object({ order: z.number(), step: z.string(), product: z.string().optional(), howMuch: z.string().optional(), where: z.string().optional(), note: z.string().optional() })), avoid: z.array(z.string()).optional(), improvementTimeline: z.string().optional() })).max(3).default([]),
-    followUp: z.object({ interval: z.string(), reassess: z.array(z.string()), redFlags: z.array(z.string()), whenToEscalate: z.array(z.string()) }),
-    treatmentFailure: z.object({ steps: z.array(z.string()) }),
-    pearl: z.string().max(600),
-  }),
+/** 1. The outline — who, what's wrong, and the key facts every part must agree on. */
+export const ConceptSchema = z.object({
+  specialty: Specialty.catch("Medicine"),
+  difficulty: z.coerce.number().int().min(1).max(3).catch(2),
+  patient: z.object({ name: optStr(60), age: num(40).transform((n) => Math.max(0, Math.min(110, Math.round(n)))), sex: z.enum(["Male", "Female"]).catch("Male"), city: str(80), occupation: optStr(80) }),
+  briefing: str(260),
+  diagnosis: str(140),
+  qualifier: optStr(400),
+  keyHistory: strs(12),
+  keyExam: strs(10),
+  keyResults: strs(10),
+  pictures: strs(4),
+  ecg: optStr(400),
+  differentials: strs(6, 80),
+  plan: strs(10),
 });
-export type GeneratedCase = z.infer<typeof GeneratedCaseSchema>;
+export type Concept = z.infer<typeof ConceptSchema>;
+
+/** 2a. What the patient and family say, and the vital signs. */
+export const DialogueSchema = z.object({
+  opening: listOf(z.object({ role: Role, kind: Kind, text: str(400) }), 4),
+  baselineVitals: z.record(z.string(), z.coerce.string()).transform((v) => Object.fromEntries(Object.entries(v).filter(([k]) => VitalKey.safeParse(k).success).map(([k, x]) => [k, x.slice(0, 20)]))),
+  triageVitals: listOf(VitalKey, 12),
+  profile: z
+    .object({ allergies: strs(6, 60), currentDrugs: strs(8, 60), pregnancyPossible: z.boolean().optional().catch(undefined), pregnant: z.boolean().optional().catch(undefined), asthma: z.boolean().optional().catch(undefined), ckd: z.boolean().optional().catch(undefined), heartFailure: z.boolean().optional().catch(undefined), thrombocytopenia: z.boolean().optional().catch(undefined) })
+    .catch({ allergies: [], currentDrugs: [] }),
+  history: listOf(z.object({ id: str(40), group: FactGroup, label: str(60), match: strs(10, 60), reply: str(500), fact: optStr(200), abnormal: z.boolean().optional().catch(undefined), importance: Importance, speaker: z.enum(["patient", "attendant"]).optional().catch(undefined) }), 16),
+});
+
+/** 2b. What the doctor finds: examinations and test results, with their pictures and ECGs. */
+export const FindingsSchema = z.object({
+  exam: listOf(z.object({ id: str(40), group: z.enum(["general-exam", "systemic-exam", "local-exam"]).catch("systemic-exam"), label: str(60), match: strs(10, 60), finding: str(600), fact: optStr(200), abnormal: z.boolean().optional().catch(undefined), importance: Importance, media }), 10),
+  investigations: listOf(
+    z.object({
+      id: str(40),
+      name: optStr(80),
+      short: optStr(30),
+      category: z.enum(["lab", "bedside", "ecg", "imaging", "photo", "micro", "histopath", "function"]).optional().catch(undefined),
+      match: strs(10, 60),
+      cost: num(0).optional(),
+      rows: listOf(LabRow, 24),
+      report: optStr(900),
+      media,
+      priority: z.enum(["essential", "useful", "situational", "unnecessary"]).catch("useful"),
+      teaching: z.object({ whenToOrder: str(300), whatItTellsYou: str(300) }).catch({ whenToOrder: "", whatItTellsYou: "" }),
+    }),
+    14,
+  ),
+});
+
+/** 2c. Management and the marking key. */
+export const ManagementSchema = z.object({
+  therapeutics: listOf(
+    z.object({
+      id: str(40),
+      kind: z.enum(["drug", "procedure", "counsel", "referral", "admit", "discharge", "supportive"]).catch("supportive"),
+      drugIds: strs(6, 40),
+      drugClasses: strs(6, 40),
+      measureIds: strs(6, 40),
+      concernsDrugs: strs(6, 40),
+      match: strs(10, 60),
+      label: str(80),
+      appropriateness: z.enum(["ideal", "acceptable", "neutral", "unnecessary", "harmful", "dangerous"]).catch("acceptable"),
+      note: optStr(300),
+      critique: Miss.optional().catch(undefined),
+      praise: optStr(200),
+    }),
+    12,
+  ),
+  reasoning: listOf(z.object({ stage: z.enum(["History", "Examination", "Investigation", "Diagnosis"]), text: str(500) }), 4),
+  rubric: z.object({
+    diagnosisAccept: strs(10, 100),
+    diagnosisPartial: strs(10, 100),
+    differentials: strs(8, 100),
+    idealTreatment: z.unknown().optional().transform((v) => (Array.isArray(v) ? v : []).map((g) => (Array.isArray(g) ? g : [g]).map(String)).filter((g) => g.length > 0).slice(0, 8)),
+    expertActionCount: z.coerce.number().int().min(4).max(60).catch(14),
+    followUpDays: z.object({ min: z.coerce.number(), max: z.coerce.number() }).optional().catch(undefined),
+    expectsReassessment: z.boolean().catch(false),
+  }),
+  followUp: listOf(z.object({ when: z.enum(["ideal", "acceptable", "harmful", "untreated", "any"]).catch("any"), status: z.enum(["stable", "guarded", "deteriorating", "critical", "improving", "recovered"]).catch("stable"), lines: listOf(z.object({ role: Role, kind: Kind, text: str(400) }), 4) }), 4),
+});
+
+/** 3. Written in the background while the case is played: the teaching and the misses, for the debrief. */
+export const TeachingSchema = z.object({
+  teaching: z.object({
+    patientBand: optStr(40),
+    severityBands: listOf(z.object({ id: str(40), label: str(80), recognition: strs(6), investigation: strs(6), treatment: strs(6), followUp: strs(6) }), 5),
+    drugs: listOf(z.object({ generic: str(80), brand: optStr(80), dose: str(80), route: z.enum(["PO", "IV", "IM", "SC", "SL", "PR", "TOP", "INH", "NEB", "OD-eye", "IN"]).catch("PO"), frequency: str(60), duration: str(60), indication: str(160), mechanism: str(200), whyItWorks: str(200), avoidWhen: strs(5), adverseEffects: strs(6), monitoring: strs(5) }), 6),
+    routines: listOf(z.object({ label: str(80), steps: listOf(z.object({ order: z.coerce.number(), step: str(200), note: optStr(200) }), 8), avoid: strs(5).optional(), improvementTimeline: optStr(200) }), 3),
+    followUp: z.object({ interval: str(60), reassess: strs(6), redFlags: strs(6), whenToEscalate: strs(6) }).catch({ interval: "", reassess: [], redFlags: [], whenToEscalate: [] }),
+    treatmentFailure: z.object({ steps: strs(6) }).catch({ steps: [] }),
+    pearl: str(600),
+  }),
+  misses: z.record(z.string(), Miss).catch({}),
+  strengths: z.record(z.string(), str(200)).catch({}),
+});
+export type TeachingPack = z.infer<typeof TeachingSchema>;

@@ -11,6 +11,7 @@ import { Icon } from "@/components/ui/icon";
 import type { MediaAsset } from "@/engine/types";
 import { cn } from "@/lib/cn";
 
+import { AiPicture } from "./ai-picture";
 import { DermPhoto } from "./derm";
 import { EcgTrace } from "./ecg";
 import { RadiographImage } from "./radiograph";
@@ -34,6 +35,7 @@ const MAX = 6;
 const clamp = (z: number) => Math.max(MIN, Math.min(MAX, z));
 
 function LargeMedia({ media }: { media: MediaAsset }) {
+  if (media.ai) return <AiPicture media={media} large />;
   if (media.src) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={media.src} alt={media.alt} draggable={false} className="block max-h-[78dvh] max-w-[92vw] object-contain" />;
