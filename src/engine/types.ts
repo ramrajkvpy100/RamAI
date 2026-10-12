@@ -774,6 +774,11 @@ export interface TreatmentFailurePath {
 export type DiagnosisVerdict = "correct" | "partial" | "implied" | "incorrect" | "not-recorded";
 
 export interface CaseDebrief {
+  /**
+   * Feedback in words, written by the language model from the encounter (when
+   * one is configured). The score comes from the marking rules, never from this.
+   */
+  coach?: { summary: string; reasoning: string; nextTime: string[]; model: string };
   /** Library reference, revealed only after closure (used to avoid repeats). */
   caseRef: string;
   specialty: Specialty;

@@ -67,6 +67,35 @@ function Section({ n, title, summary, children, defaultOpen = false }: { n: numb
   );
 }
 
+/** Feedback in words, written by the AI model from the encounter. The score above is the marking rules' alone. */
+function CoachFeedback({ coach }: { coach: NonNullable<CaseDebrief["coach"]> }) {
+  return (
+    <section className="card mt-4 p-5 sm:p-6" aria-labelledby="coach-heading">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="bg-ai flex h-7 w-7 items-center justify-center rounded-lg text-white">
+          <Icon name="sparkles" size={14} />
+        </span>
+        <h2 id="coach-heading" className="text-[15px] font-semibold">
+          Feedback on your reasoning
+        </h2>
+        <span className="ml-auto rounded-full bg-surface-3 px-2.5 py-0.5 text-[11.5px] text-fg-2">Written by AI</span>
+      </div>
+      <p className="mt-3 text-[14px] leading-6">{coach.summary}</p>
+      <p className="mt-2 text-[14px] leading-6 text-fg-2">{coach.reasoning}</p>
+      <div className="micro mt-4 text-fg-3">Next time</div>
+      <ul className="mt-1.5 flex flex-col gap-1.5">
+        {coach.nextTime.map((tip) => (
+          <li key={tip} className="flex items-start gap-2 text-[13.5px] leading-6">
+            <Icon name="arrow-right" size={13} className="mt-1.5 shrink-0 text-accent-text" />
+            {tip}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-[11.5px] leading-5 text-fg-3">Your score comes from RamAI&apos;s marking rules. This feedback is written by AI ({coach.model}) and can make mistakes.</p>
+    </section>
+  );
+}
+
 /** After the guided demo: what just happened, and what real cases are like. */
 function DemoDone({ name, won }: { name: string; won: boolean }) {
   return (
@@ -148,6 +177,7 @@ export function DebriefView({
 
         {state.guided && <DemoDone name={state.patient.name ?? "your patient"} won={won} />}
         <LostMarks score={d.score} />
+        {d.coach && <CoachFeedback coach={d.coach} />}
 
         {/* Rewards ------------------------------------------------------------ */}
         <div className="mt-10 animate-rise [animation-delay:120ms]">

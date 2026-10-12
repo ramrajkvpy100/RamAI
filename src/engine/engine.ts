@@ -160,12 +160,29 @@ export function sessionInfo(token: string): { sessionId: string; userId: string;
   return { sessionId: p.sid, userId: p.u, daily: p.d };
 }
 
+/** Where the debrief's feedback in words is kept: on the closing action, so reopening a case never asks the model again. */
+const COACH_KEY = "coach";
+
+function storedCoach(payload: SessionPayload): CaseDebrief["coach"] {
+  for (let i = payload.a.length - 1; i >= 0; i--) {
+    const raw = payload.a[i]!.generated?.[COACH_KEY];
+    if (!raw) continue;
+    try {
+      return JSON.parse(raw) as CaseDebrief["coach"];
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 /** Re-renders a session; also how a language switch takes effect mid-case. */
 export async function resumeCase(token: string, userId: string, lang: PatientLang = "en"): Promise<CaseSession> {
   const provider = await getProvider();
   const payload = open(token, userId);
   const { def, hidden, state, country } = rebuild(payload, provider);
-  return { token, state: render(state, def, country, lang), debrief: hidden.closed ? presentDebrief(generateDebrief(def, hidden, state), country) : undefined };
+  const coach = hidden.closed ? storedCoach(payload) : undefined;
+  return { token, state: render(state, def, country, lang), debrief: hidden.closed ? presentDebrief({ ...generateDebrief(def, hidden, state), ...(coach ? { coach } : {}) }, country) : undefined };
 }
 
 export async function submitDoctorAction(token: string, input: string, userId: string, lang: PatientLang = "en"): Promise<TurnResponse> {
@@ -182,7 +199,7 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   const { def, hidden, state, country } = rebuild(payload, provider);
   if (hidden.closed) throw new EngineError("CASE_CLOSED", "This case is already closed.");
 
-  const interpretation = await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-12), country });
+  const interpretation = await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-12), country, lang });
   const record: ActionRecord = {
     id: `a${payload.a.length + 1}`,
     at: hidden.clock,
@@ -197,7 +214,11 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   let debrief: CaseDebrief | undefined;
   if (hidden.closed) {
     next = { ...next, specialty: def.specialty };
-    debrief = presentDebrief(generateDebrief(def, hidden, next), country);
+    const marked = generateDebrief(def, hidden, next);
+    // Feedback in words from the model, when there is one — kept with the case; the score is the marking rules' alone.
+    const coach = provider.feedback ? await provider.feedback({ def, hidden, transcript: next.messages, debrief: marked, country }) : undefined;
+    if (coach) record.generated = { ...record.generated, [COACH_KEY]: JSON.stringify(coach) };
+    debrief = presentDebrief(coach ? { ...marked, coach } : marked, country);
   }
   const shown = speechIn(country, lang);
   return {

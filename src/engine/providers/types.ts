@@ -8,7 +8,7 @@
 import type { ClinicalCaseDefinition } from "../case-definition";
 import type { Country } from "../countries";
 import type { HiddenState } from "../simulator";
-import type { CareLevel, CaseTrack, EncounterMessage, ResolvedIntent, Specialty } from "../types";
+import type { CareLevel, CaseDebrief, CaseTrack, EncounterMessage, PatientLang, ResolvedIntent, Specialty } from "../types";
 
 export type CaseSource = { kind: "library"; id: string } | { kind: "generated"; def: ClinicalCaseDefinition };
 
@@ -31,7 +31,20 @@ export interface InterpretContext {
   transcript: readonly EncounterMessage[];
   /** Where the case is set, so generated replies use the local idiom. */
   country?: Country;
+  /** The language the player chose for patients and families. */
+  lang?: PatientLang;
 }
+
+export interface FeedbackInput {
+  def: ClinicalCaseDefinition;
+  hidden: HiddenState;
+  transcript: readonly EncounterMessage[];
+  /** The debrief the marking rules produced — the feedback explains it, never changes it. */
+  debrief: CaseDebrief;
+  country?: Country;
+}
+
+export type CoachFeedback = NonNullable<CaseDebrief["coach"]>;
 
 export interface Interpretation {
   intents: ResolvedIntent[];
@@ -44,6 +57,8 @@ export interface ClinicalProvider {
   createCase(opts: StartOptions): Promise<CaseSource>;
   resolveCase(src: CaseSource): ClinicalCaseDefinition;
   interpret(text: string, ctx: InterpretContext): Promise<Interpretation>;
+  /** Feedback in words for the debrief (optional). The score never depends on it. */
+  feedback?(input: FeedbackInput): Promise<CoachFeedback | undefined>;
   /** Number of available cases per specialty, mode and level, in the player's country. */
   availability(country?: Country): Promise<{
     specialties: Partial<Record<Specialty, number>>;

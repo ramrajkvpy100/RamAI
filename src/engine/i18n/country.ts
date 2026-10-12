@@ -434,7 +434,7 @@ export function presentEffects(effects: TurnEffect[], country: Country): TurnEff
 }
 
 /** Debrief keys that are ids, enums or the player's own words. */
-const DEBRIEF_FIXED = new Set(["caseRef", "specialty", "track", "level", "verdict", "finalStatus", "priority", "rescued", "category", "route", "severity", "stage", "id", "orderedInvestigationIds", "patientBand", "spec", "src", "userDiagnosis", "country"]);
+const DEBRIEF_FIXED = new Set(["caseRef", "specialty", "track", "level", "verdict", "finalStatus", "priority", "rescued", "category", "route", "severity", "stage", "id", "orderedInvestigationIds", "patientBand", "spec", "src", "userDiagnosis", "country", "coach"]);
 
 export function presentDebrief(debrief: CaseDebrief, country: Country): CaseDebrief {
   if (country === "IN") return { ...debrief, country };

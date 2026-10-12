@@ -630,10 +630,10 @@ function handleHistory(ctx: TurnContext, intent: ResolvedIntent, index: number):
   hidden.clock += 1;
   fx.push({ type: "advance_time", minutes: 1 });
   const generated = record.generated?.[String(index)];
-  const reply = generated ? { text: generated, role: patientRole(def) } : getPatientResponse(def, hidden, intent, hash(record.id + index));
+  const entry = def.history.find((h) => h.id === intent.targetId);
+  const reply = generated ? { text: generated, role: entry?.speaker === "attendant" ? ("attendant" as const) : patientRole(def) } : getPatientResponse(def, hidden, intent, hash(record.id + index));
   fx.push({ type: "message", role: reply.role, kind: "speech", text: reply.text });
 
-  const entry = def.history.find((h) => h.id === intent.targetId);
   if (entry) {
     const first = hidden.history[entry.id] === undefined;
     if (first) hidden.history[entry.id] = hidden.clock;
