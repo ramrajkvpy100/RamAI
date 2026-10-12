@@ -34,6 +34,9 @@ export async function startStack(port: number): Promise<Stack> {
       NEXT_PUBLIC_SUPABASE_URL: auth.url,
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: auth.publishableKey,
       SUPABASE_SECRET_KEY: auth.secretKey,
+      // Never spend OpenAI credit in tests, whatever .env.local says.
+      RAMAI_ENGINE: "mock",
+      OPENAI_API_KEY: "",
     },
     stdio: "ignore",
   });

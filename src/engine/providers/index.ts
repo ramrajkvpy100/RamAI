@@ -6,12 +6,14 @@ import type { ClinicalProvider } from "./types";
 let openai: ClinicalProvider | undefined;
 
 /**
- * Selects the clinical provider from RAMAI_ENGINE ("mock" | "openai").
- * The OpenAI provider is only loaded when configured, and falls back to the
- * mock provider's library and rules wherever generation is unavailable.
+ * Selects the clinical provider. With an OpenAI key on the server, the model
+ * words patient replies and debrief feedback (RAMAI_ENGINE=mock turns that
+ * off); without a key, the scripted engine runs. Wherever the model is
+ * unavailable, the scripted rules take over.
  */
 export async function getProvider(): Promise<ClinicalProvider> {
-  if (process.env.RAMAI_ENGINE === "openai" && process.env.OPENAI_API_KEY) {
+  const engine = process.env.RAMAI_ENGINE || (process.env.OPENAI_API_KEY ? "openai" : "mock");
+  if (engine === "openai" && process.env.OPENAI_API_KEY) {
     if (!openai) openai = (await import("./openai")).createOpenAIProvider();
     return openai;
   }
