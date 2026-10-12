@@ -12,6 +12,7 @@ import type { CaseDebrief, PlayerProgress } from "@/engine/types";
 import type { ActiveSession } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
 import { money, STATUS_LABEL } from "@/lib/format";
+import { useStartingMessage } from "@/lib/use-starting-message";
 
 import { Bullets } from "./flow";
 import { DailyShare } from "./daily-share";
@@ -130,6 +131,7 @@ export function DebriefView({
   starting: boolean;
 }) {
   const d = session.debrief as CaseDebrief;
+  const startingLabel = useStartingMessage(starting);
   const state = session.state;
   const [showScore, setShowScore] = useState(false);
 
@@ -267,13 +269,13 @@ export function DebriefView({
                 Sign up free
               </Link>
               <button type="button" onClick={onNext} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-5 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70 sm:px-6">
-                {starting ? "Preparing case…" : state.guided ? "Play a real case" : "Next case"}
+                {starting ? startingLabel : state.guided ? "Play a real case" : "Next case"}
                 {!starting && <Icon name="arrow-right" size={16} />}
               </button>
             </div>
           ) : (
             <button type="button" onClick={onNext} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">
-              {starting ? "Preparing case…" : state.guided ? "Start your first real case" : "Next case"}
+              {starting ? startingLabel : state.guided ? "Start your first real case" : "Next case"}
               {!starting && <Icon name="arrow-right" size={16} />}
             </button>
           )}

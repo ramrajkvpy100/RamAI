@@ -229,3 +229,38 @@ export const TeachingSchema = z.object({
   strengths: z.record(z.string(), str(200)).catch({}),
 });
 export type TeachingPack = z.infer<typeof TeachingSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* A consultant's review of each part, before the case starts                 */
+/* -------------------------------------------------------------------------- */
+
+const Appropriateness = z.enum(["ideal", "acceptable", "neutral", "unnecessary", "harmful", "dangerous"]);
+
+/** Corrections to the findings: whole replacements for the items that were wrong (an empty table means unchanged). */
+export const FindingsReviewSchema = z.object({
+  fixes: listOf(
+    z.object({ id: str(40), finding: optStr(600), rows: listOf(LabRow, 24), report: optStr(900), ecg: EcgMedia.optional().catch(undefined), describe: optStr(900), why: optStr(240) }),
+    20,
+  ),
+});
+
+/** Corrections to the management and the marking key. */
+export const ManagementReviewSchema = z.object({
+  fixes: listOf(z.object({ id: str(40), label: optStr(80), appropriateness: Appropriateness.optional().catch(undefined), note: optStr(300), critique: Miss.optional().catch(undefined), why: optStr(240) }), 20),
+  rubric: z
+    .object({
+      diagnosisAccept: strs(10, 100),
+      diagnosisPartial: strs(10, 100),
+      differentials: strs(8, 100),
+      idealTreatment: z.unknown().optional().transform((v) => (Array.isArray(v) ? v : []).map((g) => (Array.isArray(g) ? g : [g]).map(String)).filter((g) => g.length > 0).slice(0, 8)),
+      followUpDays: z.object({ min: z.coerce.number(), max: z.coerce.number() }).optional().catch(undefined),
+    })
+    .optional()
+    .catch(undefined),
+});
+
+/** Corrections to the vital signs and what the patient says. */
+export const DialogueReviewSchema = z.object({
+  vitals: z.record(z.string(), z.coerce.string()).optional().catch(undefined),
+  fixes: listOf(z.object({ id: str(40), reply: optStr(500), fact: optStr(200), why: optStr(240) }), 16),
+});

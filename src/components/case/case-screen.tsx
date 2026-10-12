@@ -13,6 +13,7 @@ import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
 import type { CaseState, PatientStatus, TurnEffect } from "@/engine/types";
 import { abandonCase, beginEncounter, dismissError, hydrate, retry, send, useCase } from "@/lib/case-store";
+import { useStartingMessage } from "@/lib/use-starting-message";
 import { cn } from "@/lib/cn";
 import { primeMe, useMe, type Me } from "@/lib/me-store";
 import { alarm, chime, setSoundEnabled, useSoundEnabled } from "@/lib/monitor-audio";
@@ -295,6 +296,7 @@ function Workspace() {
 /* -------------------------------------------------------------------------- */
 
 function NoCase({ onStart, starting, error }: { onStart: () => void; starting: boolean; error: string | null }) {
+  const startingLabel = useStartingMessage(starting);
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex h-16 items-center px-5">
@@ -308,7 +310,7 @@ function NoCase({ onStart, starting, error }: { onStart: () => void; starting: b
           <h1 className="mt-3 text-[24px] font-semibold tracking-[-0.02em]">Your next patient is waiting.</h1>
           <div className="mt-7 flex justify-center gap-2">
             <button type="button" onClick={onStart} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">
-              {starting ? "Preparing case…" : "Start case"}
+              {starting ? startingLabel : "Start case"}
             </button>
             <Link href="/" className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium text-fg-2 hover:text-fg">
               Home

@@ -18,6 +18,7 @@ import type { LibraryInfo } from "@/lib/engine-client";
 import { caseLabel, xp } from "@/lib/format";
 import { useMe, type Me } from "@/lib/me-store";
 import { PLANS } from "@/lib/plans";
+import { useStartingMessage } from "@/lib/use-starting-message";
 
 import { CasePicker } from "./case-picker";
 import { GuidedCard } from "./guided-card";
@@ -44,6 +45,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
   const me = useMe(initial) ?? initial;
   const snap = useCase();
   const { launch, starting, gate, setGate, closeGate, error } = useLauncher();
+  const startingLabel = useStartingMessage(starting);
   const [picker, setPicker] = useState(false);
   const [hello, setHello] = useState("Welcome");
   const [guideSkipped, setGuideSkipped] = useState(true);
@@ -175,7 +177,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
                 </Link>
               ) : (
                 <button type="button" onClick={() => void start({})} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">
-                  {starting ? "Preparing case…" : "Start case"}
+                  {starting ? startingLabel : "Start case"}
                   {!starting && <Icon name="arrow-right" size={16} />}
                 </button>
               )}

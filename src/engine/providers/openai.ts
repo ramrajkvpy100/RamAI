@@ -37,6 +37,7 @@ import { mockProvider } from "./mock";
 import type { z } from "zod";
 
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
+import { applyDialogueReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, managementReviewPrompt } from "./openai-review";
 import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
 interface ChatMessage {
@@ -221,6 +222,28 @@ ${debrief.didWell.length ? `Done well: ${debrief.didWell.join("; ")}` : ""}`,
 /** The whole invention must finish inside the request's minute; past this, the written backup is used. */
 const OUTLINE_TIMEOUT_MS = 16_000;
 const PART_TIMEOUT_MS = 32_000;
+/** A consultant's review of a part gets what's left of the minute, up to this. */
+const REVIEW_TIMEOUT_MS = 25_000;
+const CASE_DEADLINE_MS = 54_000;
+
+/**
+ * A consultant's look at one part: its corrections applied — or, if the review
+ * can't be had in time, the part as it was (the case still starts).
+ */
+async function reviewPart<T>(name: string, part: T, prompt: ChatMessage[], maxTokens: number, apply: (part: T, raw: unknown) => { part: T; fixes: string[] }, timeLeft: number): Promise<T> {
+  if (timeLeft < 6_000) {
+    console.warn(`[ramai] no time left to review the ${name}`);
+    return part;
+  }
+  try {
+    const { part: fixed, fixes } = apply(part, await chatJSON(prompt, maxTokens, true, Math.min(REVIEW_TIMEOUT_MS, timeLeft)));
+    if (fixes.length) console.info(`[ramai] consultant review — ${name}: ${fixes.length} correction${fixes.length === 1 ? "" : "s"}: ${fixes.join(" | ").slice(0, 800)}`);
+    return fixed;
+  } catch (err) {
+    console.error(`[ramai] the ${name} went unreviewed:`, err instanceof Error ? err.message : err);
+    return part;
+  }
+}
 
 const pickOne = <T>(xs: readonly T[], random = Math.random): T => xs[Math.floor(random() * xs.length)]!;
 
@@ -322,6 +345,17 @@ function mediaOf(m: GeneratedMedia | undefined, pictures: NonNullable<ClinicalCa
   return { ai: { ref, type: spec.type, view: spec.view }, alt: m.alt, ...(m.caption ? { caption: m.caption } : {}) };
 }
 
+/** Vital signs as the monitor shows them — numbers only ("89% on room air" → "89", "68 kg" → "68"); anything unreadable is dropped. */
+export function cleanVitals(vitals: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(vitals)) {
+    const text = String(raw);
+    const value = key === "bp" ? text.match(/(\d{2,3})\s*\/\s*(\d{2,3})/)?.slice(1, 3).join("/") : text.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/)?.[0];
+    if (value) out[key] = value;
+  }
+  return out;
+}
+
 const DRUG_IDS = new Set(FORMULARY.map((d) => d.id));
 const MEASURE_IDS = new Set(MEASURES.map((m) => m.id));
 /** The debrief's teaching arrives later (written in the background); until then, an empty frame. */
@@ -346,7 +380,7 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     arrivalMinuteOfDay: 8 * 60 + Math.floor(Math.random() * 10 * 60),
     briefing: concept.briefing,
     opening: (d.opening.length ? d.opening : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }]) as ClinicalCaseDefinition["opening"],
-    baselineVitals: Object.fromEntries(Object.entries({ bp: "122/78", hr: "84", rr: "16", temp: "98.4", spo2: "98", weight: "62", ...d.baselineVitals }).map(([k, v]) => [k, { key: k, value: v }])) as ClinicalCaseDefinition["baselineVitals"],
+    baselineVitals: Object.fromEntries(Object.entries({ bp: "122/78", hr: "84", rr: "16", temp: "98.4", spo2: "98", weight: "62", ...cleanVitals(d.baselineVitals) }).map(([k, v]) => [k, { key: k, value: v }])) as ClinicalCaseDefinition["baselineVitals"],
     triageVitals: d.triageVitals as ClinicalCaseDefinition["triageVitals"],
     profile: d.profile,
     history: unique(d.history).filter((h) => h.match.length > 0) as ClinicalCaseDefinition["history"],
@@ -478,14 +512,30 @@ export function createOpenAIProvider(): ClinicalProvider {
       // Every real case is invented now (RAMAI_AI_CASES=0 turns it off: written cases only).
       if (process.env.RAMAI_AI_CASES === "0") return mockProvider.createCase(opts);
       const brief = caseBrief(opts);
+      const country = opts.country ?? "IN";
+      const started = Date.now();
+      const left = () => CASE_DEADLINE_MS - (Date.now() - started);
       try {
         const outline = ConceptSchema.safeParse(await chatJSON(outlinePrompt(opts, brief), 900, false, OUTLINE_TIMEOUT_MS));
         if (!outline.success || !outline.data.diagnosis) throw new UpstreamError("the outline failed its checks");
         const concept = outline.data;
+        const level = levelMeta(brief.level, country).label;
+        // Each part is written, then checked by a consultant the moment it's ready — the three in parallel.
         const [d, f, m] = await Promise.all([
-          chatJSON(dialoguePrompt(opts, concept, brief), 2600, false, PART_TIMEOUT_MS).then((x) => DialogueSchema.parse(x)),
-          chatJSON(findingsPrompt(opts, concept, brief), 4600, false, PART_TIMEOUT_MS).then((x) => FindingsSchema.parse(x)),
-          chatJSON(managementPrompt(opts, concept, brief), 2400, false, PART_TIMEOUT_MS).then((x) => ManagementSchema.parse(x)),
+          chatJSON(dialoguePrompt(opts, concept, brief), 2600, false, PART_TIMEOUT_MS)
+            .then((x) => DialogueSchema.parse(x))
+            .then((part) => reviewPart("history and vitals", part, dialogueReviewPrompt(concept, part, country), 1600, applyDialogueReview, left())),
+          chatJSON(findingsPrompt(opts, concept, brief), 4600, false, PART_TIMEOUT_MS)
+            .then((x) => FindingsSchema.parse(x))
+            .then((part) => reviewPart("findings and results", part, findingsReviewPrompt(concept, part, country), 3000, applyFindingsReview, left()))
+            .then((part) => {
+              const checked = checkLabFlags(part);
+              if (checked.fixes.length) console.info(`[ramai] lab flags corrected: ${checked.fixes.join(" | ")}`);
+              return checked.part;
+            }),
+          chatJSON(managementPrompt(opts, concept, brief), 2400, false, PART_TIMEOUT_MS)
+            .then((x) => ManagementSchema.parse(x))
+            .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 2000, applyManagementReview, left())),
         ]);
         if (d.history.length < 4 || f.exam.length < 1 || m.therapeutics.length < 2) {
           throw new UpstreamError(`a part came back too thin (history ${d.history.length}, exam ${f.exam.length}, treatments ${m.therapeutics.length})`);
@@ -499,7 +549,8 @@ export function createOpenAIProvider(): ClinicalProvider {
 
     async teach(def) {
       try {
-        const parsed = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 3000, false, 45_000));
+        // Written in the background, so it can take the time to reason carefully.
+        const parsed = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 3600, true, 50_000));
         return parsed.success ? parsed.data : undefined;
       } catch (err) {
         console.error("[ramai] teaching unavailable", err instanceof Error ? err.message : err);

@@ -13,6 +13,7 @@ import { cn } from "@/lib/cn";
 import type { CaseChoice, LibraryInfo } from "@/lib/engine-client";
 import { caseLabel } from "@/lib/format";
 import { useMe } from "@/lib/me-store";
+import { useStartingMessage } from "@/lib/use-starting-message";
 import type { Plan } from "@/lib/plans";
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
@@ -45,6 +46,7 @@ export function CasePicker({
   activeCase?: number;
 }) {
   const country = useMe()?.user.country ?? "IN";
+  const startingLabel = useStartingMessage(starting);
   const [track, setTrack] = useState<CaseTrack | undefined>();
   const [level, setLevel] = useState<CareLevel | undefined>();
   // Starts at the doctor's own specialty; "Any specialty" means every one this time.
@@ -62,7 +64,7 @@ export function CasePicker({
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
           <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any" })} disabled={starting} className="shine flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-60">
-            {starting ? "Preparing case…" : "Start case"}
+            {starting ? startingLabel : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
           </button>
         </div>
