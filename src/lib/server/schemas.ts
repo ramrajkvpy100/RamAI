@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ALL_SPECIALTIES } from "@/engine/progression";
 import { COUNTRIES } from "@/engine/countries";
 import { CARE_LEVELS, CASE_TRACKS, PATIENT_LANGS } from "@/engine/types";
+import { PREFERRED_SPECIALTIES } from "@/lib/specialty";
 
 const CountryField = z.enum(COUNTRIES as unknown as [string, ...string[]]);
 
@@ -16,7 +17,8 @@ export const StartSchema = z.object({
   tutorial: z.boolean().optional(),
   /** Today's daily case — the same patient for everyone. */
   daily: z.boolean().optional(),
-  specialty: Specialty.optional(),
+  /** "any": every specialty this time, whatever the doctor's own. */
+  specialty: z.union([Specialty, z.literal("any")]).optional(),
   track: z.enum(CASE_TRACKS as unknown as [string, ...string[]]).optional(),
   level: z.enum(CARE_LEVELS as unknown as [string, ...string[]]).optional(),
 });
@@ -76,5 +78,6 @@ export const SettingsSchema = z
   .object({
     patientLang: z.enum(PATIENT_LANGS as unknown as [string, ...string[]]).optional(),
     country: CountryField.optional(),
+    specialty: z.enum(PREFERRED_SPECIALTIES as unknown as [string, ...string[]]).optional(),
   })
-  .refine((s) => s.patientLang !== undefined || s.country !== undefined, "Nothing to change.");
+  .refine((s) => s.patientLang !== undefined || s.country !== undefined || s.specialty !== undefined, "Nothing to change.");

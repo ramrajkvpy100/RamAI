@@ -7,7 +7,8 @@ import { apiError, crossSite, handleError, ok, rateLimited } from "@/lib/server/
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const Id = z.string().uuid();
+/** Supabase's suggestions have UUIDs; those from guests and visitors (RamAI's own database) "g-" + a UUID. */
+const Id = z.string().regex(/^(g-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 const AnswerSchema = z
   .object({ status: z.enum(SUGGESTION_STATUSES).optional(), reply: z.string().max(2000, "Please keep the answer under 2,000 characters.").nullable().optional() })
   .refine((v) => v.status !== undefined || v.reply !== undefined, "Nothing to change.");

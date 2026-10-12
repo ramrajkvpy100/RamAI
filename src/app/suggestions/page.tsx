@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
-import { AppShell } from "@/components/app/app-shell";
+import { PublicPage } from "@/components/shell/public-page";
 import { SuggestionsPage } from "@/components/suggestions/suggestions-page";
-import { getMe } from "@/server/me";
+import { getCurrentUser } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Suggestions" };
 export const dynamic = "force-dynamic";
 
+/** Anyone can send a suggestion — no account needed. */
 export default async function Suggestions() {
-  const me = await getMe();
-  if (!me) redirect("/login?next=/suggestions");
+  const user = await getCurrentUser().catch(() => null);
   return (
-    <AppShell me={me}>
-      <SuggestionsPage guest={me.user.isGuest} />
-    </AppShell>
+    <PublicPage>
+      <div className="mx-auto w-full max-w-3xl">
+        <SuggestionsPage who={!user ? "visitor" : user.isGuest ? "guest" : "account"} />
+      </div>
+    </PublicPage>
   );
 }

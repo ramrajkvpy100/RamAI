@@ -23,6 +23,7 @@ import { CasePicker } from "./case-picker";
 import { GuidedCard } from "./guided-card";
 import { HomeTour, TOUR_EVENT, tourSeen, type TourStop } from "./home-tour";
 import { LevelPath } from "./level-path";
+import { SPECIALTY_EVENT, SpecialtySheet } from "./specialty-sheet";
 import { UpgradeSheet } from "./upgrade-sheet";
 import { AppCard } from "./app-card";
 import { DailyCard } from "./daily-card";
@@ -74,25 +75,38 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
   };
   const streakAtRisk = p.streakDays > 0 && p.dailyXp === 0;
 
-  // The tour: once, after the first case (usually the demo) — and whenever asked for from the account menu.
+  // The doctor's specialty: asked once, at the start (skipping it means mixed cases) — and changeable from the menu.
+  const [askSpecialty, setAskSpecialty] = useState(false);
+  const unasked = me.user.specialty === null;
+  useEffect(() => {
+    if (snap.hydrated && unasked && !active) setAskSpecialty(true);
+  }, [snap.hydrated, unasked, active]);
+
+  // The tour: once, after the first case (usually the demo) — and whenever asked for, from here or the account menu.
   const [tour, setTour] = useState(false);
   useEffect(() => {
     const ask = () => setTour(true);
+    const specialty = () => setAskSpecialty(true);
     window.addEventListener(TOUR_EVENT, ask);
+    window.addEventListener(SPECIALTY_EVENT, specialty);
     const url = new URL(window.location.href);
-    if (url.searchParams.get("tour") === "1") {
-      url.searchParams.delete("tour");
+    for (const [param, open] of [["tour", ask], ["specialty", specialty]] as const) {
+      if (url.searchParams.get(param) !== "1") continue;
+      url.searchParams.delete(param);
       window.history.replaceState(null, "", url.pathname + url.search + url.hash);
-      setTour(true);
+      open();
     }
-    return () => window.removeEventListener(TOUR_EVENT, ask);
+    return () => {
+      window.removeEventListener(TOUR_EVENT, ask);
+      window.removeEventListener(SPECIALTY_EVENT, specialty);
+    };
   }, []);
   const played = p.history.length > 0;
   useEffect(() => {
-    if (!snap.hydrated || active || !played || tourSeen()) return;
+    if (!snap.hydrated || active || !played || unasked || tourSeen()) return;
     const t = window.setTimeout(() => setTour(true), 900);
     return () => window.clearTimeout(t);
-  }, [snap.hydrated, active, played]);
+  }, [snap.hydrated, active, played, unasked]);
   const stops: TourStop[] = [
     { target: "start", title: "Start a case", body: "A new patient every time — the diagnosis is hidden and there are no tips. Choose case lets you pick the specialty, the mode (OPD, emergency or phone) and the hospital level." },
     { target: "daily", title: "Today's case", body: "One patient for every doctor today. Play it, see where you rank, and share your result." },
@@ -100,7 +114,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
     {
       target: "today",
       title: "Your day",
-      body: `Each case earns XP towards your daily goal and keeps your streak alive. ${limit === null ? "Your cases are unlimited." : `You get ${limit} ${me.user.isGuest ? "guest" : "free"} cases a day${me.user.isGuest ? ` — a free account gives you ${PLANS.free.dailyCases}` : ""}.`}`,
+      body: `Each case earns XP towards your daily goal and keeps your streak alive. ${limit === null ? "Your cases are unlimited." : `You get ${limit} free cases a day${me.user.isGuest ? " — no account needed. A free account keeps your progress" : ""}.`}`,
     },
     { target: "league", title: "Weekly league", body: "Your XP counts towards a weekly league. Finish near the top to move up a league." },
     { target: "install", title: "Get the app", body: "Add RamAI to your home screen — it opens full-screen, like an app, with a daily reminder if you want one." },
@@ -116,7 +130,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
       setPicker(false);
       setGate(
         me.user.isGuest
-          ? { code: "SIGNUP_REQUIRED", message: `That's today's ${limit} guest cases. Create a free account for ${PLANS.free.dailyCases} cases every day — it takes 30 seconds.` }
+          ? { code: "SIGNUP_REQUIRED", message: `That's today's ${limit} free cases — new ones at midnight. Create a free account to keep your progress on every device.` }
           : { code: "DAILY_LIMIT", message: `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.` },
       );
       return;
@@ -130,8 +144,8 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
       <div className="flex min-w-0 flex-col gap-5">
         {/* Hero ------------------------------------------------------------ */}
         <section className="ink relative isolate overflow-hidden rounded-[22px] p-6 sm:p-8" aria-label="Your rank">
-          {/* Faint on phones, where the text runs across it; full strength beside the text on wider screens. */}
-          <HeartScene className="pointer-events-none absolute inset-y-0 -right-16 -z-10 w-[300px] opacity-30 sm:right-0 sm:w-[44%] sm:opacity-100" density="compact" tone="dark" />
+          {/* Whole on phones, in the space beside the buttons; beside the text on wider screens. */}
+          <HeartScene className="pointer-events-none absolute right-0 bottom-0 -z-10 h-[210px] w-[46%] max-w-[190px] sm:top-0 sm:h-auto sm:w-[44%] sm:max-w-none" density="compact" tone="dark" />
           <p className="text-[13.5px] text-white/60">
             {hello}, Dr. {firstName(me.user.name)}
           </p>
@@ -175,6 +189,9 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
               {error}
             </p>
           )}
+          <button type="button" onClick={() => setTour(true)} className="mt-4 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium text-white/65 transition-colors hover:text-white">
+            <Icon name="target" size={14} /> Quick tour of RamAI
+          </button>
         </section>
 
         <div data-tour="daily">
@@ -239,7 +256,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           {left !== null && limit !== null && (
             <div className="mt-4 border-t border-line-2 pt-4">
               <div className="flex items-center justify-between text-[13px]">
-                <span className="font-medium">{me.user.isGuest ? "Guest cases today" : "Free cases today"}</span>
+                <span className="font-medium">Free cases today</span>
                 <span className="text-fg-2 tabular">
                   {left} of {limit} left
                 </span>
@@ -250,7 +267,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
                 ))}
               </div>
               <Link href={me.user.isGuest ? "/signup" : "/pricing"} className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-accent-text hover:underline">
-                {me.user.isGuest ? `Sign up free — ${PLANS.free.dailyCases} cases a day` : "Unlimited cases with Pro"} <Icon name="arrow-right" size={13} />
+                {me.user.isGuest ? "Sign up free — keep your progress" : "Unlimited cases with Pro"} <Icon name="arrow-right" size={13} />
               </Link>
             </div>
           )}
@@ -273,6 +290,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
       />
       <UpgradeSheet gate={gate} onClose={closeGate} />
       <HomeTour stops={stops} open={tour} onClose={() => setTour(false)} />
+      <SpecialtySheet open={askSpecialty} current={me.user.specialty} onClose={() => setAskSpecialty(false)} />
     </div>
   );
 }

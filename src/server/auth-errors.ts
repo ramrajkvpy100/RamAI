@@ -19,7 +19,9 @@ export function authFailure(err: unknown): Response {
     case "otp_expired":
       return apiError(400, "CODE_INVALID", "That code is wrong or has expired.");
     case "over_email_send_rate_limit":
-      return apiError(429, "RATE_LIMITED", "An email was sent very recently. Please wait a minute before asking for another.");
+      // Supabase's built-in email sends only a few an hour for the whole site until custom SMTP is set up.
+      console.error("[ramai] Supabase's email limit was hit — set up custom SMTP (Authentication → Emails → SMTP Settings) and raise the limit (Authentication → Rate Limits).");
+      return apiError(429, "RATE_LIMITED", "Our email service is busy right now. Please try again in a few minutes.");
     case "over_request_rate_limit":
       return apiError(429, "RATE_LIMITED", "Too many attempts. Please wait a few minutes and try again.");
     case "email_address_invalid":

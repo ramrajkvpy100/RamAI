@@ -1,6 +1,7 @@
 import type { Country } from "@/engine/countries";
 import type { PatientLang } from "@/engine/types";
-import { requireUser, setCountry, setPatientLang } from "@/server/auth";
+import { requireUser, setCountry, setPatientLang, setSpecialty } from "@/server/auth";
+import type { PreferredSpecialty } from "@/lib/specialty";
 import { meFor } from "@/server/me";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { SettingsSchema } from "@/lib/server/schemas";
@@ -8,7 +9,7 @@ import { SettingsSchema } from "@/lib/server/schemas";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** POST /api/me/settings — player preferences: patient language, country. */
+/** POST /api/me/settings — player preferences: patient language, country, their own specialty. */
 export async function POST(req: Request) {
   const blocked = crossSite(req) ?? rateLimited(req, 30);
   if (blocked) return blocked;
@@ -24,6 +25,10 @@ export async function POST(req: Request) {
     if (body.country) {
       await setCountry(user.id, body.country as Country);
       next.country = body.country as Country;
+    }
+    if (body.specialty) {
+      await setSpecialty(user.id, body.specialty as PreferredSpecialty);
+      next.specialty = body.specialty as PreferredSpecialty;
     }
     return ok(await meFor(next));
   } catch (err) {

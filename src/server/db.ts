@@ -145,6 +145,23 @@ CREATE TABLE IF NOT EXISTS case_ai (
 );
 CREATE INDEX IF NOT EXISTS case_ai_user ON case_ai(user_id);
 
+-- Suggestions from guests and visitors without an account (accounts' suggestions live in Supabase).
+CREATE TABLE IF NOT EXISTS open_suggestions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  name TEXT NOT NULL,
+  email TEXT,
+  category TEXT NOT NULL,
+  message TEXT NOT NULL,
+  page TEXT,
+  status TEXT NOT NULL DEFAULT 'new',
+  reply TEXT,
+  replied_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS open_suggestions_created ON open_suggestions(created_at);
+CREATE INDEX IF NOT EXISTS open_suggestions_user ON open_suggestions(user_id, created_at);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -288,11 +305,23 @@ function backend(): Promise<Backend> {
   }));
 }
 
+/**
+ * Bump whenever SCHEMA or migrate() changes. A server starting against a
+ * database already at this version (or newer) skips the setup: one quick read
+ * instead of a dozen round trips to the cloud on every cold start.
+ */
+const SCHEMA_VERSION = 9;
+
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
   const b = remote ? await tursoBackend(remote.url, remote.authToken) : await fileBackend();
+  const at = await b.get<{ value: number }>("SELECT value FROM meta WHERE key = 'schema'").catch(() => undefined);
+  if (at && at.value >= SCHEMA_VERSION) return b;
   await b.exec(SCHEMA);
   await migrate(b);
+  await b.exec("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value INTEGER NOT NULL)");
+  // Never lowers it: an older server still running during a deploy leaves the newer version in place.
+  await b.run("INSERT INTO meta (key, value) VALUES ('schema', ?) ON CONFLICT(key) DO UPDATE SET value = max(value, excluded.value)", SCHEMA_VERSION);
   return b;
 }
 
@@ -315,6 +344,10 @@ async function migrate(b: Backend) {
   const paymentColumns = (await b.all<{ name: string }>("PRAGMA table_info(payments)")).map((c) => c.name);
   // When the buyer asked for Pro to start at once (giving up a statutory cancellation period, where one applies).
   if (!paymentColumns.includes("waiver_at")) add.push("ALTER TABLE payments ADD COLUMN waiver_at INTEGER");
+  // Pro is charged in the country's currency: rupees, dollars or pounds (amounts in paise, cents or pence).
+  if (!paymentColumns.includes("currency")) add.push("ALTER TABLE payments ADD COLUMN currency TEXT NOT NULL DEFAULT 'INR'");
+  const archiveColumns = (await b.all<{ name: string }>("PRAGMA table_info(payments_archive)")).map((c) => c.name);
+  if (!archiveColumns.includes("currency")) add.push("ALTER TABLE payments_archive ADD COLUMN currency TEXT NOT NULL DEFAULT 'INR'");
   const startColumns = (await b.all<{ name: string }>("PRAGMA table_info(case_starts)")).map((c) => c.name);
   if (!startColumns.includes("tutorial")) add.push("ALTER TABLE case_starts ADD COLUMN tutorial INTEGER NOT NULL DEFAULT 0");
   // The daily case: which day a start or a ranked result belongs to, and how long it took.
@@ -325,6 +358,8 @@ async function migrate(b: Backend) {
   if (!resultColumns.includes("grid")) add.push("ALTER TABLE results ADD COLUMN grid TEXT");
   // Sign-in moved to Supabase Auth: profiles link to their Supabase user.
   if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
+  // The doctor's own specialty, asked once: NULL = not asked yet, 'mixed' = every specialty.
+  if (!columns.includes("specialty")) add.push("ALTER TABLE users ADD COLUMN specialty TEXT");
   if (add.length) await b.batch(add.map((sql) => ({ sql })));
   await b.exec("CREATE INDEX IF NOT EXISTS results_daily ON results(daily_key, score); CREATE INDEX IF NOT EXISTS case_starts_daily ON case_starts(user_id, daily_key)");
   await b.exec("CREATE UNIQUE INDEX IF NOT EXISTS users_auth_id ON users(auth_id) WHERE auth_id IS NOT NULL");

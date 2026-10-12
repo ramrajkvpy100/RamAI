@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { A, Email, LegalPage, List, Section } from "@/components/legal/legal-page";
 import { PublicPage } from "@/components/shell/public-page";
-import { PRICES } from "@/lib/plans";
+import { PERIODS, priceList } from "@/lib/plans";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Refund & cancellation policy", description: "RamAI Pro comes with a 7-day money-back guarantee." };
@@ -18,7 +18,8 @@ export default function RefundPolicyPage() {
       >
         <Section title="How Pro is sold">
           <p>
-            Pro is a one-time payment — {PRICES.monthly.label} for {PRICES.monthly.days} days or {PRICES.yearly.label} for {PRICES.yearly.days} days.
+            Pro is a one-time payment — {priceList("monthly")} for {PERIODS.monthly.days} days, or {priceList("yearly")} for {PERIODS.yearly.days} days, in the currency of the country you practise in.
+            Refunds go back in the same currency.
             It never renews on its own, so you're never charged again unless you choose to buy another period.
           </p>
         </Section>

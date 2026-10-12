@@ -23,15 +23,28 @@ const WAITING: Record<PictureType, string> = {
   slide: "Preparing the slide…",
 };
 
-/** Pictures already fetched this visit, by session and reference (each asked for once). */
-const pictures = new Map<string, Promise<string>>();
+interface Fetched {
+  url: string;
+  /** Drawn by AI — or a real image, with whom to credit. */
+  credit: { author: string; license: string; source: string } | null;
+}
 
-function fetchPicture(key: string, token: string, ref: string): Promise<string> {
+/** Pictures already fetched this visit, by session and reference (each asked for once). */
+const pictures = new Map<string, Promise<Fetched>>();
+
+function fetchPicture(key: string, token: string, ref: string): Promise<Fetched> {
   let p = pictures.get(key);
   if (!p) {
     p = fetch("/api/cases/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, ref }) }).then(async (res) => {
-      if (!res.ok) throw new Error(String(res.status));
-      return URL.createObjectURL(await res.blob());
+      if (!res.ok) throw new Error(res.status === 503 ? "off" : String(res.status));
+      let credit: Fetched["credit"] = null;
+      try {
+        const raw = res.headers.get("X-Picture-Credit");
+        if (raw) credit = JSON.parse(decodeURIComponent(raw)) as Fetched["credit"];
+      } catch {
+        credit = null;
+      }
+      return { url: URL.createObjectURL(await res.blob()), credit };
     });
     p.catch(() => pictures.delete(key));
     pictures.set(key, p);
@@ -39,10 +52,35 @@ function fetchPicture(key: string, token: string, ref: string): Promise<string> 
   return p;
 }
 
-export function AiPicture({ media, className, large = false }: { media: MediaAsset; className?: string; large?: boolean }) {
+/** Who made the picture: "AI-generated", or a real image's author and licence. */
+function Credit({ credit, large }: { credit: Fetched["credit"]; large: boolean }) {
+  return (
+    <span className={cn("block px-2 py-1 text-[10.5px] leading-4", large ? "text-white/60" : "bg-black text-white/55")}>
+      {credit ? (
+        <>
+          Real image · {credit.author} ·{" "}
+          {/* Inside a figure's open-full-size button a link isn't allowed: the full-size view carries it. */}
+          {large ? (
+            <a href={credit.source} target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
+              {credit.license}, Wikimedia Commons
+            </a>
+          ) : (
+            `${credit.license}, Wikimedia Commons`
+          )}
+        </>
+      ) : (
+        "AI-generated image"
+      )}
+    </span>
+  );
+}
+
+export function AiPicture({ media, className, large = false, fallback }: { media: MediaAsset; className?: string; large?: boolean; /** Shown instead when the picture can't be made (a drawn spec). */ fallback?: React.ReactNode }) {
   const ai = media.ai!;
-  const [url, setUrl] = useState<string | null>(null);
+  const [got, setGot] = useState<Fetched | null>(null);
   const [failed, setFailed] = useState(false);
+  /** No image model here at all (a local copy): the drawn stand-in, if there is one. */
+  const [off, setOff] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -51,18 +89,28 @@ export function AiPicture({ media, className, large = false }: { media: MediaAss
     let live = true;
     setFailed(false);
     fetchPicture(`${session.state.sessionId}:${ai.ref}`, session.token, ai.ref)
-      .then((u) => live && setUrl(u))
-      .catch(() => live && setFailed(true));
+      .then((u) => live && setGot(u))
+      .catch((err) => {
+        if (!live) return;
+        setFailed(true);
+        setOff(err instanceof Error && err.message === "off");
+      });
     return () => {
       live = false;
     };
   }, [ai.ref, attempt]);
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
 
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt={media.alt} draggable={false} className={cn(large ? "block max-h-[78dvh] max-w-[92vw] object-contain" : "block h-auto w-full", className)} />;
+  if (got) {
+    return (
+      <span className="block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={got.url} alt={media.alt} draggable={false} className={cn(large ? "block max-h-[74dvh] max-w-[92vw] object-contain" : "block h-auto w-full", className)} />
+        <Credit credit={got.credit} large={large} />
+      </span>
+    );
   }
+  if (off && fallback) return <>{fallback}</>;
   return (
     <div className={cn("relative flex aspect-square w-full flex-col items-center justify-center gap-2 overflow-hidden bg-[#0b0d12] text-center text-white/80", large && "w-[min(78dvh,92vw)] rounded-md", className)} role="status" aria-live="polite">
       {!failed && <span aria-hidden className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_50%_45%,rgb(255_255_255/0.08),transparent_60%)]" />}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { A, Email, LegalPage, List, Section } from "@/components/legal/legal-page";
 import { PublicPage } from "@/components/shell/public-page";
-import { PLANS, PRICES } from "@/lib/plans";
+import { PERIODS, PLANS, priceList } from "@/lib/plans";
 import { operator } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Terms & conditions", description: "The terms for using RamAI, including accounts, Pro plans and acceptable use." };
@@ -56,11 +56,11 @@ export default function TermsPage() {
               <b className="text-fg">Free:</b> {PLANS.free.dailyCases} cases a day on the first three care levels.
             </li>
             <li>
-              <b className="text-fg">Pro:</b> unlimited cases at every level — {PRICES.monthly.label} for {PRICES.monthly.days} days or{" "}
-              {PRICES.yearly.label} for {PRICES.yearly.days} days.
+              <b className="text-fg">Pro:</b> unlimited cases at every level — {priceList("monthly")} for {PERIODS.monthly.days} days, or {priceList("yearly")} for{" "}
+              {PERIODS.yearly.days} days.
             </li>
             <li>Pro is a one-time payment for a fixed period. It does not renew automatically, so there's nothing to cancel.</li>
-            <li>Prices are in Indian rupees and include applicable taxes. Payments are processed securely by Razorpay.</li>
+            <li>Prices are in the currency of the country you practise in — Indian rupees, US dollars or pounds sterling — and include applicable taxes. Payments are processed securely by Razorpay.</li>
             <li>
               At checkout you ask for Pro to start straight away. Where the law gives a 14-day right to cancel digital purchases (such as in the UK
               or EU), that right ends once Pro starts — our 7-day money-back guarantee still applies.

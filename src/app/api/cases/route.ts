@@ -35,20 +35,23 @@ export async function POST(req: Request) {
     if (!tutorial && !daily && body.level && !plan.levels.includes(body.level as CareLevel)) {
       return apiError(402, "PRO_REQUIRED", "This level is part of RamAI Pro.");
     }
-    // Guests get a few real cases a day before signing up; accounts get the plan's allowance.
+    // Guests get as many real cases a day as a free account; Pro is unlimited.
     const limit = dailyLimitFor(user);
     if (!tutorial && !daily && limit !== null && (await casesStartedToday(user.id)) >= limit) {
-      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's today's ${limit} guest cases. Create a free account for ${PLANS.free.dailyCases} cases every day — it takes 30 seconds.`);
+      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's today's ${limit} free cases — new ones at midnight. Create a free account to keep your progress on every device.`);
       return apiError(402, "DAILY_LIMIT", `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.`);
     }
     // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
     const picked = !!(body.specialty || body.track || body.level);
     const easy = !tutorial && !daily && !picked && (user.isGuest || (await totalCasesStarted(user.id)) <= 3);
+    // Their own specialty, unless they chose one (or "any") for this case. "mixed" (or not said): every specialty.
+    const own = user.specialty && user.specialty !== "mixed" ? user.specialty : undefined;
+    const specialty = body.specialty === "any" ? undefined : ((body.specialty as Specialty | undefined) ?? own);
     const session = await simulateCase({
       userId: user.id,
       easy,
       caseNumber: (await totalCasesStarted(user.id)) + 1,
-      specialty: body.specialty as Specialty | undefined,
+      specialty,
       track: body.track as CaseTrack | undefined,
       level: body.level as CareLevel | undefined,
       allowedLevels: plan.levels,

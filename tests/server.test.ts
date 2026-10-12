@@ -9,6 +9,7 @@ import { createGuest, createProfile, createSession, deleteSession, findUserById,
 import { verifyPayment } from "@/server/billing";
 import { db } from "@/server/db";
 import { casesStartedToday, historyFor, leaderboard, progressFor, recordCase, recordCaseStart } from "@/server/results";
+import { answerSuggestion, deleteSuggestion, mySuggestions, sendOpenSuggestion } from "@/server/suggestions";
 
 import { play } from "./helpers";
 
@@ -102,6 +103,23 @@ describe("results and rewards", () => {
 
     const phone = await leaderboard("phone", "week");
     expect(phone.rows.map((r) => r.userId)).toEqual([kabir.id]);
+  });
+});
+
+describe("suggestions without an account", () => {
+  it("guests and visitors can send one; the guest sees theirs, answered; an admin can remove one", async () => {
+    const guest = await createGuest();
+    const mine = await sendOpenSuggestion(guest, { category: "idea", message: "More ECG cases, please." });
+    const visitor = await sendOpenSuggestion(null, { category: "problem", message: "The menu is hard to read.", email: "Visitor@Example.com " });
+    expect(mine.id).toMatch(/^g-/);
+    expect(await db.get("SELECT name, email, user_id FROM open_suggestions WHERE id = ?", visitor.id)).toEqual({ name: "Visitor", email: "visitor@example.com", user_id: null });
+
+    const answered = await answerSuggestion(mine.id, { status: "planned", reply: "Coming next week." });
+    expect(answered).toMatchObject({ status: "planned", reply: "Coming next week.", name: "Guest doctor" });
+    expect((await mySuggestions(guest)).map((s) => [s.message, s.reply])).toEqual([["More ECG cases, please.", "Coming next week."]]);
+
+    await deleteSuggestion(visitor.id);
+    await expect(deleteSuggestion(visitor.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
 

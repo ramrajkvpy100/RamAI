@@ -38,7 +38,7 @@ async function request<T>(path: string, init?: { method: "GET" | "POST" | "PATCH
   return json as T;
 }
 
-export const sendSuggestion = (body: { category: SuggestionCategory; message: string; page?: string }) =>
+export const sendSuggestion = (body: { category: SuggestionCategory; message: string; page?: string; email?: string }) =>
   request<{ suggestion: Suggestion }>("/api/suggestions", { method: "POST", body });
 export const mySuggestions = () => request<{ items: Suggestion[] }>("/api/suggestions");
 export const adminSuggestions = (filter: { status?: SuggestionStatus; category?: SuggestionCategory; q?: string }) =>

@@ -7,7 +7,8 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { checkout, ClinicalEngineError, demoUpgrade, verifyPayment } from "@/lib/engine-client";
 import { refreshMe, useMe, type Me } from "@/lib/me-store";
-import { PRICES, type BillingPeriod } from "@/lib/plans";
+import type { Country } from "@/engine/countries";
+import { priceFor, type BillingPeriod } from "@/lib/plans";
 
 import { PeriodToggle, PlanCards } from "./plan-cards";
 
@@ -36,9 +37,10 @@ function loadRazorpay(): Promise<RazorpayCtor> {
 const BTN_DARK = "flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-[14px] font-semibold text-[#0b1220] transition-colors hover:bg-white/90 disabled:opacity-60";
 const BTN_LIGHT = "flex h-11 w-full items-center justify-center rounded-full border border-line bg-surface text-[14px] font-semibold shadow-sm hover:bg-surface-3";
 
-export function Pricing({ initial }: { initial: Me | null }) {
+export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null; /** Without an account: where they're browsing from. */ visitorCountry?: Country }) {
   const live = useMe(initial ?? undefined);
   const me = initial ? (live ?? initial) : null;
+  const country = me?.user.country ?? visitorCountry;
   const router = useRouter();
   const [period, setPeriod] = useState<BillingPeriod>("yearly");
   const [busy, setBusy] = useState(false);
@@ -119,12 +121,12 @@ export function Pricing({ initial }: { initial: Me | null }) {
         <Icon name="check" size={15} /> Your plan{until ? ` · until ${until}` : ""}
       </div>
       <button type="button" onClick={() => void upgrade()} disabled={busy} className="h-9 text-[13px] font-medium text-white/70 hover:text-white">
-        Extend by {period === "yearly" ? "a year" : "a month"} — {PRICES[period].label}
+        Extend by {period === "yearly" ? "a year" : "a month"} — {priceFor(country, period).label}
       </button>
     </div>
   ) : (
     <button type="button" onClick={() => void upgrade()} disabled={busy} className={BTN_DARK}>
-      {busy ? "Opening checkout…" : `Upgrade — ${PRICES[period].label}`}
+      {busy ? "Opening checkout…" : `Upgrade — ${priceFor(country, period).label}`}
     </button>
   );
 
@@ -143,7 +145,7 @@ export function Pricing({ initial }: { initial: Me | null }) {
       </h1>
       <p className="mt-4 max-w-xl text-center text-[15.5px] leading-7 text-fg-2">Unlimited cases at every level — teaching hospital, national referral centre and global centre of excellence included.</p>
       <div className="mt-8">
-        <PeriodToggle value={period} onChange={setPeriod} />
+        <PeriodToggle value={period} onChange={setPeriod} country={country} />
       </div>
 
       {message && (
@@ -179,7 +181,7 @@ export function Pricing({ initial }: { initial: Me | null }) {
       )}
 
       <div className="mt-8 w-full">
-        <PlanCards period={period} free={freeAction} pro={proAction} />
+        <PlanCards period={period} free={freeAction} pro={proAction} country={country} />
       </div>
       <p className="mt-6 text-center text-[12.5px] leading-6 text-fg-3">
         One-time payment for 30 or 365 days — no auto-renewal. 7-day money-back guarantee.{" "}

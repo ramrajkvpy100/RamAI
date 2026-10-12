@@ -28,7 +28,7 @@ import type { ClinicalProvider, TeachingPack } from "./providers/types";
 import { applyEffects, createInitialState } from "./reducer";
 import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
-import { createHiddenState, isTick, openingEffects, runTurn, type HiddenState } from "./simulator";
+import { createHiddenState, examPicture, imagingPicture, isTick, openingEffects, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
 import type { ActionRecord, Auscultation, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, PatientLang, Specialty, TurnEffect, TurnResponse } from "./types";
 
@@ -196,13 +196,25 @@ export async function teachingFor(token: string, userId: string): Promise<Teachi
  * What an AI picture should show — only once the case has reached it (the
  * finding examined, the test resulted), so nothing can be seen early.
  */
-export async function pictureFor(token: string, userId: string, ref: string): Promise<NonNullable<ClinicalCaseDefinition["pictures"]>[string] | null> {
+export async function pictureFor(token: string, userId: string, ref: string): Promise<(NonNullable<ClinicalCaseDefinition["pictures"]>[string] & { topic: string }) | null> {
   const payload = open(token, userId);
-  const { def, state } = rebuild(payload, await getProvider());
+  const { def, hidden, state } = rebuild(payload, await getProvider());
+  // The diagnosis stays on the server: it only helps find a real image when a drawn one isn't good enough.
+  const topic = def.truth.diagnosis;
+  // Every scan, drawn from its own result; a written case's skin photograph, from its examination.
+  if (ref.startsWith("i-")) {
+    const inv = hidden.investigations.find((i) => i.delivered && `i-${i.instanceId}` === ref);
+    const picture = inv ? imagingPicture(def, inv) : null;
+    return picture && { ...picture, topic };
+  }
+  if (ref.startsWith("e-")) {
+    const picture = examPicture(def, hidden, ref);
+    return picture && { ...picture, topic };
+  }
   const picture = def.pictures?.[ref];
   if (!picture) return null;
   const reached = state.messages.some((m) => m.media?.ai?.ref === ref) || state.investigations.some((i) => i.media?.ai?.ref === ref);
-  return reached ? picture : null;
+  return reached ? { ...picture, topic } : null;
 }
 
 /** Where the debrief's feedback in words is kept: on the closing action, so reopening a case never asks the model again. */

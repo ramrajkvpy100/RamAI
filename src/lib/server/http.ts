@@ -73,13 +73,17 @@ export function handleError(err: unknown) {
 
 const buckets = new Map<string, { count: number; reset: number }>();
 
-/** Each endpoint has its own budget per address — playing a case never uses up sign-up or password-reset attempts. */
 /** The caller's address, as reported by the hosting proxy. */
 export const clientIp = (req: Request) => req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "local";
 
+/**
+ * Each endpoint — and each method on it — has its own budget per address:
+ * playing a case never uses up sign-up attempts, and reading a list never
+ * uses up sending to it.
+ */
 export function rateLimited(req: Request, limit = 90, windowMs = 60_000): Response | null {
   const ip = clientIp(req);
-  const key = `${new URL(req.url).pathname} ${ip}`;
+  const key = `${req.method} ${new URL(req.url).pathname} ${ip}`;
   const now = Date.now();
   const bucket = buckets.get(key);
   if (!bucket || bucket.reset < now) {

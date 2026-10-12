@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { MediaFigure } from "@/components/media/media-figure";
 import { Icon } from "@/components/ui/icon";
 import type { Flag, InvestigationResult } from "@/engine/types";
@@ -20,6 +22,29 @@ function FlagGlyph({ flag }: { flag: Flag }) {
   if (flag === "low") return <span aria-label="below range" className="ml-1 text-[10px]">▼</span>;
   if (flag === "critical") return <span aria-label="critical" className="ml-1 text-[10px]">◆</span>;
   return null;
+}
+
+/** Reports the doctor has opened, kept while the page is open — the same result shown again stays open. */
+const opened = new Set<string>();
+
+/** A picture's report waits until the doctor asks for it: read the image yourself first. */
+function HiddenReport({ id, report }: { id: string; report: string }) {
+  const [open, setOpen] = useState(() => opened.has(id));
+  if (open) return <p className="px-4 pb-3.5 text-ui leading-relaxed text-fg-2">{report}</p>;
+  return (
+    <div className="px-3 pb-3">
+      <button
+        type="button"
+        onClick={() => {
+          opened.add(id);
+          setOpen(true);
+        }}
+        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-2 text-[12.5px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
+      >
+        <Icon name="file" size={13} /> Show report
+      </button>
+    </div>
+  );
 }
 
 export function ResultCard({
@@ -108,7 +133,7 @@ export function ResultCard({
               <MediaFigure media={inv.media} viewerKey={inv.id} title={inv.name} />
             </div>
           )}
-          {inv.report && <p className={cn("px-4 pb-3.5 text-ui leading-relaxed text-fg-2", (inv.rows?.length || inv.media) && "pt-0.5")}>{inv.report}</p>}
+          {inv.report && (inv.media ? <HiddenReport id={inv.id} report={inv.report} /> : <p className={cn("px-4 pb-3.5 text-ui leading-relaxed text-fg-2", !!inv.rows?.length && "pt-0.5")}>{inv.report}</p>)}
         </>
       )}
       {typeof inv.cost === "number" && inv.cost > 0 && (

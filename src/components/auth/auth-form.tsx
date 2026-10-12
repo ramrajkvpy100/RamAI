@@ -11,14 +11,15 @@ import { PLANS } from "@/lib/plans";
 import { clearPending, savePending, savePrefillEmail, takePrefillEmail } from "@/lib/pending-verification";
 
 import { AuthFrame, Field, FormError, PasswordField, SubmitButton } from "./auth-ui";
+import { GoogleButton } from "./oauth-callback";
 
 type Mode = "login" | "signup";
 
-export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
+export function AuthForm({ mode, next, google = false, error: initialError = null }: { mode: Mode; next: string; /** "Continue with Google" is switched on in Supabase. */ google?: boolean; error?: string | null }) {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", username: "", email: "", login: "", password: "" });
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [country, setCountry] = useState<Country>("IN");
   const [agreed, setAgreed] = useState(false);
   /** An account from before the new sign-in: offer to sign up again with its email. */
@@ -77,7 +78,31 @@ export function AuthForm({ mode, next }: { mode: Mode; next: string }) {
       <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.03em]">{mode === "login" ? "Welcome back, doctor." : "Create your account"}</h1>
       <p className="mt-2 text-[15px] text-fg-2">{mode === "login" ? "Your next patient is waiting." : `${PLANS.free.dailyCases} free cases every day. No card needed.`}</p>
 
-      <form onSubmit={submit} className="mt-8 flex flex-col gap-4" noValidate={false}>
+      {google && (
+        <div className="mt-8 flex flex-col gap-3">
+          <GoogleButton next={next} />
+          {mode === "signup" && (
+            <p className="text-center text-[12px] leading-5 text-fg-3">
+              By continuing you agree to the{" "}
+              <Link href="/terms" className="underline hover:text-fg">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline hover:text-fg">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          )}
+          <div className="flex items-center gap-3 text-[12px] text-fg-3" aria-hidden>
+            <span className="h-px flex-1 bg-line" />
+            or with email
+            <span className="h-px flex-1 bg-line" />
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={submit} className={google ? "mt-3 flex flex-col gap-4" : "mt-8 flex flex-col gap-4"} noValidate={false}>
         {mode === "signup" ? (
           <>
             <Field label="Full name" value={form.name} onChange={(e) => set("name")(e.target.value)} autoComplete="name" required minLength={2} maxLength={60} placeholder="Asha Verma" />

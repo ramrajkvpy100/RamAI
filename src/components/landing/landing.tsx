@@ -182,13 +182,6 @@ function SectionHead({ eyebrow, title, body }: { eyebrow: string; title: string;
   );
 }
 
-/** A guess at where the visitor practises, from the browser's language — India until the page knows. */
-function useVisitorCountry(): [Country, (country: Country) => void] {
-  const [country, setCountry] = useState<Country>("IN");
-  useEffect(() => setCountry(countryFromLocale(navigator.language)), []);
-  return [country, setCountry];
-}
-
 /** For a first-time visitor: what happens in a case, in three steps. */
 function HowItWorks() {
   const steps: { icon: IconName; title: string; body: string }[] = [
@@ -224,13 +217,12 @@ function HowItWorks() {
   );
 }
 
-function Ladder() {
-  const [country, setCountry] = useVisitorCountry();
+function Ladder({ country, onCountry }: { country: Country; onCountry: (country: Country) => void }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
       <SectionHead eyebrow="Six care levels" title="From first contact to the world's hardest cases." body="The facility decides what you can order. The level decides how hard the patient is. Climb from first-contact care to the rarest diagnoses in medicine — in India, the USA or the UK." />
       <div className="mt-6 flex justify-center">
-        <CountryPicker value={country} onChange={setCountry} />
+        <CountryPicker value={country} onChange={onCountry} />
       </div>
       <ol className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:items-end">
         {CARE_LEVELS.map((id, i) => {
@@ -262,8 +254,7 @@ const MODE_COPY: Record<(typeof CASE_TRACKS)[number], string> = {
   emergency: "Unstable patients and a ticking clock. Wrong orders have consequences — and a window to rescue.",
 };
 
-function Modes() {
-  const [country] = useVisitorCountry();
+function Modes({ country }: { country: Country }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
       <SectionHead eyebrow="Three modes" title="Every way patients reach you." />
@@ -344,7 +335,7 @@ function Habit() {
   );
 }
 
-function Pricing() {
+function Pricing({ country, onCountry }: { country: Country; onCountry: (country: Country) => void }) {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   return (
     <section className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6" id="pricing">
@@ -352,12 +343,16 @@ function Pricing() {
         <div className="micro text-accent-text">Pricing</div>
         <h2 className="mt-3 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[38px]">Start free. Go Pro when you&apos;re hooked.</h2>
         <div className="mt-7">
-          <PeriodToggle value={period} onChange={setPeriod} />
+          <PeriodToggle value={period} onChange={setPeriod} country={country} />
+        </div>
+        <div className="mt-3">
+          <CountryPicker value={country} onChange={onCountry} />
         </div>
       </div>
       <div className="mt-8">
         <PlanCards
           period={period}
+          country={country}
           free={
             <Link href="/signup" className="flex h-11 items-center justify-center rounded-full border border-line bg-surface text-[14px] font-semibold shadow-sm hover:bg-surface-3">
               Start free
@@ -374,7 +369,16 @@ function Pricing() {
   );
 }
 
-export function Landing() {
+/**
+ * Where the visitor practises — from where they're browsing (the server's
+ * guess), or the browser's language when that's unknown. One choice for the
+ * whole page: hospital names, modes and prices in their currency all follow it.
+ */
+export function Landing({ country: guessed }: { country?: Country }) {
+  const [country, setCountry] = useState<Country>(guessed ?? "IN");
+  useEffect(() => {
+    if (!guessed) setCountry(countryFromLocale(navigator.language));
+  }, [guessed]);
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-x-clip">
       <Backdrop />
@@ -382,10 +386,10 @@ export function Landing() {
       <main className="flex-1">
         <Hero />
         <HowItWorks />
-        <Ladder />
-        <Modes />
+        <Ladder country={country} onCountry={setCountry} />
+        <Modes country={country} />
         <Habit />
-        <Pricing />
+        <Pricing country={country} onCountry={setCountry} />
       </main>
       <Footer />
     </div>

@@ -10,7 +10,10 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import { SITE } from "@/lib/site";
 
+import { randomUUID } from "node:crypto";
+
 import type { User } from "./auth";
+import { db } from "./db";
 import { currentAccount, supabaseServer } from "./supabase";
 
 export const SUGGESTION_CATEGORIES = ["idea", "problem", "case", "other"] as const;
@@ -92,14 +95,75 @@ export async function sendSuggestion(user: User, input: { category: SuggestionCa
   return toSuggestion(data as Row);
 }
 
-/** The signed-in player's own suggestions, newest first, with any answers. */
-export async function mySuggestions(): Promise<Suggestion[]> {
+/** The signed-in player's own suggestions, newest first, with any answers (and any sent as a guest before signing up). */
+export async function mySuggestions(user?: User | null): Promise<Suggestion[]> {
   const account = await currentAccount();
-  if (!account) return [];
+  const asGuest = user ? await openSuggestionsOf(user.id) : [];
+  if (!account) return asGuest;
   const supabase = await supabaseServer();
   const { data, error } = await supabase.from("suggestions").select(COLUMNS).eq("user_id", account.id).order("created_at", { ascending: false }).limit(50);
   if (error) fail(error);
-  return (data as Row[]).map(toSuggestion);
+  return [...(data as Row[]).map(toSuggestion), ...asGuest].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Without an account: guests and visitors                                     */
+/* -------------------------------------------------------------------------- */
+
+/** Ids of suggestions kept in RamAI's own database start with this; Supabase's are plain UUIDs. */
+const OPEN = "g-";
+const isOpen = (id: string) => id.startsWith(OPEN);
+
+interface OpenRow {
+  id: string;
+  user_id: string | null;
+  name: string;
+  email: string | null;
+  category: SuggestionCategory;
+  message: string;
+  page: string | null;
+  status: SuggestionStatus;
+  reply: string | null;
+  replied_at: number | null;
+  created_at: number;
+}
+
+const fromOpen = (r: OpenRow, admin = false): Suggestion => ({
+  id: r.id,
+  category: r.category,
+  message: r.message,
+  page: r.page,
+  status: r.status,
+  reply: r.reply,
+  repliedAt: r.replied_at ? new Date(r.replied_at).toISOString() : null,
+  createdAt: new Date(r.created_at).toISOString(),
+  ...(admin ? { name: r.name, email: r.email ?? "" } : {}),
+});
+
+/** A guest's or visitor's suggestion. The email is optional — it's how we can answer someone without an account. */
+export async function sendOpenSuggestion(user: User | null, input: { category: SuggestionCategory; message: string; page?: string | null; email?: string | null }): Promise<Suggestion> {
+  const row: OpenRow = {
+    id: `${OPEN}${randomUUID()}`,
+    user_id: user?.id ?? null,
+    name: user ? "Guest doctor" : "Visitor",
+    email: input.email?.trim().toLowerCase() || null,
+    category: input.category,
+    message: input.message,
+    page: input.page ?? null,
+    status: "new",
+    reply: null,
+    replied_at: null,
+    created_at: Date.now(),
+  };
+  await db.run(
+    "INSERT INTO open_suggestions (id, user_id, name, email, category, message, page, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?)",
+    row.id, row.user_id, row.name, row.email, row.category, row.message, row.page, row.created_at,
+  );
+  return fromOpen(row);
+}
+
+async function openSuggestionsOf(userId: string): Promise<Suggestion[]> {
+  return (await db.all<OpenRow>("SELECT * FROM open_suggestions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", userId)).map((r) => fromOpen(r));
 }
 
 /** Emails that may be admins (the database has the final say). */
@@ -132,15 +196,26 @@ export async function listSuggestions(filter: { status?: SuggestionStatus; categ
   if (filter.category) query = query.eq("category", filter.category);
   const q = filter.q?.replace(/[%_*,()\\]/g, " ").trim();
   if (q) query = query.ilike("message", `%${q}%`);
-  const [{ data, error }, all] = await Promise.all([query, supabase.from("suggestions").select("status").limit(10_000)]);
+  const where: string[] = [];
+  const args: string[] = [];
+  if (filter.status) (where.push("status = ?"), args.push(filter.status));
+  if (filter.category) (where.push("category = ?"), args.push(filter.category));
+  if (q) (where.push("message LIKE ?"), args.push(`%${q}%`));
+  const [{ data, error }, all, open, openAll] = await Promise.all([
+    query,
+    supabase.from("suggestions").select("status").limit(10_000),
+    db.all<OpenRow>(`SELECT * FROM open_suggestions ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY created_at DESC LIMIT 300`, ...args),
+    db.all<{ status: SuggestionStatus }>("SELECT status FROM open_suggestions"),
+  ]);
   if (error) fail(error);
   if (all.error) fail(all.error);
   const counts = Object.fromEntries([["all", 0], ...SUGGESTION_STATUSES.map((s) => [s, 0])]) as StatusCounts;
-  for (const r of all.data as { status: SuggestionStatus }[]) {
+  for (const r of [...(all.data as { status: SuggestionStatus }[]), ...openAll]) {
     counts.all += 1;
     counts[r.status] += 1;
   }
-  return { items: (data as Row[]).map(toSuggestion), counts };
+  const items = [...(data as Row[]).map(toSuggestion), ...open.map((r) => fromOpen(r, true))].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return { items, counts };
 }
 
 /** Admins: answer a suggestion and/or move it along. */
@@ -148,6 +223,16 @@ export async function answerSuggestion(id: string, patch: { status?: SuggestionS
   const update: Record<string, unknown> = {};
   if (patch.status) update.status = patch.status;
   if (patch.reply !== undefined) update.reply = patch.reply?.trim() ? patch.reply.trim() : null;
+  if (isOpen(id)) {
+    const set: string[] = [];
+    const args: (string | number | null)[] = [];
+    if (update.status) (set.push("status = ?"), args.push(update.status as string));
+    if ("reply" in update) (set.push("reply = ?", "replied_at = ?"), args.push(update.reply as string | null, update.reply ? Date.now() : null));
+    const done = await db.run(`UPDATE open_suggestions SET ${set.join(", ")} WHERE id = ?`, ...args, id);
+    const row = await db.get<OpenRow>("SELECT * FROM open_suggestions WHERE id = ?", id);
+    if (!done.changes || !row) throw new SuggestionsError("NOT_FOUND", "That suggestion isn't there any more.");
+    return fromOpen(row, true);
+  }
   const supabase = await supabaseServer();
   const { data, error } = await supabase.from("suggestions").update(update).eq("id", id).select(ADMIN_COLUMNS).maybeSingle();
   if (error) fail(error);
@@ -158,12 +243,19 @@ export async function answerSuggestion(id: string, patch: { status?: SuggestionS
 /** Admins: how many suggestions are still new. */
 export async function newSuggestionCount(): Promise<number> {
   const supabase = await supabaseServer();
-  const { count, error } = await supabase.from("suggestions").select("id", { count: "exact", head: true }).eq("status", "new");
-  if (error) return 0;
-  return count ?? 0;
+  const [{ count, error }, open] = await Promise.all([
+    supabase.from("suggestions").select("id", { count: "exact", head: true }).eq("status", "new"),
+    db.get<{ n: number }>("SELECT COUNT(*) AS n FROM open_suggestions WHERE status = 'new'").catch(() => undefined),
+  ]);
+  return (error ? 0 : (count ?? 0)) + (open?.n ?? 0);
 }
 
 export async function deleteSuggestion(id: string): Promise<void> {
+  if (isOpen(id)) {
+    const done = await db.run("DELETE FROM open_suggestions WHERE id = ?", id);
+    if (!done.changes) throw new SuggestionsError("NOT_FOUND", "That suggestion isn't there any more.");
+    return;
+  }
   const supabase = await supabaseServer();
   const { data, error } = await supabase.from("suggestions").delete().eq("id", id).select("id");
   if (error) fail(error);

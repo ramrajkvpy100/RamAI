@@ -421,9 +421,11 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
   }
 
   // Asking about results ("result of the test?", "is the CBC report ready?"): show what's back, say what's pending — never a new order.
-  if (hasAny(tk, ["result", "results", "report", "reports", "findings"]) && !hasAny(tk, ["order", "send", "send for", "request", "repeat"])) {
+  if (hasAny(tk, ["result", "results", "report", "reports", "findings", "impression"]) && !hasAny(tk, ["order", "send", "send for", "request", "repeat"])) {
     const named = resolveOverlaps(investigationCandidates(rawClause, tk, ctx));
-    if (named.length > 0) return done(named.map((i) => ({ ...i, payload: { ...i.payload, reshow: true } })));
+    // "USG report?" / "impression of the CT" — the report itself, not just the picture again.
+    const report = hasAny(tk, ["report", "reports", "impression", "reported", "radiologist"]);
+    if (named.length > 0) return done(named.map((i) => ({ ...i, payload: { ...i.payload, reshow: true, ...(report ? { report: true } : {}) } })));
     return done([{ kind: "results", phrase: rawClause, matched: true }]);
   }
 

@@ -13,7 +13,8 @@ import { MediaViewer, useMediaViewer } from "./media-viewer";
 import { RadiographImage } from "./radiograph";
 
 function Render({ media }: { media: MediaAsset }) {
-  if (media.ai) return <AiPicture media={media} />;
+  // A drawn spec stays as the fallback when a picture can't be made.
+  if (media.ai) return <AiPicture media={media} fallback={media.spec ? <Render media={{ ...media, ai: undefined }} /> : undefined} />;
   if (media.src) {
     // Real, licensed imagery takes precedence over procedural specs.
     // eslint-disable-next-line @next/next/no-img-element

@@ -47,7 +47,9 @@ export function CasePicker({
   const country = useMe()?.user.country ?? "IN";
   const [track, setTrack] = useState<CaseTrack | undefined>();
   const [level, setLevel] = useState<CareLevel | undefined>();
-  const [specialty, setSpecialty] = useState<Specialty | undefined>();
+  // Starts at the doctor's own specialty; "Any specialty" means every one this time.
+  const own = useMe()?.user.specialty;
+  const [specialty, setSpecialty] = useState<Specialty | undefined>(own && own !== "mixed" ? own : undefined);
   const specialties = ALL_SPECIALTIES.filter((s) => (library.specialties[s] ?? 0) > 0);
 
   return (
@@ -59,7 +61,7 @@ export function CasePicker({
       footer={
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
-          <button type="button" onClick={() => onStart({ track, level, specialty })} disabled={starting} className="shine flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-60">
+          <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any" })} disabled={starting} className="shine flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-60">
             {starting ? "Preparing case…" : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
           </button>

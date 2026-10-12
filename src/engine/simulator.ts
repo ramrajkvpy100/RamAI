@@ -19,6 +19,7 @@ import type {
   ActionRecord,
   Auscultation,
   CareSetting,
+  DermSpec,
   DrugRoute,
   EcgSpec,
   EncounterStage,
@@ -26,8 +27,10 @@ import type {
   InvestigationCategory,
   LabRow,
   MediaAsset,
+  MediaSpec,
   MessageRole,
   PatientStatus,
+  PictureType,
   ResolvedIntent,
   TurnEffect,
   VitalKey,
@@ -364,7 +367,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
         const fx: TurnEffect[] = [];
         for (const inv of list) {
           inv.delivered = true;
-          fx.push({ type: "investigation_resulted", instanceId: inv.instanceId, rows: inv.result.rows, report: inv.result.report, media: inv.result.media });
+          fx.push({ type: "investigation_resulted", instanceId: inv.instanceId, rows: inv.result.rows, report: inv.result.report, media: readableMedia(inv) });
         }
         fx.push({ type: "timeline", label: `${list.map((i) => i.name).join(", ")} resulted`, category: "investigation" });
         fx.push({
@@ -722,7 +725,7 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     finding = hidden.examOverrides[id] ?? caseEntry.finding;
     abnormal = !!caseEntry.abnormal || hidden.examOverrides[id] !== undefined;
     group = caseEntry.group;
-    media = caseEntry.media;
+    media = examMedia(id, caseEntry.media, caseEntry.label);
   } else if (cat) {
     label = cat.label;
     group = cat.group;
@@ -790,6 +793,69 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   return fx;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Pictures the doctor reads for themselves                                    */
+/* -------------------------------------------------------------------------- */
+
+/** What kind of picture a test makes — from its drawn spec, or its id and name. */
+export function pictureTypeFor(id: string, name: string, spec?: MediaSpec): PictureType | null {
+  if (spec && spec.kind !== "ecg" && spec.kind !== "derm") return spec.kind;
+  const s = `${id} ${name}`.toLowerCase();
+  if (/\b(usg|ultrasound|sonograph\w*|echo\w*|doppler|e?fast)\b/.test(s)) return "usg";
+  if (/\b(mri|mrcp|mra)\b/.test(s)) return "mri";
+  if (/\b(ct|cect|ncct|hrct|ctpa|cta)\b/.test(s)) return "ct";
+  if (/\b(x-?ray|xray|cxr|axr|radiograph\w*|kub)\b/.test(s)) return "xray";
+  if (/\bfundus|fundoscop/.test(s)) return "fundus";
+  if (/\b(endoscop\w*|colonoscop\w*|ugie|ogd|bronchoscop\w*)\b/.test(s)) return "endoscopy";
+  return null;
+}
+
+/**
+ * A scan as the doctor receives it: a realistic picture drawn from this very
+ * result (the case's own picture when it has one). The drawn spec stays as a
+ * fallback; the report waits until they open it.
+ */
+function readableMedia(inv: OrderedInvestigation): MediaAsset | undefined {
+  const media = inv.result.media;
+  if (media?.ai || inv.category !== "imaging") return media;
+  const type = pictureTypeFor(inv.defId, inv.name, media?.spec);
+  if (!type) return media;
+  const spec = media?.spec && media.spec.kind !== "ecg" && media.spec.kind !== "derm" ? media.spec : undefined;
+  return { ...media, ai: { ref: `i-${inv.instanceId}`, type, view: spec?.view ?? inv.name }, alt: media?.alt ?? inv.name };
+}
+
+/** What the image model draws for an imaging result: exactly its report (or the drawn findings), for this patient. */
+export function imagingPicture(def: ClinicalCaseDefinition, inv: OrderedInvestigation): { type: PictureType; view: string; describe: string } | null {
+  const ai = readableMedia(inv)?.ai;
+  if (!ai || ai.ref !== `i-${inv.instanceId}`) return null;
+  const spec = inv.result.media?.spec;
+  const drawn = spec && spec.kind !== "ecg" && spec.kind !== "derm" ? spec.features.filter((f) => f.id !== "normal").map((f) => `${f.id.replace(/-/g, " ")}${f.side ? ` (${f.side})` : ""}${f.severity ? `, ${["mild", "moderate", "severe"][f.severity - 1]}` : ""}`) : [];
+  const findings = inv.result.report?.trim() || (drawn.length ? drawn.join("; ") : "A normal study: no abnormality.");
+  return { type: ai.type, view: ai.view, describe: `${inv.name} of a ${def.patient.age}-year-old ${def.patient.sex.toLowerCase()}. It must show exactly this, and nothing else abnormal: ${findings}` };
+}
+
+/** A written case's skin finding, photographed: drawn from the examination's own words. Never the genitals or breasts. */
+function examMedia(id: string, media: MediaAsset | undefined, label: string): MediaAsset | undefined {
+  if (!media || media.ai || media.spec?.kind !== "derm" || id === "genital" || id === "breast") return media;
+  return { ...media, ai: { ref: `e-${id}`, type: "photo", view: label } };
+}
+
+const SKIN = ["very fair", "fair", "light brown", "brown", "dark brown", "deeply pigmented"] as const;
+
+/** What the image model draws for a written case's skin photograph — once that examination has been done. */
+export function examPicture(def: ClinicalCaseDefinition, hidden: HiddenState, ref: string): { type: PictureType; view: string; describe: string } | null {
+  const id = ref.slice(2);
+  const entry = def.exam.find((e) => e.id === id);
+  if (!entry || hidden.exams[id] === undefined || !examMedia(id, entry.media, entry.label)?.ai) return null;
+  const spec = entry.media!.spec as DermSpec;
+  const lesions = spec.lesions.map((l) => `${l.count} ${l.morphology.replace(/-/g, " ")}${l.region ? ` (${l.region})` : ""}`).join(", ");
+  return {
+    type: "photo",
+    view: `${entry.label} — ${spec.site}`,
+    describe: `Close-up clinical photograph of the ${spec.site} of a ${def.patient.age}-year-old ${def.patient.sex.toLowerCase()} with ${SKIN[spec.phototype - 1]} skin (Fitzpatrick ${spec.phototype}). What it shows: ${hidden.examOverrides[id] ?? entry.finding} Lesions: ${lesions}.`,
+  };
+}
+
 /** The system examinations whose findings include something the stethoscope picks up. */
 const SOUND_PART: Partial<Record<string, ListenPart>> = { cvs: "heart", rs: "lungs", abdomen: "bowel" };
 
@@ -841,6 +907,10 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   if (intent.payload?.reshow) {
     const existing = [...hidden.investigations].reverse().find((i) => i.defId === id);
     if (existing?.delivered) {
+      // Asked for the report in words: it's read out (a picture's report is otherwise behind "Show report").
+      if (intent.payload?.report && existing.result.report) {
+        return [{ type: "message", role: "system", kind: "finding", text: `${existing.name} report — ${existing.result.report}`, attachmentIds: [existing.instanceId] }];
+      }
       return [{ type: "message", role: "system", kind: "finding", text: `${existing.name} — showing the result again.`, attachmentIds: [existing.instanceId] }];
     }
     if (existing) {

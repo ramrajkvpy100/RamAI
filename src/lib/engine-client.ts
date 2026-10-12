@@ -8,6 +8,8 @@
 import type { Country } from "@/engine/countries";
 import type { CareLevel, CaseSession, CaseTrack, PatientLang, Specialty, TurnResponse } from "@/engine/types";
 
+import type { PreferredSpecialty } from "./specialty";
+
 export const UNAVAILABLE_MESSAGE = "Clinical engine temporarily unavailable.";
 
 /** Codes whose server message is written for players and safe to show. */
@@ -54,7 +56,8 @@ export interface CaseChoice {
   tutorial?: boolean;
   /** Today's daily case. */
   daily?: boolean;
-  specialty?: Specialty;
+  /** "any": every specialty this time, whatever the doctor's own. */
+  specialty?: Specialty | "any";
   track?: CaseTrack;
   level?: CareLevel;
 }
@@ -93,7 +96,7 @@ export const forgotPassword = (email: string) => call<{ ok: true }>("/api/auth/f
 export const resetPassword = (body: { password: string; tokenHash?: string; code?: string }) => call<{ user: unknown }>("/api/auth/reset", body);
 
 /* Preferences --------------------------------------------------------------- */
-export const updateSettings = (body: { patientLang?: PatientLang; country?: Country }) => call<unknown>("/api/me/settings", body);
+export const updateSettings = (body: { patientLang?: PatientLang; country?: Country; specialty?: PreferredSpecialty }) => call<unknown>("/api/me/settings", body);
 
 export interface DailyInfo {
   dayKey: string;

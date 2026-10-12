@@ -90,11 +90,12 @@ export async function deleteAccount(userId: string) {
   const authId = (await db.get<{ auth_id: string | null }>("SELECT auth_id FROM users WHERE id = ?", userId))?.auth_id ?? null;
   await db.batch([
     {
-      sql: `INSERT OR IGNORE INTO payments_archive (order_id, payment_id, amount, period, status, created_at, archived_at)
-            SELECT order_id, payment_id, amount, period, status, created_at, ? FROM payments WHERE user_id = ?`,
+      sql: `INSERT OR IGNORE INTO payments_archive (order_id, payment_id, amount, currency, period, status, created_at, archived_at)
+            SELECT order_id, payment_id, amount, currency, period, status, created_at, ? FROM payments WHERE user_id = ?`,
       args: [now, userId],
     },
     ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions", "case_ai"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
+    { sql: "DELETE FROM open_suggestions WHERE user_id = ?", args: [userId] },
     { sql: "DELETE FROM users WHERE id = ?", args: [userId] },
   ]);
   return { signInRemoved: authId ? await removeSignIn(authId) : true };

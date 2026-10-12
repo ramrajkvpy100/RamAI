@@ -11,9 +11,10 @@ import type { Country } from "@/engine/countries";
 import type { PatientLang, PlayerProgress } from "@/engine/types";
 
 import type { PlanId } from "./plans";
+import type { PreferredSpecialty } from "./specialty";
 
 export interface Me {
-  user: { id: string; email: string; username: string; name: string; plan: PlanId; planExpiresAt: number | null; patientLang: PatientLang; createdAt: number; emailVerified: boolean; isGuest: boolean; leagueTier: number; country: Country };
+  user: { id: string; email: string; username: string; name: string; plan: PlanId; planExpiresAt: number | null; patientLang: PatientLang; createdAt: number; emailVerified: boolean; isGuest: boolean; leagueTier: number; country: Country; specialty: PreferredSpecialty | null };
   progress: PlayerProgress;
   usage: { casesToday: number; dailyLimit: number | null };
   /** Runs the site: sees and answers everyone's suggestions. */

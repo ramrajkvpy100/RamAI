@@ -8,6 +8,7 @@ import { LangToggle } from "@/components/case/lang-toggle";
 import { CountryPicker } from "@/components/app/country-picker";
 import { AppOptions } from "@/components/app/app-options";
 import { TOUR_EVENT } from "@/components/home/home-tour";
+import { SPECIALTY_EVENT } from "@/components/home/specialty-sheet";
 import { useLauncher } from "@/components/home/use-launcher";
 import { Avatar } from "@/components/game/avatar";
 import { RankBadge } from "@/components/game/rank-badge";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/cn";
 import { disableReminders } from "@/lib/app-install";
 import { logout } from "@/lib/engine-client";
 import { clearMe, type Me } from "@/lib/me-store";
+import { specialtyLabel } from "@/lib/specialty";
 import { useThemePref, type ThemePref } from "@/lib/theme";
 
 export function UserMenu({ me }: { me: Me }) {
@@ -106,6 +108,19 @@ export function UserMenu({ me }: { me: Me }) {
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3"
           >
             <Icon name="target" size={15} className="text-fg-2" /> Quick tour of RamAI
+          </button>
+          <button
+            role="menuitem"
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              if (window.location.pathname === "/") window.dispatchEvent(new Event(SPECIALTY_EVENT));
+              else router.push("/?specialty=1");
+            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3"
+          >
+            <Icon name="pulse" size={15} className="text-fg-2" /> Your specialty
+            <span className="ml-auto max-w-[140px] truncate text-[12.5px] text-fg-2">{me.user.specialty ? specialtyLabel(me.user.specialty).replace(" — every specialty", "") : "Not set"}</span>
           </button>
           <Link role="menuitem" href="/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
             <Icon name="bulb" size={15} className="text-fg-2" /> Suggest an improvement

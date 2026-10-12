@@ -46,11 +46,19 @@ describe.skipIf(!E2E)("suggestions end to end (Supabase stand-in)", () => {
     expect(mine.map((s) => s.id)).toEqual([id]);
   });
 
-  it("guests and signed-out visitors can't send any", async () => {
+  it("guests and signed-out visitors can send one too — kept in RamAI's own database", async () => {
     const guest = new Browser(stack.base);
     await guest.api("/api/auth/guest", {});
-    expect(await guest.api("/api/suggestions", { category: "idea", message: "A guest trying to get in here." })).toMatchObject({ status: 403, code: "SIGNUP_REQUIRED" });
-    expect((await new Browser(stack.base).api("/api/suggestions", { category: "idea", message: "Nobody signed in at all." })).status).toBe(401);
+    const sent = await guest.api("/api/suggestions", { category: "idea", message: "A guest would like more ECG cases." });
+    expect(sent.status).toBe(200);
+    expect((sent.body.suggestion as { id: string }).id).toMatch(/^g-/);
+    expect(((await guest.api("/api/suggestions")).body.items as { message: string }[]).map((s) => s.message)).toEqual(["A guest would like more ECG cases."]);
+    const visitor = new Browser(stack.base);
+    expect((await visitor.api("/api/suggestions", { category: "problem", message: "Signed out, and the menu is hard to read.", email: "visitor@example.com" })).status).toBe(200);
+    expect((await visitor.api("/api/suggestions")).body.items).toEqual([]);
+    expect(await visitor.api("/api/suggestions", { category: "idea", message: "With an email that isn't one.", email: "not-an-email" })).toMatchObject({ status: 400 });
+    // Neither shows up in anyone else's list.
+    expect(((await player.api("/api/suggestions")).body.items as { id: string }[]).map((s) => s.id)).toEqual([id]);
   });
 
   it("only the admin can open the admin list — the page and the API", async () => {
@@ -58,8 +66,8 @@ describe.skipIf(!E2E)("suggestions end to end (Supabase stand-in)", () => {
     expect((await player.go("/admin/suggestions")).status).toBe(404);
     const list = await admin.api("/api/admin/suggestions");
     expect(list.status).toBe(200);
-    expect((list.body.items as unknown[]).length).toBe(2);
-    expect(list.body.counts).toMatchObject({ all: 2, new: 2 });
+    expect((list.body.items as unknown[]).length).toBe(4);
+    expect(list.body.counts).toMatchObject({ all: 4, new: 4 });
     const page = await admin.go("/admin/suggestions");
     expect(page.status).toBe(200);
     expect(await page.text()).toContain("snakebite");
@@ -78,12 +86,12 @@ describe.skipIf(!E2E)("suggestions end to end (Supabase stand-in)", () => {
     const mine = (await player.api("/api/suggestions")).body.items as { status: string; reply: string; repliedAt: string }[];
     expect(mine[0]).toMatchObject({ status: "planned", reply: "Coming in November — thank you!" });
     expect(mine[0]!.repliedAt).toBeTruthy();
-    expect((await admin.api("/api/admin/suggestions?status=planned")).body.counts).toMatchObject({ planned: 1, new: 1 });
+    expect((await admin.api("/api/admin/suggestions?status=planned")).body.counts).toMatchObject({ planned: 1, new: 3 });
   });
 
   it("the admin's menu shows how many are new", async () => {
     const me = (await admin.api("/api/me")).body as { admin?: boolean; newSuggestions?: number };
-    expect(me).toMatchObject({ admin: true, newSuggestions: 1 });
+    expect(me).toMatchObject({ admin: true, newSuggestions: 3 });
     expect(((await player.api("/api/me")).body as { admin?: boolean }).admin).toBeUndefined();
   });
 

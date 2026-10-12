@@ -19,6 +19,7 @@ import { cookies } from "next/headers";
 import { isCountry, type Country } from "@/engine/countries";
 import type { PatientLang } from "@/engine/types";
 import type { PlanId } from "@/lib/plans";
+import { isPreferredSpecialty, type PreferredSpecialty } from "@/lib/specialty";
 
 import { db, isUniqueViolation } from "./db";
 import { currentAccount, supabaseServer } from "./supabase";
@@ -45,6 +46,8 @@ export interface User {
   leagueTier: number;
   /** Where their patients come from: names, units, money, emergency number, hospital names. */
   country: Country;
+  /** The doctor's specialty — their cases come from it. "mixed": every specialty. null: not asked yet. */
+  specialty: PreferredSpecialty | null;
 }
 
 interface UserRow {
@@ -62,6 +65,7 @@ interface UserRow {
   is_demo: number;
   league_tier: number;
   country: string | null;
+  specialty?: string | null;
 }
 
 function toUser(r: UserRow): User {
@@ -79,6 +83,7 @@ function toUser(r: UserRow): User {
     isGuest: r.is_guest === 1,
     leagueTier: r.league_tier ?? 0,
     country: isCountry(r.country) ? r.country : "IN",
+    specialty: isPreferredSpecialty(r.specialty) ? r.specialty : null,
   };
 }
 
@@ -245,6 +250,10 @@ export async function setCountry(userId: string, country: Country) {
   await db.run("UPDATE users SET country = ? WHERE id = ?", country, userId);
 }
 
+export async function setSpecialty(userId: string, specialty: PreferredSpecialty) {
+  await db.run("UPDATE users SET specialty = ? WHERE id = ?", specialty, userId);
+}
+
 export async function setPlan(userId: string, plan: PlanId, expiresAt: number | null) {
   await db.run("UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?", plan, expiresAt, userId);
 }
@@ -267,6 +276,7 @@ async function purgeStaleGuests(now: number) {
   const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments", "push_subscriptions", "case_ai"];
   await db.batch([
     ...children.map((t) => ({ sql: `DELETE FROM ${t} WHERE user_id IN (${STALE_GUEST})`, args: [before] })),
+    { sql: `UPDATE open_suggestions SET user_id = NULL WHERE user_id IN (${STALE_GUEST})`, args: [before] },
     { sql: "DELETE FROM users WHERE is_guest = 1 AND created_at < ?", args: [before] },
     // AI pictures and notes are kept for a month, for reopening recent cases.
     { sql: "DELETE FROM case_ai WHERE created_at < ?", args: [now - 30 * 86_400_000] },

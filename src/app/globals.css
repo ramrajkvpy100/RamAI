@@ -51,7 +51,8 @@
   /* Apple-style materials: translucent fills that blur what's behind them. */
   --material-regular: rgb(255 255 255 / 0.6);
   --material-thick: rgb(250 250 252 / 0.88);
-  --material-bar: rgb(248 248 250 / 0.72);
+  --popover-bg: rgb(252 252 254 / 0.98);
+  --material-bar: rgb(248 248 250 / 0.985);
   --material-edge: rgb(255 255 255 / 0.9);
   --material-stroke: rgb(0 0 0 / 0.07);
   /* The wallpaper the glass sits on. */
@@ -104,7 +105,8 @@
     --highlight: rgb(255 255 255 / 0.06);
     --material-regular: rgb(30 30 34 / 0.58);
     --material-thick: rgb(36 36 40 / 0.88);
-    --material-bar: rgb(18 18 22 / 0.72);
+    --popover-bg: rgb(32 33 38 / 0.98);
+    --material-bar: rgb(18 18 22 / 0.985);
     --material-edge: rgb(255 255 255 / 0.1);
     --material-stroke: rgb(255 255 255 / 0.1);
     --wall-1: rgb(10 132 255 / 0.3);
@@ -155,7 +157,8 @@
   --highlight: rgb(255 255 255 / 0.06);
   --material-regular: rgb(30 30 34 / 0.58);
   --material-thick: rgb(36 36 40 / 0.88);
-  --material-bar: rgb(18 18 22 / 0.72);
+  --popover-bg: rgb(32 33 38 / 0.98);
+  --material-bar: rgb(18 18 22 / 0.985);
   --material-edge: rgb(255 255 255 / 0.1);
   --material-stroke: rgb(255 255 255 / 0.1);
   --wall-1: rgb(10 132 255 / 0.3);
@@ -343,9 +346,9 @@
   box-shadow: inset 0 1px 0 var(--material-edge), var(--shadow-md);
 }
 
-/* Menus: thick frosted glass — translucent, but always easy to read. */
+/* Menus: nearly solid, so what's behind never shows through (a blurred header stops the blur behind its menus). */
 @utility popover {
-  background: var(--material-thick);
+  background: var(--popover-bg);
   -webkit-backdrop-filter: blur(40px) saturate(190%);
   backdrop-filter: blur(40px) saturate(190%);
   border: 1px solid var(--material-stroke);

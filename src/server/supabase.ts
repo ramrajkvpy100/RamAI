@@ -85,3 +85,28 @@ export async function currentAccount(): Promise<AuthAccount | null> {
   if (error || !claims?.sub || claims.is_anonymous || typeof claims.email !== "string") return null;
   return { id: claims.sub, email: claims.email.toLowerCase() };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Sign-in methods                                                             */
+/* -------------------------------------------------------------------------- */
+
+let providers: { google: boolean; at: number } | null = null;
+
+/**
+ * Which sign-in methods are switched on in the Supabase dashboard (its public
+ * settings), checked at most every five minutes. "Continue with Google"
+ * appears by itself once Google is enabled there.
+ */
+export async function authProviders(): Promise<{ google: boolean }> {
+  const config = supabaseConfig();
+  if (!config) return { google: false };
+  if (providers && Date.now() - providers.at < 300_000) return { google: providers.google };
+  try {
+    const res = await fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.key }, signal: AbortSignal.timeout(2500), cache: "no-store" });
+    const json = (await res.json()) as { external?: Record<string, boolean> };
+    providers = { google: res.ok && json.external?.google === true, at: Date.now() };
+  } catch {
+    providers = { google: providers?.google ?? false, at: Date.now() - 240_000 };
+  }
+  return { google: providers.google };
+}
