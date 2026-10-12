@@ -40,6 +40,8 @@ const shownName = (name: string, guest: boolean) => (guest ? "A RamAI doctor" : 
 
 export interface ResultCard {
   kind: "result";
+  /** The doctor's case number — the card's serial. */
+  caseNumber: number;
   name: string;
   score: number;
   xp: number;
@@ -70,8 +72,8 @@ export interface ProgressCard {
 }
 
 export async function resultCard(resultId: number): Promise<ResultCard | null> {
-  const r = await db.get<{ user_id: string; specialty: string; track: string; level: string; diagnosis: string; verdict: string | null; score: number; xp: number; daily_key: string | null; elapsed_min: number | null; grid: string | null; name: string; is_guest: number; country: string }>(
-    `SELECT r.user_id, r.specialty, r.track, r.level, r.diagnosis, r.verdict, r.score, r.xp, r.daily_key, r.elapsed_min, r.grid, u.name, u.is_guest, u.country
+  const r = await db.get<{ user_id: string; case_number: number; specialty: string; track: string; level: string; diagnosis: string; verdict: string | null; score: number; xp: number; daily_key: string | null; elapsed_min: number | null; grid: string | null; name: string; is_guest: number; country: string }>(
+    `SELECT r.user_id, r.case_number, r.specialty, r.track, r.level, r.diagnosis, r.verdict, r.score, r.xp, r.daily_key, r.elapsed_min, r.grid, u.name, u.is_guest, u.country
      FROM results r JOIN users u ON u.id = r.user_id WHERE r.id = ?`,
     resultId,
   );
@@ -80,6 +82,7 @@ export async function resultCard(resultId: number): Promise<ResultCard | null> {
   const progress = await progressFor(r.user_id);
   return {
     kind: "result",
+    caseNumber: r.case_number,
     name: shownName(r.name, r.is_guest === 1),
     score: r.score,
     xp: r.xp,

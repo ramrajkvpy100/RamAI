@@ -16,11 +16,13 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // The share cards draw RamAI's heart from this picture: it must travel with the function.
+  outputFileTracingIncludes: { "/api/share/**": ["./src/server/assets/**/*"] },
   async headers() {
     return [
       { source: "/(.*)", headers: SECURITY_HEADERS },
-      // Account data must never be cached by a browser or CDN.
-      { source: "/api/(.*)", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
+      // Account data must never be cached by a browser or CDN. (Share cards are public pictures — they set their own.)
+      { source: "/api/:path((?!share/).*)", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
     ];
   },
 };

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-import { CARD_SIZE, cardFonts, ProgressCardImage, ResultCardImage, type CardFormat } from "@/server/share-card";
+import { CARD_SIZE, cardFonts, heartImage, ProgressCardImage, ResultCardImage, type CardFormat } from "@/server/share-card";
 import { progressCard, readShareId, resultCard } from "@/server/share";
 import { rateLimited } from "@/lib/server/http";
 import { SITE } from "@/lib/site";
@@ -18,9 +18,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const card = share.kind === "r" ? await resultCard(Number(share.value)) : await progressCard(share.value);
   if (!card) return new Response("Not found", { status: 404 });
   const site = new URL(SITE.url).host;
-  return new ImageResponse(card.kind === "result" ? <ResultCardImage card={card} format={format} site={site} /> : <ProgressCardImage card={card} format={format} site={site} />, {
+  const [img, fonts] = await Promise.all([heartImage(), cardFonts()]);
+  return new ImageResponse(card.kind === "result" ? <ResultCardImage card={card} format={format} site={site} img={img} /> : <ProgressCardImage card={card} format={format} site={site} img={img} />, {
     ...CARD_SIZE[format],
-    fonts: await cardFonts(),
+    fonts,
     // A result never changes; progress does. Either way the picture is kept close to whoever opens it.
     headers: { "Cache-Control": share.kind === "r" ? "public, max-age=86400, s-maxage=86400" : "public, max-age=600, s-maxage=600" },
   });

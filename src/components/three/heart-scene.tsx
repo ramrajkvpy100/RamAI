@@ -28,7 +28,7 @@ function cardiac(t: number) {
 /** Coronary arteries and cardiac veins (sRGB). */
 const VESSEL_HEX = { artery: 0xd04a74, vein: 0x6a5ee0 } as const;
 
-export function HeartScene({ className, density = "hero", tone = "auto" }: { className?: string; density?: "hero" | "compact"; /** "dark" when drawn on an always-dark surface. */ tone?: "auto" | "dark" }) {
+export function HeartScene({ className, density = "hero", tone = "auto", bare = false }: { className?: string; density?: "hero" | "compact"; /** "dark" when drawn on an always-dark surface. */ tone?: "auto" | "dark"; /** The heart alone — no glow, shadow or dust (for capturing it as a picture). */ bare?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [fallback, setFallback] = useState(false);
 
@@ -201,7 +201,8 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
       dustGeo.setAttribute("position", new THREE.BufferAttribute(dust, 3));
       const dustMat = new THREE.PointsMaterial({ color: 0x93c5fd, size: 0.02, transparent: true, opacity: 0.45, depthWrite: false });
       const dustPts = new THREE.Points(dustGeo, dustMat);
-      scene.add(glow, shadow, dustPts, pivot);
+      if (bare) scene.add(pivot);
+      else scene.add(glow, shadow, dustPts, pivot);
 
       let dark = isDark();
       const applyTheme = () => {
@@ -341,7 +342,7 @@ export function HeartScene({ className, density = "hero", tone = "auto" }: { cla
       abort.abort();
       cleanup();
     };
-  }, [density, tone]);
+  }, [density, tone, bare]);
 
   return (
     // Callers position the scene (usually `absolute …`); default to `relative` only when they don't.

@@ -136,6 +136,23 @@ export function DebriefView({
   const state = session.state;
   const [showScore, setShowScore] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [discussing, setDiscussing] = useState(false);
+  // A community post about this case, its result card attached — the daily case's marked as a spoiler.
+  const discuss = async () => {
+    setDiscussing(true);
+    const res = await fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "result", sessionId: state.sessionId }) }).catch(() => null);
+    const shared = res?.ok ? ((await res.json()) as { id: string }) : null;
+    const daily = !!state.daily;
+    const params = new URLSearchParams({
+      compose: "1",
+      topic: "cases",
+      title: daily ? "Today's daily case — how did you approach it?" : `${d.specialty}: ${d.diagnosis}`.slice(0, 140),
+      body: `I scored ${d.score.total}/100 on this ${d.specialty.toLowerCase()} case.\n\nWhat I found tricky:\n\nWhat would you have done differently?`,
+      ...(shared ? { share: shared.id } : {}),
+      ...(daily ? { spoiler: "1" } : {}),
+    });
+    window.location.assign(`/community?${params}`);
+  };
 
   const verdict = VERDICT[d.verdict];
   const won = d.score.total >= 70 && (d.finalStatus === "improving" || d.finalStatus === "recovered" || d.finalStatus === "stable");
@@ -177,9 +194,14 @@ export function DebriefView({
             </div>
             <div className="flex flex-col items-start gap-3 lg:items-center">
               <ScoreRing score={d.score.total} />
-              <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-3">
-                <Icon name="share-ios" size={15} /> Share result
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-3">
+                  <Icon name="share-ios" size={15} /> Share result
+                </button>
+                <button type="button" onClick={() => void discuss()} disabled={discussing} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-3 disabled:opacity-60">
+                  <Icon name="chat" size={15} /> {discussing ? "Opening…" : "Discuss this case"}
+                </button>
+              </div>
             </div>
           </div>
         </section>

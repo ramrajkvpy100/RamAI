@@ -27,7 +27,7 @@ const iso = (ms: number | null | undefined) => (typeof ms === "number" ? new Dat
 
 /** Everything RamAI holds about a player, in a portable form (no password or token hashes). */
 export async function exportData(userId: string) {
-  const [account, results, starts, leagues, payments, devices] = await Promise.all([
+  const [account, results, starts, leagues, payments, devices, posts, replies, suggestions] = await Promise.all([
     db.get<AccountRow>(
       "SELECT id, email, username, name, plan, plan_expires_at, patient_lang, country, created_at, email_verified_at, terms_accepted_at, terms_version, is_guest FROM users WHERE id = ?",
       userId,
@@ -40,6 +40,9 @@ export async function exportData(userId: string) {
     db.all<Record<string, unknown>>("SELECT week, tier, cohort, joined_at, final_rank, outcome FROM league_members WHERE user_id = ? ORDER BY week", userId),
     db.all<Record<string, unknown> & { created_at: number }>("SELECT order_id, payment_id, amount, period, status, created_at FROM payments WHERE user_id = ? ORDER BY created_at", userId),
     db.all<{ endpoint: string; seen_at: number; last_sent_day: string | null }>("SELECT endpoint, seen_at, last_sent_day FROM push_subscriptions WHERE user_id = ? ORDER BY seen_at", userId),
+    db.all<{ id: string; topic: string; title: string; body: string; created_at: number }>("SELECT id, topic, title, body, created_at FROM posts WHERE user_id = ? ORDER BY created_at", userId),
+    db.all<{ post_id: string; body: string; created_at: number }>("SELECT post_id, body, created_at FROM replies WHERE user_id = ? ORDER BY created_at", userId),
+    db.all<{ category: string; message: string; created_at: number }>("SELECT category, message, created_at FROM open_suggestions WHERE user_id = ? ORDER BY created_at", userId),
   ]);
   if (!account) return null;
   return {
@@ -65,6 +68,9 @@ export async function exportData(userId: string) {
     weeklyLeagues: leagues.map((l) => ({ ...l, week: iso(l.week as number), joined_at: iso(l.joined_at as number) })),
     payments: payments.map((p) => ({ ...p, created_at: iso(p.created_at) })),
     dailyReminders: devices.map((d) => ({ pushService: new URL(d.endpoint).hostname, lastConfirmed: iso(d.seen_at), lastSentDay: d.last_sent_day })),
+    communityPosts: posts.map((p) => ({ ...p, created_at: iso(p.created_at) })),
+    communityReplies: replies.map((r) => ({ ...r, created_at: iso(r.created_at) })),
+    suggestionsAsGuest: suggestions.map((x) => ({ ...x, created_at: iso(x.created_at) })),
   };
 }
 
@@ -96,6 +102,15 @@ export async function deleteAccount(userId: string) {
     },
     ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions", "case_ai"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
     { sql: "DELETE FROM open_suggestions WHERE user_id = ?", args: [userId] },
+    // The community: their likes come off others' counts; their replies, and their posts with everything under them, go.
+    { sql: "UPDATE posts SET like_count = MAX(0, like_count - 1) WHERE 'p:' || id IN (SELECT target FROM likes WHERE user_id = ?)", args: [userId] },
+    { sql: "UPDATE replies SET like_count = MAX(0, like_count - 1) WHERE 'r:' || id IN (SELECT target FROM likes WHERE user_id = ?)", args: [userId] },
+    { sql: "DELETE FROM likes WHERE user_id = ?", args: [userId] },
+    { sql: "DELETE FROM reports WHERE user_id = ?", args: [userId] },
+    { sql: "UPDATE posts SET reply_count = MAX(0, reply_count - (SELECT COUNT(*) FROM replies r WHERE r.post_id = posts.id AND r.user_id = ?)) WHERE id IN (SELECT post_id FROM replies WHERE user_id = ?)", args: [userId, userId] },
+    { sql: "DELETE FROM replies WHERE user_id = ? OR post_id IN (SELECT id FROM posts WHERE user_id = ?)", args: [userId, userId] },
+    { sql: "DELETE FROM likes WHERE target IN (SELECT 'p:' || id FROM posts WHERE user_id = ?)", args: [userId] },
+    { sql: "DELETE FROM posts WHERE user_id = ?", args: [userId] },
     { sql: "DELETE FROM users WHERE id = ?", args: [userId] },
   ]);
   return { signInRemoved: authId ? await removeSignIn(authId) : true };

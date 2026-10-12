@@ -13,6 +13,9 @@ export function Footer() {
             <span>Clinical simulation for education. Cases are fictional — not medical advice.</span>
           </div>
           <span className="flex items-center gap-5">
+            <Link href="/community" className="hover:text-fg">
+              Community
+            </Link>
             <Link href="/suggestions" className="hover:text-fg">
               Suggestions
             </Link>

@@ -14,6 +14,7 @@ import { UserMenu } from "./user-menu";
 
 const NAV = [
   { href: "/", label: "Home" },
+  { href: "/community", label: "Community" },
   { href: "/leaderboard", label: "Leaderboard" },
 ];
 
@@ -28,7 +29,7 @@ export function AppHeader({ initial }: { initial: Me }) {
         </Link>
         <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors", path === n.href ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}>
+            <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}>
               {n.label}
             </Link>
           ))}
@@ -46,7 +47,7 @@ export function AppHeader({ initial }: { initial: Me }) {
       </div>
       <nav className="flex items-center gap-1 border-t border-line/60 px-4 py-1.5 sm:hidden" aria-label="Main">
         {NAV.map((n) => (
-          <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1 text-[13px] font-medium", path === n.href ? "bg-surface-3 text-fg" : "text-fg-2")}>
+          <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1 text-[13px] font-medium", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2")}>
             {n.label}
           </Link>
         ))}

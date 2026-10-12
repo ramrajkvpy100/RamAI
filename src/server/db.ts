@@ -162,6 +162,53 @@ CREATE TABLE IF NOT EXISTS open_suggestions (
 CREATE INDEX IF NOT EXISTS open_suggestions_created ON open_suggestions(created_at);
 CREATE INDEX IF NOT EXISTS open_suggestions_user ON open_suggestions(user_id, created_at);
 
+-- The community: posts, replies, likes and reports.
+CREATE TABLE IF NOT EXISTS posts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  share_id TEXT,
+  spoiler INTEGER NOT NULL DEFAULT 0,
+  reply_count INTEGER NOT NULL DEFAULT 0,
+  like_count INTEGER NOT NULL DEFAULT 0,
+  report_count INTEGER NOT NULL DEFAULT 0,
+  hidden INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  last_activity_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS posts_feed ON posts(hidden, last_activity_at);
+CREATE INDEX IF NOT EXISTS posts_topic ON posts(topic, hidden, last_activity_at);
+CREATE INDEX IF NOT EXISTS posts_user ON posts(user_id, created_at);
+CREATE TABLE IF NOT EXISTS replies (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  body TEXT NOT NULL,
+  like_count INTEGER NOT NULL DEFAULT 0,
+  report_count INTEGER NOT NULL DEFAULT 0,
+  hidden INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS replies_post ON replies(post_id, created_at);
+CREATE INDEX IF NOT EXISTS replies_user ON replies(user_id, created_at);
+-- target: "p:<post id>" or "r:<reply id>"
+CREATE TABLE IF NOT EXISTS likes (
+  target TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (target, user_id)
+);
+CREATE INDEX IF NOT EXISTS likes_user ON likes(user_id);
+CREATE TABLE IF NOT EXISTS reports (
+  target TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  reason TEXT,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (target, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -310,7 +357,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
