@@ -112,7 +112,7 @@ export function CommunityFeed({ initial, more: initialMore, guest, signedIn, dra
         </button>
       </section>
 
-      <div role="tablist" aria-label="Topics" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+      <div role="tablist" aria-label="Topics" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
         {([null, ...TOPIC_IDS] as (Topic | null)[]).map((t) => (
           <button key={t ?? "all"} type="button" role="tab" aria-selected={topic === t} onClick={() => setTopic(t)} className={cn("h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors", topic === t ? "bg-fg text-bg" : "bg-surface-2 text-fg-2 hover:text-fg")}>
             {t ? TOPICS[t].label : "All"}
