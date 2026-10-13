@@ -66,7 +66,7 @@ const HEART_RATIO = 474 / 720;
 /* Tiers                                                                       */
 /* -------------------------------------------------------------------------- */
 
-interface Tier {
+export interface Tier {
   name: string;
   /** The gradient: border, ring, score. */
   colors: string[];
@@ -85,9 +85,9 @@ const TIERS: Tier[] = [
 export const tierFor = (score: number): Tier => (score >= 90 ? TIERS[0]! : score >= 80 ? TIERS[1]! : score >= 70 ? TIERS[2]! : score >= 50 ? TIERS[3]! : TIERS[4]!);
 
 /** A rank's colours, from the first rung to the last. */
-const rankTier = (tier: number): Tier => (tier >= 9 ? TIERS[0]! : tier >= 7 ? TIERS[1]! : tier >= 5 ? TIERS[2]! : tier >= 3 ? TIERS[3]! : TIERS[4]!);
+export const rankTier = (tier: number): Tier => (tier >= 9 ? TIERS[0]! : tier >= 7 ? TIERS[1]! : tier >= 5 ? TIERS[2]! : tier >= 3 ? TIERS[3]! : TIERS[4]!);
 
-const gradient = (colors: string[], angle = 135) => `linear-gradient(${angle}deg, ${colors.join(", ")})`;
+export const gradient = (colors: string[], angle = 135) => `linear-gradient(${angle}deg, ${colors.join(", ")})`;
 
 /* -------------------------------------------------------------------------- */
 /* Pieces                                                                      */
@@ -97,7 +97,7 @@ const VIOLET = "#7c3aed";
 const BLUE = "#2563eb";
 const CYAN = "#06b6d4";
 
-function Mark({ size }: { size: number }) {
+export function Mark({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64">
       <defs>
@@ -119,6 +119,24 @@ function Brand({ scale }: { scale: number }) {
       <Mark size={52 * scale} />
       <div style={{ display: "flex", fontSize: 38 * scale, fontWeight: 700, letterSpacing: -1 * scale, color: "#fff" }}>
         Ram<span style={{ color: "#60a5fa" }}>AI</span>
+      </div>
+    </div>
+  );
+}
+
+/** A colour part-way to another ("#2563eb" towards navy) — the card renderer has no color-mix(). */
+export function mixHex(a: string, b: string, t: number): string {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return `#${x.map((v, i) => Math.round(v + (y[i]! - v) * t).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** The doctor's avatar — their initials on their colour, as on the site. */
+export function AvatarDisc({ avatar, size, ring = 0, ringColor = "#fff" }: { avatar: { initials: string; color: string }; size: number; ring?: number; ringColor?: string }) {
+  return (
+    <div style={{ display: "flex", width: size, height: size, borderRadius: 9999, padding: ring, background: ringColor }}>
+      <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 9999, backgroundImage: `linear-gradient(135deg, ${avatar.color}, ${mixHex(avatar.color, "#0b1220", 0.45)})`, color: "#fff", fontSize: (size - ring * 2) * 0.38, fontWeight: 700, letterSpacing: -0.5 }}>
+        {avatar.initials}
       </div>
     </div>
   );
@@ -254,14 +272,14 @@ function Frame({ tier, children, padding, inset, radius }: { tier: Tier; childre
   );
 }
 
-const VERDICT: Record<string, string> = {
+export const VERDICT: Record<string, string> = {
   correct: "Diagnosed correctly",
   implied: "Recognised from the management",
   partial: "Partly diagnosed",
   incorrect: "A tough one",
 };
 
-const serial = (n: number) => `Nº ${String(n).padStart(4, "0")}`;
+export const serial = (n: number) => `Nº ${String(n).padStart(4, "0")}`;
 
 /* -------------------------------------------------------------------------- */
 /* The cards                                                                   */
@@ -281,12 +299,23 @@ export function ResultCardImage({ card, format, site, img }: { card: ResultCard;
     </div>
   );
   const head = (s: number) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <Brand scale={s} />
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 * s }}>
-        <div style={{ display: "flex", fontSize: 20 * s, letterSpacing: 6 * s, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>CASE CARD</div>
-        <div style={{ display: "flex", fontSize: 26 * s, color: tier.accent, fontWeight: 600, letterSpacing: 2 * s }}>{serial(card.caseNumber)}</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 26 * s }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Brand scale={s} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 * s }}>
+          <div style={{ display: "flex", fontSize: 20 * s, letterSpacing: 6 * s, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>CASE CARD</div>
+          <div style={{ display: "flex", fontSize: 26 * s, color: tier.accent, fontWeight: 600, letterSpacing: 2 * s }}>{serial(card.caseNumber)}</div>
+        </div>
       </div>
+      {format !== "wide" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 18 * s }}>
+          <AvatarDisc avatar={card.avatar} size={78 * s} ring={3 * s} ringColor={tier.colors[1]!} />
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", fontSize: 32 * s, fontWeight: 700 }}>{card.name}</div>
+            <div style={{ display: "flex", fontSize: 22 * s, color: tier.accent }}>{card.rank}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
   const foot = (s: number, width: number) => (
@@ -390,7 +419,10 @@ export function ProgressCardImage({ card, format, site, img }: { card: ProgressC
       <div style={{ display: "flex", flex: 1, flexDirection: story ? "column" : "row", alignItems: "center", justifyContent: "center", gap: story ? 30 : 36 }}>
         <HeartRing score={card.average} size={ringSize} tier={tier} img={img} />
         <div style={{ display: "flex", flexDirection: "column", alignItems: story ? "center" : "flex-start", gap: 14 * s, ...(story ? {} : { flex: 1 }) }}>
-          <div style={{ display: "flex", fontSize: 34 * s, color: "rgba(255,255,255,0.7)" }}>{card.name}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 * s }}>
+            <AvatarDisc avatar={card.avatar} size={72 * s} ring={3 * s} ringColor={tier.colors[1]!} />
+            <div style={{ display: "flex", fontSize: 34 * s, color: "rgba(255,255,255,0.8)" }}>{card.name}</div>
+          </div>
           <div style={{ display: "flex", fontSize: (story ? 100 : 74) * s, fontWeight: 700, letterSpacing: -3 * s, lineHeight: 1.02, backgroundImage: gradient(tier.colors, 90), backgroundClip: "text", color: "transparent" }}>{card.rank}</div>
           {card.streak > 0 && <div style={{ display: "flex", fontSize: 30 * s, color: "#fdba74" }}>{`${card.streak}-day streak, and counting`}</div>}
           {!wide && card.badges.length > 0 && (
