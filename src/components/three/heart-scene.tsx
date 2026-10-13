@@ -28,7 +28,26 @@ function cardiac(t: number) {
 /** Coronary arteries and cardiac veins (sRGB). */
 const VESSEL_HEX = { artery: 0xd04a74, vein: 0x6a5ee0 } as const;
 
-export function HeartScene({ className, density = "hero", tone = "auto", bare = false }: { className?: string; density?: "hero" | "compact"; /** "dark" when drawn on an always-dark surface. */ tone?: "auto" | "dark"; /** The heart alone — no glow, shadow or dust (for capturing it as a picture). */ bare?: boolean }) {
+/** The organs the site shows, and how each sits and moves. */
+const ORGANS = {
+  heart: { scale: 1.42, turn: [0.06, -0.3, 0.02], sway: 0.5, lean: -0.22 },
+  brain: { scale: 1.32, turn: [0.18, -0.5, 0], sway: 0.55, lean: -0.45 },
+  lungs: { scale: 1.3, turn: [0.04, 0, 0], sway: 0.32, lean: 0 },
+} as const;
+export type Organ = keyof typeof ORGANS;
+
+/** Breathing, ~13 a minute: a slow rise, a softer fall. */
+const breath = (t: number) => {
+  const ph = (t % 4.6) / 4.6;
+  return ph < 0.42 ? 0.5 - 0.5 * Math.cos((ph / 0.42) * Math.PI) : 0.5 + 0.5 * Math.cos(((ph - 0.42) / 0.58) * Math.PI);
+};
+
+export function HeartScene(props: { className?: string; density?: "hero" | "compact"; tone?: "auto" | "dark"; bare?: boolean }) {
+  return <OrganScene organ="heart" {...props} />;
+}
+
+/** The heart beating, the lungs breathing, or the brain turning slowly — the same studio, the same wet tissue. */
+export function OrganScene({ organ = "heart", className, density = "hero", tone = "auto", bare = false }: { organ?: Organ; className?: string; density?: "hero" | "compact"; /** "dark" when drawn on an always-dark surface. */ tone?: "auto" | "dark"; /** The organ alone — no glow, shadow or dust (for capturing it as a picture). */ bare?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [fallback, setFallback] = useState(false);
 
@@ -48,7 +67,8 @@ export function HeartScene({ className, density = "hero", tone = "auto", bare = 
       // The detailed model for large screens; a lighter one for phones and small cards.
       const detailed = density === "hero" && Math.max(window.innerWidth, window.innerHeight) >= 900;
       const [THREE, { loadHeart }, { studioScene, wetTissue }] = await Promise.all([import("three"), import("./heart-asset"), import("./heart-material")]);
-      const asset = await loadHeart(detailed ? "/models/heart-hd.bin.gz" : "/models/heart-sd.bin.gz", abort.signal);
+      const asset = await loadHeart(`/models/${organ}-${detailed ? "hd" : "sd"}.bin.gz`, abort.signal);
+      const pose = ORGANS[organ];
       if (disposed) return;
 
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -143,7 +163,7 @@ export function HeartScene({ className, density = "hero", tone = "auto", bare = 
       heart.position.set(-asset.center[0], -asset.center[1], -asset.center[2]);
       const pivot = new THREE.Group();
       pivot.add(heart);
-      pivot.scale.setScalar(1.42);
+      pivot.scale.setScalar(pose.scale);
 
       /* Light ---------------------------------------------------------------- */
       const key = new THREE.DirectionalLight(0xfff0ea, 2.2);
@@ -257,14 +277,15 @@ export function HeartScene({ className, density = "hero", tone = "auto", bare = 
 
       const clock = new THREE.Clock();
       let raf = 0;
-      // Turned a little to the left, so the apex, the arch and the coronaries all show.
-      pivot.rotation.set(0.06, -0.3, 0.02);
+      // Turned to show it best: the heart's apex, arch and coronaries; the brain's lateral surface; the lungs from the front.
+      pivot.rotation.set(pose.turn[0], pose.turn[1], pose.turn[2]);
       const render = () => {
         const t = clock.getElapsedTime();
-        const beat = reduce ? { systole: 0, atrial: 0 } : cardiac(t);
+        const beat = reduce || organ !== "heart" ? { systole: 0, atrial: 0 } : cardiac(t);
         uniforms.uSystole.value = beat.systole;
         uniforms.uAtrial.value = beat.atrial;
-        pivot.rotation.y += ((reduce ? -0.3 : Math.sin(t * 0.28) * 0.5 - 0.22 + pointer.x * 0.5) - pivot.rotation.y) * 0.05;
+        if (organ === "lungs" && !reduce) pivot.scale.setScalar(pose.scale * (1 + 0.028 * breath(t)));
+        pivot.rotation.y += ((reduce ? pose.turn[1] : Math.sin(t * 0.28) * pose.sway + pose.lean + pointer.x * 0.5) - pivot.rotation.y) * 0.05;
         pivot.rotation.x += ((reduce ? 0.06 : pointer.y * 0.2 + 0.06) - pivot.rotation.x) * 0.05;
         glowMat.opacity = (dark ? 0.28 : 0.24) + beat.systole * 0.06;
         dustPts.rotation.y = -t * 0.03;
@@ -342,7 +363,7 @@ export function HeartScene({ className, density = "hero", tone = "auto", bare = 
       abort.abort();
       cleanup();
     };
-  }, [density, tone, bare]);
+  }, [organ, density, tone, bare]);
 
   return (
     // Callers position the scene (usually `absolute …`); default to `relative` only when they don't.

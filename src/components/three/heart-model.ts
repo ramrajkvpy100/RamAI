@@ -15,7 +15,7 @@
  */
 
 export type V3 = readonly [number, number, number];
-type SD = (x: number, y: number, z: number) => number;
+export type SD = (x: number, y: number, z: number) => number;
 type Tissue = "lv" | "rv" | "conus" | "atrium" | "auricle" | "aorta" | "pulmonary" | "cava" | "pvein";
 
 /** 0 ventricle, 1 atrium, 2 vessel — what moves with each beat. */
@@ -61,7 +61,7 @@ export interface HeartModel {
 /* Shapes ------------------------------------------------------------------- */
 
 /** A cone with rounded ends (sphere r1 at a, r2 at b) — Inigo Quilez's exact distance. */
-function roundCone(a: V3, b: V3, r1: number, r2: number): SD {
+export function roundCone(a: V3, b: V3, r1: number, r2: number): SD {
   const bax = b[0] - a[0], bay = b[1] - a[1], baz = b[2] - a[2];
   const l2 = bax * bax + bay * bay + baz * baz;
   const rr = r1 - r2;
@@ -83,7 +83,7 @@ function roundCone(a: V3, b: V3, r1: number, r2: number): SD {
 }
 
 /** An ellipsoid, turned by rz about z then ry about y (approximate distance). */
-function ellipsoid(c: V3, r: V3, rz = 0, ry = 0): SD {
+export function ellipsoid(c: V3, r: V3, rz = 0, ry = 0): SD {
   const cz = Math.cos(rz), sz = Math.sin(rz), cy = Math.cos(ry), sy = Math.sin(ry);
   const [rx, ryy, rzz] = r;
   return (x, y, z) => {
@@ -117,7 +117,7 @@ export function catmull(points: readonly V3[], per = 6): V3[] {
   return out;
 }
 
-const len3 = (x: number, y: number, z: number) => Math.sqrt(x * x + y * y + z * z);
+export const len3 = (x: number, y: number, z: number) => Math.sqrt(x * x + y * y + z * z);
 
 /** A vessel: a tube tapering from r0 to r1 along a curve, cut square at its free end. */
 function vessel(tissue: Tissue, control: V3[], r0: number, r1: number, k = 0.05, cutEnd = true): Part {
@@ -219,12 +219,12 @@ export function noise3(x: number, y: number, z: number) {
   );
 }
 
-const smooth = (a: number, b: number, x: number) => {
+export const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
 
-const smin = (a: number, b: number, k: number) => {
+export const smin = (a: number, b: number, k: number) => {
   const h = Math.max(k - Math.abs(a - b), 0) / k;
   return Math.min(a, b) - h * h * k * 0.25;
 };
@@ -299,12 +299,12 @@ function fieldOf(ps: Part[]) {
 
 /* Coronary vessels ------------------------------------------------------------ */
 
-function gradient(f: (x: number, y: number, z: number) => number, x: number, y: number, z: number, e = 0.003): V3 {
+export function gradient(f: (x: number, y: number, z: number) => number, x: number, y: number, z: number, e = 0.003): V3 {
   return [(f(x + e, y, z) - f(x - e, y, z)) / (2 * e), (f(x, y + e, z) - f(x, y - e, z)) / (2 * e), (f(x, y, z + e) - f(x, y, z - e)) / (2 * e)];
 }
 
 /** Moves a point onto the surface f = 0, then out along the normal by `lift`. */
-function onSurface(f: (x: number, y: number, z: number) => number, p: V3, lift: number): V3 {
+export function onSurface(f: (x: number, y: number, z: number) => number, p: V3, lift: number): V3 {
   let [x, y, z] = p;
   for (let it = 0; it < 10; it++) {
     const d = f(x, y, z);
@@ -364,7 +364,7 @@ const CORONARIES: CoronaryPath[] = [
 
 /* Colour -------------------------------------------------------------------- */
 
-const linear = (hex: number): V3 => {
+export const linear = (hex: number): V3 => {
   const ch = (v: number) => {
     const c = v / 255;
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -390,11 +390,11 @@ const FAT_DEEP = linear(0xa65d82);
 const FAT_PALE = linear(0xe2a9c0);
 const LUMEN = linear(0x2e070b);
 
-const mix3 = (a: V3, b: V3, t: number): [number, number, number] => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+export const mix3 = (a: V3, b: V3, t: number): [number, number, number] => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 /* Surface nets -------------------------------------------------------------- */
 
-function surfaceNets(f: (x: number, y: number, z: number) => number, min: V3, max: V3, step: number) {
+export function surfaceNets(f: (x: number, y: number, z: number) => number, min: V3, max: V3, step: number) {
   const nx = Math.ceil((max[0] - min[0]) / step) + 1;
   const ny = Math.ceil((max[1] - min[1]) / step) + 1;
   const nz = Math.ceil((max[2] - min[2]) / step) + 1;

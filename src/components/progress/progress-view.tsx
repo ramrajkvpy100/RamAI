@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { RankBadge } from "@/components/game/rank-badge";
 import { useLauncher } from "@/components/home/use-launcher";
 import { ShareSheet } from "@/components/share/share-sheet";
+import { OrganScene } from "@/components/three/heart-scene";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { REPORT_MIN_CASES, type PersonalReport, type ProgressDetail } from "@/lib/progress-types";
@@ -211,20 +212,23 @@ export function ProgressView({ detail, report }: { detail: ProgressDetail; repor
   const accuracy = detail.mcq.answered ? Math.round((detail.mcq.correct / detail.mcq.answered) * 100) : null;
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <section className="ink relative isolate overflow-hidden rounded-[22px] p-6 sm:p-8">
+        {/* The brain: whole beside the text on phones, larger on wider screens. */}
+        <OrganScene organ="brain" density="compact" tone="dark" className="pointer-events-none absolute right-0 bottom-0 -z-10 h-[190px] w-[52%] max-w-[230px] sm:top-0 sm:h-auto sm:w-[42%] sm:max-w-none" />
         <div className="flex items-center gap-3">
           <RankBadge tier={detail.rankTier} size={40} />
           <div>
-            <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em]">Your progress</h1>
-            <p className="text-[13.5px] text-fg-2">
+            <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em] sm:text-[30px]">Your progress</h1>
+            <p className="text-[13.5px] text-white/65">
               {detail.rank} · {detail.cases} {detail.cases === 1 ? "case" : "cases"}
             </p>
           </div>
         </div>
-        <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold ring-1 ring-line hover:bg-surface-3">
+        <p className="mt-4 max-w-[55%] text-[14px] leading-6 text-white/65 sm:max-w-[min(28rem,54%)]">Every case shows what you&apos;re getting better at — and what to practise next.</p>
+        <button type="button" onClick={() => setSharing(true)} className="mt-5 inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-4 text-[13.5px] font-semibold text-[#0b1220] hover:bg-white/90">
           <Icon name="share-ios" size={15} /> Share my progress
         </button>
-      </div>
+      </section>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile label="Average score" value={detail.average.recent !== null ? `${detail.average.recent}` : "—"} sub={delta !== null ? `${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)} on the ten before` : "last 10 cases"} tone={delta === null ? undefined : delta >= 0 ? "up" : "down"} />

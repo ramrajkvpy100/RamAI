@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { Avatar } from "@/components/game/avatar";
 import { RankBadge } from "@/components/game/rank-badge";
+import { OrganScene } from "@/components/three/heart-scene";
 import { Icon } from "@/components/ui/icon";
 import { TOPIC_IDS, TOPICS, type PostSummary, type Topic } from "@/lib/community";
 import { cn } from "@/lib/cn";
@@ -100,11 +101,12 @@ export function CommunityFeed({ initial, more: initialMore, guest, signedIn, dra
   return (
     <div className="flex flex-col gap-5">
       <section className="ink relative isolate overflow-hidden rounded-[22px] p-6 sm:p-8">
-        <div aria-hidden className="pointer-events-none absolute -top-24 -right-16 -z-10 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgb(124_58_237/0.45),transparent_65%)] blur-2xl" />
         <div aria-hidden className="pointer-events-none absolute -bottom-28 left-10 -z-10 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgb(6_182_212/0.30),transparent_65%)] blur-2xl" />
+        {/* The lungs, breathing: whole beside the button on phones, larger on wider screens. */}
+        <OrganScene organ="lungs" density="compact" tone="dark" className="pointer-events-none absolute right-0 bottom-0 -z-10 h-[170px] w-[44%] max-w-[190px] sm:top-0 sm:h-auto sm:w-[38%] sm:max-w-none" />
         <p className="text-[13px] font-medium tracking-[0.08em] text-cyan-300/90 uppercase">Community</p>
-        <h1 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.02em] sm:text-[34px]">Discuss cases. Ask. Prepare together.</h1>
-        <p className="mt-2 max-w-xl text-[14.5px] leading-6 text-white/65">Case discussions, NEET PG and INI-CET, USMLE, UKMLA and PLAB — with doctors and students from India, the USA and the UK.</p>
+        <h1 className="mt-2 max-w-[62%] text-[28px] leading-tight font-semibold tracking-[-0.02em] sm:max-w-[min(36rem,58%)] sm:text-[34px]">Discuss cases. Ask. Prepare together.</h1>
+        <p className="mt-2 max-w-[60%] text-[14.5px] leading-6 text-white/65 sm:max-w-[min(28rem,56%)]">Case discussions, NEET PG and INI-CET, USMLE, UKMLA and PLAB — with doctors and students from India, the USA and the UK.</p>
         <button type="button" onClick={() => setComposing(true)} className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-[14.5px] font-semibold text-[#0b1220] hover:bg-white/90">
           <Icon name="plus" size={16} /> New post
         </button>
