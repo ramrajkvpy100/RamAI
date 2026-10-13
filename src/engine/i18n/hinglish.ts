@@ -34,6 +34,17 @@ const FIXED: Record<string, string> = {
   "Good morning, doctor.": "Good morning, doctor.",
   "Namaste, doctor.": "Namaste, doctor.",
   "Hello, doctor.": "Hello, doctor.",
+  // What patients say as a drug acts (pharmacology.ts), and when they're just there.
+  "The pain has eased a lot, doctor.": "Dard kaafi kam ho gaya hai, doctor.",
+  "I need to pass urine, doctor.": "Peshab jaana hai, doctor.",
+  "I feel a little cooler now, doctor.": "Ab thoda thanda lag raha hai, doctor.",
+  "The pain is better than before.": "Dard pehle se kam hai.",
+  "The cramps have settled a bit.": "Marod thodi kam ho gayi hai.",
+  "The pain is a bit better.": "Dard thoda kam hai.",
+  "The vomiting feeling has settled, doctor.": "Ulti jaisa lagna band ho gaya, doctor.",
+  "The itching is much less now — I feel a bit sleepy.": "Khujli ab bahut kam hai — thodi neend si aa rahi hai.",
+  "The itching has settled down.": "Khujli shaant ho gayi hai.",
+  "I'm here, doctor.": "Main yahin hoon, doctor.",
 };
 
 /** Lines the engine composes itself (fallbacks, identity, counselling, phone). */

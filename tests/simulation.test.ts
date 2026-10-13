@@ -69,11 +69,14 @@ describe("information is revealed only when obtained", () => {
 
 describe("orders are executed — and have consequences", () => {
   it("a penicillin in a penicillin-allergic patient causes anaphylaxis that adrenaline rescues", () => {
-    // A wait is interrupted as soon as the patient's status changes — the nurse calls you.
+    // The reaction starts while the drug is still going in…
+    const given = play(surgAppendicitis, ["Give piperacillin tazobactam 4.5 g IV"]);
+    expect(given.state.patientStatus).toBe("deteriorating");
+    expect(given.hidden.hazards[0]?.id).toBe("anaphylaxis");
+    // …and a wait is interrupted as soon as it gets worse — the nurse calls you.
     const first = play(surgAppendicitis, ["Give piperacillin tazobactam 4.5 g IV", "Wait 10 minutes"]);
-    expect(first.state.patientStatus).toBe("deteriorating");
+    expect(first.state.patientStatus).toBe("critical");
     expect(first.state.clock).toBeLessThan(10);
-    expect(first.hidden.hazards[0]?.id).toBe("anaphylaxis");
 
     const harm = play(surgAppendicitis, ["Give piperacillin tazobactam 4.5 g IV", "Wait 10 minutes", "Wait 10 minutes"]);
     expect(harm.state.patientStatus).toBe("critical");

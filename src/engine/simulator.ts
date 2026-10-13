@@ -13,6 +13,7 @@ import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagV
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
+import { doseMultiple, drugFeeling, kineticsFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { capitalise, describeSpan, hash, pick } from "./text";
 import type {
@@ -68,6 +69,14 @@ export interface GivenDrug {
   frequency?: string;
   duration?: string;
   volumeMl?: number;
+  /** How many usual doses this was (1 = the usual dose). */
+  multiple?: number;
+  /** Minutes it was given over, when the order said. */
+  overMin?: number;
+  /** Its effects are played out by a toxicity hazard rather than the drug-effect layer. */
+  toxic?: boolean;
+  /** Vitals whose change the case itself wrote for this drug (scheduled, not added again) — "all" for the case's definitive treatment, whose response it wrote. */
+  authored?: EffectKey[] | "all";
   ruleId?: string;
   appropriateness: Appropriateness;
   doseError: boolean;
@@ -116,6 +125,8 @@ export interface HiddenState {
   /** Times each rule / "measure:x" / "drug:x" / "stop:x" token was executed. */
   actions: Record<string, number[]>;
   fluidMl: number;
+  /** Changes a treatment brings, due when it has had time to act. */
+  scheduled: { at: number; patches: VitalPatch[]; status?: PatientStatus }[];
   hazards: ArmedHazard[];
   /** Omission hazards already evaluated at their deadline. */
   omissionsChecked: string[];
@@ -165,6 +176,7 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
     drugs: [],
     actions: {},
     fluidMl: 0,
+    scheduled: [],
     hazards: [],
     omissionsChecked: [],
     treatmentResponded: false,
@@ -204,9 +216,19 @@ export function openingEffects(def: ClinicalCaseDefinition, hidden: HiddenState)
 /* Small helpers                                                               */
 /* -------------------------------------------------------------------------- */
 
+/** The drugs given, as the effect layer reads them. */
+function actingDrugs(hidden: HiddenState): ActingDrug[] {
+  return hidden.drugs.map((d) => ({ drugId: d.drugId, at: d.at, route: d.route, mode: d.mode, multiple: d.multiple ?? 1, overMin: d.overMin, skip: d.toxic ? "all" : d.authored }));
+}
+
+/** The vitals as they are this minute: the patient's own course (the illness, the case's hazards) moved by every drug acting now. */
+export function vitalsNow(hidden: HiddenState): Record<VitalKey, VitalPatch> {
+  return hidden.status === "deceased" || hidden.drugs.length === 0 ? hidden.vitals : withDrugEffects(hidden.vitals, actingDrugs(hidden), hidden.clock);
+}
+
 /** A vital as shown to the player — remembered as shown, so the monitor only redraws what changed. */
 function reading(hidden: HiddenState, key: VitalKey): VitalPatch {
-  const v = hidden.vitals[key];
+  const v = vitalsNow(hidden)[key];
   const def = vitalDefinition(key);
   const { flag, numeric } = flagVital(key, v.value);
   hidden.shown[key] = v.value;
@@ -229,6 +251,16 @@ function done(hidden: HiddenState, token: string, since = -Infinity): boolean {
   return (hidden.actions[token] ?? []).some((t) => t >= since);
 }
 
+/** Halfway between a vital now and where a treatment takes it ("140/90" → "130/85"); null when it can't be read. */
+function midway(from: VitalPatch | undefined, to: VitalPatch): VitalPatch | null {
+  if (!from) return null;
+  const nums = (s: string) => s.split("/").map((x) => parseFloat(x));
+  const a = nums(from.value), b = nums(to.value);
+  if (a.length !== b.length || a.some((x) => !Number.isFinite(x)) || b.some((x) => !Number.isFinite(x))) return null;
+  const decimals = (to.value.split("/")[0]!.split(".")[1] ?? "").length;
+  return { key: to.key, value: a.map((x, i) => ((x + b[i]!) / 2).toFixed(decimals)).join("/") };
+}
+
 /** Vital changes — from treatment, deterioration or recovery — take effect at once. */
 function applyVitals(hidden: HiddenState, patches: VitalPatch[] | undefined) {
   for (const p of patches ?? []) hidden.vitals[p.key] = { ...p };
@@ -249,12 +281,14 @@ function settleVitals(hidden: HiddenState) {
 const NIBP_CYCLE_MIN = 15;
 
 /**
- * The attached monitor: any change shows at once, and the cuff also
- * re-measures blood pressure every 15 minutes as time passes.
+ * The attached monitor: pulse, saturation and breathing are continuous, so
+ * any change shows at once; the cuff measures blood pressure every 15 minutes
+ * (a sudden turn of events shows its own readings as it happens).
  */
 function monitorTick(hidden: HiddenState): TurnEffect[] {
   if (!hidden.monitored || hidden.status === "deceased") return [];
-  const keys = (["hr", "spo2", "rr", "bp"] as VitalKey[]).filter((k) => hidden.shown[k] !== hidden.vitals[k].value);
+  const now = vitalsNow(hidden);
+  const keys = (["hr", "spo2", "rr"] as VitalKey[]).filter((k) => hidden.shown[k] !== now[k].value);
   if (!keys.includes("bp") && (hidden.nibpAt === undefined || hidden.clock - hidden.nibpAt >= NIBP_CYCLE_MIN)) keys.push("bp");
   if (keys.length === 0) return [];
   for (const k of keys) if (!hidden.measured.includes(k)) hidden.measured.push(k);
@@ -409,8 +443,13 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
       .filter((t): t is number => t !== undefined)
       .sort((a, b) => a - b)[0];
     if (givenAt !== undefined) {
+      // A drug needs time to act: the response comes at its peak (an hour and a half at most); a procedure has taken its time already.
+      const first = definitive.ids.find((id) => hidden.actions[id]?.[0] === givenAt);
+      const drug = first ? hidden.drugs.find((d) => d.ruleId === first && d.mode === "given") : undefined;
+      const fd = drug && formularyDrug(drug.drugId);
+      const delay = def.guided || !fd ? 0 : Math.min(90, Math.max(drug!.overMin ?? 0, kineticsFor(fd, drug!.route).peak));
       events.push({
-        at: givenAt,
+        at: givenAt + delay,
         order: 4,
         interrupts: false,
         run: () => {
@@ -433,7 +472,23 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
     }
   }
 
-  // Hazard stages and recoveries.
+  // A treatment's effects, as they come on.
+  for (const s of hidden.scheduled) {
+    events.push({
+      at: s.at, order: 2.5, interrupts: false,
+      run: () => {
+        hidden.scheduled = hidden.scheduled.filter((x) => x !== s);
+        if (hidden.status === "deceased") return [];
+        applyVitals(hidden, s.patches);
+        if (!s.status || s.status === hidden.status) return [];
+        hidden.status = s.status;
+        return [{ type: "patient_status", status: s.status }];
+      },
+    });
+  }
+
+  // Hazard stages and recoveries — none once the patient has died.
+  if (hidden.status === "deceased") return events;
   for (const armed of hidden.hazards) {
     const h = lib.get(armed.id);
     if (!h || armed.died) continue;
@@ -446,7 +501,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
             armed.stageIdx += 1;
             armed.manifestedAt ??= hidden.clock;
             if (stage.status === "deceased") armed.died = true;
-            return applyStage(hidden, stage);
+            return applyStage(def, hidden, stage);
           },
         });
       }
@@ -458,7 +513,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
           run: () => {
             armed.recoveryIdx += 1;
             const capped: HazardStage = armed.rescue === "partial" && STATUS_RANK[stage.status] < STATUS_RANK.guarded ? { ...stage, status: "guarded" } : stage;
-            return applyStage(hidden, capped);
+            return applyStage(def, hidden, capped);
           },
         });
       }
@@ -467,9 +522,15 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
   return events;
 }
 
-function applyStage(hidden: HiddenState, stage: HazardStage): TurnEffect[] {
+function applyStage(def: ClinicalCaseDefinition, hidden: HiddenState, stage: HazardStage): TurnEffect[] {
   const fx: TurnEffect[] = [];
   const previous = hidden.status;
+  // A patient turning critical in hospital goes on the monitor — the nurse sees to it, so every change shows from here.
+  if (!hidden.monitored && stage.status === "critical" && !["OPD", "Teleconsult"].includes(hidden.setting) && def.track !== "phone") {
+    hidden.monitored = true;
+    fx.push({ type: "monitoring", on: true, rhythm: monitorRhythm(def) });
+    fx.push({ type: "message", role: "nurse", kind: "action", text: "I've put the patient on the monitor, doctor." });
+  }
   applyVitals(hidden, stage.vitals);
   for (const [examId, finding] of Object.entries(stage.examFindings ?? {})) {
     if (finding) hidden.examOverrides[examId] = finding;
@@ -512,12 +573,13 @@ function applyStage(hidden: HiddenState, stage: HazardStage): TurnEffect[] {
   return fx;
 }
 
-function armHazard(def: ClinicalCaseDefinition, hidden: HiddenState, id: string, trigger: string, prescribed: boolean) {
+/** Arms a hazard; its stages count from `from` (the moment a drug went in), or from now. */
+function armHazard(def: ClinicalCaseDefinition, hidden: HiddenState, id: string, trigger: string, prescribed: boolean, from = hidden.clock) {
   if (hidden.hazards.some((h) => h.id === id)) return;
   const h = hazardLibrary(def).get(id);
   if (!h) return;
   const onset = prescribed ? h.prescribedOnsetMin ?? 0 : 0;
-  hidden.hazards.push({ id, label: h.label, triggeredAt: hidden.clock, armedAt: hidden.clock + onset, trigger, stageIdx: -1, recoveryIdx: -1, died: false, responses: [] });
+  hidden.hazards.push({ id, label: h.label, triggeredAt: from, armedAt: from + onset, trigger, stageIdx: -1, recoveryIdx: -1, died: false, responses: [] });
 }
 
 /** Marks hazards as rescued when their AND-of-ORs rescue condition is met. */
@@ -564,16 +626,41 @@ export function getPatientResponse(def: ClinicalCaseDefinition, hidden: HiddenSt
     case "identity:residence": return { text: `${p.city}, doctor.`, role };
     case "identity:name": return { text: p.name ? `${p.name}, doctor.` : "(The patient tells you their name.)", role };
     case "identity:feeling": {
-      const feel = howDoYouFeel(def, hidden);
-      return { text: feel || "(No response.)", role: hidden.status === "critical" || hidden.status === "deceased" ? "nurse" : role };
+      // Too unwell to answer: the nurse says how they are, with what the monitor shows.
+      if (hidden.status === "critical" || hidden.status === "deceased") {
+        const he = def.patient.sex === "Female" ? "she" : def.patient.sex === "Male" ? "he" : "they";
+        if (hidden.status === "deceased") return { text: `Doctor, ${he}'s gone — no pulse.`, role: "nurse" };
+        const how = hidden.patientSays?.match(/^\((.+)\)$/)?.[1]?.replace(/\.$/, "").toLowerCase();
+        const v = vitalsNow(hidden);
+        const monitor = hidden.monitored ? ` Saturation ${v.spo2.value}, BP ${v.bp.value}, pulse ${v.hr.value}.` : "";
+        return { text: `Doctor, ${he}'s critical${how ? ` — ${how}` : ""}.${monitor}`, role: "nurse" };
+      }
+      return { text: howDoYouFeel(def, hidden) || "(No response.)", role };
     }
     case "fallback:yesno": return { text: pick(YES_NO_FALLBACK, seed), role };
     default: return { text: pick(OPEN_FALLBACK, seed), role };
   }
 }
 
+/** What troubled the patient, from the case — so a drug's relief is mentioned only if it relieves something they had. */
+function troublesOf(def: ClinicalCaseDefinition, hidden: HiddenState): Set<Trouble> {
+  const text = [def.briefing, ...def.opening.map((o) => o.text), ...def.history.filter((h) => h.group === "complaint" || h.abnormal).map((h) => `${h.label} ${h.reply}`)].join(" ").toLowerCase();
+  const out = new Set<Trouble>(["urine"]);
+  if (/pain|ache|hurt|cramp|colic|burning|tender/.test(text)) out.add("pain");
+  if (/fever|temperature|chills|rigor/.test(text) || parseFloat(hidden.vitals.temp.value) > 99.5) out.add("fever");
+  if (/breath|wheez|cough|chest tight|gasp/.test(text) || parseFloat(hidden.vitals.rr.value) > 22) out.add("breathing");
+  if (/vomit|nausea|retch|queasy/.test(text)) out.add("nausea");
+  if (/itch|prurit|hives|urticaria/.test(text)) out.add("itch");
+  return out;
+}
+
 function howDoYouFeel(def: ClinicalCaseDefinition, hidden: HiddenState): string {
   if (hidden.patientSays) return hidden.patientSays;
+  // A drug acting on what troubled them is what they notice first — unless they're getting worse.
+  if (STATUS_RANK[hidden.status] <= STATUS_RANK.guarded) {
+    const relief = drugFeeling(actingDrugs(hidden), troublesOf(def, hidden), hidden.clock);
+    if (relief) return relief;
+  }
   switch (hidden.status) {
     case "improving":
     case "recovered": return "Better than before, doctor.";
@@ -683,7 +770,7 @@ function handleVitals(ctx: TurnContext, keysIn: VitalKey[], announce = true): Tu
     if (def.track === "phone") {
       fx.push({ type: "message", role: "attendant", kind: "speech", text: `The machine shows ${readings.map((r) => `${vitalDefinition(r.key).label === "Pulse" ? "pulse" : vitalDefinition(r.key).label} ${r.value}`).join(", ")}.` });
     } else if (painOnly) {
-      fx.push({ type: "message", role: patientRole(ctx.def), kind: "speech", text: `About ${hidden.vitals.pain.value} out of 10, doctor.` });
+      fx.push({ type: "message", role: patientRole(ctx.def), kind: "speech", text: `About ${vitalsNow(hidden).pain.value} out of 10, doctor.` });
     } else {
       fx.push({ type: "message", role: "system", kind: "finding", text: readings.map((r) => `${vitalDefinition(r.key).label} ${r.value}${r.unit ? ` ${r.unit}` : ""}`).join("  ·  ") });
     }
@@ -721,7 +808,8 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   let stethoscope: ListenPart[] | undefined;
   const body = () => {
     const rhythm = monitorRhythm(def);
-    return { hr: parseFloat(hidden.vitals.hr?.value ?? "") || 80, rr: parseFloat(hidden.vitals.rr?.value ?? "") || 16, irregular: rhythm === "afib" || /irregular/i.test(systemFinding(def, hidden, "cvs")) };
+    const now = vitalsNow(hidden);
+    return { hr: parseFloat(now.hr?.value ?? "") || 80, rr: parseFloat(now.rr?.value ?? "") || 16, irregular: rhythm === "afib" || /irregular/i.test(systemFinding(def, hidden, "cvs")) };
   };
 
   if (caseEntry) {
@@ -923,7 +1011,7 @@ function knownValues(def: ClinicalCaseDefinition, hidden: HiddenState): Map<stri
 /** What a test reports when the case has no word on it: the catalogue's normal result for this patient. */
 function catalogueResult(def: ClinicalCaseDefinition, hidden: HiddenState, id: string): OrderedInvestigation["result"] {
   const cat = catalogInvestigation(id);
-  return cat ? cat.normal({ patient: def.patient, hr: parseInt(hidden.vitals.hr.value, 10) || 78, seed: hash(def.id + id) }) : {};
+  return cat ? cat.normal({ patient: def.patient, hr: parseInt(vitalsNow(hidden).hr.value, 10) || 78, seed: hash(def.id + id) }) : {};
 }
 
 /**
@@ -1095,6 +1183,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const volumeMl = drug.fluid ? (typeof p.volumeMl === "number" ? p.volumeMl : drug.id === "prbc" ? 350 : 500) : undefined;
 
   const minutes = mode === "given" ? (route === "IV" || route === "IM" || route === "NEB" ? 3 : 1) : 1;
+  // When it went in: what it does counts from here, though giving it takes a few minutes.
+  const startedAt = hidden.clock;
   hidden.clock += minutes;
   fx.push({ type: "advance_time", minutes });
 
@@ -1107,10 +1197,16 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const frequencyError = !!(rule?.wrongFrequencies && frequency && rule.wrongFrequencies.some((f) => f.toLowerCase() === frequency.toLowerCase()));
 
   if (drug.fluid && route === "IV" && mode === "given") hidden.fluidMl += volumeMl ?? 0;
+  // How much it is (ten litres is twenty bags) and how fast — the drug-effect layer and the toxicity hazards both read it.
+  const weightKg = parseFloat(hidden.vitals.weight.value) || 60;
+  const multiple = doseMultiple(drug, { amount, unit, volumeMl }, weightKg);
+  const overMin = typeof p.overMin === "number" && p.overMin > 0 ? p.overMin : undefined;
 
   const given: GivenDrug = {
     drugId: drug.id, generic: drug.generic, brand: drug.brands[0], classes: drug.classes, at: hidden.clock,
-    mode, route, dose, amount, unit, frequency, duration, volumeMl, ruleId: rule?.id, appropriateness, doseError, frequencyError,
+    mode, route, dose, amount, unit, frequency, duration, volumeMl, multiple, overMin,
+    authored: rule && def.rubric.definitiveTreatment?.ids.includes(rule.id) ? "all" : rule?.vitalsAfter?.flatMap((v): EffectKey[] => (v.key === "bp" ? ["sbp", "dbp"] : [v.key as EffectKey])),
+    ruleId: rule?.id, appropriateness, doseError, frequencyError,
   };
   hidden.drugs.push(given);
   record(hidden, `drug:${drug.id}`);
@@ -1135,14 +1231,17 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const snap = {
     fluidMl: hidden.fluidMl,
     recentOpioidMme: hidden.drugs.filter((d) => d.classes.includes("opioid") && d.mode === "given" && hidden.clock - d.at <= 60).reduce((s, d) => s + morphineEquivalent(d.drugId, d.amount, d.unit), 0),
-    rbs: parseFloat(hidden.vitals.rbs.value) || 100,
+    rbs: parseFloat(vitalsNow(hidden).rbs.value) || 100,
     drugIds: hidden.drugs.map((d) => d.drugId),
     age: def.patient.age,
+    recentFluidMl: hidden.drugs.filter((d) => d.classes.includes("fluid") && d.route === "IV" && d.mode === "given" && hidden.clock - d.at <= 60).reduce((s, d) => s + (d.volumeMl ?? 0), 0),
+    arrested: hidden.status === "deceased",
   };
   const prescribed = mode === "prescribed";
-  for (const hz of globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl }, snap)) {
-    armHazard(def, hidden, hz, label, prescribed);
-  }
+  const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
+  for (const hz of triggered) armHazard(def, hidden, hz, label, prescribed, startedAt);
+  // What this order does to the patient is now that hazard's course — not the drug's usual effect as well.
+  if (triggered.length > 0) given.toxic = true;
   if (rule?.arms) {
     const h = hazardLibrary(def).get(rule.arms);
     const cond = h?.condition;
@@ -1150,10 +1249,22 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const freqOk = !cond?.frequencyAnyOf || (!!frequency && cond.frequencyAnyOf.some((f) => f.toLowerCase() === frequency.toLowerCase()));
     if (fluidOk && freqOk) armHazard(def, hidden, rule.arms, label, prescribed);
   }
-  if (rule?.vitalsAfter) applyVitals(hidden, rule.vitalsAfter);
-  if (rule?.statusAfter && STATUS_RANK[rule.statusAfter] !== STATUS_RANK[hidden.status]) {
-    hidden.status = rule.statusAfter;
-    fx.push({ type: "patient_status", status: rule.statusAfter });
+  // What the case says this treatment does, once it has had time to act: partway by its onset, fully by its peak.
+  // (The guided demo responds at once, as scripted.)
+  if (def.guided || mode === "prescribed") {
+    if (rule?.vitalsAfter) applyVitals(hidden, rule.vitalsAfter);
+    if (rule?.statusAfter && STATUS_RANK[rule.statusAfter] !== STATUS_RANK[hidden.status]) {
+      hidden.status = rule.statusAfter;
+      fx.push({ type: "patient_status", status: rule.statusAfter });
+    }
+  } else if (rule?.vitalsAfter || rule?.statusAfter) {
+    const k = kineticsFor(drug, route);
+    const peak = Math.max(1, overMin ?? 0, k.peak);
+    if (rule.vitalsAfter) {
+      const halfway = rule.vitalsAfter.map((v) => midway(hidden.vitals[v.key], v)).filter((v): v is VitalPatch => v !== null);
+      if (halfway.length) hidden.scheduled.push({ at: hidden.clock + Math.min(k.onset, peak), patches: halfway });
+    }
+    hidden.scheduled.push({ at: hidden.clock + peak, patches: rule.vitalsAfter ?? [], status: rule.statusAfter });
   }
   noteResponse(hidden, `${label} ${mode}`);
   evaluateRescues(def, hidden);

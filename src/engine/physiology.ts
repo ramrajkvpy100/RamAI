@@ -13,6 +13,7 @@
 
 import type { ClinicalCaseDefinition, HazardDefinition, PatientProfile } from "./case-definition";
 import { formularyDrug, type FormularyDrug } from "./formulary";
+import { TOXICITY } from "./toxicity";
 import type { DrugRoute } from "./types";
 
 export interface DrugOrderContext {
@@ -23,6 +24,10 @@ export interface DrugOrderContext {
   amount?: number;
   unit?: string;
   volumeMl?: number;
+  /** How many usual doses this order is (1 = the usual dose). */
+  multiple?: number;
+  /** Minutes it was given over, when said ("in 1 min", "push"). */
+  overMin?: number;
 }
 
 export interface PhysiologySnapshot {
@@ -35,9 +40,13 @@ export interface PhysiologySnapshot {
   /** Drug ids given or prescribed so far, including this order. */
   drugIds: string[];
   age: number;
+  /** IV fluid given in the last hour (mL), including this order. */
+  recentFluidMl?: number;
+  /** In cardiac arrest — when adrenaline IV is the treatment, not a hazard. */
+  arrested?: boolean;
 }
 
-interface GlobalHazardTemplate {
+export interface GlobalHazardTemplate {
   id: string;
   applies(profile: PatientProfile): boolean;
   triggers(order: DrugOrderContext, profile: PatientProfile, snap: PhysiologySnapshot): boolean;
@@ -510,7 +519,18 @@ export const GLOBAL_HAZARDS: GlobalHazardTemplate[] = [
   nsaidBleed,
   betaBlockerBronchospasm,
   methotrexateDaily,
+  ...TOXICITY,
 ];
+
+/** When a graver hazard fires, the milder ones it covers don't (one course of events, not two). */
+const COVERS: Record<string, string[]> = {
+  "fluid-catastrophe": ["fluid-flood", "fluid-overload"],
+  "fluid-overload": ["fluid-flood"],
+  "insulin-overdose-iv": ["hypoglycaemia", "insulin-overdose-sc"],
+  "insulin-overdose-sc": ["hypoglycaemia"],
+  "drug-toxicity-severe": ["drug-toxicity"],
+  "sedative-overdose": ["drug-toxicity", "drug-toxicity-severe"],
+};
 
 /* -------------------------------------------------------------------------- */
 /* Library                                                                     */
@@ -528,7 +548,9 @@ export function hazardLibrary(def: ClinicalCaseDefinition): Map<string, HazardDe
 
 /** Global templates triggered by a drug order. */
 export function globalTriggers(def: ClinicalCaseDefinition, order: DrugOrderContext, snap: PhysiologySnapshot): string[] {
-  return GLOBAL_HAZARDS.filter((t) => t.applies(def.profile) && t.triggers(order, def.profile, snap)).map((t) => t.id);
+  const ids = GLOBAL_HAZARDS.filter((t) => t.applies(def.profile) && t.triggers(order, def.profile, snap)).map((t) => t.id);
+  const covered = new Set(ids.flatMap((id) => COVERS[id] ?? []));
+  return ids.filter((id) => !covered.has(id));
 }
 
 /** Converts an opioid dose to IV morphine-milligram-equivalents. */

@@ -384,4 +384,6 @@ export interface ParsedDose {
   frequency?: string;
   duration?: string;
   volumeMl?: number;
+  /** Minutes it's to be given over: "in 1 min", "over 2 hours", "push" (a minute). */
+  overMin?: number;
 }

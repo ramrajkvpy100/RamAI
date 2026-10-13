@@ -606,6 +606,64 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "Ek mahine ventilator pe thi. Ab phir se chammach pakadna seekh rahi hoon.",
   },
   "global-templates": {
+    "My chest feels heavy… I can't lie flat.":
+      "Chhaati bhaari lag rahi hai… lete hue saans nahi aati.",
+    "(Gasping, too breathless to talk.)":
+      "(Haanfte hue, baat karne laayak saans nahi.)",
+    "Breathing is a little easier.":
+      "Saans thodi aasaan hai.",
+    "Much better — I've passed a lot of urine.":
+      "Bahut better — bahut saara peshab hua.",
+    "(Gasping.) Can't… breathe…":
+      "(Haanfte hue.) Saans… nahi… aa rahi…",
+    "(Unresponsive.)":
+      "(Koi pratikriya nahi.)",
+    "(Sedated and ventilated.)":
+      "(Neend ki dawa par, ventilator pe.)",
+    "I feel shaky and strange… my heart is pounding.":
+      "Kaanpni si aur ajeeb lag raha hai… dil zor se dhadak raha hai.",
+    "(Confused, slurred speech.)":
+      "(Uljhan mein, ladkhadaati zubaan.)",
+    "(Convulsing, then unresponsive.)":
+      "(Jhatke aa rahe hain, phir koi pratikriya nahi.)",
+    "I feel better… what happened?":
+      "Ab better lag raha hai… kya hua tha?",
+    "I'm fine now, doctor.":
+      "Ab main theek hoon, doctor.",
+    "(Clutches the chest, then slumps.)":
+      "(Chhaati pakadte hain, phir gir padte hain.)",
+    "My chest felt very strange…":
+      "Chhaati mein bahut ajeeb sa hua…",
+    "My head is bursting… my chest is pounding!":
+      "Sar phat raha hai… chhaati dhak-dhak kar rahi hai!",
+    "(Pale, sweaty, barely answering.)":
+      "(Peele, paseene mein, mushkil se jawab de rahe.)",
+    "My heart is still racing a bit…":
+      "Dil abhi bhi thoda tez chal raha hai…",
+    "I feel calmer now.":
+      "Ab shaant lag raha hai.",
+    "(Mumbles, eyes closed.)":
+      "(Aankhein band, budbudaate hue.)",
+    "(Unrousable.)":
+      "(Jagaane par bhi nahi jaagte.)",
+    "I feel so sleepy… what happened?":
+      "Bahut neend aa rahi hai… kya hua?",
+    "I feel dizzy and faint.":
+      "Chakkar aa raha hai, behoshi si lag rahi hai.",
+    "(Barely answers.)":
+      "(Mushkil se jawab dete hain.)",
+    "I feel stronger now.":
+      "Ab zyada taakat lag rahi hai.",
+    "I feel terrible… I keep throwing up.":
+      "Bahut bura lag raha hai… baar baar ulti ho rahi hai.",
+    "(Confused.)":
+      "(Uljhan mein.)",
+    "Still queasy…":
+      "Abhi bhi ji machal raha hai…",
+    "I feel better now.":
+      "Ab better lag raha hai.",
+    "Something's very wrong… I feel awful.":
+      "Kuch bahut gadbad hai… bahut bura lag raha hai.",
     "(Drowsy, mumbles.) Let me sleep…":
       "(Neend mein, budbudaate hue.) Sone do…",
     "(No response.)":

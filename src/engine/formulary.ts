@@ -29,7 +29,7 @@ export type DrugClass =
   | "antiepileptic" | "benzodiazepine" | "ssri" | "tca" | "antipsychotic" | "gabapentinoid" | "vitamin"
   | "thyroid" | "antithyroid" | "iron" | "calcium" | "estrogen" | "ocp" | "prothrombotic" | "antifibrinolytic"
   | "electrolyte" | "fluid" | "crystalloid" | "colloid" | "blood-product" | "vaccine" | "uricosuric" | "smoking-cessation"
-  | "antivenom" | "haem" | "barbiturate"
+  | "antivenom" | "haem" | "barbiturate" | "benzodiazepine-antagonist" | "antidote"
   /** Known to precipitate acute porphyria attacks (NAPOS / EPNet "porphyrinogenic"). */
   | "porphyrinogenic";
 
@@ -232,6 +232,8 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "noradrenaline", generic: "Noradrenaline", brands: ["Adrenor"], aliases: ["levophed", "norepinephrine", "norad", "nor adrenaline"], classes: ["vasopressor"], route: "IV", dose: "0.05 µg/kg/min", frequency: "infusion" },
   { id: "dopamine", generic: "Dopamine", brands: ["Dopamine"], classes: ["vasopressor", "inotrope"], route: "IV", dose: "5 µg/kg/min", frequency: "infusion" },
   { id: "dobutamine", generic: "Dobutamine", brands: ["Cardiject"], classes: ["inotrope"], route: "IV", dose: "5 µg/kg/min", frequency: "infusion" },
+  { id: "flumazenil", generic: "Flumazenil", brands: ["Flumazen"], aliases: ["anexate"], classes: ["benzodiazepine-antagonist"], route: "IV", dose: "0.2 mg", frequency: "stat" },
+  { id: "acetylcysteine", generic: "N-acetylcysteine", brands: ["Mucomix"], aliases: ["nac", "n acetylcysteine", "parvolex"], classes: ["antidote"], route: "IV", dose: "150 mg/kg", frequency: "stat" },
   { id: "naloxone", generic: "Naloxone", brands: ["Narcan"], classes: ["opioid-antagonist"], route: "IV", dose: "0.4 mg", frequency: "stat, repeat 2–3 min" },
   { id: "dextrose-25", generic: "25% dextrose", brands: ["D25"], aliases: ["20% glucose", "glucose 20%", "20% dextrose", "d20", "50% glucose", "dextrose 50%", "glucose 50%", "d25", "25 dextrose", "25% dextrose", "dextrose 25", "50% dextrose", "d50", "iv glucose"], classes: ["glucose"], route: "IV", dose: "100 mL", frequency: "stat" },
   { id: "glucagon", generic: "Glucagon", brands: ["GlucaGen"], classes: ["glucose"], route: "IM", dose: "1 mg", frequency: "stat" },
@@ -397,7 +399,17 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     if (re.test(t)) { out.frequency = freq; break; }
   }
 
-  const dur = t.match(/\b(?:for|x|×|over)\s*(\d+|one|two|three|four|five|six|seven|eight|ten|twelve|fourteen|a|an)\s*(day|days|week|weeks|wk|wks|month|months|hour|hours|hr|hrs|h|min|mins|minutes)\b/);
+  // The rate: "in 1 min", "over 30 minutes", "within 2 sec"; a push or bolus goes in over about a minute.
+  const over = t.match(/\b(?:in|over|within)\s*(\d+(?:\.\d+)?|one|two|three|four|five|six|ten|fifteen|twenty|thirty|a|an|half an?)\s*(seconds?|secs?|s|minutes?|mins?|hours?|hrs?|h)\b/);
+  if (over?.[1] && over[2]) {
+    const n = wordToNumber(over[1].replace(/^half an?$/, "half")) ?? 1;
+    out.overMin = /^s/.test(over[2]) ? Math.max(n / 60, 0.02) : /^h/.test(over[2]) ? n * 60 : n;
+  } else if (/\b(push|bolus|stat push|iv push|rapid|rapidly|fast|wide open|free flow|free-flow)\b/.test(t)) {
+    out.overMin = 1;
+  }
+
+  // The course: "for 5 days", "x 2 weeks" ("over 2 hours" is the rate, above — though "over 3 days" is still a course).
+  const dur = t.match(/\b(?:for|x|×)\s*(\d+|one|two|three|four|five|six|seven|eight|ten|twelve|fourteen|a|an)\s*(day|days|week|weeks|wk|wks|month|months|hour|hours|hr|hrs|h|min|mins|minutes)\b/) ?? t.match(/\bover\s*(\d+|one|two|three|four|five|six|seven|eight|ten|twelve|fourteen|a|an)\s*(day|days|week|weeks|wk|wks|month|months)\b/);
   if (dur?.[1] && dur[2]) {
     const n = wordToNumber(dur[1]) ?? 1;
     const unit = dur[2].replace(/^(wk|wks)$/, "weeks").replace(/^(hr|hrs|h)$/, "hours").replace(/^(min|mins)$/, "minutes");

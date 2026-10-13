@@ -308,6 +308,7 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
     if (details.frequency) payload.frequency = details.frequency;
     if (details.duration) payload.duration = details.duration;
     if (details.volumeMl !== undefined) payload.volumeMl = details.volumeMl;
+    if (details.overMin !== undefined) payload.overMin = details.overMin;
     out.push({ hit, priority: 6, intent: { kind: "drug", targetId: drug.id, phrase: rawClause, matched: true, payload } });
   });
   return out;
