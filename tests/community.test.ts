@@ -23,9 +23,11 @@ afterEach(() => {
 });
 
 describe("the community", () => {
-  it("anyone reads; guests can't post; an account posts, replies, likes", async () => {
+  it("open to everyone: a guest posts and replies, told apart by a tag; an account posts, replies, likes", async () => {
     const guest = await createGuest();
-    await expect(createPost(guest, { topic: "questions", title: "Can guests post?", body: "Trying from a guest session." })).rejects.toMatchObject({ code: "SIGNUP_REQUIRED" });
+    const asGuest = await createPost(guest, { topic: "questions", title: "Can guests post?", body: "Trying from a guest session." });
+    const guestReply = await createReply(guest, asGuest.id, "Yes — and reply too.");
+    expect(guestReply.author.name).toMatch(/^Guest doctor · [0-9a-f]{4}$/);
 
     const { id } = await createPost(meera, { topic: "neet-pg", title: "Best way to revise ECGs?", body: "I keep mixing up the bundle branch blocks. How do you revise them?" });
     const reply = await createReply(arjun, id, "Draw V1 and V6 for each — RBBB is M in V1, LBBB is M in V6.");

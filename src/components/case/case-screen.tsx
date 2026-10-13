@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Wordmark } from "@/components/brand/wordmark";
 import { DebriefView } from "@/components/debrief/debrief-view";
+import { SpecialtySheet } from "@/components/home/specialty-sheet";
 import { UpgradeSheet } from "@/components/home/upgrade-sheet";
 import { useLauncher } from "@/components/home/use-launcher";
 import { MediaViewerProvider, type ViewerItem } from "@/components/media/media-viewer";
@@ -148,6 +150,7 @@ function usePanelOpen(): [boolean, (open: boolean) => void] {
 
 function Workspace() {
   const snap = useCase();
+  const router = useRouter();
   const session = snap.session!;
   const state = session.state;
   const xl = useMediaQuery("(min-width: 1280px)");
@@ -195,13 +198,22 @@ function Workspace() {
     <SceneProvider value={sceneValue}>
       <LiveMonitorProvider state={state}>
         <MediaViewerProvider items={viewerItems}>
-          <div className="flex h-dvh flex-col">
+          {/* Pinned to the visible window: some phone browsers misreport the viewport's height once their toolbars hide, which left a gap under the composer. */}
+          <div className="fixed inset-0 flex flex-col">
             <CaseTopBar
               state={state}
               onClose={() => setEnding(true)}
               sound={scene === "monitor" ? { on: alarmState.sound, toggle: () => setSoundEnabled(!alarmState.sound) } : null}
               voices={canSpeak ? { on: voicesOn, toggle: () => setVoicesEnabled(!voicesOn) } : null}
               realtime={state.track === "emergency" && !state.guided ? { on: realtimeOn, running: realtimeRunning, toggle: () => setRealtimeEnabled(!realtimeOn) } : null}
+              onSkip={
+                state.guided
+                  ? () => {
+                      abandonCase();
+                      router.push("/");
+                    }
+                  : undefined
+              }
             />
             <div
               className={cn(
@@ -331,6 +343,9 @@ export function CaseScreen({ me: initial }: { me: Me }) {
   const snap = useCase();
   const me = useMe(initial) ?? initial;
   const { launch, starting, gate, closeGate, error } = useLauncher();
+  // Their specialty first, if they haven't said yet (a guest coming out of the demo).
+  const [askSpecialty, setAskSpecialty] = useState(false);
+  const next = () => (me.user.specialty === null ? setAskSpecialty(true) : void launch({}));
   useEffect(() => primeMe(initial), [initial]);
   useEffect(() => hydrate(initial.user.id), [initial.user.id]);
 
@@ -340,7 +355,7 @@ export function CaseScreen({ me: initial }: { me: Me }) {
   } else if (!snap.session) {
     screen = <NoCase onStart={() => void launch({})} starting={starting} error={error} />;
   } else if (snap.session.debrief) {
-    screen = <DebriefView session={snap.session} progress={me.progress} onNext={() => void launch({})} onHome={abandonCase} starting={starting} guest={me.user.isGuest} />;
+    screen = <DebriefView session={snap.session} progress={me.progress} onNext={next} onHome={abandonCase} starting={starting} guest={me.user.isGuest} />;
   } else if (!snap.session.begun) {
     screen = <Briefing state={snap.session.state} onBegin={beginEncounter} />;
   } else {
@@ -355,6 +370,14 @@ export function CaseScreen({ me: initial }: { me: Me }) {
     <>
       {screen}
       <UpgradeSheet gate={gate} onClose={closeGate} />
+      <SpecialtySheet
+        open={askSpecialty}
+        current={me.user.specialty}
+        onClose={() => {
+          setAskSpecialty(false);
+          void launch({});
+        }}
+      />
     </>
   );
 }

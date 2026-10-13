@@ -11,7 +11,7 @@ import { GoalRing } from "@/components/game/goal-ring";
 import { LEVEL_STYLE, levelGradient, TRACK_ICON } from "@/components/game/level-style";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
-import { PeriodToggle, PlanCards } from "@/components/pricing/plan-cards";
+import { PlanCards } from "@/components/pricing/plan-cards";
 import { Footer } from "@/components/shell/footer";
 import { HeartScene } from "@/components/three/heart-scene";
 import { Icon, type IconName } from "@/components/ui/icon";
@@ -20,7 +20,7 @@ import { levelMeta, trackLabel } from "@/engine/levels";
 import { RANKS } from "@/engine/progression";
 import { CARE_LEVELS, CASE_TRACKS } from "@/engine/types";
 import { cn } from "@/lib/cn";
-import { PLANS, type BillingPeriod } from "@/lib/plans";
+import { PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { DemoButton } from "./demo-button";
 import { Tilt } from "./tilt";
@@ -160,7 +160,7 @@ function Hero() {
           <DemoButton />
         </div>
         <p className="mt-4 text-[12.5px] text-fg-3">
-          Try a guided case in 3 minutes — no sign-up · {PLANS.free.dailyCases} free cases a day ·{" "}
+          Try a guided case in 3 minutes — no sign-up · {PRO_FOR_EVERYONE ? "every level free for now" : `${PLANS.free.dailyCases} free cases a day`} ·{" "}
           <Link href="/login" className="font-medium text-fg-2 underline-offset-2 hover:text-fg hover:underline">
             Log in
           </Link>
@@ -229,7 +229,7 @@ function Ladder({ country, onCountry }: { country: Country; onCountry: (country:
       </div>
       <ol className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:items-end">
         {CARE_LEVELS.map((id, i) => {
-          const pro = !PLANS.free.levels.includes(id);
+          const pro = !PRO_FOR_EVERYONE && !PLANS.free.levels.includes(id);
           return (
             <li key={id} className="group">
               <div className="panel relative flex h-full flex-col p-4 transition-transform duration-300 group-hover:-translate-y-1.5 lg:h-auto" style={{ minHeight: `${150 + i * 22}px` }}>
@@ -339,22 +339,17 @@ function Habit() {
 }
 
 function Pricing({ country, onCountry }: { country: Country; onCountry: (country: Country) => void }) {
-  const [period, setPeriod] = useState<BillingPeriod>("monthly");
   return (
     <section className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6" id="pricing">
       <div className="flex flex-col items-center text-center">
         <div className="micro text-accent-text">Pricing</div>
-        <h2 className="mt-3 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[38px]">Start free. Go Pro when you&apos;re hooked.</h2>
+        <h2 className="mt-3 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[38px]">{PRO_FOR_EVERYONE ? "Pro is free for everyone right now." : "Start free. Go Pro when you're hooked."}</h2>
         <div className="mt-7">
-          <PeriodToggle value={period} onChange={setPeriod} country={country} />
-        </div>
-        <div className="mt-3">
           <CountryPicker value={country} onChange={onCountry} />
         </div>
       </div>
       <div className="mt-8">
         <PlanCards
-          period={period}
           country={country}
           free={
             <Link href="/signup" className="flex h-11 items-center justify-center rounded-full border border-line bg-surface text-[14px] font-semibold shadow-sm hover:bg-surface-3">
@@ -362,8 +357,8 @@ function Pricing({ country, onCountry }: { country: Country; onCountry: (country
             </Link>
           }
           pro={
-            <Link href="/signup?next=/pricing" className="flex h-11 items-center justify-center rounded-full bg-white text-[14px] font-semibold text-[#0b1220] hover:bg-white/90">
-              Get Pro
+            <Link href={PRO_FOR_EVERYONE ? "/signup" : "/signup?next=/pricing"} className="flex h-11 items-center justify-center rounded-full bg-white text-[14px] font-semibold text-[#0b1220] hover:bg-white/90">
+              {PRO_FOR_EVERYONE ? "Start free — Pro included" : "Get Pro"}
             </Link>
           }
         />

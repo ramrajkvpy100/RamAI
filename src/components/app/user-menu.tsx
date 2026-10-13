@@ -20,6 +20,7 @@ import { logout } from "@/lib/engine-client";
 import { clearMe, type Me } from "@/lib/me-store";
 import { specialtyLabel } from "@/lib/specialty";
 import { useThemePref, type ThemePref } from "@/lib/theme";
+import { PRO_FOR_EVERYONE } from "@/lib/plans";
 
 export function UserMenu({ me }: { me: Me }) {
   const [open, setOpen] = useState(false);
@@ -69,9 +70,9 @@ export function UserMenu({ me }: { me: Me }) {
             <RankBadge tier={rank.tier} size={22} />
             <div className="min-w-0 flex-1 text-[12.5px]">
               <div className="font-medium">{rank.label}</div>
-              <div className="text-fg-2">{me.user.plan === "pro" ? "RamAI Pro" : "Free plan"}</div>
+              <div className="text-fg-2">{me.user.plan === "pro" ? "RamAI Pro" : PRO_FOR_EVERYONE ? "Pro · free for now" : "Free plan"}</div>
             </div>
-            {me.user.plan !== "pro" && (
+            {me.user.plan !== "pro" && !PRO_FOR_EVERYONE && (
               <Link href="/pricing" onClick={() => setOpen(false)} className="bg-ai rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-white">
                 Upgrade
               </Link>

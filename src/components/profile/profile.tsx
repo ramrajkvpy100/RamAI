@@ -16,7 +16,7 @@ import { BADGE_LIST, nextRank, RANKS, rankFor, rankProgress } from "@/engine/pro
 import { cn } from "@/lib/cn";
 import { caseLabel, xp } from "@/lib/format";
 import { useMe, type Me } from "@/lib/me-store";
-import { PLANS } from "@/lib/plans";
+import { planFor, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { YourData } from "./your-data";
 
@@ -52,7 +52,7 @@ export function Profile({ initial }: { initial: Me }) {
   const p = me.progress;
   const rank = rankFor(p.percent);
   const next = nextRank(p.percent);
-  const plan = PLANS[me.user.plan];
+  const plan = planFor(me.user);
   const earned = new Set(p.badges.map((b) => b.id));
   const mastery = p.mastery.filter((m) => m.cases > 0).sort((a, b) => b.cases - a.cases);
   const recent = [...p.history].reverse().slice(0, 10);
@@ -72,6 +72,10 @@ export function Profile({ initial }: { initial: Me }) {
               {me.user.plan === "pro" ? (
                 <span className="bg-ai inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-semibold text-white">
                   <Icon name="crown" size={12} /> Pro{me.user.planExpiresAt ? ` until ${new Date(me.user.planExpiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}
+                </span>
+              ) : PRO_FOR_EVERYONE ? (
+                <span className="bg-ai inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-semibold text-white">
+                  <Icon name="crown" size={12} /> Pro · free for now
                 </span>
               ) : (
                 <>

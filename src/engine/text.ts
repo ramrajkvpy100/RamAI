@@ -25,6 +25,12 @@ const ABBREVIATIONS: [RegExp, string][] = [
   [/\bo₂\b/g, " o2 "],
   [/\be\.?g\.?\s/g, " "],
   [/\bpls\b|\bplz\b|\bplease\b|\bkindly\b/g, " "],
+  // Chat shorthand: "how r u", "how do u feel", "ur pain" ("10 u insulin" keeps its units).
+  [/\br\s+(?=u\b|you\b)/g, " are "],
+  [/(?<![\d.]\s?)\bu\b(?!\s*\/)/g, " you "],
+  [/\bur\b/g, " your "],
+  [/\bhw\b/g, " how "],
+  [/\bwh?at\b|\bwht\b/g, " what "],
   [/\bdr\.?\s/g, " doctor "],
   [/\bhrs\b/g, " hours "],
   [/\bwks?\b/g, " weeks "],

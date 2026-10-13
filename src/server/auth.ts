@@ -264,7 +264,14 @@ export async function setPlan(userId: string, plan: PlanId, expiresAt: number | 
 
 const GUEST_DAYS = 7;
 
-const STALE_GUEST = "SELECT id FROM users WHERE is_guest = 1 AND created_at < ?";
+/**
+ * Guests nobody can come back as: a week old, with no live session left (a
+ * guest has no password — the session cookie is their only way in). A guest
+ * still playing is never touched, however old the account — nor one who wrote
+ * in the community, whose posts and replies stay.
+ */
+const STALE_GUEST =
+  "SELECT id FROM users u WHERE u.is_guest = 1 AND u.created_at < ? AND NOT EXISTS (SELECT 1 FROM sessions s WHERE s.user_id = u.id AND s.expires_at > ?) AND NOT EXISTS (SELECT 1 FROM posts p WHERE p.user_id = u.id) AND NOT EXISTS (SELECT 1 FROM replies r WHERE r.user_id = u.id)";
 let purgedAt = 0;
 
 /** Removes unclaimed guests (and everything they played) at most once an hour per server. */
@@ -274,10 +281,12 @@ async function purgeStaleGuests(now: number) {
   const before = now - GUEST_DAYS * 86_400_000;
   // Children first, explicitly: cascades depend on a per-connection setting the cloud database may not keep.
   const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments", "push_subscriptions", "case_ai", "mcq_answers", "progress_reports"];
+  // The users go last, by the same test, once their sessions (all expired) and records are gone.
+  const users = `DELETE FROM users WHERE id IN (${STALE_GUEST})`;
   await db.batch([
-    ...children.map((t) => ({ sql: `DELETE FROM ${t} WHERE user_id IN (${STALE_GUEST})`, args: [before] })),
-    { sql: `UPDATE open_suggestions SET user_id = NULL WHERE user_id IN (${STALE_GUEST})`, args: [before] },
-    { sql: "DELETE FROM users WHERE is_guest = 1 AND created_at < ?", args: [before] },
+    ...children.map((t) => ({ sql: `DELETE FROM ${t} WHERE user_id IN (${STALE_GUEST})`, args: [before, now] })),
+    { sql: `UPDATE open_suggestions SET user_id = NULL WHERE user_id IN (${STALE_GUEST})`, args: [before, now] },
+    { sql: users, args: [before, now] },
     // AI pictures and notes are kept for a month, for reopening recent cases.
     { sql: "DELETE FROM case_ai WHERE created_at < ?", args: [now - 30 * 86_400_000] },
   ]);
@@ -392,4 +401,18 @@ export async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) throw new AuthError("UNAUTHENTICATED", "Please log in.");
   return user;
+}
+
+/**
+ * The player — or, for a visitor without an account, a guest made there and
+ * then (its session cookie set on this response), so joining in needs no
+ * sign-up. Route handlers only.
+ */
+export async function userOrGuest(country?: Country): Promise<User> {
+  const user = await getCurrentUser();
+  if (user) return user;
+  const guest = await createGuest(country);
+  const { token, expires } = await createSession(guest.id);
+  (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions(expires));
+  return guest;
 }

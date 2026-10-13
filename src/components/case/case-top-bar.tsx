@@ -21,8 +21,11 @@ export function CaseTopBar({
   sound,
   voices,
   realtime,
+  onSkip,
 }: {
   state: CaseState;
+  /** The guided demo: leave it for a real case. */
+  onSkip?: () => void;
   onClose?: () => void;
   complete?: boolean;
   /** Monitor sound toggle — only offered where there is a monitor. */
@@ -73,6 +76,11 @@ export function CaseTopBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {onSkip && !complete && (
+            <button type="button" onClick={onSkip} className="flex h-8 items-center gap-1 rounded-full bg-surface-3 px-3 text-[12.5px] font-semibold text-fg-2 hover:text-fg">
+              Skip<span className="hidden sm:inline"> demo</span> <Icon name="arrow-right" size={13} />
+            </button>
+          )}
           {realtime && !complete && (
             <IconButton
               label={realtime.on ? "Real-time on — the clock runs while you think. Turn off" : "Real-time mode: let the clock run while you think"}

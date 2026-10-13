@@ -29,7 +29,7 @@ export function UpgradeSheet({ gate, onClose }: { gate: Gate | null; onClose: ()
           ))}
         </ul>
         <Link href="/pricing" className="shine mt-6 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-semibold text-white shadow-glow">
-          Go Pro — from {priceFor(country, "yearly").perMonth}/month
+          Go Pro — {priceFor(country, "monthly").label}/month
         </Link>
         <button type="button" onClick={onClose} className="mt-2 h-10 text-[13.5px] font-medium text-fg-2 hover:text-fg">
           Not now

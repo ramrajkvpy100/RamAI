@@ -73,7 +73,7 @@ const PHC = ["cbc", "urine-rm", "urine-dip", "upt", "malaria", "dengue", "widal"
 const CHC = [...PHC, "lft", "rft", "electrolytes", "hba1c", "lipid", "crp", "esr", "koh", "ecg", "cxr", "xray-abdomen", "blood-group", "coag", "uric-acid", "calcium", "tzanck"];
 const DISTRICT = [
   ...CHC, "usg-abdomen", "echo", "troponin", "abg", "tft", "blood-culture", "urine-culture", "pus-culture", "ct-head", "ct-abdomen",
-  "amylase-lipase", "d-dimer", "iron", "vit-b12", "skin-biopsy", "fungal-culture", "spirometry", "arterial-doppler",
+  "amylase-lipase", "amylase", "lipase", "d-dimer", "iron", "vit-b12", "skin-biopsy", "fungal-culture", "spirometry", "arterial-doppler",
   "fundoscopy-photo", "uacr", "abi", "hormonal-profile", "procalcitonin", "vit-d", "bnp",
 ];
 const AVAILABLE: Partial<Record<CareLevel, Set<string>>> = {

@@ -32,25 +32,38 @@ export const PLANS: Record<PlanId, Plan> = {
   },
 };
 
-/** No account needed: the demo, then as many real cases a day as a free account. Signing up keeps the progress. */
-export const GUEST_DAILY_CASES = 5;
+/**
+ * For now, Pro is open to everyone: every level and mode, and unlimited cases
+ * for anyone with an account. Turn this off to bring the paid plan back.
+ */
+export const PRO_FOR_EVERYONE = true;
+
+/** No account needed: the demo, then this many real cases a day. Signing up keeps the progress. */
+export const GUEST_DAILY_CASES = 10;
+
+/** The plan a player actually has: their own, or Pro while it's open to everyone (guests keep their daily allowance). */
+export function planFor(user: { plan: PlanId; isGuest: boolean }): Plan {
+  if (!PRO_FOR_EVERYONE) return PLANS[user.plan];
+  return user.isGuest ? { ...PLANS.pro, dailyCases: GUEST_DAILY_CASES } : PLANS.pro;
+}
 
 /** How many cases this player can start today (null = unlimited). The daily case and the demo don't count. */
-export const dailyLimitFor = (user: { plan: PlanId; isGuest: boolean }): number | null => (user.isGuest ? GUEST_DAILY_CASES : PLANS[user.plan].dailyCases);
+export const dailyLimitFor = (user: { plan: PlanId; isGuest: boolean }): number | null =>
+  PRO_FOR_EVERYONE ? planFor(user).dailyCases : user.isGuest ? GUEST_DAILY_CASES : PLANS[user.plan].dailyCases;
 
 /**
  * What Pro costs, in the currency of the country the doctor practises in
  * (Razorpay charges it in the same currency). Amounts in major units.
  */
-export const PRICE_BOOK: Record<Country, { currency: "INR" | "USD" | "GBP"; locale: string; monthly: number; yearly: number }> = {
-  IN: { currency: "INR", locale: "en-IN", monthly: 299, yearly: 2499 },
-  US: { currency: "USD", locale: "en-US", monthly: 4.99, yearly: 39.99 },
-  UK: { currency: "GBP", locale: "en-GB", monthly: 3.99, yearly: 31.99 },
+export const PRICE_BOOK: Record<Country, { currency: "INR" | "USD" | "GBP"; locale: string; monthly: number }> = {
+  IN: { currency: "INR", locale: "en-IN", monthly: 299 },
+  US: { currency: "USD", locale: "en-US", monthly: 4.99 },
+  UK: { currency: "GBP", locale: "en-GB", monthly: 3.99 },
 };
 
+/** Pro is bought a month at a time. */
 export const PERIODS = {
   monthly: { per: "month", days: 30 },
-  yearly: { per: "year", days: 365 },
 } as const;
 
 export type BillingPeriod = keyof typeof PERIODS;
@@ -66,13 +79,9 @@ export interface Price {
   label: string;
   per: string;
   days: number;
-  /** The yearly plan's price per month, e.g. "$3.33". */
-  perMonth: string;
-  /** How much cheaper the yearly plan is, in per cent. */
-  saving: number;
 }
 
-/** An amount in the country's currency: "₹2,499", "$39.99", "£31.99". */
+/** An amount in the country's currency: "₹299", "$4.99", "£3.99". */
 export function formatPrice(amount: number, country: Country): string {
   const b = PRICE_BOOK[country] ?? PRICE_BOOK.IN;
   const whole = Number.isInteger(amount);
@@ -82,7 +91,6 @@ export function formatPrice(amount: number, country: Country): string {
 export function priceFor(country: Country, period: BillingPeriod): Price {
   const b = PRICE_BOOK[country] ?? PRICE_BOOK.IN;
   const amount = b[period];
-  const perMonth = b.currency === "INR" ? Math.round(b.yearly / 12) : Math.round((b.yearly / 12) * 100) / 100;
   return {
     period,
     amount,
@@ -91,8 +99,6 @@ export function priceFor(country: Country, period: BillingPeriod): Price {
     label: formatPrice(amount, country),
     per: PERIODS[period].per,
     days: PERIODS[period].days,
-    perMonth: formatPrice(perMonth, country),
-    saving: Math.round((1 - b.yearly / (b.monthly * 12)) * 100),
   };
 }
 

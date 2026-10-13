@@ -31,14 +31,32 @@ function Byline({ author, at }: { author: Author; at: number }) {
 }
 
 /** Like · report · remove — for a post or a reply. */
-function Actions({ target, likes, liked, mine, signedIn, account, onLiked, onRemoved }: { target: string; likes: number; liked: boolean; mine: boolean; signedIn: boolean; account: boolean; onLiked: (r: { liked: boolean; likes: number }) => void; onRemoved: () => void }) {
+function Actions({
+  target,
+  likes,
+  liked,
+  mine,
+  signedIn,
+  account,
+  onLiked,
+  onRemoved,
+}: {
+  target: string;
+  likes: number;
+  liked: boolean;
+  mine: boolean;
+  signedIn: boolean;
+  account: boolean;
+  onLiked: (r: { liked: boolean; likes: number }) => void;
+  onRemoved: () => void;
+}) {
   const [note, setNote] = useState<string | null>(null);
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px] text-fg-2">
       <button
         type="button"
         aria-pressed={liked}
-        disabled={!signedIn}
+        title={signedIn ? undefined : "Like — you'll join as a guest"}
         onClick={async () => {
           const r = await like(target).catch(() => null);
           if (r) onLiked(r);
@@ -63,7 +81,10 @@ function Actions({ target, likes, liked, mine, signedIn, account, onLiked, onRem
           <button
             type="button"
             onClick={async () => {
-              await reportItem(target).then(() => setNote("Reported — thank you. We'll take a look."), (err) => setNote(err instanceof ClinicalEngineError ? err.message : "That didn't work."));
+              await reportItem(target).then(
+                () => setNote("Reported — thank you. We'll take a look."),
+                (err) => setNote(err instanceof ClinicalEngineError ? err.message : "That didn't work."),
+              );
             }}
             className="rounded-full px-2.5 py-1 hover:bg-surface-3"
           >
@@ -124,16 +145,7 @@ export function PostView({ initial, signedIn, account }: { initial: Post; signed
             <Icon name="eye" size={16} /> Spoiler — tap to read
           </button>
         )}
-        <Actions
-          target={`p:${post.id}`}
-          likes={post.likes}
-          liked={post.liked}
-          mine={post.mine}
-          signedIn={signedIn}
-          account={account}
-          onLiked={(r) => setPost((p) => ({ ...p, ...r }))}
-          onRemoved={() => router.push("/community")}
-        />
+        <Actions target={`p:${post.id}`} likes={post.likes} liked={post.liked} mine={post.mine} signedIn={signedIn} account={account} onLiked={(r) => setPost((p) => ({ ...p, ...r }))} onRemoved={() => router.push("/community")} />
       </article>
 
       <section aria-labelledby="replies-heading" className="flex flex-col gap-3">
@@ -157,32 +169,24 @@ export function PostView({ initial, signedIn, account }: { initial: Post; signed
           </div>
         ))}
 
-        {account ? (
-          <form onSubmit={send} className="panel flex flex-col gap-3 p-4 sm:p-5">
-            <textarea
-              value={reply}
-              onChange={(e) => setReply(e.target.value.slice(0, 3000))}
-              rows={3}
-              placeholder="Add your reply — reasoning, a guideline, a question back…"
-              className="w-full resize-y rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] leading-6 shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-fg-3 focus:border-accent-line focus:shadow-[0_0_0_3px_var(--accent-soft)]"
-            />
-            {error && (
-              <p role="alert" className="text-[13px] text-danger">
-                {error}
-              </p>
-            )}
-            <button type="submit" disabled={busy || reply.trim().length < 2} className="bg-ai inline-flex h-10 items-center gap-2 self-end rounded-full px-5 text-[14px] font-semibold text-white shadow-glow disabled:opacity-60">
-              {busy ? "Checking…" : "Reply"} {!busy && <Icon name="send" size={14} />}
-            </button>
-          </form>
-        ) : (
-          <div className="panel flex flex-col items-center gap-3 p-5 text-center">
-            <p className="text-[14px] text-fg-2">Create a free account to reply.</p>
-            <Link href={`/signup?next=/community/${post.id}`} className="bg-ai inline-flex h-10 items-center rounded-full px-5 text-[14px] font-semibold text-white shadow-glow">
-              Create free account
-            </Link>
-          </div>
-        )}
+        {/* Open to everyone: a visitor's first reply makes them a guest. */}
+        <form onSubmit={send} className="panel flex flex-col gap-3 p-4 sm:p-5">
+          <textarea
+            value={reply}
+            onChange={(e) => setReply(e.target.value.slice(0, 3000))}
+            rows={3}
+            placeholder="Add your reply — reasoning, a guideline, a question back…"
+            className="w-full resize-y rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] leading-6 shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-fg-3 focus:border-accent-line focus:shadow-[0_0_0_3px_var(--accent-soft)]"
+          />
+          {error && (
+            <p role="alert" className="text-[13px] text-danger">
+              {error}
+            </p>
+          )}
+          <button type="submit" disabled={busy || reply.trim().length < 2} className="bg-ai inline-flex h-10 items-center gap-2 self-end rounded-full px-5 text-[14px] font-semibold text-white shadow-glow disabled:opacity-60">
+            {busy ? "Checking…" : "Reply"} {!busy && <Icon name="send" size={14} />}
+          </button>
+        </form>
       </section>
     </div>
   );

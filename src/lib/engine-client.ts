@@ -91,10 +91,10 @@ export const resendCode = (email: string) => call<{ ok: true; cooldown: number }
 export const login = (body: { login: string; password: string }) => call<{ user: unknown }>("/api/auth/login", body);
 export const logout = () => call<{ ok: true }>("/api/auth/logout", {});
 export const deleteAccount = (password?: string) => call<{ ok: true }>("/api/me/delete", password ? { password } : {});
-export const checkout = (period: "monthly" | "yearly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: { orderId: string; amount: number; currency: string; keyId: string; name: string; email: string } }>("/api/billing/checkout", { period, startNow });
+export const checkout = (period: "monthly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: { orderId: string; amount: number; currency: string; keyId: string; name: string; email: string } }>("/api/billing/checkout", { period, startNow });
 export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ ok: true }>("/api/billing/verify", body);
 export const demoUpgrade = () => call<{ ok: true }>("/api/billing/demo-upgrade", {});
-export const startGuest = (country?: Country) => call<{ user: { id: string } }>("/api/auth/guest", country ? { country } : {});
+export const startGuest = (country?: Country) => call<{ user: { id: string; specialty?: string | null } }>("/api/auth/guest", country ? { country } : {});
 export const forgotPassword = (email: string) => call<{ ok: true }>("/api/auth/forgot", { email });
 /** The new password, with the proof from the reset link: its token hash, or Supabase's PKCE code. */
 export const resetPassword = (body: { password: string; tokenHash?: string; code?: string }) => call<{ user: unknown }>("/api/auth/reset", body);

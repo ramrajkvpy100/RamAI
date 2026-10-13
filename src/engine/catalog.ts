@@ -299,13 +299,25 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "amylase-lipase", name: "Serum amylase & lipase", short: "Amylase/Lipase", category: "lab", menu: "Blood",
     turnaroundMin: 40, cost: 900,
-    match: ["amylase", "lipase", "serum amylase", "serum lipase", "pancreatic enzymes"],
+    match: ["amylase and lipase", "amylase lipase", "lipase and amylase", "serum amylase and lipase", "pancreatic enzymes"],
     normal: () => ({
       rows: [
         row("Amylase", "62", "U/L", "28–100"),
         row("Lipase", "34", "U/L", "13–60"),
       ],
     }),
+  },
+  {
+    id: "amylase", name: "Serum amylase", short: "Amylase", category: "lab", menu: "Blood",
+    turnaroundMin: 40, cost: 450,
+    match: ["amylase", "serum amylase", "s amylase"],
+    normal: () => ({ rows: [row("Amylase", "62", "U/L", "28–100")] }),
+  },
+  {
+    id: "lipase", name: "Serum lipase", short: "Lipase", category: "lab", menu: "Blood",
+    turnaroundMin: 40, cost: 500,
+    match: ["lipase", "serum lipase", "s lipase"],
+    normal: () => ({ rows: [row("Lipase", "34", "U/L", "13–60")] }),
   },
   {
     id: "abg", name: "Arterial blood gas", short: "ABG", category: "bedside", menu: "Bedside",

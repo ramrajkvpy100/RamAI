@@ -92,8 +92,8 @@ export function CommunityFeed({ initial, more: initialMore, guest, signedIn, dra
     }
   };
 
+  // Anyone can like: a visitor joins as a guest on the way.
   const toggle = async (id: string) => {
-    if (!signedIn) return setComposing(true);
     const r = await like(`p:${id}`).catch(() => null);
     if (r) setPosts((list) => list.map((p) => (p.id === id ? { ...p, liked: r.liked, likes: r.likes } : p)));
   };
@@ -144,7 +144,7 @@ export function CommunityFeed({ initial, more: initialMore, guest, signedIn, dra
           {loading ? "Loading…" : "Older posts"}
         </button>
       )}
-      <Composer open={composing} onClose={() => setComposing(false)} draft={draft} guest={!signedIn || guest} />
+      <Composer open={composing} onClose={() => setComposing(false)} draft={draft} />
     </div>
   );
 }

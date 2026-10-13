@@ -17,7 +17,7 @@ import { cn } from "@/lib/cn";
 import type { LibraryInfo } from "@/lib/engine-client";
 import { caseLabel, xp } from "@/lib/format";
 import { useMe, type Me } from "@/lib/me-store";
-import { PLANS } from "@/lib/plans";
+import { planFor } from "@/lib/plans";
 import { useStartingMessage } from "@/lib/use-starting-message";
 
 import { CasePicker } from "./case-picker";
@@ -60,7 +60,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
   }, []);
 
   const p = me.progress;
-  const plan = PLANS[me.user.plan];
+  const plan = planFor(me.user);
   const rank = rankFor(p.percent);
   const next = nextRank(p.percent);
   const toNext = rankProgress(p.percent);

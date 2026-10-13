@@ -1,8 +1,10 @@
 import { z } from "zod";
 
-import { getCurrentUser, requireUser } from "@/server/auth";
+import { getCurrentUser, userOrGuest } from "@/server/auth";
+import { countryFromIp } from "@/lib/plans";
+import { overLimit } from "@/server/rate-limit";
 import { communityFailure, createReply, getPost } from "@/server/community";
-import { apiError, crossSite, ok, parseBody, rateLimited } from "@/lib/server/http";
+import { apiError, clientIp, crossSite, ok, parseBody, rateLimited } from "@/lib/server/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +36,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = await parseBody(req, ReplySchema);
   if (body instanceof Response) return body;
   try {
-    return ok({ reply: await createReply(await requireUser(), id.data, body.body) });
+    const user = await getCurrentUser();
+    if (!user && (await overLimit(`guest:${clientIp(req)}`, 20, 3_600_000))) return apiError(429, "RATE_LIMITED", "Too many new guests from this network. Please try again later.");
+    return ok({ reply: await createReply(user ?? (await userOrGuest(countryFromIp(req.headers.get("x-vercel-ip-country")))), id.data, body.body) });
   } catch (err) {
     return communityFailure(err);
   }

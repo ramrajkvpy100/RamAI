@@ -9,7 +9,7 @@ import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { StartSchema } from "@/lib/server/schemas";
-import { dailyLimitFor, PLANS } from "@/lib/plans";
+import { dailyLimitFor, planFor } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,12 +30,12 @@ export async function POST(req: Request) {
     if (daily && (await dailyBoard(daily, user.id, 0)).me) {
       return apiError(409, "DAILY_DONE", "You've played today's case. A new one unlocks at midnight IST.");
     }
-    const plan = PLANS[user.plan];
+    const plan = planFor(user);
     // The daily case is free for everyone, whatever its level, and doesn't use up the day's cases.
     if (!tutorial && !daily && body.level && !plan.levels.includes(body.level as CareLevel)) {
       return apiError(402, "PRO_REQUIRED", "This level is part of RamAI Pro.");
     }
-    // Guests get as many real cases a day as a free account; Pro is unlimited.
+    // Guests get a few real cases a day; free accounts a few more; Pro is unlimited (and open to every account for now).
     const limit = dailyLimitFor(user);
     if (!tutorial && !daily && limit !== null && (await casesStartedToday(user.id)) >= limit) {
       if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's today's ${limit} free cases — new ones at midnight. Create a free account to keep your progress on every device.`);

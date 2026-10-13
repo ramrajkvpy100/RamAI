@@ -74,7 +74,8 @@ async function authors(userIds: string[]): Promise<Map<string, { rankTier: numbe
 }
 
 const author = (row: { user_id: string; name: string; username: string }, ranks: Map<string, { rankTier: number; rankLabel: string }>): Author => ({
-  name: row.name,
+  // Guests are told apart by their handle's tag: "Guest doctor · 4f3a".
+  name: row.username.startsWith("guest-") ? `${row.name} · ${row.username.slice(6, 10)}` : row.name,
   username: row.username,
   ...(ranks.get(row.user_id) ?? { rankTier: 1, rankLabel: "Medical Student" }),
 });
@@ -134,9 +135,8 @@ export async function getPost(id: string, viewerId?: string): Promise<Post | nul
   };
 }
 
-function canWrite(user: User) {
-  if (user.isGuest) throw new CommunityError("SIGNUP_REQUIRED", "Create a free account to post — reading is open to everyone.");
-}
+/** Everyone can write — guests too (a visitor becomes one on their first post); the model reads everything first. */
+function canWrite(_user: User) {}
 
 export async function createPost(user: User, input: { topic: Topic; title: string; body: string; shareId?: string | null; spoiler?: boolean }): Promise<{ id: string }> {
   canWrite(user);

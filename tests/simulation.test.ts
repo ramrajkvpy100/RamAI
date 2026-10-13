@@ -190,3 +190,46 @@ describe("determinism", () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 });
+
+describe("every message gets an answer, in context", () => {
+  it("'how do u feel' is the patient's to answer — never an examination", () => {
+    for (const said of ["how do u feel", "how are you feeling?", "How r u", "feeling better?"]) {
+      const last = play(surgAppendicitis, [said]).state.messages.at(-1);
+      expect(last?.role).toBe("patient");
+      expect(last?.text).not.toMatch(/examination/i);
+    }
+    // "Feel" as palpation stays an examination.
+    expect(play(surgAppendicitis, ["feel the abdomen"]).state.messages.some((m) => m.kind === "finding" && /abdom/i.test(m.text))).toBe(true);
+  });
+
+  it("waiting is answered by the patient or the nurse, not just a clock", () => {
+    const { state } = play(surgAppendicitis, ["wait 15 minutes"]);
+    const last = state.messages.at(-1);
+    expect(last?.kind).toBe("speech");
+    expect(["patient", "nurse"]).toContain(last?.role);
+  });
+});
+
+describe("tests are sent once, and every value is this patient's", () => {
+  it("a test just done is shown again, not sent or charged twice — a repeat is a fresh sample", () => {
+    const twice = play(surgAppendicitis, ["Order CBC", "Order CBC"]);
+    expect(twice.state.investigations).toHaveLength(1);
+    expect(twice.state.messages.at(-1)?.text).toMatch(/CBC was done .* here it is again/i);
+    const repeat = play(surgAppendicitis, ["Order CBC", "Repeat CBC"]);
+    expect(repeat.state.investigations).toHaveLength(2);
+  });
+
+  it("amylase and lipase are separate tests; a value the case gave under the panel comes with either", () => {
+    const def: ClinicalCaseDefinition = {
+      ...surgAppendicitis,
+      investigations: [...surgAppendicitis.investigations.filter((i) => i.id !== "amylase-lipase"), { id: "amylase-lipase", priority: "essential", short: "Lipase", teaching: { whenToOrder: "Epigastric pain.", whatItTellsYou: "Pancreatitis." }, rows: [{ analyte: "Lipase", value: "1240", unit: "U/L", reference: "< 60", flag: "high" }] }],
+    };
+    const { state } = play(def, ["Serum lipase", "Serum amylase"]);
+    expect(state.investigations.map((i) => i.name)).toEqual(["Lipase", "Amylase"]);
+    expect(state.investigations[0]!.rows?.[0]).toMatchObject({ analyte: "Lipase", value: "1240" });
+    expect(state.investigations[1]!.rows?.[0]?.analyte).toBe("Amylase");
+    // The panel ordered by name brings both, the case's lipase among them.
+    const panel = play(def, ["Amylase and lipase"]).state.investigations[0]!;
+    expect(panel.rows?.map((r) => r.analyte).sort()).toEqual(["Amylase", "Lipase"]);
+  });
+});

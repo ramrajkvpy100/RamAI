@@ -8,9 +8,9 @@ import { Icon } from "@/components/ui/icon";
 import { checkout, ClinicalEngineError, demoUpgrade, verifyPayment } from "@/lib/engine-client";
 import { refreshMe, useMe, type Me } from "@/lib/me-store";
 import type { Country } from "@/engine/countries";
-import { priceFor, type BillingPeriod } from "@/lib/plans";
+import { priceFor, PRO_FOR_EVERYONE } from "@/lib/plans";
 
-import { PeriodToggle, PlanCards } from "./plan-cards";
+import { PlanCards } from "./plan-cards";
 
 interface RazorpayResponse {
   razorpay_order_id: string;
@@ -42,7 +42,6 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
   const me = initial ? (live ?? initial) : null;
   const country = me?.user.country ?? visitorCountry;
   const router = useRouter();
-  const [period, setPeriod] = useState<BillingPeriod>("yearly");
   const [busy, setBusy] = useState(false);
   const [demo, setDemo] = useState(false);
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
@@ -64,7 +63,7 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
         setMessage({ tone: "error", text: "Please tick the box to confirm Pro should start straight away." });
         return;
       }
-      const res = await checkout(period, true);
+      const res = await checkout("monthly", true);
       if (res.mode === "demo") {
         setDemo(true);
         return;
@@ -76,7 +75,7 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
         amount: res.order.amount,
         currency: res.order.currency,
         name: "RamAI",
-        description: `RamAI Pro — ${period === "yearly" ? "1 year" : "1 month"}`,
+        description: "RamAI Pro — 1 month",
         prefill: { name: res.order.name, email: res.order.email },
         theme: { color: "#2563eb" },
         handler: async (r: RazorpayResponse) => {
@@ -111,7 +110,17 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
   const isPro = me?.user.plan === "pro";
   const until = me?.user.planExpiresAt ? new Date(me.user.planExpiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : null;
 
-  const proAction = !me ? (
+  const proAction = PRO_FOR_EVERYONE && !isPro ? (
+    me ? (
+      <div className="flex h-11 items-center justify-center gap-2 rounded-full bg-white/10 text-[14px] font-semibold">
+        <Icon name="check" size={15} /> Included — free for now
+      </div>
+    ) : (
+      <Link href="/signup" className={BTN_DARK}>
+        Start free — Pro included
+      </Link>
+    )
+  ) : !me ? (
     <Link href="/signup?next=/pricing" className={BTN_DARK}>
       Get Pro
     </Link>
@@ -121,12 +130,12 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
         <Icon name="check" size={15} /> Your plan{until ? ` · until ${until}` : ""}
       </div>
       <button type="button" onClick={() => void upgrade()} disabled={busy} className="h-9 text-[13px] font-medium text-white/70 hover:text-white">
-        Extend by {period === "yearly" ? "a year" : "a month"} — {priceFor(country, period).label}
+        Extend by a month — {priceFor(country, "monthly").label}
       </button>
     </div>
   ) : (
     <button type="button" onClick={() => void upgrade()} disabled={busy} className={BTN_DARK}>
-      {busy ? "Opening checkout…" : `Upgrade — ${priceFor(country, period).label}`}
+      {busy ? "Opening checkout…" : `Upgrade — ${priceFor(country, "monthly").label}`}
     </button>
   );
 
@@ -135,7 +144,7 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
       Start free
     </Link>
   ) : (
-    <div className="flex h-11 items-center justify-center rounded-full bg-surface-3 text-[14px] font-medium text-fg-2">{isPro ? "Included in Pro" : "Your plan"}</div>
+    <div className="flex h-11 items-center justify-center rounded-full bg-surface-3 text-[14px] font-medium text-fg-2">{isPro || PRO_FOR_EVERYONE ? "Included in Pro" : "Your plan"}</div>
   );
 
   return (
@@ -144,9 +153,11 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
         Practise without <span className="text-gradient">limits.</span>
       </h1>
       <p className="mt-4 max-w-xl text-center text-[15.5px] leading-7 text-fg-2">Unlimited cases at every level — teaching hospital, national referral centre and global centre of excellence included.</p>
-      <div className="mt-8">
-        <PeriodToggle value={period} onChange={setPeriod} country={country} />
-      </div>
+      {PRO_FOR_EVERYONE && (
+        <p className="mt-7 flex items-center gap-2 rounded-full bg-success-soft px-4 py-2 text-[13.5px] font-semibold text-success">
+          <Icon name="sparkles" size={15} /> Pro is free for everyone right now — no payment needed.
+        </p>
+      )}
 
       {message && (
         <p role="status" className={`mt-6 flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px] font-medium ${message.tone === "success" ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
@@ -166,7 +177,7 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
         </div>
       )}
 
-      {me && (
+      {me && !PRO_FOR_EVERYONE && (
         <label className="mt-6 flex max-w-xl cursor-pointer items-start gap-2.5 rounded-xl border border-line bg-surface px-4 py-3 text-left text-[13px] leading-5 text-fg-2">
           <input type="checkbox" checked={startNow} onChange={(e) => setStartNow(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
           <span>
@@ -181,10 +192,10 @@ export function Pricing({ initial, visitorCountry = "IN" }: { initial: Me | null
       )}
 
       <div className="mt-8 w-full">
-        <PlanCards period={period} free={freeAction} pro={proAction} country={country} />
+        <PlanCards free={freeAction} pro={proAction} country={country} />
       </div>
       <p className="mt-6 text-center text-[12.5px] leading-6 text-fg-3">
-        One-time payment for 30 or 365 days — no auto-renewal. 7-day money-back guarantee.{" "}
+        One-time payment for 30 days — no auto-renewal. 7-day money-back guarantee.{" "}
         <Link href="/refund-policy" className="underline underline-offset-2 hover:text-fg">
           Refund policy
         </Link>{" "}

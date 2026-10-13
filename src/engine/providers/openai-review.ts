@@ -186,6 +186,15 @@ export function parseRange(reference: string | undefined): { low?: number; high?
   return null;
 }
 
+/** A row's flag set by its value and range ("critical" is the author's call; values without a numeric range keep theirs). */
+export function flagFromRange<R extends { value: string; reference?: string; flag: string }>(row: R): R {
+  const value = number(row.value);
+  const range = parseRange(row.reference);
+  if (value === null || !range || row.flag === "critical" || row.flag === "unknown") return row;
+  const flag = range.low !== undefined && value < range.low ? "low" : range.high !== undefined && value > range.high ? "high" : "normal";
+  return flag === row.flag ? row : { ...row, flag };
+}
+
 /** Every flag agrees with its value and range — a "normal" flag on an out-of-range value (or the reverse) is corrected. "critical" is the author's call. */
 export function checkLabFlags(f: Findings): { part: Findings; fixes: string[] } {
   const fixes: string[] = [];

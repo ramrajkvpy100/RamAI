@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { requireUser } from "@/server/auth";
+import { requireUser, userOrGuest } from "@/server/auth";
+import { countryFromIp } from "@/lib/plans";
 import { communityFailure, CommunityError, hiddenItems, remove, report, restore, toggleLike } from "@/server/community";
 import { isAdmin } from "@/server/suggestions";
 import { crossSite, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -24,7 +25,8 @@ export async function POST(req: Request) {
   const body = await parseBody(req, ActionSchema);
   if (body instanceof Response) return body;
   try {
-    const user = await requireUser();
+    // A like is open to anyone (a visitor joins as a guest); everything else needs who's asking already.
+    const user = body.action === "like" ? await userOrGuest(countryFromIp(req.headers.get("x-vercel-ip-country"))) : await requireUser();
     switch (body.action) {
       case "like":
         return ok(await toggleLike(user, body.target));

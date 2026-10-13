@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import { xp } from "@/lib/format";
 import { league, LEAGUES, TOP_TIER } from "@/lib/leagues";
 import type { Me } from "@/lib/me-store";
+import { planFor } from "@/lib/plans";
 
 import { LeagueBadge } from "./league-badge";
 import { nudgeFor, useCountdown, useLeague, type LeagueRow as LRow, type LeagueView } from "./league-data";
@@ -508,7 +509,7 @@ export function Leaderboard({ me }: { me: Me }) {
           ))}
         </div>
       </div>
-      {tab === "league" ? <LeagueTab me={me} /> : <GlobalTab meId={me.user.id} isPro={me.user.plan === "pro"} />}
+      {tab === "league" ? <LeagueTab me={me} /> : <GlobalTab meId={me.user.id} isPro={planFor(me.user).id === "pro"} />}
     </div>
   );
 }

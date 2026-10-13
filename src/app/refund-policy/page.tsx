@@ -18,7 +18,7 @@ export default function RefundPolicyPage() {
       >
         <Section title="How Pro is sold">
           <p>
-            Pro is a one-time payment — {priceList("monthly")} for {PERIODS.monthly.days} days, or {priceList("yearly")} for {PERIODS.yearly.days} days, in the currency of the country you practise in.
+            Pro is a one-time payment — {priceList("monthly")} for {PERIODS.monthly.days} days, in the currency of the country you practise in.
             Refunds go back in the same currency.
             It never renews on its own, so you're never charged again unless you choose to buy another period.
           </p>

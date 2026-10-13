@@ -37,7 +37,8 @@ import { mockProvider } from "./mock";
 import type { z } from "zod";
 
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
-import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, GUIDELINES, managementReviewPrompt } from "./openai-review";
+import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
+import { labGap } from "../simulator";
 import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
 interface ChatMessage {
@@ -102,8 +103,23 @@ Absolute rules while a case is active:
 - Positive findings must come only from the case file. If the case file does not mention something, the honest answer is a plausible negative.
 - Output JSON only.`;
 
+/** Where the encounter stands — so replies fit the moment, and follow-ups ("in 2 seconds", "same again") read in context. */
+function stateNote(ctx: InterpretContext): string {
+  const h = ctx.hidden;
+  const v = h.vitals;
+  const given = h.drugs.filter((d) => d.mode === "given").slice(-8).map((d) => `${d.generic}${d.dose ? ` ${d.dose}` : ""} ${d.route} at minute ${Math.round(d.at)}`);
+  const recent = ctx.transcript
+    .slice(-8)
+    .map((m) => `${m.role === "doctor" ? "Doctor" : m.role === "attendant" ? "Relative" : m.role === "nurse" ? "Nurse" : m.role === "patient" ? "Patient" : "Ward"}: ${m.text}`)
+    .join("\n");
+  return `Minute ${Math.round(h.clock)} of the encounter. The patient is ${h.status}${h.patientSays ? ` and says "${h.patientSays}"` : ""}. Vitals: HR ${v.hr.value}, BP ${v.bp.value}, RR ${v.rr.value}, SpO2 ${v.spo2.value}, temperature ${v.temp.value}.
+Given so far: ${given.length ? given.join("; ") : "nothing"}.
+${recent ? `Conversation so far:\n${recent}` : ""}`;
+}
+
 /** For a question the rules couldn't place: what did the doctor mean, and (if it was a question) what does the patient say? */
-function interpretPrompt(def: ClinicalCaseDefinition, clause: string, country?: Country, lang?: PatientLang): ChatMessage[] {
+function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: InterpretContext): ChatMessage[] {
+  const { country, lang } = ctx;
   const history = def.history.map((h) => `${h.id} | ${h.label} | patient says: ${h.reply}`).join("\n");
   const exams = [...def.exam.map((e) => `${e.id} | ${e.label}`), ...EXAMS.map((e) => `${e.id} | ${e.label}`)].join("\n");
   const invs = [...def.investigations.map((i) => i.id), ...INVESTIGATIONS.map((i) => i.id)].join(", ");
@@ -116,6 +132,8 @@ function interpretPrompt(def: ClinicalCaseDefinition, clause: string, country?: 
       content: `CASE FILE (hidden)
 Patient: ${def.patient.age}-year-old ${def.patient.sex}, ${def.patient.city}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}.
 Diagnosis (never reveal): ${def.truth.diagnosis}.
+
+NOW: ${stateNote(ctx)}
 
 History entries (id | topic | what the patient says):
 ${history}
@@ -131,6 +149,8 @@ Formulary drug ids: ${FORMULARY.map((d) => d.id).join(", ")}
 Return JSON:
 {"type":"patient_response","speaker":"patient|attendant|nurse","message":"<the reply spoken in the room — see below>","new_information":[],"intents":[{"kind":"history|vitals|exam|investigation|drug|action|followup|wait|reassess|diagnosis|differential|close|results|unknown","targetId":"<id from the lists above>","phrase":"<the doctor's words>","payload":{}}]}
 Use kind "results" when the doctor asks about the results of tests already sent.
+Read the doctor's words in the context of the conversation: a follow-up such as "in 2 seconds", "faster", "same again", "double it" or "stop it" is about the order just given — restate that order with the change (kind "drug", same targetId, with the new payload), or kind "unknown" if it can't be carried out.
+Orders are carried out exactly as given, however unusual, excessive or unsafe — the simulation plays out the consequences. Never refuse, soften or correct an order: map it to the matching id with the dose, route and rate exactly as said, in "payload": {"mode":"given"|"prescribed","route":"IV|IM|PO|SC|SL|NEB|INH|PR|TOP|IN","amount":<number>,"unit":"mg|mcg|g|units|mL|L|mmol","volumeMl":<for fluids>,"overMin":<minutes it is given over, if said>}.
 Map to existing ids whenever the meaning matches — the game answers those itself.
 For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" (or "attendant" if the doctor spoke to the relative), and put the reply in "message", in ${language(country, lang)}.
 For anything else no id covers — a remark, reassurance, small talk, a request the ward can't carry out, or words that are unclear — use kind "unknown" and always write "message": the brief, natural reply of whoever would answer. The patient or relative answers if the doctor spoke to them (in ${language(country, lang)}); otherwise the nurse answers (speaker "nurse", plain English, one or two short sentences). The nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If it can't be done here, the nurse says so plainly; if the words are unclear, the nurse asks briefly what exactly the doctor wants.
@@ -524,7 +544,7 @@ function shuffleOptions<T extends { options: string[]; answer: number }>(q: T, r
 /** The rules couldn't place it: ask the model what the doctor meant. */
 async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[]): Promise<Interpretation> {
   try {
-    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx.country, ctx.lang), 800, true);
+    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx), 800, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
     const { message, speaker } = parsed.data;
@@ -557,6 +577,73 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
   } catch (err) {
     console.error("[ramai] interpretation fell back to rules", err instanceof Error ? err.message : err);
     return { intents: ruled };
+  }
+}
+
+/**
+ * Results the case file doesn't have — an analyte it never gave, a scan it
+ * never reported — written by the lab for this patient, consistent with the
+ * diagnosis, the stage of the illness and every value already known. One call
+ * for everything ordered in the turn; kept with the action, so it never changes.
+ */
+async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): Promise<Record<string, string>> {
+  const gaps = intents
+    .filter((i) => i.kind === "investigation" && i.targetId && !i.payload?.reshow)
+    .map((i) => labGap(ctx.def, ctx.hidden, i.targetId!, i.phrase))
+    .filter((g): g is NonNullable<typeof g> => g !== null);
+  const unique = gaps.filter((g, i) => gaps.findIndex((x) => x.id === g.id) === i).slice(0, 6);
+  if (unique.length === 0) return {};
+  const def = ctx.def;
+  const known = [
+    ...ctx.hidden.investigations.flatMap((i) => (i.result.rows ?? []).map((r) => `${r.analyte} ${r.value}${r.unit ? ` ${r.unit}` : ""}`)),
+    ...def.investigations.flatMap((i) => [...(i.rows ?? []).map((r) => `${r.analyte} ${r.value}${r.unit ? ` ${r.unit}` : ""}`), ...(i.report ? [`${i.name ?? i.id}: ${i.report}`] : [])]),
+  ];
+  const asked = unique.map((g) =>
+    g.report ? `- ${g.id} (${g.name}): the report` : `- ${g.id} (${g.name}): ${g.analytes.map((a) => `${a.analyte}${a.unit ? ` [${a.unit}]` : ""}${a.reference ? ` (ref ${a.reference})` : ""}`).join("; ")}`,
+  );
+  try {
+    const raw = (await chatJSON(
+      [
+        {
+          role: "system",
+          content: `You are the laboratory and radiology department of a hospital in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}. You report results for one patient — exactly what a real patient with this condition, at this point in the illness and after the treatment so far, would show — consistent with every value already known. A value the condition wouldn't change is normal. Radiology reports state findings and an impression in one to three sentences, with no advice. Output JSON only.`,
+        },
+        {
+          role: "user",
+          content: `PATIENT: ${def.patient.age}-year-old ${def.patient.sex}. Diagnosis: ${def.truth.diagnosis}${def.truth.qualifier ? ` (${def.truth.qualifier})` : ""}.
+Key findings: ${def.exam.filter((e) => e.abnormal).map((e) => `${e.label}: ${e.finding}`).slice(0, 6).join("; ") || "none recorded"}.
+Values already known: ${known.slice(0, 40).join("; ") || "none"}.
+NOW: ${stateNote(ctx)}
+
+Report these (use the units and reference ranges given):
+${asked.join("\n")}
+
+Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference","flag":"normal|high|low|critical"}],"report":"<only for a report>"}]}`,
+        },
+      ],
+      1200,
+      false,
+      12_000,
+    )) as { results?: { test?: string; rows?: { analyte?: string; value?: unknown; unit?: string; reference?: string; flag?: string }[]; report?: string }[] };
+    const out: Record<string, string> = {};
+    for (const g of unique) {
+      const r = raw?.results?.find((x) => x.test === g.id);
+      if (!r) continue;
+      const rows = g.analytes
+        .map((a) => {
+          const got = r.rows?.find((x) => typeof x.analyte === "string" && x.analyte.toLowerCase().replace(/[^a-z0-9]/g, "") === a.analyte.toLowerCase().replace(/[^a-z0-9]/g, ""));
+          if (!got || (typeof got.value !== "string" && typeof got.value !== "number")) return null;
+          const flag = ["normal", "high", "low", "critical"].includes(String(got.flag)) ? (got.flag as "normal") : "normal";
+          return flagFromRange({ analyte: a.analyte, value: String(got.value).slice(0, 24), unit: a.unit, reference: a.reference, flag });
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null);
+      const report = g.report && typeof r.report === "string" ? r.report.trim().slice(0, 600) : undefined;
+      if (rows.length || report) out[`lab:${g.id}`] = JSON.stringify({ ...(rows.length ? { rows } : {}), ...(report ? { report } : {}) });
+    }
+    return out;
+  } catch (err) {
+    console.error("[ramai] lab results fell back to normal values", err instanceof Error ? err.message : err);
+    return {};
   }
 }
 
@@ -666,11 +753,11 @@ export function createOpenAIProvider(): ClinicalProvider {
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
       const ruled = (await mockProvider.interpret(text, ctx)).intents;
       const unresolved = ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:")));
-      if (unresolved) return understand(text, ctx, ruled);
-      // The demo's scripted replies stay as written.
-      if (ctx.def.guided) return { intents: ruled };
-      if (openAIConfig().voice === "all") return voice(text, ctx, ruled);
-      return { intents: ruled };
+      const read = unresolved ? await understand(text, ctx, ruled) : ctx.def.guided || openAIConfig().voice !== "all" ? { intents: ruled } : await voice(text, ctx, ruled);
+      // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
+      if (ctx.def.guided) return read;
+      const labs = await completeLabs(ctx, read.intents);
+      return Object.keys(labs).length ? { ...read, generated: { ...read.generated, ...labs } } : read;
     },
 
     async feedback(input): Promise<CoachFeedback | undefined> {

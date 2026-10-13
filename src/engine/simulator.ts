@@ -563,6 +563,10 @@ export function getPatientResponse(def: ClinicalCaseDefinition, hidden: HiddenSt
     case "identity:occupation": return { text: p.occupation ? `${capitalise(p.occupation)}, doctor.` : "I'm at home these days, doctor.", role };
     case "identity:residence": return { text: `${p.city}, doctor.`, role };
     case "identity:name": return { text: p.name ? `${p.name}, doctor.` : "(The patient tells you their name.)", role };
+    case "identity:feeling": {
+      const feel = howDoYouFeel(def, hidden);
+      return { text: feel || "(No response.)", role: hidden.status === "critical" || hidden.status === "deceased" ? "nurse" : role };
+    }
     case "fallback:yesno": return { text: pick(YES_NO_FALLBACK, seed), role };
     default: return { text: pick(OPEN_FALLBACK, seed), role };
   }
@@ -896,6 +900,66 @@ function handleResults(ctx: TurnContext): TurnEffect[] {
 /** Results arrive the moment a test is ordered — no waiting for the lab (a product decision). */
 const INSTANT_RESULTS = true;
 
+/** "Repeat the lipase", "check it again": a fresh sample, even when the test was only just done. */
+const REPEAT_RE = /\b(repeat|again|recheck|re check|re do|redo|serial|another|once more|fresh sample)\b/i;
+/** A test done this recently is shown again rather than sent twice (and charged twice). */
+const RECENT_MIN = 30;
+
+/** Analytes compared loosely: "S. lipase", "Serum lipase" and "Lipase" are one. */
+const analyteKey = (s: string) => s.toLowerCase().replace(/^(?:serum|plasma|blood|s\.?)\s+/, "").replace(/[^a-z0-9]+/g, "");
+
+/**
+ * Values this patient already has for each analyte — from tests resulted in
+ * this encounter (latest first), then the case's own results under other
+ * tests' names (a "Lipase" row in its pancreatic panel). One patient, one value.
+ */
+function knownValues(def: ClinicalCaseDefinition, hidden: HiddenState): Map<string, LabRow> {
+  const known = new Map<string, LabRow>();
+  for (const inv of [...hidden.investigations].reverse()) for (const r of inv.result.rows ?? []) if (!known.has(analyteKey(r.analyte))) known.set(analyteKey(r.analyte), r);
+  for (const inv of def.investigations) for (const r of inv.rows ?? []) if (!known.has(analyteKey(r.analyte))) known.set(analyteKey(r.analyte), r);
+  return known;
+}
+
+/** What a test reports when the case has no word on it: the catalogue's normal result for this patient. */
+function catalogueResult(def: ClinicalCaseDefinition, hidden: HiddenState, id: string): OrderedInvestigation["result"] {
+  const cat = catalogInvestigation(id);
+  return cat ? cat.normal({ patient: def.patient, hr: parseInt(hidden.vitals.hr.value, 10) || 78, seed: hash(def.id + id) }) : {};
+}
+
+/**
+ * What the case didn't write for a test about to be ordered: analytes it has
+ * no value for anywhere, or a scan with no report. The model fills these in
+ * before the turn runs, consistent with the patient (stored with the action,
+ * so the case replays exactly); without it, the normal result stands.
+ */
+export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, id: string, phrase = ""): { id: string; name: string; analytes: LabRow[]; report: boolean } | null {
+  const cat = catalogInvestigation(id);
+  const override = def.investigations.find((i) => i.id === id);
+  if (!cat && !override) return null;
+  // Nothing to write for a test that won't be done: on the phone, beyond this facility, or just done.
+  if (def.track === "phone" || !canPerform(def.level, id, { inCatalog: !!cat, minLevel: override?.minLevel })) return null;
+  const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
+  if (prior && !REPEAT_RE.test(phrase) && (!prior.delivered || hidden.clock - prior.resultAt < RECENT_MIN)) return null;
+  const normal = catalogueResult(def, hidden, id);
+  const name = override?.name ?? cat?.name ?? id;
+  const written = new Set((override?.rows ?? []).map((r) => analyteKey(r.analyte)));
+  const known = knownValues(def, hidden);
+  const analytes = override?.report || override?.media ? [] : (normal.rows ?? []).filter((r) => !written.has(analyteKey(r.analyte)) && !known.has(analyteKey(r.analyte)));
+  const report = !override && !!normal.report && !normal.rows?.length;
+  return analytes.length || report ? { id, name, analytes, report } : null;
+}
+
+/** The model's values for what the case didn't write: `{ rows, report }`, kept on the action under `lab:<test>`. */
+function generatedResult(record: ActionRecord, id: string): { rows?: LabRow[]; report?: string } | null {
+  const raw = record.generated?.[`lab:${id}`];
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as { rows?: LabRow[]; report?: string };
+  } catch {
+    return null;
+  }
+}
+
 function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const id = intent.targetId ?? "";
@@ -919,6 +983,17 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   }
 
   const testName = override?.short ?? cat?.short ?? override?.name ?? id;
+
+  // Just done: shown again, not sent (or charged) twice — unless the doctor asks for a repeat.
+  const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
+  if (prior && !REPEAT_RE.test(intent.phrase) && !intent.payload?.repeat) {
+    if (!prior.delivered) return [{ type: "message", role: "system", kind: "status", text: `${prior.name} is already sent — about ${Math.max(1, Math.round(prior.resultAt - hidden.clock))} min.` }];
+    const ago = Math.round(hidden.clock - prior.resultAt);
+    if (ago < RECENT_MIN) {
+      return [{ type: "message", role: "system", kind: "finding", text: `${prior.name} was done ${ago < 1 ? "just now" : `${ago} min ago`} — here it is again. Say "repeat ${prior.name.toLowerCase()}" for a fresh sample.`, attachmentIds: [prior.instanceId] }];
+    }
+  }
+
   if (def.track === "phone") {
     if (!ctx.notices.includes("no-tests")) {
       ctx.notices.push("no-tests");
@@ -936,10 +1011,25 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   const turnaround = INSTANT_RESULTS ? 0 : (override?.turnaroundMin ?? cat?.turnaroundMin ?? 30);
   const cost = override?.cost ?? cat?.cost ?? 0;
 
-  // Result composition: catalogue default → case override → time phase → active hazard stage.
-  let result: OrderedInvestigation["result"] = cat ? cat.normal({ patient: def.patient, hr: parseInt(hidden.vitals.hr.value, 10) || 78, seed: hash(def.id + id) }) : {};
+  // Result composition: catalogue default → values the patient already has → the model's, for what the case didn't write → case override → time phase → active hazard stage.
+  let result: OrderedInvestigation["result"] = catalogueResult(def, hidden, id);
+  const known = knownValues(def, hidden);
+  const generated = generatedResult(ctx.record, id);
+  const authored = new Map((override?.rows ?? []).map((r) => [analyteKey(r.analyte), r] as const));
+  if (result.rows) {
+    result = {
+      ...result,
+      rows: result.rows.map((r) => {
+        const k = analyteKey(r.analyte);
+        return authored.get(k) ?? known.get(k) ?? generated?.rows?.find((g) => analyteKey(g.analyte) === k) ?? r;
+      }),
+    };
+  }
+  if (!override && generated?.report) result = { ...result, report: generated.report };
   if (override && (override.rows || override.report || override.media)) {
-    result = { rows: override.rows ?? result.rows, report: override.report ?? result.report, media: override.media ?? result.media };
+    // The case's own rows lead; any analyte the panel reports that the case left out follows.
+    const extra = (result.rows ?? []).filter((r) => !authored.has(analyteKey(r.analyte)));
+    result = { rows: override.rows ? [...override.rows, ...(override.report || override.media ? [] : extra)] : result.rows, report: override.report ?? result.report, media: override.media ?? result.media };
   }
   if (override?.noMedia) result = { ...result, media: undefined };
   const phase = [...(override?.phases ?? [])].filter((p) => p.fromMin <= hidden.clock).sort((a, b) => b.fromMin - a.fromMin)[0];
@@ -1486,9 +1576,29 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   // The attached monitor shows where the patient is now.
   if (!hidden.closed) fx.push(...monitorTick(hidden));
 
+  // Every message the doctor sends gets an answer from someone in the room.
+  // (A "15 min later" divider marks time; it isn't an answer.)
+  if (!tick && !hidden.closed && !fx.some((e, i) => i > 0 && e.type === "message" && !(e.kind === "status" && / later$/.test(e.text)))) fx.push(statusReply(def, hidden));
+
   const stage = ctx.stages[ctx.stages.length - 1];
   if (stage) fx.push({ type: "stage", stage });
   return fx;
+}
+
+/** After waiting (or anything that drew no other answer): how the patient is now, from the nurse or the patient. */
+function statusReply(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEffect {
+  const he = def.patient.sex === "Female" ? "she" : def.patient.sex === "Male" ? "he" : "they";
+  const nurse = def.track === "phone" ? "attendant" : "nurse";
+  switch (hidden.status) {
+    case "deceased":
+      return { type: "message", role: "system", kind: "status", text: "The patient has died. End the case to review the encounter." };
+    case "critical":
+      return { type: "message", role: nurse, kind: "speech", text: hidden.patientSays?.startsWith("(") ? `Doctor, please come — ${he}'s critical. ${hidden.patientSays}` : `Doctor, please come quickly — ${he}'s critical.` };
+    case "deteriorating":
+      return { type: "message", role: nurse, kind: "speech", text: `Doctor, ${he}'s getting worse.${hidden.patientSays ? ` ${capitalise(he)} says: "${hidden.patientSays}"` : ""}` };
+    default:
+      return { type: "message", role: patientRole(def), kind: "speech", text: howDoYouFeel(def, hidden) || "I'm here, doctor." };
+  }
 }
 
 /** Fires events that fell due while a handler moved the clock forward. */

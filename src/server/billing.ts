@@ -45,7 +45,7 @@ export async function createOrder(user: User, period: BillingPeriod) {
 
 /** Verifies Razorpay's checkout signature, then activates Pro. */
 export async function verifyPayment(user: User, p: { orderId: string; paymentId: string; signature: string }) {
-  const row = await db.get<{ period: BillingPeriod }>("SELECT period FROM payments WHERE order_id = ? AND user_id = ?", p.orderId, user.id);
+  const row = await db.get<{ period: string }>("SELECT period FROM payments WHERE order_id = ? AND user_id = ?", p.orderId, user.id);
   if (!row) throw new BillingError("Unknown order.");
   const expected = createHmac("sha256", process.env.RAZORPAY_KEY_SECRET ?? "").update(`${p.orderId}|${p.paymentId}`).digest("hex");
   const a = Buffer.from(expected);
@@ -53,7 +53,8 @@ export async function verifyPayment(user: User, p: { orderId: string; paymentId:
   if (a.length !== b.length || !timingSafeEqual(a, b)) throw new BillingError("Payment could not be verified.");
   // Atomic claim: a duplicate or concurrent verify for the same order never extends Pro twice.
   const claimed = await db.run("UPDATE payments SET status = 'paid', payment_id = ? WHERE order_id = ? AND status != 'paid'", p.paymentId, p.orderId);
-  if (claimed.changes === 1) await extendPro(user, PERIODS[row.period].days);
+  // A year for orders placed while the yearly plan was still offered.
+  if (claimed.changes === 1) await extendPro(user, row.period === "yearly" ? 365 : PERIODS.monthly.days);
 }
 
 export async function extendPro(user: User, days: number) {

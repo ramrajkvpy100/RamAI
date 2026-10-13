@@ -43,6 +43,9 @@ const PROCEDURE_VERBS = ["perform", "do a", "do an", "plan", "schedule", "take u
 const NEGATIONS = ["dont", "don t", "do not", "never", "avoid", "no", "not", "without", "stop", "hold", "withhold", "discontinue", "cease"];
 const HISTORY_GUARD = ["do you have", "have you", "any history", "history of", "known case of", "are you", "did you", "suffer", "suffering", "diagnosed", "any", "taking medicine for", "medicine for", "problem of", "since when", "do you", "complaining of"];
 
+/** Asking how the patient feels (now, or after something was given) — never an examination. */
+const FEELING_RE = /^(?:(?:and|so|now|ok|okay|hello|hi|hey)\s+)?(?:how (?:do|are|is) (?:you|he|she|the patient)(?: (?:feel|feeling|doing|now))?|how you (?:feel|feeling)|(?:are|do) you feel(?:ing)?(?: (?:better|worse|ok|okay|fine|good|any better|alright|all right|any relief))?|(?:feeling|feel|any) (?:better|worse|relief)|any improvement)\b/;
+
 const QUESTION_START = /^(what|whats|what s|when|where|why|who|whom|which|how|is|are|am|was|were|do|does|did|have|has|had|can|could|will|would|should|any|anything|ever|tell me|describe|since)\b/;
 
 const NUMBER_TOKEN = "(\\d+(?:\\.\\d+)?|a|an|one|two|three|four|five|six|seven|eight|nine|ten|twelve|fourteen|fifteen|twenty|thirty|half)";
@@ -132,6 +135,7 @@ const IDENTITY: { id: string; phrases: string[] }[] = [
   { id: "identity:occupation", phrases: ["what do you do", "your work", "occupation", "profession", "your job", "what work", "do for a living", "what is your work"] },
   { id: "identity:residence", phrases: ["where do you live", "where are you from", "which area", "native place", "where do you stay", "your address"] },
   { id: "identity:name", phrases: ["your name", "what is your name", "whats your name"] },
+  { id: "identity:feeling", phrases: ["how do you feel", "how are you feeling", "how you feel", "how you feeling", "how are you", "how r you", "are you feeling better", "feeling better", "feel better", "any better", "any relief", "feeling any better", "how is the patient", "how is he", "how is she", "hows the patient", "how is he doing", "how is she doing", "how are you doing"] },
   { id: "identity:complaint", phrases: ["what brings you", "what brought you", "how can i help", "what happened", "what is the problem", "whats the problem", "what seems to be the problem", "what is your problem", "chief complaint", "presenting complaint", "what is troubling you", "why have you come", "how may i help"] },
 ];
 
@@ -381,7 +385,9 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
 
   const tk = tokens(norm);
   const question = isQuestion(rawClause, norm);
-  const clinicianDirected = hasClinicianVerb(tk);
+  // "Feel" is palpation ("feel the pulse") — but "how do you feel?" is for the patient to answer.
+  const feelingQuestion = FEELING_RE.test(norm);
+  const clinicianDirected = hasClinicianVerb(tk) && !feelingQuestion;
 
   // Nothing but punctuation ("?"): nothing to act on.
   if (tk.length === 0) return done([{ kind: "unknown", phrase: rawClause, matched: false, payload: { empty: true } }]);
@@ -428,6 +434,9 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     if (named.length > 0) return done(named.map((i) => ({ ...i, payload: { ...i.payload, reshow: true, ...(report ? { report: true } : {}) } })));
     return done([{ kind: "results", phrase: rawClause, matched: true }]);
   }
+
+  // "How are you feeling?" — the patient says how they are now.
+  if (feelingQuestion) return done([{ kind: "history", targetId: "identity:feeling", phrase: rawClause, matched: true }]);
 
   // Questions addressed to the patient go to history first — except the stethoscope's words ("heart sounds?").
   if (question && !clinicianDirected) {
