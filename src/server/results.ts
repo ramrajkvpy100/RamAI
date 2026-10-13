@@ -139,6 +139,26 @@ export async function leaderboard(board: BoardId, period: Period, viewerId?: str
 /* Recording a closed case                                                     */
 /* -------------------------------------------------------------------------- */
 
+/** What one case showed, kept compact (a kilobyte or two): the marks per skill, why marks were lost, what was missed and done well. */
+export interface CaseDetail {
+  /** [category, earned, max] */
+  l: [string, number, number][];
+  /** [category, reason] — why marks were lost */
+  lost: [string, string][];
+  /** [what was missed, severity] */
+  missed: [string, string][];
+  well: string[];
+}
+
+export function caseDetail(debrief: CaseDebrief): CaseDetail {
+  return {
+    l: debrief.score.lines.map((line) => [line.category, Math.round(line.earned * 10) / 10, line.max]),
+    lost: debrief.score.lines.flatMap((line) => (line.lost ?? []).map((reason) => [line.category, reason.slice(0, 200)] as [string, string])).slice(0, 14),
+    missed: debrief.missed.map((m) => [m.what.slice(0, 200), m.severity] as [string, string]).slice(0, 10),
+    well: debrief.didWell.map((w) => w.slice(0, 200)).slice(0, 6),
+  };
+}
+
 /**
  * Records a debrief exactly once per session and returns what it earned.
  * Idempotent: re-closing or replaying the same session never double-counts.
@@ -148,10 +168,10 @@ export async function recordCase(user: User, sessionId: string, debrief: CaseDeb
   const rescued = debrief.rescue.episodes.some((e) => e.rescued === "full" || e.rescued === "partial");
   const ranked = opts.daily && !user.isGuest && (await firstDailySession(user.id, opts.daily)) === sessionId ? opts.daily : null;
   await db.run(
-    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid, detail)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     user.id, sessionId, debrief.caseRef, debrief.caseNumber, debrief.specialty, debrief.track, debrief.level, debrief.diagnosis, debrief.verdict, rescued ? 1 : 0, debrief.score.total, debrief.score.xp, Date.now(),
-    ranked, Math.round(debrief.elapsedMin), ranked ? squares(debrief.score) : null,
+    ranked, Math.round(debrief.elapsedMin), ranked ? squares(debrief.score) : null, JSON.stringify(caseDetail(debrief)),
   );
   const after = await progressFor(user.id);
   await ensureMembership(user);

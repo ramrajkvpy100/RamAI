@@ -14,6 +14,7 @@ import { UserMenu } from "./user-menu";
 
 const NAV = [
   { href: "/", label: "Home" },
+  { href: "/progress", label: "Progress" },
   { href: "/community", label: "Community" },
   { href: "/leaderboard", label: "Leaderboard" },
 ];
@@ -45,7 +46,7 @@ export function AppHeader({ initial }: { initial: Me }) {
           <UserMenu me={me} />
         </div>
       </div>
-      <nav className="flex items-center gap-1 border-t border-line/60 px-4 py-1.5 sm:hidden" aria-label="Main">
+      <nav className="flex items-center gap-1 overflow-x-auto border-t border-line/60 px-4 py-1.5 whitespace-nowrap sm:hidden" aria-label="Main">
         {NAV.map((n) => (
           <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1 text-[13px] font-medium", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2")}>
             {n.label}

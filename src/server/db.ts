@@ -221,6 +221,14 @@ CREATE TABLE IF NOT EXISTS mcq_answers (
 );
 CREATE INDEX IF NOT EXISTS mcq_answers_user ON mcq_answers(user_id, created_at);
 
+-- The personal report, written by AI from a doctor's cases — rewritten when there are new ones.
+CREATE TABLE IF NOT EXISTS progress_reports (
+  user_id TEXT PRIMARY KEY,
+  cases INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -329,7 +337,8 @@ function clientBackend(client: Client): Backend {
   return {
     ...on(client),
     batch,
-    exec: (script) => batch(script.split(";").map((sql) => ({ sql: sql.trim() })).filter((s) => s.sql)),
+    // Comments go first: a semicolon inside one must never split a statement.
+    exec: (script) => batch(script.replace(/--[^\n]*/g, "").split(";").map((sql) => ({ sql: sql.trim() })).filter((s) => s.sql)),
     async transaction(fn) {
       const t = await client.transaction("write");
       try {
@@ -369,7 +378,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 13;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
@@ -415,6 +424,8 @@ async function migrate(b: Backend) {
   if (!resultColumns.includes("daily_key")) add.push("ALTER TABLE results ADD COLUMN daily_key TEXT");
   if (!resultColumns.includes("elapsed_min")) add.push("ALTER TABLE results ADD COLUMN elapsed_min INTEGER");
   if (!resultColumns.includes("grid")) add.push("ALTER TABLE results ADD COLUMN grid TEXT");
+  // What the case showed about each skill — marks per category, why marks were lost, what was missed and done well — for progress and the report.
+  if (!resultColumns.includes("detail")) add.push("ALTER TABLE results ADD COLUMN detail TEXT");
   // Sign-in moved to Supabase Auth: profiles link to their Supabase user.
   if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
   // The doctor's own specialty, asked once: NULL = not asked yet, 'mixed' = every specialty.

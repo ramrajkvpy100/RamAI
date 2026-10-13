@@ -24,7 +24,8 @@ export const DEFAULT_WEIGHTS: Required<ScoreWeights> = {
   outcome: 5,
 };
 
-const LABELS: Record<ScoreCategory, string> = {
+/** The skills a case is marked on — also how progress names them. */
+export const SKILL_LABELS: Record<ScoreCategory, string> = {
   history: "History",
   examination: "Examination",
   differential: "Differential reasoning",
@@ -93,7 +94,7 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     // A category weighted 0 for this case (e.g. examination on a phone call) is not shown.
     if (max <= 0) return;
     const earned = Math.round(max * clamp01(fraction) * 10) / 10;
-    lines.push({ category, label: LABELS[category], max, earned, notes, ...(earned < max - 0.05 && lost.length ? { lost } : {}) });
+    lines.push({ category, label: SKILL_LABELS[category], max, earned, notes, ...(earned < max - 0.05 && lost.length ? { lost } : {}) });
   };
 
   const verdict = diagnosisVerdict(def, hidden);
