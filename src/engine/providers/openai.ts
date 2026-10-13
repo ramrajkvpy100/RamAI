@@ -36,8 +36,8 @@ import { ALL_SPECIALTIES } from "../progression";
 import { mockProvider } from "./mock";
 import type { z } from "zod";
 
-import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
-import { applyDialogueReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, managementReviewPrompt } from "./openai-review";
+import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
+import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, GUIDELINES, managementReviewPrompt } from "./openai-review";
 import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
 interface ChatMessage {
@@ -436,6 +436,88 @@ misses and strengths: one for each essential item and the most useful ones; keys
 }
 
 /* -------------------------------------------------------------------------- */
+/* After the case: pearls and exam-style questions                             */
+/* -------------------------------------------------------------------------- */
+
+/** The exam each country's doctors sit, and how its questions are written. */
+const EXAM: Record<Country, { name: string; board: string; options: number; style: string }> = {
+  IN: {
+    name: "NEET PG & INI-CET",
+    board: "the National Board of Examinations and AIIMS",
+    options: 4,
+    style: "NEET PG / INI-CET single best answer: a one-to-three-line stem — a short clinical vignette or a direct question — and FOUR options. High-yield, as Indian postgraduate entrance exams test: drug of choice, investigation of choice, most common cause, characteristic sign, next best step, per standard Indian textbooks and national guidelines",
+  },
+  US: {
+    name: "USMLE Step 2 CK",
+    board: "the NBME",
+    options: 5,
+    style: "USMLE Step 2 CK single best answer: a clinical vignette (age, sex, setting, presentation, vital signs, key examination and laboratory findings) ending in one lead-in — e.g. 'Which of the following is the most appropriate next step in management?' — with FIVE homogeneous options, per current US guidelines",
+  },
+  UK: {
+    name: "UKMLA & PLAB 1",
+    board: "the GMC",
+    options: 5,
+    style: "UKMLA AKT / PLAB 1 single best answer: a short clinical vignette with one lead-in and FIVE options, per NICE, CKS and the BNF",
+  },
+};
+
+function caseSummary(def: ClinicalCaseDefinition) {
+  const abnormalExam = def.exam.filter((e) => e.abnormal).map((e) => `${e.label}: ${e.finding}`);
+  const results = def.investigations.flatMap((i) => [...(i.rows ?? []).filter((r) => r.flag !== "normal").map((r) => `${r.analyte} ${r.value}${r.unit ? ` ${r.unit}` : ""}`), ...(i.report ? [`${i.name ?? i.id}: ${i.report}`] : [])]);
+  const ideal = def.therapeutics.filter((t) => t.appropriateness === "ideal").map((t) => t.label);
+  return JSON.stringify({
+    diagnosis: def.truth.diagnosis,
+    qualifier: def.truth.qualifier,
+    patient: `${def.patient.age}-year-old ${def.patient.sex}`,
+    setting: `${def.setting}, ${levelMeta(def.level).label}`,
+    examination: abnormalExam.slice(0, 6),
+    results: results.slice(0, 10),
+    idealManagement: ideal.slice(0, 8),
+    pearl: def.teaching.pearl || undefined,
+  });
+}
+
+function learnPrompt(def: ClinicalCaseDefinition, country: Country): ChatMessage[] {
+  const exam = EXAM[country];
+  return [
+    { role: "system", content: `You are a senior clinician and an experienced item writer for ${exam.name} (${exam.board}). Every fact you write is accurate and current — ${GUIDELINES[country]}. Output JSON only.` },
+    {
+      role: "user",
+      content: `THE CASE (finished — the diagnosis can be named): ${caseSummary(def)}
+
+Write, for a doctor preparing for ${exam.name}:
+- "pearls": 3–5 high-yield clinical pearls this case teaches — specific, practical and memorable, one sentence each.
+- "mcqs": 5 questions in ${exam.style}. Test what this case needs: the diagnosis, the right investigation, management, a complication, and one closely related high-yield fact. Exactly one best answer each; plausible, homogeneous distractors; no "all of the above" or "none of the above". In explanations, refer to options by their content, never by letter or position.
+Each question: {"stem","options":[${exam.options} options],"answer": the 0-based index of the best answer,"explanation":"why it's right, and briefly why each other option isn't","topic":"a short tag, e.g. 'STEMI — reperfusion'","difficulty":"easy"|"medium"|"hard"}
+Return {"pearls":[…],"mcqs":[…]}`,
+    },
+  ];
+}
+
+function examinerPrompt(def: ClinicalCaseDefinition, country: Country, draft: z.infer<typeof LearnSchema>): ChatMessage[] {
+  const exam = EXAM[country];
+  return [
+    { role: "system", content: `You are a senior examiner for ${exam.name} (${exam.board}). You check every question before a candidate sees it, against ${GUIDELINES[country]}. Output JSON only.` },
+    {
+      role: "user",
+      content: `THE CASE: ${caseSummary(def)}
+
+PEARLS: ${JSON.stringify(draft.pearls)}
+QUESTIONS: ${JSON.stringify(draft.mcqs.map((q, index) => ({ index, ...q })))}
+
+For each question: is there exactly one best answer, and is the key right per current guidelines? Is the explanation correct? Is the stem unambiguous, with homogeneous, plausible options, in ${exam.name} style? Are the pearls accurate?
+Return {"fixes":[{"index","answer"?: corrected 0-based key,"stem"?,"options"?: the whole corrected list,"explanation"?,"drop"?: true if it can't be saved,"why":"one line"}],"pearls"?: [the corrected pearls, only if any was wrong]} — {"fixes":[]} if all is right.`,
+    },
+  ];
+}
+
+/** The best answer in a random place — models favour the second option. Explanations name options by content, so moving them is safe. */
+function shuffleOptions<T extends { options: string[]; answer: number }>(q: T, random = Math.random): T {
+  const order = q.options.map((_, i) => i).sort(() => random() - 0.5);
+  return { ...q, options: order.map((i) => q.options[i]!), answer: order.indexOf(q.answer) };
+}
+
+/* -------------------------------------------------------------------------- */
 /* Provider                                                                    */
 /* -------------------------------------------------------------------------- */
 
@@ -554,6 +636,22 @@ export function createOpenAIProvider(): ClinicalProvider {
         return parsed.success ? parsed.data : undefined;
       } catch (err) {
         console.error("[ramai] teaching unavailable", err instanceof Error ? err.message : err);
+        return undefined;
+      }
+    },
+    /** Pearls and exam questions: written carefully, then checked by an examiner before anyone answers them. */
+    async learn(def, country) {
+      try {
+        const draft = LearnSchema.safeParse(await chatJSON(learnPrompt(def, country), 4400, true, 50_000));
+        if (!draft.success || draft.data.mcqs.length < 3) return undefined;
+        const reviewed = await chatJSON(examinerPrompt(def, country, draft.data), 2800, true, 40_000)
+          .then((raw) => applyExaminerReview(draft.data, raw))
+          .catch(() => ({ part: draft.data, fixes: [] as string[] }));
+        if (reviewed.fixes.length) console.info(`[ramai] examiner review: ${reviewed.fixes.join(" | ").slice(0, 600)}`);
+        if (reviewed.part.mcqs.length < 3) return undefined;
+        return { exam: EXAM[country].name, pearls: reviewed.part.pearls, mcqs: reviewed.part.mcqs.map((q) => shuffleOptions(q)), model: openAIConfig().model };
+      } catch (err) {
+        console.error("[ramai] pearls and questions unavailable", err instanceof Error ? err.message : err);
         return undefined;
       }
     },

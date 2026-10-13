@@ -264,3 +264,29 @@ export const DialogueReviewSchema = z.object({
   vitals: z.record(z.string(), z.coerce.string()).optional().catch(undefined),
   fixes: listOf(z.object({ id: str(40), reply: optStr(500), fact: optStr(200), why: optStr(240) }), 16),
 });
+
+/* -------------------------------------------------------------------------- */
+/* After the case: pearls and exam-style questions, checked by an examiner    */
+/* -------------------------------------------------------------------------- */
+
+const McqSchema = z
+  .object({
+    stem: str(1400),
+    options: strs(5, 300),
+    answer: z.coerce.number().int(),
+    explanation: str(1600),
+    topic: str(80),
+    difficulty: z.enum(["easy", "medium", "hard"]).catch("medium"),
+  })
+  .refine((q) => q.options.length >= 4 && q.answer >= 0 && q.answer < q.options.length && q.stem.length >= 15);
+
+export const LearnSchema = z.object({ pearls: strs(6, 400), mcqs: listOf(McqSchema, 6) });
+
+/** The examiner's corrections: a different answer key, rewritten parts — or "drop" when a question can't be saved. */
+export const ExaminerReviewSchema = z.object({
+  fixes: listOf(
+    z.object({ index: z.coerce.number().int(), answer: z.coerce.number().int().optional().catch(undefined), stem: optStr(1400), options: strs(5, 300), explanation: optStr(1600), drop: z.boolean().optional().catch(undefined), why: optStr(240) }),
+    8,
+  ),
+  pearls: strs(6, 400),
+});

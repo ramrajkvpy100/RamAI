@@ -8,7 +8,7 @@
 import type { ClinicalCaseDefinition } from "../case-definition";
 import type { Country } from "../countries";
 import type { HiddenState } from "../simulator";
-import type { CareLevel, CaseDebrief, CaseTrack, EncounterMessage, PatientLang, ResolvedIntent, Specialty } from "../types";
+import type { CareLevel, CaseDebrief, CaseTrack, EncounterMessage, LearnPack, PatientLang, ResolvedIntent, Specialty } from "../types";
 
 export type CaseSource = { kind: "library"; id: string } | { kind: "generated"; def: ClinicalCaseDefinition };
 
@@ -70,6 +70,8 @@ export interface ClinicalProvider {
   feedback?(input: FeedbackInput): Promise<CoachFeedback | undefined>;
   /** For an invented case: the debrief's teaching and misses, written while it's played (optional). */
   teach?(def: ClinicalCaseDefinition): Promise<TeachingPack | undefined>;
+  /** Clinical pearls and exam-style questions on the case, for the doctor's country (optional). */
+  learn?(def: ClinicalCaseDefinition, country: Country): Promise<LearnPack | undefined>;
   /** Number of available cases per specialty, mode and level, in the player's country. */
   availability(country?: Country): Promise<{
     specialties: Partial<Record<Specialty, number>>;

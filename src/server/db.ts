@@ -209,6 +209,18 @@ CREATE TABLE IF NOT EXISTS reports (
   PRIMARY KEY (target, user_id)
 );
 
+-- Practice questions answered after cases (the first answer to each counts), for progress and the report.
+CREATE TABLE IF NOT EXISTS mcq_answers (
+  user_id TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  q INTEGER NOT NULL,
+  topic TEXT NOT NULL,
+  correct INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, session_id, q)
+);
+CREATE INDEX IF NOT EXISTS mcq_answers_user ON mcq_answers(user_id, created_at);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -357,7 +369,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

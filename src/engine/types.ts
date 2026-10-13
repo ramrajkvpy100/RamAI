@@ -784,6 +784,28 @@ export interface TreatmentFailurePath {
 /** "implied": no diagnosis stated, but the management treated the right disease. */
 export type DiagnosisVerdict = "correct" | "partial" | "implied" | "incorrect" | "not-recorded";
 
+/** One exam-style question on the case: a single best answer, explained. */
+export interface Mcq {
+  stem: string;
+  options: string[];
+  /** Index of the single best answer. */
+  answer: number;
+  /** Why that answer — and why not the others. */
+  explanation: string;
+  /** A short tag for progress tracking, e.g. "ACS — management". */
+  topic: string;
+  difficulty: "easy" | "medium" | "hard";
+}
+
+/** After the case: high-yield pearls and practice questions in the style of the doctor's own exam. */
+export interface LearnPack {
+  /** "NEET PG & INI-CET", "USMLE Step 2 CK", "UKMLA & PLAB 1". */
+  exam: string;
+  pearls: string[];
+  mcqs: Mcq[];
+  model: string;
+}
+
 export interface CaseDebrief {
   /**
    * Feedback in words, written by the language model from the encounter (when

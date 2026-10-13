@@ -30,7 +30,7 @@ import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
 import { createHiddenState, examPicture, imagingPicture, isTick, openingEffects, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
-import type { ActionRecord, Auscultation, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, PatientLang, Specialty, TurnEffect, TurnResponse } from "./types";
+import type { ActionRecord, Auscultation, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, LearnPack, PatientLang, Specialty, TurnEffect, TurnResponse } from "./types";
 
 export const MAX_INPUT_LENGTH = 1000;
 export const MAX_ACTIONS = 300;
@@ -39,7 +39,7 @@ export const MAX_RECORDS = 1200;
 /** Real-time mode: one minute of case time per tick. */
 export const TICK_MINUTES = 1;
 
-export type EngineErrorCode = "BAD_INPUT" | "BAD_SESSION" | "CASE_CLOSED" | "LIMIT" | "NO_CASES";
+export type EngineErrorCode = "BAD_INPUT" | "BAD_SESSION" | "CASE_CLOSED" | "NOT_CLOSED" | "LIMIT" | "NO_CASES";
 
 export class EngineError extends Error {
   constructor(public readonly code: EngineErrorCode, message: string) {
@@ -178,10 +178,45 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
   return { token: seal(payload), state: render(state, def, country, opts.lang ?? "en") };
 }
 
-/** The library reference and owner of a sealed session (server use only). */
-export function sessionInfo(token: string): { sessionId: string; userId: string; daily?: string; generated: boolean } {
+/**
+ * The library reference and owner of a sealed session (server use only).
+ * `learnKey`: where its pearls and questions are kept — an invented case's
+ * with the session; a written case's once per country, for everyone.
+ */
+export function sessionInfo(token: string): { sessionId: string; userId: string; daily?: string; generated: boolean; learnKey: string } {
   const p = unseal(token);
-  return { sessionId: p.sid, userId: p.u, daily: p.d, generated: p.src.kind === "generated" };
+  return { sessionId: p.sid, userId: p.u, daily: p.d, generated: p.src.kind === "generated", learnKey: p.src.kind === "generated" ? p.sid : `library:${p.src.id}:${p.c ?? "IN"}` };
+}
+
+/**
+ * Clinical pearls and exam-style questions on the case. Only once it's closed —
+ * they name the diagnosis — except `early`, for writing them in the background
+ * while an invented case is played (kept on the server until the case ends).
+ */
+export async function learnFor(token: string, userId: string, opts: { early?: boolean } = {}): Promise<LearnPack | undefined> {
+  const provider = await getProvider();
+  if (!provider.learn) return undefined;
+  const payload = open(token, userId);
+  const { def, hidden, country } = rebuild(payload, provider);
+  if (!hidden.closed && !opts.early) throw new EngineError("NOT_CLOSED", "Finish the case first.");
+  return provider.learn(def, country);
+}
+
+/** Whether the doctor has ended this case — before then nothing that names the diagnosis is handed out. */
+export async function caseClosed(token: string, userId: string): Promise<boolean> {
+  return rebuild(open(token, userId), await getProvider()).hidden.closed;
+}
+
+/** The debrief's feedback in words, written by the model once the case has ended (the score never depends on it). */
+export async function coachFor(token: string, userId: string): Promise<CaseDebrief["coach"]> {
+  const provider = await getProvider();
+  if (!provider.feedback) return undefined;
+  const payload = open(token, userId);
+  const { def, hidden, state, country } = rebuild(payload, provider);
+  if (!hidden.closed) throw new EngineError("NOT_CLOSED", "Finish the case first.");
+  const stored = storedCoach(payload);
+  if (stored) return stored;
+  return provider.feedback({ def, hidden, transcript: state.messages, debrief: generateDebrief(def, hidden, state), country });
 }
 
 /** An invented case's debrief teaching, written while it's being played (server use: stored with the case). */
@@ -234,11 +269,12 @@ function storedCoach(payload: SessionPayload): CaseDebrief["coach"] {
 }
 
 /** Re-renders a session; also how a language switch takes effect mid-case. */
-export async function resumeCase(token: string, userId: string, lang: PatientLang = "en"): Promise<CaseSession> {
+export async function resumeCase(token: string, userId: string, lang: PatientLang = "en", kept?: CaseDebrief["coach"]): Promise<CaseSession> {
   const provider = await getProvider();
   const payload = open(token, userId);
   const { def, hidden, state, country } = rebuild(payload, provider);
-  const coach = hidden.closed ? storedCoach(payload) : undefined;
+  // The feedback in words: on the closing action (older cases), or kept with the case on the server.
+  const coach = hidden.closed ? (storedCoach(payload) ?? kept) : undefined;
   return { token, state: render(state, def, country, lang), debrief: hidden.closed ? presentDebrief({ ...generateDebrief(def, hidden, state), ...(coach ? { coach } : {}) }, country) : undefined };
 }
 
@@ -280,11 +316,8 @@ export async function submitDoctorAction(token: string, input: string, userId: s
         full = localizeCase(withTeaching(provider.resolveCase(payload.src), pack), country);
       }
     }
-    const marked = generateDebrief(full, hidden, next);
-    // Feedback in words from the model, when there is one — kept with the case; the score is the marking rules' alone.
-    const coach = provider.feedback ? await provider.feedback({ def: full, hidden, transcript: next.messages, debrief: marked, country }) : undefined;
-    if (coach) record.generated = { ...record.generated, [COACH_KEY]: JSON.stringify(coach) };
-    debrief = presentDebrief(coach ? { ...marked, coach } : marked, country);
+    // The score and the debrief come at once; the feedback in words follows from coachFor() — no waiting on the model here.
+    debrief = presentDebrief(generateDebrief(full, hidden, next), country);
   }
   const shown = speechIn(country, lang);
   return {

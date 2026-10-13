@@ -6,14 +6,14 @@
  * to user-safe messages; raw API errors are never shown (spec §36).
  */
 import type { Country } from "@/engine/countries";
-import type { CareLevel, CaseSession, CaseTrack, PatientLang, Specialty, TurnResponse } from "@/engine/types";
+import type { CareLevel, CaseDebrief, CaseSession, CaseTrack, LearnPack, PatientLang, Specialty, TurnResponse } from "@/engine/types";
 
 import type { PreferredSpecialty } from "./specialty";
 
 export const UNAVAILABLE_MESSAGE = "Clinical engine temporarily unavailable.";
 
 /** Codes whose server message is written for players and safe to show. */
-const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED", "DAILY_DONE", "CODE_INVALID", "LEGACY_ACCOUNT", "SIGNUP_CLOSED", "AUTH_UNAVAILABLE"]);
+const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "NOT_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED", "DAILY_DONE", "CODE_INVALID", "LEGACY_ACCOUNT", "SIGNUP_CLOSED", "AUTH_UNAVAILABLE"]);
 
 export class ClinicalEngineError extends Error {
   constructor(public readonly code: string, message: string, public readonly retryable: boolean) {
@@ -83,6 +83,10 @@ export const signup = (body: { name: string; username: string; email: string; pa
 export const verifyCode = (email: string, code: string) => call<{ user: unknown }>("/api/auth/verify", { email, code });
 /** The code in a confirmation link (Supabase's default email template). */
 export const confirmLink = (code: string) => call<{ user: unknown }>("/api/auth/verify", { code });
+/** After the case: pearls and exam-style questions; marking one answer; the AI's feedback in words. */
+export const fetchLearn = (token: string) => call<{ pack: LearnPack | null }>("/api/cases/learn", { token });
+export const answerMcq = (token: string, q: number, choice: number) => call<{ correct: boolean; answer: number }>("/api/cases/learn/answer", { token, q, choice });
+export const fetchCoach = (token: string) => call<{ coach: CaseDebrief["coach"] | null }>("/api/cases/coach", { token });
 export const resendCode = (email: string) => call<{ ok: true; cooldown: number }>("/api/auth/resend", { email });
 export const login = (body: { login: string; password: string }) => call<{ user: unknown }>("/api/auth/login", body);
 export const logout = () => call<{ ok: true }>("/api/auth/logout", {});

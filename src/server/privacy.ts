@@ -100,7 +100,7 @@ export async function deleteAccount(userId: string) {
             SELECT order_id, payment_id, amount, currency, period, status, created_at, ? FROM payments WHERE user_id = ?`,
       args: [now, userId],
     },
-    ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions", "case_ai"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
+    ...["payments", "sessions", "results", "case_starts", "auth_tokens", "league_members", "push_subscriptions", "case_ai", "mcq_answers"].map((table) => ({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [userId] })),
     { sql: "DELETE FROM open_suggestions WHERE user_id = ?", args: [userId] },
     // The community: their likes come off others' counts; their replies, and their posts with everything under them, go.
     { sql: "UPDATE posts SET like_count = MAX(0, like_count - 1) WHERE 'p:' || id IN (SELECT target FROM likes WHERE user_id = ?)", args: [userId] },

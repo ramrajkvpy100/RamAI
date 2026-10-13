@@ -44,7 +44,7 @@ export function handleError(err: unknown) {
     return apiError(err.code === "UNAUTHENTICATED" ? 401 : err.code === "EXISTS" ? 409 : 401, err.code, err.message);
   }
   if (err instanceof EngineError) {
-    const status = err.code === "BAD_SESSION" ? 410 : err.code === "CASE_CLOSED" ? 409 : err.code === "LIMIT" ? 429 : err.code === "NO_CASES" ? 404 : 400;
+    const status = err.code === "BAD_SESSION" ? 410 : err.code === "CASE_CLOSED" || err.code === "NOT_CLOSED" ? 409 : err.code === "LIMIT" ? 429 : err.code === "NO_CASES" ? 404 : 400;
     return apiError(status, err.code, err.message);
   }
   if (err instanceof SuggestionsError) {

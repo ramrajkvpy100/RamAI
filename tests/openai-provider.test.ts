@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resumeCase, simulateCase, submitDoctorAction } from "@/engine/engine";
+import { coachFor, resumeCase, simulateCase, submitDoctorAction } from "@/engine/engine";
 
 process.env.RAMAI_SESSION_SECRET ??= "test-secret-test-secret-test-secret-123";
 
@@ -59,12 +59,15 @@ describe("OpenAI in the simulation — the model words it, the backend decides i
     expect(calls.every((c) => c.url === "https://api.openai.com/v1/chat/completions")).toBe(true);
 
     const closed = await submitDoctorAction(turn.token, "End case", "ai-1");
-    expect(closed.debrief?.coach).toMatchObject({ summary: "You stabilised the patient.", model: "gpt-6-luna" });
-    // The score is the marking rules' — the same with or without the feedback.
+    // The debrief never waits for the model: the score is the marking rules' alone, and the feedback follows.
+    expect(closed.debrief?.coach).toBeUndefined();
     expect(closed.debrief?.score.total).toBeGreaterThanOrEqual(0);
+    const coach = await coachFor(closed.token, "ai-1");
+    expect(coach).toMatchObject({ summary: "You stabilised the patient.", model: "gpt-6-luna" });
+    // Kept (on the server, by the route) and handed back on reopening — the model isn't asked again.
     const before = calls.length;
-    const again = await resumeCase(closed.token, "ai-1");
-    expect(again.debrief?.coach).toEqual(closed.debrief?.coach);
+    const again = await resumeCase(closed.token, "ai-1", "en", coach);
+    expect(again.debrief?.coach).toEqual(coach);
     expect(calls.length).toBe(before);
   });
 

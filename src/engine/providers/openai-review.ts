@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import type { Country } from "../countries";
 import type { Concept } from "./openai-schema";
-import { DialogueReviewSchema, FindingsReviewSchema, ManagementReviewSchema, type DialogueSchema, type FindingsSchema, type ManagementSchema } from "./openai-schema";
+import { DialogueReviewSchema, ExaminerReviewSchema, FindingsReviewSchema, ManagementReviewSchema, type DialogueSchema, type FindingsSchema, type LearnSchema, type ManagementSchema } from "./openai-schema";
 
 type ChatMessage = { role: "system" | "user"; content: string };
 type Dialogue = z.infer<typeof DialogueSchema>;
@@ -16,7 +16,7 @@ type Findings = z.infer<typeof FindingsSchema>;
 type Management = z.infer<typeof ManagementSchema>;
 
 /** The guidelines a consultant in each country checks against. */
-const GUIDELINES: Record<Country, string> = {
+export const GUIDELINES: Record<Country, string> = {
   IN: "current Indian practice — the Standard Treatment Guidelines (ICMR/MoHFW), national programme guidelines (NTEP, NVBDCP, NACO, NHM), API, IAP, FOGSI and CSI guidance, and the National List of Essential Medicines",
   US: "current US practice — AHA/ACC, IDSA, ATS, ACOG, AAP, ADA Standards of Care, GOLD, GINA, Surviving Sepsis Campaign and USPSTF guidance",
   UK: "current UK practice — NICE guidelines and CKS, the BNF and BNFC for doses, SIGN, BTS, RCOG and Resuscitation Council UK guidance",
@@ -202,4 +202,32 @@ export function checkLabFlags(f: Findings): { part: Findings; fixes: string[] } 
     }),
   }));
   return { part: { ...f, investigations }, fixes };
+}
+
+/* -------------------------------------------------------------------------- */
+/* An examiner checks the questions                                            */
+/* -------------------------------------------------------------------------- */
+
+type Learn = z.infer<typeof LearnSchema>;
+
+/** Applies an examiner's review: corrected keys and wording, unsalvageable questions dropped, pearls replaced if corrected. */
+export function applyExaminerReview(draft: Learn, raw: unknown): { part: Learn; fixes: string[] } {
+  const review = ExaminerReviewSchema.safeParse(raw);
+  if (!review.success) return { part: draft, fixes: [] };
+  const fixes: string[] = [];
+  const mcqs = draft.mcqs
+    .map((q, i) => {
+      const fix = review.data.fixes.find((f) => f.index === i);
+      if (!fix) return q;
+      if (fix.drop) {
+        fixes.push(`Q${i + 1} dropped: ${fix.why ?? ""}`);
+        return null;
+      }
+      const options = fix.options.length >= 4 ? fix.options : q.options;
+      const answer = fix.answer !== undefined && fix.answer >= 0 && fix.answer < options.length ? fix.answer : q.answer;
+      fixes.push(`Q${i + 1}: ${fix.why ?? "corrected"}`);
+      return { ...q, options, answer, ...(fix.stem ? { stem: fix.stem } : {}), ...(fix.explanation ? { explanation: fix.explanation } : {}) };
+    })
+    .filter((q): q is Learn["mcqs"][number] => q !== null);
+  return { part: { pearls: review.data.pearls.length >= 3 ? review.data.pearls : draft.pearls, mcqs }, fixes };
 }

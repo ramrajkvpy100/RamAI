@@ -1,6 +1,6 @@
 import { after } from "next/server";
 
-import { sessionInfo, simulateCase, teachingFor } from "@/engine/engine";
+import { learnFor, sessionInfo, simulateCase, teachingFor } from "@/engine/engine";
 import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
@@ -62,11 +62,18 @@ export async function POST(req: Request) {
       daily,
     });
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);
-    // An invented patient: write its debrief teaching now, in the background, so the debrief is ready when the case ends.
+    // An invented patient: its debrief teaching, pearls and exam questions are written now, in the background, ready for when the case ends.
     if (sessionInfo(session.token).generated) {
       after(async () => {
-        const pack = await teachingFor(session.token, user.id).catch(() => undefined);
-        if (pack) await putCaseAI(session.state.sessionId, "teaching", user.id, "application/json", JSON.stringify(pack)).catch(() => undefined);
+        await Promise.all([
+          teachingFor(session.token, user.id)
+            .then((pack) => pack && putCaseAI(session.state.sessionId, "teaching", user.id, "application/json", JSON.stringify(pack)))
+            .catch(() => undefined),
+          // Pearls and exam questions too — kept on the server, handed out only once the case has ended.
+          learnFor(session.token, user.id, { early: true })
+            .then((pack) => pack && putCaseAI(session.state.sessionId, "learn", user.id, "application/json", JSON.stringify(pack)))
+            .catch(() => undefined),
+        ]);
       });
     }
     return ok(session);

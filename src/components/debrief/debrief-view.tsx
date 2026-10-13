@@ -16,6 +16,7 @@ import { money, STATUS_LABEL } from "@/lib/format";
 import { useStartingMessage } from "@/lib/use-starting-message";
 
 import { Bullets } from "./flow";
+import { LearnSection, useCoach } from "./learn";
 import { DailyShare } from "./daily-share";
 import { RewardsPanel } from "./rewards";
 import { LostMarks, ScoreBreakdown, ScoreRing } from "./score";
@@ -136,6 +137,7 @@ export function DebriefView({
   const state = session.state;
   const [showScore, setShowScore] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const { coach, writing: writingCoach } = useCoach(session.token, d.coach);
   const [discussing, setDiscussing] = useState(false);
   // A community post about this case, its result card attached — the daily case's marked as a spoiler.
   const discuss = async () => {
@@ -209,7 +211,18 @@ export function DebriefView({
 
         {state.guided && <DemoDone name={state.patient.name ?? "your patient"} won={won} />}
         <LostMarks score={d.score} />
-        {d.coach && <CoachFeedback coach={d.coach} />}
+        {coach ? (
+          <CoachFeedback coach={coach} />
+        ) : (
+          writingCoach && (
+            <section className="card mt-4 flex items-center gap-3 p-5 text-[14px] text-fg-2 sm:p-6" role="status">
+              <span className="bg-ai flex h-7 w-7 animate-pulse items-center justify-center rounded-lg text-white">
+                <Icon name="sparkles" size={14} />
+              </span>
+              The AI is writing feedback on your reasoning…
+            </section>
+          )
+        )}
 
         {/* Rewards ------------------------------------------------------------ */}
         <div className="mt-10 animate-rise [animation-delay:120ms]">
@@ -252,6 +265,8 @@ export function DebriefView({
             )}
           </div>
         </section>
+
+        <LearnSection token={session.token} />
 
         {/* Debrief ---------------------------------------------------------- */}
         <section className="mt-10" aria-labelledby="debrief-heading">
