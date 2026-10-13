@@ -1,10 +1,13 @@
 import "server-only";
 
+import { withDerived } from "@/engine/progression";
 import type { Me } from "@/lib/me-store";
 import { dailyLimitFor } from "@/lib/plans";
 
-import { getCurrentUser, type User } from "./auth";
-import { casesStartedToday, progressFor } from "./results";
+import { getCurrentUser, identityQuery, userFromRow, type User } from "./auth";
+import { db } from "./db";
+import { summaryFromRow } from "./progress";
+import { casesStartedToday, istDayStart, progressFor } from "./results";
 import { isAdmin, newSuggestionCount } from "./suggestions";
 
 /** Recent history sent to the browser — progress itself is computed from all of it. */
@@ -20,7 +23,30 @@ export async function meFor(user: User): Promise<Me> {
   };
 }
 
+/**
+ * The signed-in player, their progress and today's usage — in one round trip
+ * to the database (every page load needs it, so every trip saved counts).
+ */
 export async function getMe(): Promise<Me | null> {
-  const user = await getCurrentUser();
-  return user ? meFor(user) : null;
+  const who = await identityQuery();
+  if (!who) return null;
+  const [users, results, today] = await db.readMany([
+    { sql: who.user, args: who.args },
+    { sql: `SELECT * FROM results WHERE user_id = ${who.id} ORDER BY created_at ASC`, args: who.args },
+    { sql: `SELECT COUNT(*) AS n FROM case_starts WHERE user_id = ${who.id} AND created_at >= ? AND tutorial = 0 AND daily_key IS NULL`, args: [...who.args, istDayStart()] },
+  ]);
+  if (!users?.[0]) {
+    // A new account verified somewhere else, without its profile yet: the slower path makes it.
+    const user = await getCurrentUser();
+    return user ? meFor(user) : null;
+  }
+  const user = userFromRow(users[0]);
+  const progress = withDerived((results ?? []).map(summaryFromRow));
+  const admin = !user.isGuest && (await isAdmin(user).catch(() => false));
+  return {
+    user,
+    progress: { ...progress, history: progress.history.slice(-HISTORY_SENT) },
+    usage: { casesToday: Number(today?.[0]?.n ?? 0), dailyLimit: dailyLimitFor(user) },
+    ...(admin ? { admin: true, newSuggestions: await newSuggestionCount() } : {}),
+  };
 }

@@ -36,6 +36,17 @@ describe("the cloud database adapter", () => {
     expect(rest).toEqual({ name: "Dr. Rows" });
   });
 
+  it("reads several things in one round trip, each statement's rows in order", async () => {
+    const [users, none, count] = await db.readMany([
+      { sql: "SELECT username FROM users WHERE username = ?", args: ["rows"] },
+      { sql: "SELECT username FROM users WHERE username = ?", args: ["nobody"] },
+      { sql: "SELECT COUNT(*) AS n FROM users" },
+    ]);
+    expect(users).toEqual([{ username: "rows" }]);
+    expect(none).toEqual([]);
+    expect(Number(count![0]!.n)).toBeGreaterThan(0);
+  });
+
   it("rolls a failed transaction back", async () => {
     await expect(
       tx(async (t) => {

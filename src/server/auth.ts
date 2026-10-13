@@ -366,6 +366,28 @@ export async function getCurrentUser(): Promise<User | null> {
   return currentGuest();
 }
 
+/**
+ * Who's asking, as SQL a caller can fold into a single round trip: the
+ * profile's row, and a subquery for its id — from the Supabase sign-in, or a
+ * guest's session. Null when nobody is signed in.
+ */
+export async function identityQuery(): Promise<{ user: string; id: string; args: (string | number)[] } | null> {
+  let account: Awaited<ReturnType<typeof currentAccount>> = null;
+  try {
+    account = await currentAccount();
+  } catch (err) {
+    if (isAuthRetryableFetchError(err)) throw err;
+    console.error("[ramai] couldn't read the sign-in:", err instanceof Error ? err.message : err);
+  }
+  if (account) return { user: "SELECT * FROM users WHERE auth_id = ?", id: "(SELECT id FROM users WHERE auth_id = ?)", args: [account.id] };
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const guest = "FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ? AND u.is_guest = 1";
+  return { user: `SELECT u.* ${guest}`, id: `(SELECT u.id ${guest})`, args: [tokenHash(token), Date.now()] };
+}
+
+export const userFromRow = (row: Record<string, unknown>): User => toUser(row as unknown as UserRow);
+
 export async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) throw new AuthError("UNAUTHENTICATED", "Please log in.");

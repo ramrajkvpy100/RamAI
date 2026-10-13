@@ -31,6 +31,8 @@ export interface Db {
   run(sql: string, ...args: Value[]): Promise<{ changes: number; lastId: number }>;
   /** Several writes at once, all or nothing — one round trip to the cloud. */
   batch(statements: { sql: string; args?: Value[] }[]): Promise<void>;
+  /** Several reads at once — one round trip to the cloud. Each statement's rows, in order. */
+  readMany(statements: { sql: string; args?: Value[] }[]): Promise<Record<string, unknown>[][]>;
 }
 
 interface Backend extends Db {
@@ -277,6 +279,9 @@ async function fileBackend(): Promise<Backend> {
     async batch(list) {
       for (const s of list) stmt(s.sql).run(...(s.args ?? []));
     },
+    async readMany(list) {
+      return list.map((s) => stmt(s.sql).all(...(s.args ?? [])) as Record<string, unknown>[]);
+    },
   };
   const atomically = async <T>(fn: () => Promise<T>) => {
     sqlite.exec("BEGIN IMMEDIATE");
@@ -301,6 +306,7 @@ async function fileBackend(): Promise<Backend> {
     get: (sql, ...args) => turn(() => direct.get(sql, ...args)),
     run: (sql, ...args) => turn(() => direct.run(sql, ...args)),
     batch: (list) => turn(() => atomically(() => direct.batch(list))),
+    readMany: (list) => turn(() => direct.readMany(list)),
     exec: (script) => turn(async () => sqlite.exec(script)),
     transaction: (fn) => turn(() => atomically(() => fn(direct))),
   };
@@ -319,7 +325,7 @@ async function tursoBackend(url: string, authToken?: string): Promise<Backend> {
 function clientBackend(client: Client): Backend {
   type Target = Pick<Client, "execute">;
   const rows = (rs: { columns: string[]; rows: ArrayLike<unknown>[] }) => rs.rows.map((row) => Object.fromEntries(rs.columns.map((c, i) => [c, row[i]])));
-  const on = (target: Target): Omit<Db, "batch"> => ({
+  const on = (target: Target): Omit<Db, "batch" | "readMany"> => ({
     async all<T>(sql: string, ...args: Value[]) {
       return rows(await target.execute({ sql, args })) as T[];
     },
@@ -337,6 +343,10 @@ function clientBackend(client: Client): Backend {
   return {
     ...on(client),
     batch,
+    async readMany(list) {
+      if (!list.length) return [];
+      return (await client.batch(list.map((s) => ({ sql: s.sql, args: s.args ?? [] })), "read")).map(rows);
+    },
     // Comments go first: a semicolon inside one must never split a statement.
     exec: (script) => batch(script.replace(/--[^\n]*/g, "").split(";").map((sql) => ({ sql: sql.trim() })).filter((s) => s.sql)),
     async transaction(fn) {
@@ -346,6 +356,11 @@ function clientBackend(client: Client): Backend {
           ...on(t),
           async batch(list) {
             for (const s of list) await t.execute({ sql: s.sql, args: s.args ?? [] });
+          },
+          async readMany(list) {
+            const out: Record<string, unknown>[][] = [];
+            for (const s of list) out.push(rows(await t.execute({ sql: s.sql, args: s.args ?? [] })));
+            return out;
           },
         });
         await t.commit();
@@ -457,6 +472,9 @@ export const db: Db = {
   },
   async batch(list) {
     return (inTx.getStore() ?? (await backend())).batch(list);
+  },
+  async readMany(list) {
+    return (inTx.getStore() ?? (await backend())).readMany(list);
   },
 };
 

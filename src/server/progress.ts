@@ -34,6 +34,8 @@ const toSummary = (r: ResultRow): CompletedCaseSummary => ({
   completedISO: new Date(r.created_at).toISOString(),
 });
 
+export const summaryFromRow = (row: Record<string, unknown>): CompletedCaseSummary => toSummary(row as unknown as ResultRow);
+
 export async function historyFor(userId: string): Promise<CompletedCaseSummary[]> {
   return (await db.all<ResultRow>("SELECT * FROM results WHERE user_id = ? ORDER BY created_at ASC", userId)).map(toSummary);
 }

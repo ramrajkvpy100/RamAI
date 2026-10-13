@@ -19,7 +19,7 @@ export { historyFor, progressFor } from "./progress";
 /* Usage                                                                       */
 /* -------------------------------------------------------------------------- */
 
-function istDayStart(now = new Date()): number {
+export function istDayStart(now = new Date()): number {
   return Date.parse(`${istDayKey(now)}T00:00:00+05:30`);
 }
 
