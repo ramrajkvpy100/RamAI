@@ -14,7 +14,7 @@ import { nextRank, rankFor, rankProgress } from "@/engine/progression";
 import type { CareLevel } from "@/engine/types";
 import { hydrate, useCase } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
-import type { LibraryInfo } from "@/lib/engine-client";
+import { prepareCase, type LibraryInfo } from "@/lib/engine-client";
 import { caseLabel, xp } from "@/lib/format";
 import { useMe, type Me } from "@/lib/me-store";
 import { planFor } from "@/lib/plans";
@@ -76,6 +76,14 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
     } catch {}
   };
   const streakAtRisk = p.streakDays > 0 && p.dailyXp === 0;
+
+  // A returning doctor's next patient is written while they look around, so starting it is instant (the server skips it if one is ready).
+  const returning = p.history.length > 0 && !!me.user.specialty;
+  useEffect(() => {
+    if (!snap.hydrated || active || !returning) return;
+    const t = window.setTimeout(() => void prepareCase().catch(() => undefined), 1500);
+    return () => window.clearTimeout(t);
+  }, [snap.hydrated, active, returning]);
 
   // The doctor's specialty: asked once, at the start (skipping it means mixed cases) — and changeable from the menu.
   const [askSpecialty, setAskSpecialty] = useState(false);

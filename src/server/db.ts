@@ -231,6 +231,16 @@ CREATE TABLE IF NOT EXISTS progress_reports (
   created_at INTEGER NOT NULL
 );
 
+-- Patients invented ahead of time, so the next case starts at once.
+CREATE TABLE IF NOT EXISTS case_pool (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  pool_key TEXT NOT NULL,
+  src TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS case_pool_user ON case_pool(user_id, pool_key, created_at);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -393,7 +403,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 13;
+const SCHEMA_VERSION = 14;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import type { MediaAsset, PictureType } from "@/engine/types";
 import { caseSnapshot } from "@/lib/case-store";
@@ -128,7 +129,10 @@ export function AiPicture({ media, className, large = false, fallback }: { media
           Try again
         </button>
       ) : (
-        <span className="relative text-[11.5px] text-white/50">Usually ready in under half a minute — carry on meanwhile.</span>
+        <>
+          <span className="relative text-[11.5px] text-white/50">Usually ready in under half a minute — carry on meanwhile.</span>
+          <FillingBar active expectedMs={14_000} tone="light" label="Preparing the picture" className="relative mt-1 w-2/3 max-w-[220px]" />
+        </>
       )}
     </div>
   );

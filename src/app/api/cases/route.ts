@@ -4,6 +4,7 @@ import { learnFor, sessionInfo, simulateCase, teachingFor } from "@/engine/engin
 import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
+import { takeReady, type PoolChoice } from "@/server/case-pool";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
@@ -47,7 +48,11 @@ export async function POST(req: Request) {
     // Their own specialty, unless they chose one (or "any") for this case. "mixed" (or not said): every specialty.
     const own = user.specialty && user.specialty !== "mixed" ? user.specialty : undefined;
     const specialty = body.specialty === "any" ? undefined : ((body.specialty as Specialty | undefined) ?? own);
+    // A patient invented ahead of time for exactly this choice starts at once.
+    const choice: PoolChoice = { specialty, track: body.track as CaseTrack | undefined, level: body.level as CareLevel | undefined, easy, country: user.country, lang: user.patientLang };
+    const ready = tutorial || daily ? null : await takeReady(user.id, choice).catch(() => null);
     const session = await simulateCase({
+      ready,
       userId: user.id,
       easy,
       caseNumber: (await totalCasesStarted(user.id)) + 1,

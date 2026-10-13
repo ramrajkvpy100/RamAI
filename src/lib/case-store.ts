@@ -12,7 +12,7 @@ import { useSyncExternalStore } from "react";
 import type { Country } from "@/engine/countries";
 import type { CaseDebrief, CaseRewards, CaseState, PatientLang, TurnEffect } from "@/engine/types";
 
-import { ClinicalEngineError, resumeCase, simulateCase, submitDoctorAction, tickCase, UNAVAILABLE_MESSAGE, updateSettings, type CaseChoice } from "./engine-client";
+import { ClinicalEngineError, prepareCase, resumeCase, simulateCase, submitDoctorAction, tickCase, UNAVAILABLE_MESSAGE, updateSettings, type CaseChoice } from "./engine-client";
 import { primeMe, refreshMe, type Me } from "./me-store";
 import { readJSON, writeJSON } from "./storage";
 
@@ -83,6 +83,8 @@ export async function startCase(choice: CaseChoice = {}): Promise<boolean> {
     const session = await simulateCase(choice);
     update({ session: { ...session, begun: false }, starting: false, sending: null, lastEffects: [], turn: 0 });
     void refreshMe();
+    // While this patient is seen, the next one is written, so "Next case" starts at once (after a moment, so this case's own start comes first).
+    if (!choice.daily) window.setTimeout(() => void prepareCase().catch(() => undefined), 8000);
     return true;
   } catch (err) {
     update({ starting: false, error: toError(err, { kind: "start", choice }) });

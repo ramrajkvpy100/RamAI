@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import type { CaseDebrief, LearnPack, Mcq } from "@/engine/types";
 import { cn } from "@/lib/cn";
@@ -88,11 +89,14 @@ export function LearnSection({ token }: { token: string }) {
         {pack && <span className="text-[12px] text-fg-3">{pack.exam} style · written by AI, checked by an AI examiner</span>}
       </div>
       {pack === undefined ? (
-        <div className="card flex items-center gap-3 p-5 text-[14px] text-fg-2" role="status">
-          <span className="bg-ai flex h-8 w-8 animate-pulse items-center justify-center rounded-lg text-white">
-            <Icon name="sparkles" size={15} />
+        <div className="card flex flex-col gap-3 p-5 text-[14px] text-fg-2" role="status">
+          <span className="flex items-center gap-3">
+            <span className="bg-ai flex h-8 w-8 animate-pulse items-center justify-center rounded-lg text-white">
+              <Icon name="sparkles" size={15} />
+            </span>
+            Writing your clinical pearls and exam questions…
           </span>
-          Writing your clinical pearls and exam questions…
+          <FillingBar active expectedMs={15_000} label="Writing your pearls and questions" />
         </div>
       ) : (
         <div className="flex flex-col gap-4">

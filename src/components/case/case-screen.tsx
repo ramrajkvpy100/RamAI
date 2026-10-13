@@ -11,6 +11,7 @@ import { UpgradeSheet } from "@/components/home/upgrade-sheet";
 import { useLauncher } from "@/components/home/use-launcher";
 import { MediaViewerProvider, type ViewerItem } from "@/components/media/media-viewer";
 import { Button } from "@/components/ui/button";
+import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
 import type { CaseState, PatientStatus, TurnEffect } from "@/engine/types";
@@ -232,6 +233,8 @@ function Workspace() {
 
                 <div className="px-3 pt-1 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6">
                   <div className="mx-auto flex max-w-[760px] flex-col gap-2">
+                    {/* A reply that needs the model (or the lab) takes a moment: the bar fills meanwhile. */}
+                    <FillingBar active={!!snap.sending} expectedMs={3500} delayMs={500} label="Waiting for the reply" />
                     {snap.error && (
                       <div role="alert" className="flex animate-enter items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-sm">
                         <Icon name="alert" size={15} className="shrink-0 text-warning" />

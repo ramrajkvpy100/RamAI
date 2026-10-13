@@ -7,6 +7,7 @@ import { RankBadge } from "@/components/game/rank-badge";
 import { useLauncher } from "@/components/home/use-launcher";
 import { ShareSheet } from "@/components/share/share-sheet";
 import { OrganScene } from "@/components/three/heart-scene";
+import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { REPORT_MIN_CASES, type PersonalReport, type ProgressDetail } from "@/lib/progress-types";
@@ -102,11 +103,14 @@ function ReportPanel({ detail, initial }: { detail: ProgressDetail; initial: Per
         </span>
       </div>
       {writing && !report ? (
-        <div className="mt-4 flex items-center gap-3 text-[14.5px] text-white/75" role="status">
-          <span className="bg-ai flex h-8 w-8 animate-pulse items-center justify-center rounded-lg text-white">
-            <Icon name="sparkles" size={15} />
+        <div className="mt-4 flex flex-col gap-3 text-[14.5px] text-white/75" role="status">
+          <span className="flex items-center gap-3">
+            <span className="bg-ai flex h-8 w-8 animate-pulse items-center justify-center rounded-lg text-white">
+              <Icon name="sparkles" size={15} />
+            </span>
+            Reading your cases and writing your report…
           </span>
-          Reading your cases and writing your report…
+          <FillingBar active expectedMs={18_000} tone="light" label="Writing your report" className="max-w-md" />
         </div>
       ) : report ? (
         <div className={cn("transition-opacity", writing && "opacity-60")}>

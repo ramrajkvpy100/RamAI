@@ -24,7 +24,7 @@ import { generateDebrief } from "./debrief";
 import { localizeCase, presentDebrief, presentEffects, presentState } from "./i18n/country";
 import { localizeEffects, localizeState } from "./i18n/hinglish";
 import { getProvider } from "./providers";
-import type { ClinicalProvider, TeachingPack } from "./providers/types";
+import type { CaseSource, ClinicalProvider, TeachingPack } from "./providers/types";
 import { applyEffects, createInitialState } from "./reducer";
 import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
@@ -157,6 +157,8 @@ export interface StartCaseOptions {
   country?: Country;
   /** Today's daily case (IST day key) instead of a pick from the library. */
   daily?: string;
+  /** A patient already invented for this choice (the server's pool of ready cases). */
+  ready?: CaseSource | null;
 }
 
 export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession> {
@@ -167,7 +169,7 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
       ? ({ kind: "library", id: TUTORIAL_CASE.id } as const)
       : opts.daily
         ? ({ kind: "library", id: dailyCase(opts.daily).id } as const)
-        : await provider.createCase(opts);
+        : (opts.ready ?? (await provider.createCase(opts)));
   } catch (err) {
     if (err instanceof NoCaseError) throw new EngineError("NO_CASES", err.message);
     throw err;

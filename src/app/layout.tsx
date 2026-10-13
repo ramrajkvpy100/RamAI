@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 
 import { ServiceWorker } from "@/components/app/service-worker";
+import { StartingOverlay } from "@/components/app/starting-overlay";
 import { SITE } from "@/lib/site";
 
 import "./globals.css";
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-dvh bg-bg text-fg antialiased">
         {children}
+        <StartingOverlay />
         <ServiceWorker />
       </body>
     </html>

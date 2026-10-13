@@ -94,6 +94,8 @@ export const deleteAccount = (password?: string) => call<{ ok: true }>("/api/me/
 export const checkout = (period: "monthly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: { orderId: string; amount: number; currency: string; keyId: string; name: string; email: string } }>("/api/billing/checkout", { period, startNow });
 export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ ok: true }>("/api/billing/verify", body);
 export const demoUpgrade = () => call<{ ok: true }>("/api/billing/demo-upgrade", {});
+/** Asks the server to write the next patient ahead of time (fire and forget). */
+export const prepareCase = () => call<{ status: string }>("/api/cases/prepare", {});
 export const startGuest = (country?: Country) => call<{ user: { id: string; specialty?: string | null } }>("/api/auth/guest", country ? { country } : {});
 export const forgotPassword = (email: string) => call<{ ok: true }>("/api/auth/forgot", { email });
 /** The new password, with the proof from the reset link: its token hash, or Supabase's PKCE code. */
