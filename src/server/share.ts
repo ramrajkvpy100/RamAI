@@ -13,6 +13,7 @@ import { rankFor } from "@/engine/progression";
 import { deriveSecret } from "@/engine/session";
 import type { CareLevel, CaseTrack } from "@/engine/types";
 import { isCountry, type Country } from "@/engine/countries";
+import { avatarOf, type AvatarLook } from "@/lib/avatar";
 import { dailyNumber } from "@/lib/daily";
 
 import { db } from "./db";
@@ -43,6 +44,10 @@ export interface ResultCard {
   /** The doctor's case number — the card's serial. */
   caseNumber: number;
   name: string;
+  /** Their avatar, as the site shows it. */
+  avatar: AvatarLook;
+  /** Their rank's rung (1…), for its colours. */
+  tier: number;
   score: number;
   xp: number;
   verdict: string | null;
@@ -60,6 +65,7 @@ export interface ResultCard {
 export interface ProgressCard {
   kind: "progress";
   name: string;
+  avatar: AvatarLook;
   rank: string;
   tier: number;
   xp: number;
@@ -80,10 +86,13 @@ export async function resultCard(resultId: number): Promise<ResultCard | null> {
   if (!r) return null;
   const country: Country = isCountry(r.country) ? r.country : "IN";
   const progress = await progressFor(r.user_id);
+  const rank = rankFor(progress.percent);
   return {
     kind: "result",
     caseNumber: r.case_number,
     name: shownName(r.name, r.is_guest === 1),
+    avatar: avatarOf(r.name),
+    tier: rank.tier,
     score: r.score,
     xp: r.xp,
     verdict: r.verdict,
@@ -93,7 +102,7 @@ export async function resultCard(resultId: number): Promise<ResultCard | null> {
     level: levelMeta(r.level as CareLevel, country).label,
     mode: trackLabel(r.track as CaseTrack, country),
     minutes: r.elapsed_min,
-    rank: rankFor(progress.percent).label,
+    rank: rank.label,
     streak: progress.streakDays,
   };
 }
@@ -107,6 +116,7 @@ export async function progressCard(userId: string): Promise<ProgressCard | null>
   return {
     kind: "progress",
     name: shownName(u.name, u.is_guest === 1),
+    avatar: avatarOf(u.name),
     rank: rank.label,
     tier: rank.tier,
     xp: p.xp,
