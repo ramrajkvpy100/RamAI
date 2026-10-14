@@ -454,14 +454,19 @@ export function mainDatabaseUrl(url: string, main = MAIN_DATABASE): string {
   return url.replace(/^(libsql:\/\/|https:\/\/)dpl-[a-z0-9]+-/i, `$1${main}-`);
 }
 
+/** Why the main database wasn't used, if it wasn't (for the temporary check; no secrets in it). */
+export const mainDatabaseNote = { used: false, error: "" };
+
 async function stableTurso(url: string, authToken?: string): Promise<Backend> {
   const main = mainDatabaseUrl(url);
   if (main !== url) {
     try {
       const b = await tursoBackend(main, authToken);
       await b.get("SELECT 1 AS ok");
+      mainDatabaseNote.used = true;
       return b;
     } catch (err) {
+      mainDatabaseNote.error = (err instanceof Error ? `${err.name}: ${err.message}` : String(err)).replace(/eyJ[\w.-]+/g, "[token]").slice(0, 200);
       console.error("[ramai] main database unreachable, using this deployment's branch:", err instanceof Error ? err.message : err);
     }
   }
