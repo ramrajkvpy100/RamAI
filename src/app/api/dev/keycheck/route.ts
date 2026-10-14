@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { db } from "@/server/db";
+import { db, mainDatabaseUrl } from "@/server/db";
 
 import { deriveSecret } from "@/engine/session";
 import { remoteDatabase } from "@/lib/server/database-env";
@@ -23,5 +23,5 @@ export async function GET() {
   const remote = remoteDatabase();
   const row = await db.get<{ n: number; at: number }>("SELECT count(*) AS n, min(created_at) AS at FROM app_secrets").catch(() => undefined);
   const users = await db.get<{ n: number; first: number }>("SELECT count(*) AS n, min(created_at) AS first FROM users").catch(() => undefined);
-  return Response.json({ from: keySource.from, admin: !!supabaseAdmin(), secretSet: !!s, secretLen: s?.length ?? 0, remoteDb: !!remote, remoteToken: !!remote?.authToken, fp, err, dbVars: Object.keys(process.env).filter((k) => /TURSO|LIBSQL|RAMAI_DB|DATABASE|_URL$|AUTH_TOKEN/.test(k)).sort(), libsqlVars: Object.entries(process.env).filter(([, v]) => v?.startsWith("libsql://")).map(([k]) => k), dbHost: createHash("sha256").update(remote?.url ?? "").digest("hex").slice(0, 8), secrets: row, users, region: process.env.VERCEL_REGION ?? null, deploy: (process.env.VERCEL_DEPLOYMENT_ID ?? "").slice(-6) }, { headers: { "Cache-Control": "no-store" } });
+  return Response.json({ from: keySource.from, admin: !!supabaseAdmin(), secretSet: !!s, secretLen: s?.length ?? 0, remoteDb: !!remote, remoteToken: !!remote?.authToken, fp, err, branch: !!remote && mainDatabaseUrl(remote.url) !== remote.url, dbVars: Object.keys(process.env).filter((k) => /TURSO|LIBSQL|RAMAI_DB|DATABASE|_URL$|AUTH_TOKEN/.test(k)).sort(), libsqlVars: Object.entries(process.env).filter(([, v]) => v?.startsWith("libsql://")).map(([k]) => k), dbHost: createHash("sha256").update(remote?.url ?? "").digest("hex").slice(0, 8), secrets: row, users, region: process.env.VERCEL_REGION ?? null, deploy: (process.env.VERCEL_DEPLOYMENT_ID ?? "").slice(-6) }, { headers: { "Cache-Control": "no-store" } });
 }

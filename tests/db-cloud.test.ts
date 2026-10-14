@@ -132,3 +132,11 @@ describe("hosting without extra settings", () => {
     }
   });
 });
+
+import { mainDatabaseUrl } from "@/server/db";
+describe("the integration's per-deployment branch", () => {
+  it("is swapped for the main database", () => {
+    expect(mainDatabaseUrl("libsql://dpl-13evpwigrrvhrb5r73vfqe-vercel-icfg-abc.aws-ap-south-1.turso.io", "database-x")).toBe("libsql://database-x-vercel-icfg-abc.aws-ap-south-1.turso.io");
+    expect(mainDatabaseUrl("libsql://database-x.turso.io")).toBe("libsql://database-x.turso.io");
+  });
+});

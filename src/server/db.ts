@@ -442,6 +442,32 @@ async function retrying<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * The Vercel–Turso integration gives every deployment its own branch of the database
+ * ("dpl-<id>-<db>…"), copied from the main one — so whatever a deployment saved was gone with
+ * the next. Every deployment uses the main database instead; the branch only if the main one can't be reached.
+ */
+/** The main database's name (its branches are named "dpl-<id>" in its place). Not a secret. */
+const MAIN_DATABASE = process.env.RAMAI_MAIN_DATABASE || "database-byzantine-blanket";
+
+export function mainDatabaseUrl(url: string, main = MAIN_DATABASE): string {
+  return url.replace(/^(libsql:\/\/|https:\/\/)dpl-[a-z0-9]+-/i, `$1${main}-`);
+}
+
+async function stableTurso(url: string, authToken?: string): Promise<Backend> {
+  const main = mainDatabaseUrl(url);
+  if (main !== url) {
+    try {
+      const b = await tursoBackend(main, authToken);
+      await b.get("SELECT 1 AS ok");
+      return b;
+    } catch (err) {
+      console.error("[ramai] main database unreachable, using this deployment's branch:", err instanceof Error ? err.message : err);
+    }
+  }
+  return tursoBackend(url, authToken);
+}
+
 function clientBackend(raw: Client): Backend {
   // Outside a transaction, every statement survives a brief network stumble.
   const client = {
@@ -523,7 +549,7 @@ const SCHEMA_VERSION = 21;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
-  const b = remote ? await tursoBackend(remote.url, remote.authToken) : await fileBackend();
+  const b = remote ? await stableTurso(remote.url, remote.authToken) : await fileBackend();
   const at = await b.get<{ value: number }>("SELECT value FROM meta WHERE key = 'schema'").catch(() => undefined);
   if (at && at.value >= SCHEMA_VERSION) return b;
   await b.exec(SCHEMA);
