@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import type { z } from "zod";
 
 import { EngineError } from "@/engine/engine";
-import { ConfigError } from "@/engine/session";
+import { ConfigError, SessionError } from "@/engine/session";
 import { isAuthError } from "@supabase/supabase-js";
 
 // Records each AI call's usage (see server/ai-usage) — loaded with every route.
@@ -60,6 +60,10 @@ export function handleError(err: unknown) {
   if (isAuthError(err)) {
     console.error("[ramai] Supabase Auth unavailable:", err.message);
     return apiError(503, "AUTH_UNAVAILABLE", "Sign-in is unavailable for a moment. Please try again.");
+  }
+  // A case the server can no longer open (its key changed): said plainly, not as an outage.
+  if (err instanceof SessionError) {
+    return apiError(410, "BAD_SESSION", "This case can't be continued after an update. Please start a new case.");
   }
   if (err instanceof ConfigError) {
     console.error("[ramai] configuration error:", err.message);
