@@ -11,6 +11,7 @@ import { isAuthError } from "@supabase/supabase-js";
 import "@/server/ai-usage";
 import { AuthError } from "@/server/auth";
 import { AuthConfigError } from "@/server/supabase";
+import { sessionKeyReady } from "@/server/session-key";
 import { SuggestionsError } from "@/server/suggestions";
 
 export interface ApiErrorBody {
@@ -29,6 +30,8 @@ export function ok<T>(body: T) {
 }
 
 export async function parseBody<S extends z.ZodType>(req: Request, schema: S): Promise<z.infer<S> | Response> {
+  // Every request that carries a case reads its body here first: the sealing key is ready by then.
+  await sessionKeyReady();
   let json: unknown;
   try {
     json = await req.json();

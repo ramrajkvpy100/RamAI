@@ -9,7 +9,18 @@ import { randomBytes } from "node:crypto";
 
 import { db } from "./db";
 
-export async function loadSessionKey(): Promise<void> {
+let loading: Promise<void> | null = null;
+
+/** Loaded once per server (tried again if it failed), before any request reads a case. */
+export function sessionKeyReady(): Promise<void> {
+  loading ??= loadSessionKey().catch((err) => {
+    loading = null;
+    console.error("[ramai] session key not loaded:", err instanceof Error ? err.message : err);
+  });
+  return loading;
+}
+
+async function loadSessionKey(): Promise<void> {
   if (process.env.RAMAI_SESSION_SECRET && process.env.RAMAI_SESSION_SECRET.length >= 32) return;
   await db.run("CREATE TABLE IF NOT EXISTS app_secrets (name TEXT PRIMARY KEY, value TEXT NOT NULL, created_at INTEGER NOT NULL)");
   // Two servers starting at once: only the first one's key is kept, and both read that one.
