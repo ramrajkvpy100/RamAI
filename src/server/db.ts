@@ -461,7 +461,8 @@ async function stableTurso(url: string, authToken?: string): Promise<Backend> {
   const main = mainDatabaseUrl(url);
   if (main !== url) {
     try {
-      const b = await tursoBackend(main, authToken);
+      // The integration's token opens only this deployment's branch; the main database has its own.
+      const b = await tursoBackend(main, process.env.RAMAI_MAIN_DB_TOKEN || authToken);
       await b.get("SELECT 1 AS ok");
       mainDatabaseNote.used = true;
       return b;
