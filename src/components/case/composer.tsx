@@ -163,10 +163,11 @@ export function Composer({
                 type="button"
                 disabled={disabled || sending}
                 onClick={() => void onSend(`Wait ${watch.minutes} minutes`)}
-                title={`Wait for the ${watch.label.toLowerCase()} to take full effect — what changes is reported`}
-                className="flex h-8 shrink-0 animate-enter items-center gap-1.5 rounded-full bg-accent px-3 text-[13px] font-semibold text-on-accent transition-opacity hover:opacity-90 disabled:opacity-60"
+                title={`Skip ahead ${watch.minutes} min to the ${watch.label.toLowerCase()}'s full effect — and see what it did`}
+                className="flex h-8 shrink-0 animate-enter items-center gap-1 rounded-full bg-accent px-3 text-[13px] font-semibold text-on-accent transition-opacity hover:opacity-90 disabled:opacity-60"
               >
-                <Icon name="clock" size={14} /> Wait {watch.minutes} min
+                Skip {watch.minutes} min <Icon name="chevron-right" size={13} strokeWidth={2.4} />
+                <Icon name="chevron-right" size={13} strokeWidth={2.4} className="-ml-2" />
               </button>
             )}
             {actions.map((a) => (

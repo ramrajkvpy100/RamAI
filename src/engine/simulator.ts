@@ -270,7 +270,8 @@ function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEff
       for (const k of changed) if (!hidden.measured.includes(k)) hidden.measured.push(k);
       fx.push({ type: "vitals", readings: changed.map((k) => reading(hidden, k)) });
     }
-    fx.push({ type: "message", role: phone ? "attendant" : "nurse", kind: "speech", text: text.replace(/\s+/g, " ").trim() });
+    // An observation on the screen, not a nurse's report: what changed, and what the patient says.
+    fx.push(phone ? { type: "message", role: "attendant", kind: "speech", text: text.replace(/\s+/g, " ").trim() } : { type: "message", role: "system", kind: "finding", text: text.replace(/\s+/g, " ").trim() });
   }
   return fx;
 }
@@ -612,7 +613,7 @@ function applyStage(def: ClinicalCaseDefinition, hidden: HiddenState, stage: Haz
   if (!hidden.monitored && stage.status === "critical" && !["OPD", "Teleconsult"].includes(hidden.setting) && def.track !== "phone") {
     hidden.monitored = true;
     fx.push({ type: "monitoring", on: true, rhythm: monitorRhythm(def) });
-    fx.push({ type: "message", role: "nurse", kind: "action", text: "I've put the patient on the monitor, doctor." });
+    fx.push({ type: "message", role: "system", kind: "action", text: "Patient put on the monitor." });
   }
   applyVitals(hidden, stage.vitals);
   for (const [examId, finding] of Object.entries(stage.examFindings ?? {})) {
@@ -1839,10 +1840,17 @@ function statusReply(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEffe
   switch (hidden.status) {
     case "deceased":
       return { type: "message", role: "system", kind: "status", text: "The patient has died. End the case to review the encounter." };
+    // What anyone can see — not a nurse's report. (On the phone, the relative says it.)
     case "critical":
-      return { type: "message", role: nurse, kind: "speech", text: hidden.patientSays?.startsWith("(") ? `Doctor, please come — ${he}'s critical. ${hidden.patientSays}` : `Doctor, please come quickly — ${he}'s critical.` };
+      return def.track === "phone"
+        ? { type: "message", role: nurse, kind: "speech", text: `Doctor, ${he}'s getting very bad!` }
+        : { type: "message", role: "system", kind: "finding", text: `${capitalise(he)} is critical.${hidden.patientSays?.startsWith("(") ? ` ${hidden.patientSays.slice(1, -1)}` : ""}` };
     case "deteriorating":
-      return { type: "message", role: nurse, kind: "speech", text: `Doctor, ${he}'s getting worse.${hidden.patientSays ? ` ${capitalise(he)} says: "${hidden.patientSays}"` : ""}` };
+      return def.track === "phone"
+        ? { type: "message", role: nurse, kind: "speech", text: `Doctor, ${he}'s getting worse.` }
+        : hidden.patientSays && !hidden.patientSays.startsWith("(")
+          ? { type: "message", role: patientRole(def), kind: "speech", text: hidden.patientSays }
+          : { type: "message", role: "system", kind: "finding", text: `${capitalise(he)} is getting worse.${hidden.patientSays ? ` ${hidden.patientSays.slice(1, -1)}` : ""}` };
     default:
       return { type: "message", role: patientRole(def), kind: "speech", text: howDoYouFeel(def, hidden) || "I'm here, doctor." };
   }

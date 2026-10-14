@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from "react";
 
 import { LangToggle } from "@/components/case/lang-toggle";
 import { LEVEL_STYLE, levelGradient, TRACK_ICON } from "@/components/game/level-style";
+import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
 import { levelMeta, trackLabel } from "@/engine/levels";
@@ -63,9 +64,11 @@ export function CasePicker({
       footer={
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
-          <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any" })} disabled={starting} className="shine flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-60">
+          <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any" })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
             {starting ? startingLabel : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
+            {/* How far along the new patient is: a bar filling along the bottom of the button. */}
+            {starting && <FillingBar active expectedMs={35_000} tone="light" label="Preparing your patient" className="absolute inset-x-5 bottom-1.5 w-auto" />}
           </button>
         </div>
       }

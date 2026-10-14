@@ -185,7 +185,7 @@ describe("response to treatment", () => {
     expect(given.state.messages.at(-1)?.text ?? "").not.toMatch(/after the furosemide/);
     const { state } = play(emAdhf, ["Give furosemide 40 mg IV", "Wait 40 minutes"]);
     expect(state.vitals.rr!.current.numeric!).toBeLessThan(30);
-    const report = state.messages.find((m) => m.role === "nurse" && /after the furosemide/.test(m.text));
+    const report = state.messages.find((m) => m.role === "system" && /after the furosemide/.test(m.text));
     expect(report?.text).toMatch(/breathing 30 → \d+\/min/);
   });
 
