@@ -412,7 +412,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 15;
+const SCHEMA_VERSION = 16;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
@@ -466,6 +466,8 @@ async function migrate(b: Backend) {
   if (!resultColumns.includes("grid")) add.push("ALTER TABLE results ADD COLUMN grid TEXT");
   // What the case showed about each skill — marks per category, why marks were lost, what was missed and done well — for progress and the report.
   if (!resultColumns.includes("detail")) add.push("ALTER TABLE results ADD COLUMN detail TEXT");
+  // The case as the doctor met it, for "Discuss this case" posts (JSON; CaseSummary).
+  if (!resultColumns.includes("summary")) add.push("ALTER TABLE results ADD COLUMN summary TEXT");
   // Sign-in moved to Supabase Auth: profiles link to their Supabase user.
   if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
   // The doctor's own specialty, asked once: NULL = not asked yet, 'mixed' = every specialty.

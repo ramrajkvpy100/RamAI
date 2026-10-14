@@ -5,9 +5,10 @@
 import "server-only";
 
 import { istDayKey, istWeekStart, rankFor } from "@/engine/progression";
-import type { CaseDebrief, CaseRewards } from "@/engine/types";
+import type { CaseDebrief, CaseRewards, CaseState } from "@/engine/types";
 
 import type { User } from "./auth";
+import { caseSummary } from "./case-summary";
 import { db } from "./db";
 import { demoPlayersEnabled, ensureMembership, leaguePosition } from "./leagues";
 import { progressFor, progressForMany } from "./progress";
@@ -163,15 +164,15 @@ export function caseDetail(debrief: CaseDebrief): CaseDetail {
  * Records a debrief exactly once per session and returns what it earned.
  * Idempotent: re-closing or replaying the same session never double-counts.
  */
-export async function recordCase(user: User, sessionId: string, debrief: CaseDebrief, opts: { daily?: string } = {}): Promise<CaseRewards> {
+export async function recordCase(user: User, sessionId: string, debrief: CaseDebrief, opts: { daily?: string; state?: CaseState } = {}): Promise<CaseRewards> {
   const [before, positionBefore] = await Promise.all([progressFor(user.id), leaguePosition(user).then((l) => l?.position)]);
   const rescued = debrief.rescue.episodes.some((e) => e.rescued === "full" || e.rescued === "partial");
   const ranked = opts.daily && !user.isGuest && (await firstDailySession(user.id, opts.daily)) === sessionId ? opts.daily : null;
   await db.run(
-    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid, detail)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid, detail, summary)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     user.id, sessionId, debrief.caseRef, debrief.caseNumber, debrief.specialty, debrief.track, debrief.level, debrief.diagnosis, debrief.verdict, rescued ? 1 : 0, debrief.score.total, debrief.score.xp, Date.now(),
-    ranked, Math.round(debrief.elapsedMin), ranked ? squares(debrief.score) : null, JSON.stringify(caseDetail(debrief)),
+    ranked, Math.round(debrief.elapsedMin), ranked ? squares(debrief.score) : null, JSON.stringify(caseDetail(debrief)), opts.state ? JSON.stringify(caseSummary(opts.state, debrief)) : null,
   );
   const after = await progressFor(user.id);
   await ensureMembership(user);

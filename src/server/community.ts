@@ -9,7 +9,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { rankFor } from "@/engine/progression";
-import { TOPIC_IDS, type Author, type Post, type PostSummary, type Reply, type Topic } from "@/lib/community";
+import { TOPIC_IDS, type Author, type CaseSummary, type Post, type PostSummary, type Reply, type Topic } from "@/lib/community";
 
 import { apiError, handleError } from "@/lib/server/http";
 
@@ -126,13 +126,28 @@ export async function getPost(id: string, viewerId?: string): Promise<Post | nul
   if (!row) return null;
   const replies = await db.all<ReplyRow>("SELECT r.*, u.name, u.username FROM replies r JOIN users u ON u.id = r.user_id WHERE r.post_id = ? AND r.hidden = 0 ORDER BY r.created_at ASC LIMIT 500", id);
   const [ranks, liked] = await Promise.all([authors([row.user_id, ...replies.map((r) => r.user_id)]), likedBy(viewerId, [`p:${id}`, ...replies.map((r) => `r:${r.id}`)])]);
+  const discussed = await discussedCase(row.share_id);
   return {
     ...summary(row, ranks, liked, viewerId),
+    ...(discussed ? { case: discussed } : {}),
     body: row.body,
     replyList: replies.map(
       (r): Reply => ({ id: r.id, body: r.body, author: author(r, ranks), likes: r.like_count, liked: liked.has(`r:${r.id}`), mine: r.user_id === viewerId, createdAt: r.created_at }),
     ),
   };
+}
+
+/** The case a post discusses: its shared result's summary, kept when the case closed. */
+async function discussedCase(shareId: string | null): Promise<CaseSummary | null> {
+  const share = shareId ? readShareId(shareId) : null;
+  if (share?.kind !== "r") return null;
+  const row = await db.get<{ summary: string | null }>("SELECT summary FROM results WHERE id = ?", Number(share.value));
+  if (!row?.summary) return null;
+  try {
+    return JSON.parse(row.summary) as CaseSummary;
+  } catch {
+    return null;
+  }
 }
 
 /** Everyone can write — guests too (a visitor becomes one on their first post); the model reads everything first. */

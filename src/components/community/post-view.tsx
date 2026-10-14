@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { ClinicalEngineError } from "@/lib/engine-client";
 
 import { ago, like, newReply, removeItem, reportItem } from "./community-client";
+import { CaseDetails } from "./case-details";
 
 function Byline({ author, at }: { author: Author; at: number }) {
   return (
@@ -135,6 +136,7 @@ export function PostView({ initial, signedIn, account }: { initial: Post; signed
         {open ? (
           <>
             <p className="mt-3 text-[15px] leading-7 whitespace-pre-wrap text-fg">{post.body}</p>
+            {post.case && <CaseDetails summary={post.case} />}
             {post.shareId && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={`/api/share/${post.shareId}/card?f=square`} alt="The result card for this case" className="mt-4 w-full max-w-[360px] rounded-2xl" />

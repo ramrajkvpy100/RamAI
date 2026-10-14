@@ -46,7 +46,29 @@ export interface Reply {
   createdAt: number;
 }
 
+/** The case behind a discussion: what the doctor saw and did — the answer kept back until asked for. */
+export interface CaseSummary {
+  /** "34-year-old female · schoolteacher, Delhi". */
+  patient: string;
+  /** "OPD · District Hospital · Dermatology". */
+  setting: string;
+  presentation: string[];
+  history: { label: string; value: string; abnormal?: boolean }[];
+  examination: { label: string; value: string; abnormal?: boolean }[];
+  /** First reading → last reading. */
+  vitals: { label: string; first: string; last: string; abnormal?: boolean }[];
+  investigations: { name: string; findings: string }[];
+  management: string[];
+  /** What the doctor thought it was, in the case. */
+  workingDiagnosis?: string;
+  differentials: string[];
+  /** Shown only on "Reveal": the answer and how it went. */
+  answer: { diagnosis: string; verdict: string; score: number; outcome: string };
+}
+
 export interface Post extends PostSummary {
   body: string;
   replyList: Reply[];
+  /** The case being discussed, when the post came from "Discuss this case". */
+  case?: CaseSummary;
 }

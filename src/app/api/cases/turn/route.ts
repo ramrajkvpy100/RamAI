@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     const res = await submitDoctorAction(body.token, body.input, user.id, user.patientLang, teaching);
     if (res.debrief) {
       const info = sessionInfo(body.token);
-      res.rewards = await recordCase(user, info.sessionId, res.debrief, { daily: info.daily });
+      res.rewards = await recordCase(user, info.sessionId, res.debrief, { daily: info.daily, state: res.state });
     }
     return ok(res);
   } catch (err) {

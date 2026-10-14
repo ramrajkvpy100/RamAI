@@ -4,6 +4,11 @@ import { createGuest, createProfile, type User } from "@/server/auth";
 import { createPost, createReply, getPost, listPosts, remove, report, toggleLike } from "@/server/community";
 import { db } from "@/server/db";
 import { deleteAccount } from "@/server/privacy";
+import { recordCase } from "@/server/results";
+import { ownResultId, shareIdFor } from "@/server/share";
+import { dermAcne } from "@/engine/cases/derm-acne";
+import { generateDebrief } from "@/engine/debrief";
+import { play } from "./helpers";
 
 process.env.RAMAI_DB_PATH = ":memory:";
 
@@ -76,5 +81,25 @@ describe("the community", () => {
     expect(await getPost(id)).toBeNull();
     expect((await getPost(other))!.likes).toBe(0);
     expect(await db.get("SELECT 1 AS x FROM replies WHERE post_id = ?", id)).toBeUndefined();
+  });
+});
+
+describe("discussing a case", () => {
+  it("the post carries the case as the doctor met it — with the diagnosis kept for 'Reveal'", async () => {
+    const { state, hidden } = play(dermAcne, ["How long have you had these?", "Examine the face", "Prescribe doxycycline 100 mg BD for 6 weeks", "End case"]);
+    const debrief = generateDebrief(dermAcne, hidden, state);
+    await recordCase(meera, state.sessionId, debrief, { state });
+    const resultId = (await ownResultId(meera.id, state.sessionId))!;
+    const { id } = await createPost(meera, { topic: "cases", title: "Acne — what would you add?", body: "Was doxycycline enough here?", shareId: shareIdFor("r", resultId) });
+    const post = (await getPost(id))!;
+    expect(post.case?.patient).toContain(`${dermAcne.patient.age}-year-old`);
+    expect(post.case?.presentation.join(" ")).toMatch(/pimples/i);
+    expect(post.case?.history.length).toBeGreaterThan(0);
+    expect(post.case?.management.join(" ")).toMatch(/Doxycycline/);
+    expect(post.case?.answer.diagnosis).toBe(debrief.diagnosis);
+    // Nothing before the answer gives the diagnosis away.
+    const { answer, ...shown } = post.case!;
+    expect(answer).toBeTruthy();
+    expect(JSON.stringify(shown).toLowerCase()).not.toContain(debrief.diagnosis.toLowerCase());
   });
 });
