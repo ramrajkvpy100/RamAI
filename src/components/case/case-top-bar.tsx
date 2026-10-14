@@ -10,6 +10,8 @@ import type { CaseState } from "@/engine/types";
 import { caseLabel, clockAt } from "@/lib/format";
 
 import { callDuration } from "./scene/call-screen";
+import { cn } from "@/lib/cn";
+import { useSpeaking } from "@/lib/voices";
 
 const since = (minutes: number) => (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${Math.round(minutes % 60)} min` : `${Math.round(minutes)} min`);
 
@@ -91,11 +93,7 @@ export function CaseTopBar({
               <Icon name="clock" size={17} />
             </IconButton>
           )}
-          {voices && !complete && (
-            <IconButton label={voices.on ? "Patient voices on — turn off" : "Hear patients speak"} size="sm" onClick={voices.toggle} className={voices.on ? "text-accent-text" : "text-fg-3"}>
-              <Icon name="ear" size={17} />
-            </IconButton>
-          )}
+          {voices && !complete && <VoiceButton on={voices.on} toggle={voices.toggle} />}
           {sound && !complete && (
             <IconButton label={sound.on ? "Monitor sounds on — turn off" : "Turn on monitor sounds"} size="sm" onClick={sound.toggle} className={sound.on ? "text-accent-text" : "text-fg-3"}>
               <Icon name={sound.on ? "volume" : "volume-off"} size={17} />
@@ -113,5 +111,34 @@ export function CaseTopBar({
         </div>
       </div>
     </header>
+  );
+}
+
+/** Patient voices: clearly on (filled) or off, with moving bars while someone is speaking. */
+function VoiceButton({ on, toggle }: { on: boolean; toggle: () => void }) {
+  const speaking = useSpeaking();
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={on}
+      aria-label={on ? "Patient voices on — turn off" : "Hear patients speak"}
+      title={on ? "Patient voices on — turn off" : "Hear patients speak"}
+      className={cn(
+        "flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold transition-all duration-200 active:scale-90",
+        on ? "bg-accent text-on-accent shadow-[0_0_0_3px_var(--accent-soft)]" : "text-fg-3 hover:bg-surface-3 hover:text-fg",
+      )}
+    >
+      {on && speaking ? (
+        <span aria-hidden className="flex h-4 items-end gap-[2px]">
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className="w-[3px] origin-bottom rounded-full bg-current" style={{ height: "100%", animation: `voice 0.9s ease-in-out ${i * 0.12}s infinite` }} />
+          ))}
+        </span>
+      ) : (
+        <Icon name={on ? "volume" : "ear"} size={16} />
+      )}
+      <span className="hidden sm:inline">{on ? "Voices on" : "Voices"}</span>
+    </button>
   );
 }

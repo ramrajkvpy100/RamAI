@@ -10,6 +10,8 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { Country } from "@/engine/countries";
 import type { CaseState } from "@/engine/types";
 
+import { toDevanagari } from "./devanagari";
+
 const KEY = "ramai.voices";
 let enabled: boolean | null = null;
 /** Set when the player switches voices on, so the latest line is read as feedback — never just on page load. */
@@ -34,7 +36,10 @@ export function setVoicesEnabled(on: boolean) {
   try {
     localStorage.setItem(KEY, on ? "1" : "0");
   } catch {}
-  if (!on && voicesSupported()) window.speechSynthesis.cancel();
+  if (!on && voicesSupported()) {
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }
   listeners.forEach((l) => l());
 }
 
@@ -67,10 +72,31 @@ const chosen = new Map<string, SpeechSynthesisVoice | null>();
  * the device has one; otherwise the right sex in another English accent (a
  * British-sounding wife beats a male one); the older voices for the elderly.
  */
+/** Neural voices ("Natural", "Online", Google's) sound far more human than the old ones: tried first. */
+const NATURAL = /natural|online|neural|google|premium|enhanced/i;
+const byQuality = (a: SpeechSynthesisVoice, b: SpeechSynthesisVoice) => Number(NATURAL.test(b.name)) - Number(NATURAL.test(a.name));
+
+/** A Hindi voice for Hinglish lines — the speaker's sex if the device has one. */
+function pickHindi(sex: Sex): SpeechSynthesisVoice | null {
+  const key = `hi:${sex}`;
+  if (chosen.has(key)) return chosen.get(key)!;
+  const hindi = window.speechSynthesis
+    .getVoices()
+    .filter((v) => v.lang.replace("_", "-").toLowerCase().startsWith("hi"))
+    .sort(byQuality);
+  const fits = (v: SpeechSynthesisVoice) => (sex === "Female" ? FEMALE.test(v.name) && !MALE.test(v.name) : MALE.test(v.name) && !FEMALE.test(v.name));
+  const voice = hindi.find(fits) ?? hindi[0] ?? null;
+  chosen.set(key, voice);
+  return voice;
+}
+
 function pickVoice(country: Country, sex: Sex, elderly: boolean): SpeechSynthesisVoice | null {
   const key = `${country}:${sex}:${elderly}`;
   if (chosen.has(key)) return chosen.get(key)!;
-  const all = window.speechSynthesis.getVoices().filter((v) => !NOVELTY.test(v.name));
+  const all = window.speechSynthesis
+    .getVoices()
+    .filter((v) => !NOVELTY.test(v.name))
+    .sort(byQuality);
   if (!all.length) return null;
   const lang = (v: SpeechSynthesisVoice) => v.lang.replace("_", "-").toLowerCase();
   const fits = (v: SpeechSynthesisVoice) => (sex === "Female" ? FEMALE.test(v.name) && !MALE.test(v.name) : MALE.test(v.name) && !FEMALE.test(v.name));
@@ -108,17 +134,54 @@ const spoken = (text: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/**
+ * How it's said, from how the patient is and what they say: in pain or fear — slower, strained, with
+ * pauses; frightened or pleading — quicker and higher; better — calm and warm; very ill — slow and low.
+ */
+function emotion(text: string, state: CaseState, role: "patient" | "attendant"): { rate: number; pitch: number } {
+  const t = text.toLowerCase();
+  const status = state.patientStatus;
+  if (role === "patient" && (status === "critical" || status === "deteriorating")) return { rate: 0.82, pitch: 0.92 };
+  if (/\b(please|help|jaldi|bachao|kuch karo|scared|dar lag)\b|!/.test(t)) return { rate: 1.08, pitch: 1.1 };
+  if (/\b(pain|hurts?|dard|aah|aa+h|ouch|burning|jalan|can'?t breathe|saans)\b|…|\.{3}/.test(t)) return { rate: 0.86, pitch: 1.04 };
+  if (/\b(better|relief|thank|aaram|behtar|shukriya|theek)\b/.test(t)) return { rate: 0.96, pitch: 1.02 };
+  return { rate: 0.98, pitch: 1 };
+}
+
+const speaking = { now: false, listeners: new Set<() => void>() };
+const setSpeaking = (on: boolean) => {
+  if (speaking.now === on) return;
+  speaking.now = on;
+  speaking.listeners.forEach((l) => l());
+};
+/** Whether a patient or relative is speaking right now — the voice button shows it. */
+export function useSpeaking(): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      speaking.listeners.add(l);
+      return () => speaking.listeners.delete(l);
+    },
+    () => speaking.now,
+    () => false,
+  );
+}
+
 function say(text: string, state: CaseState, role: "patient" | "attendant") {
   const words = spoken(text);
   if (!words) return;
   const sex: Sex = role === "patient" ? (state.patient.sex === "Female" ? "Female" : "Male") : attendantSex(state);
-  const u = new SpeechSynthesisUtterance(words);
   const age = role === "patient" ? state.patient.age : 40;
-  const voice = pickVoice(state.country ?? "IN", sex, age >= 70);
+  // Hinglish is read by a Hindi voice, in Devanagari — a real local accent. Without one, an Indian-English voice.
+  const hindi = state.lang === "hinglish" ? pickHindi(sex) : null;
+  const u = new SpeechSynthesisUtterance(hindi ? toDevanagari(words) : words);
+  const voice = hindi ?? pickVoice(state.country ?? "IN", sex, age >= 70);
   if (voice) u.voice = voice;
-  u.lang = voice?.lang ?? ACCENT[state.country ?? "IN"];
-  u.rate = age >= 65 ? 0.9 : age < 12 ? 1.05 : 0.98;
-  u.pitch = age < 12 ? 1.35 : age >= 65 ? 0.88 : 1;
+  u.lang = voice?.lang ?? (hindi ? "hi-IN" : ACCENT[state.country ?? "IN"]);
+  const feel = emotion(text, state, role);
+  u.rate = feel.rate * (age >= 65 ? 0.92 : age < 12 ? 1.06 : 1);
+  u.pitch = Math.min(2, feel.pitch * (age < 12 ? 1.35 : age >= 65 ? 0.88 : 1));
+  u.onstart = () => setSpeaking(true);
+  u.onend = u.onerror = () => setSpeaking(window.speechSynthesis.speaking && window.speechSynthesis.pending);
   window.speechSynthesis.speak(u);
 }
 
