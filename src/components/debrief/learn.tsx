@@ -68,6 +68,8 @@ export function LearnSection({ token }: { token: string }) {
   const [pack, setPack] = useState<LearnPack | null | undefined>(undefined);
   const [right, setRight] = useState(0);
   const [done, setDone] = useState(0);
+  /** The case's questions fold away until wanted. */
+  const [mcqsOpen, setMcqsOpen] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -113,11 +115,20 @@ export function LearnSection({ token }: { token: string }) {
               ))}
             </ul>
           </div>
-          <div className="flex items-baseline justify-between px-1">
-            <h3 className="text-[15px] font-semibold">Exam practice · {pack.exam}</h3>
-            <span className="text-[13px] text-fg-2 tabular">{done > 0 ? `${right} of ${done} right` : `${pack.mcqs.length} questions`}</span>
-          </div>
-          <ol className="flex flex-col gap-3">
+          <button
+            type="button"
+            aria-expanded={mcqsOpen}
+            aria-controls="case-mcqs"
+            onClick={() => setMcqsOpen((o) => !o)}
+            className="panel flex items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-surface-2"
+          >
+            <span>
+              <span className="block text-[15px] font-semibold">Exam practice · {pack.exam}</span>
+              <span className="block text-[13px] text-fg-2 tabular">{done > 0 ? `${right} of ${done} right` : `${pack.mcqs.length} questions on this case`}</span>
+            </span>
+            <Icon name="chevron-down" size={18} className={cn("shrink-0 text-fg-2 transition-transform", mcqsOpen && "rotate-180")} />
+          </button>
+          <ol id="case-mcqs" hidden={!mcqsOpen} className="flex flex-col gap-3">
             {pack.mcqs.map((q, i) => (
               <Question
                 key={i}

@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import type { Country } from "../countries";
 import type { Concept } from "./openai-schema";
-import { DialogueReviewSchema, ExaminerReviewSchema, FindingsReviewSchema, ManagementReviewSchema, type DialogueSchema, type FindingsSchema, type LearnSchema, type ManagementSchema } from "./openai-schema";
+import { DialogueReviewSchema, ExaminerReviewSchema, ExamReviewSchema, FindingsReviewSchema, ManagementReviewSchema, type DialogueSchema, type FindingsSchema, type LearnSchema, type ManagementSchema } from "./openai-schema";
 
 type ChatMessage = { role: "system" | "user"; content: string };
 type Dialogue = z.infer<typeof DialogueSchema>;
@@ -220,8 +220,8 @@ export function checkLabFlags(f: Findings): { part: Findings; fixes: string[] } 
 type Learn = z.infer<typeof LearnSchema>;
 
 /** Applies an examiner's review: corrected keys and wording, unsalvageable questions dropped, pearls replaced if corrected. */
-export function applyExaminerReview(draft: Learn, raw: unknown): { part: Learn; fixes: string[] } {
-  const review = ExaminerReviewSchema.safeParse(raw);
+export function applyExaminerReview(draft: Learn, raw: unknown, schema: typeof ExaminerReviewSchema | typeof ExamReviewSchema = ExaminerReviewSchema): { part: Learn; fixes: string[] } {
+  const review = schema.safeParse(raw);
   if (!review.success) return { part: draft, fixes: [] };
   const fixes: string[] = [];
   const mcqs = draft.mcqs

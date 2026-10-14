@@ -41,7 +41,7 @@ import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyMan
 import { labGap, vitalsNow } from "../simulator";
 import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
-interface ChatMessage {
+export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
@@ -60,7 +60,7 @@ export function openAIConfig() {
 }
 
 /** One request to the configured model. `careful` allows a little reasoning; otherwise the lightest setting. */
-async function chatJSON(messages: ChatMessage[], maxTokens: number, careful = false, timeout?: number): Promise<unknown> {
+export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful = false, timeout?: number): Promise<unknown> {
   const { key, model, baseUrl } = openAIConfig();
   const timeoutMs = timeout ?? openAIConfig().timeoutMs;
   const controller = new AbortController();

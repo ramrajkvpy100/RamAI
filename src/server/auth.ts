@@ -280,7 +280,7 @@ async function purgeStaleGuests(now: number) {
   purgedAt = now;
   const before = now - GUEST_DAYS * 86_400_000;
   // Children first, explicitly: cascades depend on a per-connection setting the cloud database may not keep.
-  const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments", "push_subscriptions", "case_ai", "mcq_answers", "progress_reports", "case_pool"];
+  const children = ["sessions", "results", "case_starts", "auth_tokens", "league_members", "payments", "push_subscriptions", "case_ai", "mcq_answers", "progress_reports", "case_pool", "exam_answers"];
   // The users go last, by the same test, once their sessions (all expired) and records are gone.
   const users = `DELETE FROM users WHERE id IN (${STALE_GUEST})`;
   await db.batch([

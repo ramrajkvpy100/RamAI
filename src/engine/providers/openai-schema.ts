@@ -282,11 +282,14 @@ const McqSchema = z
 
 export const LearnSchema = z.object({ pearls: strs(6, 400), mcqs: listOf(McqSchema, 6) });
 
+const ExaminerFix = z.object({ index: z.coerce.number().int(), answer: z.coerce.number().int().optional().catch(undefined), stem: optStr(1400), options: strs(5, 300), explanation: optStr(1600), drop: z.boolean().optional().catch(undefined), why: optStr(240) });
+
 /** The examiner's corrections: a different answer key, rewritten parts — or "drop" when a question can't be saved. */
 export const ExaminerReviewSchema = z.object({
-  fixes: listOf(
-    z.object({ index: z.coerce.number().int(), answer: z.coerce.number().int().optional().catch(undefined), stem: optStr(1400), options: strs(5, 300), explanation: optStr(1600), drop: z.boolean().optional().catch(undefined), why: optStr(240) }),
-    8,
-  ),
+  fixes: listOf(ExaminerFix, 8),
   pearls: strs(6, 400),
 });
+
+/** Exam practice: a set of up to 12 questions, and the examiner's corrections to any of them. */
+export const ExamSetSchema = z.object({ mcqs: listOf(McqSchema, 12) });
+export const ExamReviewSchema = z.object({ fixes: listOf(ExaminerFix, 12), pearls: strs(6, 400) });

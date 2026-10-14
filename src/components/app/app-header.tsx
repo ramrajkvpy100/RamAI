@@ -9,6 +9,7 @@ import { StreakPill } from "@/components/game/streak";
 import { cn } from "@/lib/cn";
 import { useMe, type Me } from "@/lib/me-store";
 
+import { ExamMenu } from "./exam-menu";
 import { InstallButton } from "./install-button";
 import { UserMenu } from "./user-menu";
 
@@ -34,6 +35,7 @@ export function AppHeader({ initial }: { initial: Me }) {
               {n.label}
             </Link>
           ))}
+          <ExamMenu country={me.user.country} />
         </nav>
         <div className="ml-auto flex items-center gap-2.5">
           <InstallButton />
@@ -47,7 +49,7 @@ export function AppHeader({ initial }: { initial: Me }) {
         </div>
       </div>
       <nav className="flex items-center gap-1 overflow-x-auto border-t border-line/60 px-4 py-1.5 whitespace-nowrap sm:hidden" aria-label="Main">
-        {NAV.map((n) => (
+        {[...NAV, { href: "/exams", label: "Exam MCQs" }].map((n) => (
           <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1 text-[13px] font-medium", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2")}>
             {n.label}
           </Link>

@@ -253,6 +253,29 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS payments_user ON payments(user_id, created_at);
+-- Exam practice (NEET PG, INI-CET, USMLE, UKMLA, PLAB): question sets written once, then served to everyone.
+CREATE TABLE IF NOT EXISTS exam_sets (
+  id TEXT PRIMARY KEY,
+  exam TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  data TEXT NOT NULL,
+  model TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS exam_sets_subject ON exam_sets(exam, subject, created_at);
+-- Answers to exam practice (the first answer to each question counts). Separate from cases, XP and rank.
+CREATE TABLE IF NOT EXISTS exam_answers (
+  user_id TEXT NOT NULL,
+  set_id TEXT NOT NULL,
+  q INTEGER NOT NULL,
+  exam TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  correct INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, set_id, q)
+);
+CREATE INDEX IF NOT EXISTS exam_answers_user ON exam_answers(user_id, exam, created_at);
 -- Razorpay webhooks already processed (each event id once), with the order or payment they were about.
 CREATE TABLE IF NOT EXISTS payment_events (
   event_id TEXT PRIMARY KEY,
@@ -412,7 +435,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 16;
+const SCHEMA_VERSION = 17;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
