@@ -82,41 +82,33 @@ describe("pictures are checked before the doctor sees them", () => {
     delete process.env.OPENAI_API_KEY;
   });
 
-  it("a realistic drawing that shows the findings is used as it is", async () => {
+  it("a real, freely licensed image comes first — credited, never one with arrows — and nothing is drawn", async () => {
+    const calls = stub({ reviews: [{ realistic: 9, matches: 8 }], commons: true });
+    const pic = await makePicture(BRIEF);
+    expect(text(pic.base64)).toBe("real-image");
+    expect(pic.credit).toEqual({ author: "Dr Example", license: "CC BY-SA 4.0", source: "https://commons.wikimedia.org/wiki/File:Chest.jpg" });
+    expect(calls).toEqual(["search", "fetch thumb.jpg", "review"]);
+  });
+
+  it("with no real image to be had, the image model draws one, checked before it's shown", async () => {
     const calls = stub({ reviews: [{ realistic: 8, matches: 8 }] });
     const pic = await makePicture(BRIEF);
     expect(text(pic.base64)).toBe("drawn-1");
     expect(pic.credit).toBeUndefined();
-    expect(calls).toEqual(["draw", "review"]);
+    expect(calls.filter((c) => c === "search").length).toBeGreaterThan(0);
+    expect(calls.slice(-2)).toEqual(["draw", "review"]);
   });
 
-  it("an unrealistic drawing is replaced by a real, freely licensed image — credited, never one with arrows", async () => {
-    const calls = stub({ reviews: [{ realistic: 3, matches: 7 }, { realistic: 9, matches: 8 }], commons: true });
-    const pic = await makePicture(BRIEF);
-    expect(text(pic.base64)).toBe("real-image");
-    expect(pic.credit).toEqual({ author: "Dr Example", license: "CC BY-SA 4.0", source: "https://commons.wikimedia.org/wiki/File:Chest.jpg" });
-    expect(calls).toEqual(["draw", "review", "search", "fetch thumb.jpg", "review"]);
-  });
-
-  it("with no real image to be had, it's drawn once more — and the better one is kept", async () => {
+  it("a drawing that fails the check is drawn once more — and the better one is kept", async () => {
     const calls = stub({ reviews: [{ realistic: 4, matches: 4 }, { realistic: 7, matches: 7 }] });
     const pic = await makePicture(BRIEF);
     expect(text(pic.base64)).toBe("drawn-2");
-    // Three searches (the checker's words, then the kind of image and the condition) before drawing again.
-    expect(calls).toEqual(["draw", "review", "search", "search", "search", "search", "draw", "review"]);
+    expect(calls.slice(-4)).toEqual(["draw", "review", "draw", "review"]);
   });
 
   it("if the check itself is down, the drawing is shown rather than nothing", async () => {
     stub({ reviews: [], reviewDown: true });
     expect(text((await makePicture(BRIEF)).base64)).toBe("drawn-1");
-  });
-
-  it("if the image model is down, a real image from the internet is found instead", async () => {
-    const calls = stub({ reviews: [{ realistic: 9, matches: 8 }], commons: true, drawDown: true });
-    const pic = await makePicture(BRIEF);
-    expect(text(pic.base64)).toBe("real-image");
-    expect(pic.credit?.license).toBe("CC BY-SA 4.0");
-    expect(calls[0]).toBe("draw");
   });
 });
 

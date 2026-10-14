@@ -3,7 +3,7 @@
  *
  * For each diagnosis in the bank, a picture is found once and kept for everyone: first a real,
  * freely licensed image from Wikimedia Commons that the AI checker agrees shows exactly that
- * diagnosis; failing that, an AI-made image that passes the same check. Up to three per diagnosis,
+ * diagnosis — never an AI-made one. Up to three per diagnosis,
  * for variety. ECGs RamAI can draw exactly are always available as a drawn tracing. Rounds use only
  * pictures already kept, so they start at once; missing ones are fetched in the background.
  */
@@ -14,7 +14,7 @@ import { randomUUID } from "node:crypto";
 import { MODALITIES, SPOT_COUNT, type DrillItem, type Modality, type PracticeItem, type PracticeMode } from "@/lib/practice";
 import type { PictureType } from "@/engine/types";
 
-import { drawPicture, reviewPicture, type PictureBrief } from "./ai-images";
+import { reviewPicture, type PictureBrief } from "./ai-images";
 import { db } from "./db";
 import { findRealImage, type Credit } from "./real-images";
 
@@ -45,20 +45,16 @@ function brief(modality: Modality, item: PracticeItem): PictureBrief {
 export async function addPicture(modality: Modality, itemId: string): Promise<boolean> {
   const item = MODALITIES[modality].items.find((i) => i.id === itemId);
   if (!item || !picturesAvailable()) return false;
-  const have = await db.all<{ credit: string | null }>("SELECT credit FROM practice_images WHERE modality = ? AND item = ?", modality, itemId);
+  const have = await db.all<{ credit: string | null }>("SELECT credit FROM practice_images WHERE modality = ? AND item = ? AND source = 'commons'", modality, itemId);
   if (have.length >= PER_ITEM) return false;
   const used = have.map((h) => (h.credit ? (JSON.parse(h.credit) as Credit).source : "")).filter(Boolean);
   const p = brief(modality, item);
   const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = MODALITIES[modality].kind;
-  let found: { mime: string; base64: string; credit?: Credit; source: "commons" | "ai" } | null = null;
+  let found: { mime: string; base64: string; credit?: Credit; source: "commons" } | null = null;
   const real = await findRealImage([...item.search, `${item.label} ${kind}`], accept, 25_000, used);
   if (real) found = { ...real, source: "commons" };
-  // No real one that shows it: an AI-made picture, kept only if the checker passes it too. (Drawn ECGs need neither.)
-  if (!found && !item.ecg) {
-    const drawn = await drawPicture(p).catch(() => null);
-    if (drawn && (await accept(drawn))) found = { ...drawn, source: "ai" };
-  }
+  // Practice uses real images only — never AI-made ones. (ECGs RamAI can draw exactly have their tracing besides.)
   if (!found) return false;
   await db.run(
     "INSERT INTO practice_images (id, modality, item, mime, data, credit, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -69,7 +65,7 @@ export async function addPicture(modality: Modality, itemId: string): Promise<bo
 
 /** The diagnoses still short of pictures, fewest first — what the background fills next. */
 export async function missingPictures(modality: Modality, limit = 3): Promise<string[]> {
-  const counts = new Map((await db.all<{ item: string; n: number }>("SELECT item, COUNT(*) AS n FROM practice_images WHERE modality = ? GROUP BY item", modality)).map((r) => [r.item, Number(r.n)]));
+  const counts = new Map((await db.all<{ item: string; n: number }>("SELECT item, COUNT(*) AS n FROM practice_images WHERE modality = ? AND source = 'commons' GROUP BY item", modality)).map((r) => [r.item, Number(r.n)]));
   return MODALITIES[modality].items
     .map((i) => ({ id: i.id, n: counts.get(i.id) ?? 0, drawn: !!i.ecg }))
     .filter((i) => i.n < PER_ITEM)
@@ -90,7 +86,7 @@ const shuffle = <T,>(xs: T[]): T[] => {
 /** A round: every picture already kept (and each drawable ECG), shuffled, with four names to choose from. */
 export async function round(modality: Modality, mode: PracticeMode): Promise<{ items: DrillItem[]; ready: number; total: number }> {
   const bank = MODALITIES[modality].items;
-  const rows = await db.all<Row>("SELECT id, item, credit, source FROM practice_images WHERE modality = ?", modality);
+  const rows = await db.all<Row>("SELECT id, item, credit, source FROM practice_images WHERE modality = ? AND source = 'commons'", modality);
   const pool: { item: PracticeItem; row: Row | null }[] = [];
   for (const item of bank) {
     const mine = rows.filter((r) => r.item === item.id);

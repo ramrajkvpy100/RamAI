@@ -205,7 +205,7 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
           </div>
         ) : null}
         <figcaption className="bg-black px-3 py-1.5 text-[10.5px] text-white/55">
-          {item.credit ? `Real image · ${item.credit.author} · ${item.credit.license}, Wikimedia Commons` : item.source === "ai" ? "AI-generated image, checked against the diagnosis" : "RamAI drawn tracing"}
+          {item.credit ? `Real image · ${item.credit.author} · ${item.credit.license}, Wikimedia Commons` : "RamAI drawn tracing"}
         </figcaption>
       </figure>
       <div className="grid gap-2 sm:grid-cols-2">

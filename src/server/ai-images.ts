@@ -108,30 +108,18 @@ Return JSON {"realistic": 1-10 (does it look like a real clinical image of this 
 }
 
 /**
- * Draws it, then the model looks at it before the doctor does. If it doesn't
- * look real or doesn't show the findings, a real image (Wikimedia Commons,
- * freely licensed, credited) takes its place — or it's drawn once more.
+ * A real picture first: a freely licensed image from the internet (Wikimedia Commons) that the model
+ * agrees shows exactly this finding, credited. Only when none can be found is one drawn by the image
+ * model — checked the same way, and drawn once more if the first attempt doesn't pass.
  */
 export async function makePicture(p: PictureBrief): Promise<{ mime: string; base64: string; credit?: Credit }> {
-  const started = Date.now();
   const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = KIND[p.type];
-  const drawn = await drawPicture(p).catch((err) => {
-    console.error("[ramai] image model failed:", err instanceof Error ? err.message : err);
-    return null;
-  });
-  // The image model is down or refused: a real photograph from the internet instead of nothing.
-  if (!drawn) {
-    const real = await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", `${kind} ${p.view}`], accept, 25_000);
-    if (real) return real;
-    throw new Error("No picture could be made or found");
-  }
+  const real = await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`], accept, 18_000);
+  if (real) return real;
+  const drawn = await drawPicture(p);
   const review = await reviewPicture(drawn, p).catch(() => null);
   if (!review || review.ok) return drawn;
-  // Most specific first: the checker's own words, then the kind of image and the condition.
-  const real = await findRealImage([review.search, p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", `${kind} ${p.view}`], accept, 15_000);
-  if (real) return real;
-  if (Date.now() - started > 28_000) return drawn;
   const again = await drawPicture({ ...p, describe: `${p.describe}\nAvoid the last attempt's problems: ${review.problems}` }).catch(() => null);
   if (!again) return drawn;
   const second = await reviewPicture(again, p).catch(() => null);
