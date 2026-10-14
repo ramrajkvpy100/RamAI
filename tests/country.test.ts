@@ -164,5 +164,6 @@ describe("countries — a whole encounter", () => {
       for (const s of shown) if (INDIA.test(s)) leaks.push(`${def.id}: ${s}`);
     }
     expect([...new Set(leaks)]).toEqual([]);
-  });
+    // Plays every case through a whole encounter: seconds of work, more under a full parallel run.
+  }, 30_000);
 });

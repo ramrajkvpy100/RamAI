@@ -81,11 +81,10 @@ export function Composer({ open, onClose, draft }: { open: boolean; onClose: () 
         />
         {draft?.shareId && (
           <div className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] text-fg-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/share/${draft.shareId}/card?f=square`} alt="" className="h-12 w-12 rounded-lg" />
+            <Icon name="file" size={16} className="shrink-0 text-accent-text" />
             <span>
-              Your result card and the case details — history, examination, vitals, tests and treatment — are attached, so others can give their opinion. The
-              diagnosis stays hidden until a reader reveals it.
+              The case details — history, examination, vitals, tests and treatment — are attached, so others can give their opinion. The diagnosis stays hidden
+              until a reader reveals it.
             </span>
           </div>
         )}

@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { z } from "zod";
 
 import { getCurrentUser } from "@/server/auth";
+import { notifyOwner } from "@/server/notify-owner";
 import { overLimit } from "@/server/rate-limit";
 import { mySuggestions, sendOpenSuggestion, sendSuggestion, SUGGESTION_CATEGORIES } from "@/server/suggestions";
 import { apiError, clientIp, crossSite, handleError, ok, rateLimited } from "@/lib/server/http";
@@ -39,8 +41,15 @@ export async function POST(req: Request) {
     const who = user && !user.isGuest ? `suggest:${user.id}` : `suggest-ip:${clientIp(req)}`;
     if (await overLimit(who, 6, 3_600_000)) return apiError(429, "RATE_LIMITED", "Thanks — that's plenty for one hour. Please send more later.");
     const { email, ...input } = parsed.data;
-    if (user && !user.isGuest) return ok({ suggestion: await sendSuggestion(user, input) });
-    return ok({ suggestion: await sendOpenSuggestion(user, { ...input, email: email || null }) });
+    const suggestion = user && !user.isGuest ? await sendSuggestion(user, input) : await sendOpenSuggestion(user, { ...input, email: email || null });
+    // It reaches the owner at once: an email and a push to their phone.
+    const from = user && !user.isGuest ? `${user.name} (${user.email})` : email ? `A visitor (${email})` : user ? "A guest" : "A visitor";
+    after(() =>
+      notifyOwner({ subject: `New suggestion · ${input.category}`, text: `${from}${input.page ? ` on ${input.page}` : ""}:\n\n${input.message}`, url: "/admin/suggestions" })
+        .then(() => undefined)
+        .catch(() => undefined),
+    );
+    return ok({ suggestion });
   } catch (err) {
     return handleError(err);
   }

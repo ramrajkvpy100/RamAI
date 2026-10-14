@@ -122,7 +122,7 @@ export function isPushEndpoint(endpoint: string): boolean {
 /** `gone`: the browser unsubscribed or the subscription expired — forget it. */
 export type PushOutcome = "sent" | "gone" | "failed";
 
-export async function sendPush(target: PushTarget, message: PushMessage, ttlSeconds: number): Promise<PushOutcome> {
+export async function sendPush(target: PushTarget, message: PushMessage, ttlSeconds: number, topic = "daily-reminder"): Promise<PushOutcome> {
   if (!isPushEndpoint(target.endpoint)) return "gone";
   const body = encryptPayload(Buffer.from(JSON.stringify(message)), Buffer.from(target.p256dh, "base64url"), Buffer.from(target.auth, "base64url"));
   try {
@@ -132,8 +132,8 @@ export async function sendPush(target: PushTarget, message: PushMessage, ttlSeco
         Authorization: vapidAuthorization(target.endpoint),
         TTL: String(Math.max(0, Math.floor(ttlSeconds))),
         Urgency: "normal",
-        // A newer reminder replaces one the device hasn't collected yet.
-        Topic: "daily-reminder",
+        // A newer message of the same topic replaces one the device hasn't collected yet.
+        Topic: topic,
         "Content-Encoding": "aes128gcm",
         "Content-Type": "application/octet-stream",
       },

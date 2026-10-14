@@ -36,14 +36,15 @@ function PostCard({ post, onLike }: { post: PostSummary; onLike: () => void }) {
             <p className="mt-1 line-clamp-2 text-[14px] leading-6 text-fg-2">{post.excerpt}</p>
           )}
         </div>
-        {post.shareId && !post.spoiler && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={`/api/share/${post.shareId}/card?f=square`} alt="Result card" loading="lazy" className="h-16 w-16 shrink-0 rounded-xl sm:h-20 sm:w-20" />
+        {post.shareId && (
+          <span className="flex h-7 shrink-0 items-center gap-1 self-start rounded-full bg-accent-soft px-2.5 text-[11.5px] font-medium text-accent-text">
+            <Icon name="file" size={12} /> Case
+          </span>
         )}
       </Link>
       <div className="mt-3 flex items-center gap-4 text-[13px] text-fg-2">
-        <button type="button" onClick={onLike} aria-pressed={post.liked} className={cn("flex items-center gap-1.5 rounded-full px-2 py-1 transition-colors hover:bg-surface-3", post.liked && "text-danger")}>
-          <Icon name="star" size={14} /> {post.likes}
+        <button type="button" onClick={onLike} aria-pressed={post.liked} aria-label={post.liked ? "Unheart" : "Heart"} className={cn("flex items-center gap-1.5 rounded-full px-2 py-1 transition-colors hover:bg-surface-3", post.liked && "text-danger")}>
+          <Icon name="heart" size={15} fill={post.liked ? "currentColor" : "none"} className={post.liked ? "animate-pop" : undefined} /> {post.likes}
         </button>
         <Link href={`/community/${post.id}`} className="flex items-center gap-1.5 rounded-full px-2 py-1 hover:bg-surface-3">
           <Icon name="chat" size={14} /> {post.replies} {post.replies === 1 ? "reply" : "replies"}

@@ -57,14 +57,14 @@ function Actions({
       <button
         type="button"
         aria-pressed={liked}
-        title={signedIn ? undefined : "Like — you'll join as a guest"}
+        title={signedIn ? (liked ? "Unheart" : "Heart") : "Heart — you'll join as a guest"}
         onClick={async () => {
           const r = await like(target).catch(() => null);
           if (r) onLiked(r);
         }}
         className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors hover:bg-surface-3 disabled:opacity-60", liked && "text-danger")}
       >
-        <Icon name="star" size={14} /> {likes}
+        <Icon name="heart" size={15} fill={liked ? "currentColor" : "none"} className={liked ? "animate-pop" : undefined} /> {likes}
       </button>
       {mine ? (
         <button
@@ -137,10 +137,6 @@ export function PostView({ initial, signedIn, account }: { initial: Post; signed
           <>
             <p className="mt-3 text-[15px] leading-7 whitespace-pre-wrap text-fg">{post.body}</p>
             {post.case && <CaseDetails summary={post.case} />}
-            {post.shareId && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={`/api/share/${post.shareId}/card?f=square`} alt="The result card for this case" className="mt-4 w-full max-w-[360px] rounded-2xl" />
-            )}
           </>
         ) : (
           <button type="button" onClick={() => setOpen(true)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-warning bg-warning-soft px-4 py-6 text-[14px] font-medium text-warning">
