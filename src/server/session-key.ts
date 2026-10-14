@@ -10,6 +10,8 @@ import { randomBytes } from "node:crypto";
 import { db } from "./db";
 
 let loading: Promise<void> | null = null;
+/** Where the key came from, for the temporary check. */
+export const keySource = { from: "unknown" as string };
 
 /** Loaded once per server (tried again if it failed), before any request reads a case. */
 export function sessionKeyReady(): Promise<void> {
@@ -21,10 +23,16 @@ export function sessionKeyReady(): Promise<void> {
 }
 
 async function loadSessionKey(): Promise<void> {
-  if (process.env.RAMAI_SESSION_SECRET && process.env.RAMAI_SESSION_SECRET.length >= 32) return;
+  if (process.env.RAMAI_SESSION_SECRET && process.env.RAMAI_SESSION_SECRET.length >= 32) {
+    if (keySource.from === "unknown") keySource.from = "env";
+    return;
+  }
   await db.run("CREATE TABLE IF NOT EXISTS app_secrets (name TEXT PRIMARY KEY, value TEXT NOT NULL, created_at INTEGER NOT NULL)");
   // Two servers starting at once: only the first one's key is kept, and both read that one.
   await db.run("INSERT OR IGNORE INTO app_secrets (name, value, created_at) VALUES ('session', ?, ?)", randomBytes(48).toString("base64url"), Date.now());
   const row = await db.get<{ value: string }>("SELECT value FROM app_secrets WHERE name = 'session'");
-  if (row?.value && row.value.length >= 32) process.env.RAMAI_SESSION_SECRET = row.value;
+  if (row?.value && row.value.length >= 32) {
+    process.env.RAMAI_SESSION_SECRET = row.value;
+    keySource.from = "db";
+  }
 }
