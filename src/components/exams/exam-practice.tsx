@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { ClinicalEngineError, examAnswer, examSet } from "@/lib/engine-client";
 import { EXAM_STYLES, EXAMS, MIXED, type ExamId, type ExamSet, type ExamStats, type ExamStyle } from "@/lib/exams";
+import { playSfx } from "@/lib/sfx";
 
 type Checked = { choice: number; correct: boolean; answer: number; explanation: string };
 
@@ -51,6 +52,7 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
     try {
       const r = await examAnswer(set.id, index, choice);
       setChecked((c) => ({ ...c, [index]: { choice, ...r } }));
+      playSfx(r.correct ? "correct" : "wrong");
       // Their own tally, kept apart from cases, XP and rank.
       setStats((st) => {
         const base = st ?? { answered: 0, correct: 0, subjects: [] };
@@ -148,7 +150,11 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
           checked={checked[index]}
           busy={busy}
           onChoose={(c) => void choose(c)}
-          onNext={() => (index + 1 < set.questions.length ? setIndex(index + 1) : setScored(true))}
+          onNext={() => {
+            if (index + 1 < set.questions.length) return setIndex(index + 1);
+            setScored(true);
+            playSfx(right >= set.questions.length / 2 ? "win" : "streak");
+          }}
           subject={set.subject}
           right={right}
         />

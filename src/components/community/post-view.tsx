@@ -13,6 +13,7 @@ import { ClinicalEngineError } from "@/lib/engine-client";
 
 import { ago, like, newReply, removeItem, reportItem } from "./community-client";
 import { CaseDetails } from "./case-details";
+import { playSfx } from "@/lib/sfx";
 
 function Byline({ author, at }: { author: Author; at: number }) {
   return (
@@ -59,6 +60,7 @@ function Actions({
         aria-pressed={liked}
         title={signedIn ? (liked ? "Unheart" : "Heart") : "Heart — you'll join as a guest"}
         onClick={async () => {
+          if (!liked) playSfx("heart");
           const r = await like(target).catch(() => null);
           if (r) onLiked(r);
         }}

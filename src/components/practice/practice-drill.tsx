@@ -7,6 +7,7 @@ import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
+import { playSfx } from "@/lib/sfx";
 
 interface Stat {
   modality: Modality;
@@ -67,7 +68,10 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
     }
   };
 
-  const finish = useCallback(() => setOver(true), []);
+  const finish = useCallback(() => {
+    setOver(true);
+    playSfx("win");
+  }, []);
 
   // Rapid-fire: the clock runs out.
   useEffect(() => {
@@ -96,6 +100,7 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
     const item = items[index]!;
     const ok = i === item.answer;
     setPicked(i);
+    playSfx(ok ? "correct" : "wrong");
     setAnswered((a) => a + 1);
     if (ok) setRight((r) => r + 1);
     // Rapid-fire keeps moving: a beat to see the answer, then the next picture.

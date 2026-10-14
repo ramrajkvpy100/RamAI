@@ -21,8 +21,10 @@ import { clearMe, type Me } from "@/lib/me-store";
 import { specialtyLabel } from "@/lib/specialty";
 import { useThemePref, type ThemePref } from "@/lib/theme";
 import { PRO_FOR_EVERYONE } from "@/lib/plans";
+import { setSfxEnabled, useSfxEnabled } from "@/lib/sfx";
 
 export function UserMenu({ me }: { me: Me }) {
+  const sfx = useSfxEnabled();
   const [open, setOpen] = useState(false);
   const [pref, setPref] = useThemePref();
   const ref = useRef<HTMLDivElement>(null);
@@ -122,6 +124,14 @@ export function UserMenu({ me }: { me: Me }) {
           >
             <Icon name="pulse" size={15} className="text-fg-2" /> Your specialty
             <span className="ml-auto max-w-[140px] truncate text-[12.5px] text-fg-2">{me.user.specialty ? specialtyLabel(me.user.specialty).replace(" — every specialty", "") : "Not set"}</span>
+          </button>
+          <Link role="menuitem" href="/achievements" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
+            <Icon name="award" size={15} className="text-fg-2" /> Achievements
+            <span className="ml-auto text-[12.5px] text-fg-2 tabular">{me.progress.badges.length}</span>
+          </Link>
+          <button role="menuitemcheckbox" aria-checked={sfx} type="button" onClick={() => setSfxEnabled(!sfx)} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3">
+            <Icon name={sfx ? "volume" : "volume-off"} size={15} className="text-fg-2" /> Sounds
+            <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[11.5px] font-semibold", sfx ? "bg-success-soft text-success" : "bg-surface-3 text-fg-2")}>{sfx ? "On" : "Off"}</span>
           </button>
           <Link role="menuitem" href="/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
             <Icon name="bulb" size={15} className="text-fg-2" /> Suggest an improvement

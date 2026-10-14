@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import type { CaseDebrief, LearnPack, Mcq } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { answerMcq, fetchCoach, fetchLearn } from "@/lib/engine-client";
+import { playSfx } from "@/lib/sfx";
 
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
 
@@ -17,6 +18,7 @@ function Question({ q, n, token, onAnswered }: { q: Mcq; n: number; token: strin
   const choose = (i: number) => {
     if (answered) return;
     setChosen(i);
+    playSfx(i === q.answer ? "correct" : "wrong");
     onAnswered(i === q.answer);
     // Recorded for progress; the key the page already has decides what's shown.
     void answerMcq(token, n, i).catch(() => undefined);

@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { DoctorFigure } from "@/components/game/caricature";
 import { GoalRing } from "@/components/game/goal-ring";
-import { MysteryBox, type Prize } from "@/components/game/mystery-box";
+import { AchievementReveal, type Prize } from "@/components/game/achievement-reveal";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
 import { Icon } from "@/components/ui/icon";
@@ -12,6 +14,7 @@ import { league } from "@/lib/leagues";
 import { useCountUp } from "@/lib/use-count-up";
 
 import { Confetti } from "./confetti";
+import { playSfx } from "@/lib/sfx";
 
 function Tile({ children, delay }: { children: React.ReactNode; delay: number }) {
   return (
@@ -41,7 +44,13 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
   const climbed = position !== undefined && before !== undefined ? before - position : 0;
   const leagueName = league(rewards?.leagueTier ?? 0).label;
   const celebrate = !!rewards && (score >= 80 || promoted || goalJustMet || rewards.newBadges.length > 0);
-  // Each new badge, and a promotion, comes in its own mystery box.
+  // A fanfare for a good case (once, when its rewards arrive); a streak chime when the streak grows.
+  useEffect(() => {
+    if (!rewards) return;
+    if (score >= 70) playSfx("win");
+    else if (rewards.streakExtended) playSfx("streak");
+  }, [rewards, score]);
+  // Each new badge, and a promotion, bursts onto the screen in turn.
   const prizes: Prize[] = rewards
     ? [
         ...(promoted ? [{ kind: "rank" as const, label: rewards.rankAfter, tier: RANKS[rankIndex(rewards.rankAfter)]?.tier ?? 1 }] : []),
@@ -52,7 +61,7 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
   return (
     <section className="relative" aria-label="Rewards">
       {celebrate && <Confetti seed={seed} />}
-      {boxKey && prizes.length > 0 && <MysteryBox prizes={prizes} storageKey={boxKey} />}
+      {boxKey && prizes.length > 0 && <AchievementReveal prizes={prizes} storageKey={boxKey} />}
 
       {promoted && rewards && (
         <div className="ink mb-3 flex animate-pop items-center gap-4 rounded-2xl px-5 py-4">

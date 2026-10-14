@@ -152,9 +152,9 @@ export function Profile({ initial }: { initial: Me }) {
           <h2 id="badges-heading" className="text-[16px] font-semibold">
             Badges
           </h2>
-          <span className="text-[12.5px] text-fg-3 tabular">
-            {earned.size} of {BADGE_LIST.length}
-          </span>
+          <Link href="/achievements" className="text-[12.5px] font-medium text-accent-text tabular hover:underline">
+            {earned.size} of {BADGE_LIST.length} · View all &amp; share
+          </Link>
         </div>
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {BADGE_LIST.map((b) => {
