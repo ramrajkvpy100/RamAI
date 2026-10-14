@@ -57,6 +57,12 @@ export class ConfigError extends Error {
 const PREFIX = "c1";
 let warned = false;
 
+/** The key cases were sealed with before the site had its own: still opens them, never seals new ones. */
+function legacyKey(): Buffer | null {
+  const dbToken = remoteDatabase()?.authToken;
+  return dbToken && dbToken.length >= 32 ? createHmac("sha256", dbToken).update("ramai/session-key/v1").digest() : null;
+}
+
 function key(): Buffer {
   const secret = process.env.RAMAI_SESSION_SECRET;
   if (!secret || secret.length < 32) {
@@ -94,9 +100,19 @@ export function unseal(token: string): SessionPayload {
   const parts = token.split(".");
   if (parts.length !== 4 || parts[0] !== PREFIX) throw new SessionError("Malformed session.");
   try {
-    const decipher = createDecipheriv("aes-256-gcm", key(), unb64(parts[1]!));
-    decipher.setAuthTag(unb64(parts[2]!));
-    const plain = Buffer.concat([decipher.update(unb64(parts[3]!)), decipher.final()]);
+    const open = (k: Buffer) => {
+      const decipher = createDecipheriv("aes-256-gcm", k, unb64(parts[1]!));
+      decipher.setAuthTag(unb64(parts[2]!));
+      return Buffer.concat([decipher.update(unb64(parts[3]!)), decipher.final()]);
+    };
+    let plain: Buffer;
+    try {
+      plain = open(key());
+    } catch (err) {
+      const old = legacyKey();
+      if (err instanceof ConfigError || !old || !process.env.RAMAI_SESSION_SECRET) throw err;
+      plain = open(old);
+    }
     const payload = JSON.parse(inflateRawSync(plain).toString("utf8")) as SessionPayload;
     if (payload.v !== 1 || !Array.isArray(payload.a) || !payload.src) throw new Error("shape");
     return payload;
