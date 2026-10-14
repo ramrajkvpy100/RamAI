@@ -32,12 +32,14 @@ export interface PictureBrief {
   describe: string;
   /** Server-only context for finding a real image: the case's diagnosis. */
   topic?: string;
+  /** How the picture should look, when the type's usual style doesn't fit (a blood smear isn't H&E). */
+  style?: string;
 }
 
 export async function drawPicture(p: PictureBrief): Promise<{ mime: string; base64: string }> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("No OpenAI key");
-  const prompt = `${STYLE[p.type]}\nView: ${p.view}.\n${p.describe}\nNo text, labels, measurements, arrows, rulers or watermarks in the image (an X-ray may carry a small side marker).`;
+  const prompt = `${p.style ?? STYLE[p.type]}\nView: ${p.view}.\n${p.describe}\nNo text, labels, measurements, arrows, rulers or watermarks in the image (an X-ray may carry a small side marker).`;
   const res = await fetch(`${(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "")}/images/generations`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },

@@ -15,6 +15,7 @@ import { UserMenu } from "./user-menu";
 
 const NAV = [
   { href: "/", label: "Home" },
+  { href: "/practice", label: "Practice" },
   { href: "/progress", label: "Progress" },
   { href: "/community", label: "Community" },
   { href: "/leaderboard", label: "Leaderboard" },

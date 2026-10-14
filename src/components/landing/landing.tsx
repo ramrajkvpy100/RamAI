@@ -36,6 +36,9 @@ export function LandingNav() {
         </Link>
         <nav className="flex items-center gap-1" aria-label="Main">
           <InstallButton className="mr-1" />
+          <Link href="/practice" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
+            Practice
+          </Link>
           <Link href="/exams" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
             Exam MCQs
           </Link>

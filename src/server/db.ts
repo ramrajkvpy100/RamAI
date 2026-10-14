@@ -276,6 +276,28 @@ CREATE TABLE IF NOT EXISTS exam_answers (
   PRIMARY KEY (user_id, set_id, q)
 );
 CREATE INDEX IF NOT EXISTS exam_answers_user ON exam_answers(user_id, exam, created_at);
+-- Practice drills: pictures found once (real, or AI-made when none is) and kept for everyone; and each round played.
+CREATE TABLE IF NOT EXISTS practice_images (
+  id TEXT PRIMARY KEY,
+  modality TEXT NOT NULL,
+  item TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  data TEXT NOT NULL,
+  credit TEXT,
+  source TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS practice_images_item ON practice_images(modality, item);
+CREATE TABLE IF NOT EXISTS practice_rounds (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  modality TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  correct INTEGER NOT NULL,
+  total INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS practice_rounds_user ON practice_rounds(user_id, modality);
 -- Razorpay webhooks already processed (each event id once), with the order or payment they were about.
 CREATE TABLE IF NOT EXISTS payment_events (
   event_id TEXT PRIMARY KEY,
@@ -435,7 +457,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 17;
+const SCHEMA_VERSION = 18;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

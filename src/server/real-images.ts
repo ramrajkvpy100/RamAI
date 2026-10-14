@@ -37,19 +37,19 @@ const plain = (html = "") =>
     .trim();
 
 /** A real image for the first of `queries` (most specific first) that has one passing `accept` — with its credit. */
-export async function findRealImage(queries: string[], accept: (image: { mime: string; base64: string }) => Promise<boolean>, budgetMs = 15_000): Promise<{ mime: string; base64: string; credit: Credit } | null> {
+export async function findRealImage(queries: string[], accept: (image: { mime: string; base64: string }) => Promise<boolean>, budgetMs = 15_000, exclude: readonly string[] = []): Promise<{ mime: string; base64: string; credit: Credit } | null> {
   const deadline = Date.now() + budgetMs;
   const tried = new Set<string>();
   for (const q of queries.map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean)) {
     if (tried.has(q.toLowerCase()) || Date.now() > deadline - 1500) continue;
     tried.add(q.toLowerCase());
-    const found = await searchOnce(q, accept, deadline);
+    const found = await searchOnce(q, accept, deadline, exclude);
     if (found) return found;
   }
   return null;
 }
 
-async function searchOnce(query: string, accept: (image: { mime: string; base64: string }) => Promise<boolean>, deadline: number): Promise<{ mime: string; base64: string; credit: Credit } | null> {
+async function searchOnce(query: string, accept: (image: { mime: string; base64: string }) => Promise<boolean>, deadline: number, exclude: readonly string[] = []): Promise<{ mime: string; base64: string; credit: Credit } | null> {
   const left = () => Math.max(500, deadline - Date.now());
   const params = new URLSearchParams({
     action: "query",
@@ -73,7 +73,7 @@ async function searchOnce(query: string, accept: (image: { mime: string; base64:
   const candidates = pages
     .map((p) => ({ p, info: p.imageinfo?.[0] }))
     .filter(({ p, info }) => {
-      if (!info || !/^image\/(jpeg|png)$/.test(info.mime) || info.width < 400 || info.height < 400) return false;
+      if (!info || !/^image\/(jpeg|png)$/.test(info.mime) || info.width < 400 || info.height < 400 || exclude.includes(info.descriptionurl)) return false;
       const meta = info.extmetadata ?? {};
       const license = plain(meta.LicenseShortName?.value);
       const words = `${p.title} ${plain(meta.ImageDescription?.value)} ${plain(meta.ObjectName?.value)}`;
