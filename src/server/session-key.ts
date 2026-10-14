@@ -8,6 +8,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 import { db } from "./db";
+import { supabaseAdmin } from "./supabase";
 
 let loading: Promise<void> | null = null;
 /** Where the key came from, for the temporary check. */
@@ -26,6 +27,18 @@ async function loadSessionKey(): Promise<void> {
   if (process.env.RAMAI_SESSION_SECRET && process.env.RAMAI_SESSION_SECRET.length >= 32) {
     if (keySource.from === "unknown") keySource.from = "env";
     return;
+  }
+  // Supabase first: it keeps accounts, and it isn't replaced when the site is deployed.
+  const admin = supabaseAdmin();
+  if (admin) {
+    const fresh = randomBytes(48).toString("base64url");
+    await admin.from("app_secrets").upsert({ name: "session", value: fresh }, { onConflict: "name", ignoreDuplicates: true });
+    const { data } = await admin.from("app_secrets").select("value").eq("name", "session").maybeSingle<{ value: string }>();
+    if (data?.value && data.value.length >= 32) {
+      process.env.RAMAI_SESSION_SECRET = data.value;
+      keySource.from = "supabase";
+      return;
+    }
   }
   await db.run("CREATE TABLE IF NOT EXISTS app_secrets (name TEXT PRIMARY KEY, value TEXT NOT NULL, created_at INTEGER NOT NULL)");
   // Two servers starting at once: only the first one's key is kept, and both read that one.
