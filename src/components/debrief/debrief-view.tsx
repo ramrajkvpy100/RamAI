@@ -226,7 +226,7 @@ export function DebriefView({
 
         {/* Rewards ------------------------------------------------------------ */}
         <div className="mt-10 animate-rise [animation-delay:120ms]">
-          <RewardsPanel xpEarned={d.score.xp} score={d.score.total} rewards={session.rewards} progress={progress} seed={d.caseNumber * 7919 + d.score.total} />
+          <RewardsPanel xpEarned={d.score.xp} score={d.score.total} rewards={session.rewards} progress={progress} seed={d.caseNumber * 7919 + d.score.total} boxKey={`ramai.box.${state.sessionId}`} />
           {state.daily && <DailyShare dayKey={state.daily} score={d.score} minutes={d.elapsedMin} place={session.rewards?.daily} />}
           <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[12.5px] text-fg-2">
             <span>

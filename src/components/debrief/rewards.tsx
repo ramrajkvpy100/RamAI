@@ -2,6 +2,7 @@
 
 import { DoctorFigure } from "@/components/game/caricature";
 import { GoalRing } from "@/components/game/goal-ring";
+import { MysteryBox, type Prize } from "@/components/game/mystery-box";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
 import { Icon } from "@/components/ui/icon";
@@ -27,7 +28,7 @@ const rankIndex = (label: string) => RANKS.findIndex((r) => r.label === label);
  * promotions. Rewards come from the server's record of the case; a debrief
  * reopened later falls back to current progress.
  */
-export function RewardsPanel({ xpEarned, score, rewards, progress, seed }: { xpEarned: number; score: number; rewards?: CaseRewards; progress: PlayerProgress; seed: number }) {
+export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey }: { xpEarned: number; score: number; rewards?: CaseRewards; progress: PlayerProgress; seed: number; /** Remembers that this case's mystery boxes were opened. */ boxKey?: string }) {
   const shown = useCountUp(xpEarned, 1400, 450);
   const streak = rewards?.streakDays ?? progress.streakDays;
   const dailyXp = rewards?.dailyXp ?? progress.dailyXp;
@@ -40,10 +41,18 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed }: { xpE
   const climbed = position !== undefined && before !== undefined ? before - position : 0;
   const leagueName = league(rewards?.leagueTier ?? 0).label;
   const celebrate = !!rewards && (score >= 80 || promoted || goalJustMet || rewards.newBadges.length > 0);
+  // Each new badge, and a promotion, comes in its own mystery box.
+  const prizes: Prize[] = rewards
+    ? [
+        ...(promoted ? [{ kind: "rank" as const, label: rewards.rankAfter, tier: RANKS[rankIndex(rewards.rankAfter)]?.tier ?? 1 }] : []),
+        ...rewards.newBadges.map((b) => ({ kind: "badge" as const, label: b.label, description: b.description })),
+      ]
+    : [];
 
   return (
     <section className="relative" aria-label="Rewards">
       {celebrate && <Confetti seed={seed} />}
+      {boxKey && prizes.length > 0 && <MysteryBox prizes={prizes} storageKey={boxKey} />}
 
       {promoted && rewards && (
         <div className="ink mb-3 flex animate-pop items-center gap-4 rounded-2xl px-5 py-4">
