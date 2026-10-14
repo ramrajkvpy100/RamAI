@@ -166,7 +166,7 @@ function Hero() {
           <DemoButton />
         </div>
         <p className="mt-4 text-[12.5px] text-fg-3">
-          Try a guided case in 3 minutes — no sign-up · {PRO_FOR_EVERYONE ? "every level free for now" : `${PLANS.free.dailyCases} free cases a day`} ·{" "}
+          Try a guided case in 3 minutes — no sign-up · {PRO_FOR_EVERYONE ? "every level free for now" : "5 free cases a day"} ·{" "}
           <Link href="/login" className="font-medium text-fg-2 underline-offset-2 hover:text-fg hover:underline">
             Log in
           </Link>

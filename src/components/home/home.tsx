@@ -124,7 +124,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
     {
       target: "today",
       title: "Your day",
-      body: `Each case earns XP towards your daily goal and keeps your streak alive. ${limit === null ? "Your cases are unlimited." : `You get ${limit} free cases a day${me.user.isGuest ? " — no account needed. A free account keeps your progress" : ""}.`}`,
+      body: `Each case earns XP towards your daily goal and keeps your streak alive. ${limit === null ? "Your cases are unlimited." : limit === 0 ? "Go Pro to play real cases — the demo and the daily case are free." : `You get ${limit} free cases a day — no account needed. More with Pro.`}`,
     },
     { target: "league", title: "Weekly league", body: "Your XP counts towards a weekly league. Finish near the top to move up a league." },
     { target: "install", title: "Get the app", body: "Add RamAI to your home screen — it opens full-screen, like an app, with a daily reminder if you want one." },
@@ -140,8 +140,8 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
       setPicker(false);
       setGate(
         me.user.isGuest
-          ? { code: "SIGNUP_REQUIRED", message: `That's today's ${limit} free cases — new ones at midnight. Create a free account to keep your progress on every device.` }
-          : { code: "DAILY_LIMIT", message: `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.` },
+          ? { code: "SIGNUP_REQUIRED", message: `That's your ${limit} free cases for today. Log in and go Pro for unlimited cases — or come back after midnight.` }
+          : { code: "DAILY_LIMIT", message: "Go Pro for unlimited cases at every level." },
       );
       return;
     }

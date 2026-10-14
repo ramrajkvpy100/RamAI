@@ -19,9 +19,10 @@ export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: "free",
     label: "Free",
-    dailyCases: 5,
+    // The free cases are a guest's (GUEST_DAILY_CASES); beyond them, an account with Pro.
+    dailyCases: 0,
     levels: ["phc", "chc", "district"],
-    features: ["5 cases a day", "The first three care levels", "OPD, phone and emergency modes", "Full debrief and score", "Weekly leaderboards"],
+    features: ["5 cases a day as a guest — no account needed", "The guided demo and the daily case", "Full debrief and score", "Your progress kept on every device"],
   },
   pro: {
     id: "pro",
@@ -33,15 +34,13 @@ export const PLANS: Record<PlanId, Plan> = {
 };
 
 /**
- * For now, Pro is open to everyone: every level and mode, and unlimited cases
- * for anyone with an account. Set NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE=0 (and
- * redeploy) to bring the paid plan back — on a preview to test payments, and in
- * production once Razorpay's live keys are in.
+ * Pro is paid: open it to everyone again only by setting
+ * NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE=1 (and redeploying).
  */
-export const PRO_FOR_EVERYONE = process.env.NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE !== "0";
+export const PRO_FOR_EVERYONE = process.env.NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE === "1";
 
-/** No account needed: the demo, then this many real cases a day. Signing up keeps the progress. */
-export const GUEST_DAILY_CASES = 10;
+/** Free, with no account: the demo, then this many real cases a day. More means logging in and going Pro. */
+export const GUEST_DAILY_CASES = 5;
 
 /** The plan a player actually has: their own, or Pro while it's open to everyone (guests keep their daily allowance). */
 export function planFor(user: { plan: PlanId; isGuest: boolean }): Plan {

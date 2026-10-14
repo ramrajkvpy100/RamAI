@@ -47,8 +47,8 @@ export async function POST(req: Request) {
     }
     // Guests get a few real cases a day; free accounts a few more; Pro is unlimited (and open to every account for now).
     if (!tutorial && !daily && limit !== null && today >= limit) {
-      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's today's ${limit} free cases — new ones at midnight. Create a free account to keep your progress on every device.`);
-      return apiError(402, "DAILY_LIMIT", `You've used today's ${limit} free cases. They refresh at midnight — or go Pro for unlimited cases.`);
+      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's your ${limit} free cases for today. Log in and go Pro for unlimited cases — or come back after midnight.`);
+      return apiError(402, "DAILY_LIMIT", "Go Pro for unlimited cases at every level.");
     }
     // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
     const picked = !!(body.specialty || body.track || body.level);

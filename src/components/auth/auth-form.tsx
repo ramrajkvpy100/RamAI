@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { CountryPicker } from "@/components/app/country-picker";
 import { countryFromLocale, type Country } from "@/engine/countries";
 import { ClinicalEngineError, login, signup } from "@/lib/engine-client";
-import { PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
+import { PRO_FOR_EVERYONE } from "@/lib/plans";
 import { clearPending, savePending, savePrefillEmail, takePrefillEmail } from "@/lib/pending-verification";
 
 import { AuthFrame, Field, FormError, PasswordField, SubmitButton } from "./auth-ui";
@@ -77,7 +77,7 @@ export function AuthForm({ mode, next, google = false, error: initialError = nul
   return (
     <AuthFrame>
       <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.03em]">{mode === "login" ? "Welcome back, doctor." : "Create your account"}</h1>
-      <p className="mt-2 text-[15px] text-fg-2">{mode === "login" ? "Your next patient is waiting." : PRO_FOR_EVERYONE ? "Every level and unlimited cases — free for now. No card needed." : `${PLANS.free.dailyCases} free cases every day. No card needed.`}</p>
+      <p className="mt-2 text-[15px] text-fg-2">{mode === "login" ? "Your next patient is waiting." : PRO_FOR_EVERYONE ? "Every level and unlimited cases — free for now. No card needed." : "Pro: unlimited cases at every level."}</p>
 
       {google && (
         <div className="mt-8 flex flex-col gap-3">
