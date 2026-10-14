@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * Interface sounds — short, bright, rewarding (in the spirit of Duolingo's): a soft tap on buttons, a
- * rising two-note chime for a right answer, a gentle "bonk" for a wrong one, a fanfare for a finished
- * round or a good score, a sparkle when an achievement opens. Synthesised with the Web Audio API — no
- * audio files. On unless the player turns them off (separate from the bedside monitor's sounds).
+ * Interface sounds — only where a sound means something (in the spirit of Duolingo's): a rising
+ * two-note chime for a right answer, a gentle "bonk" for a wrong one, a fanfare for a finished round
+ * or a good score, a sparkle when an achievement opens. Buttons, sends and likes stay quiet.
+ * Synthesised with the Web Audio API — no audio files. On unless the player turns them off (separate
+ * from the bedside monitor's sounds).
  */
 import { useSyncExternalStore } from "react";
 
-export type Sfx = "tap" | "correct" | "wrong" | "win" | "levelup" | "reveal" | "heart" | "send" | "streak";
+export type Sfx = "correct" | "wrong" | "win" | "levelup" | "reveal" | "streak";
 
 const KEY = "ramai.sfx";
 let enabled: boolean | null = null;
@@ -91,16 +92,6 @@ export function playSfx(kind: Sfx) {
   out.connect(a.destination);
   const t = a.currentTime + 0.01;
   switch (kind) {
-    case "tap":
-      note(a, out, 1300, t, 0.045, 0.06, "triangle", 900);
-      break;
-    case "send":
-      note(a, out, 520, t, 0.09, 0.08, "sine", 880);
-      break;
-    case "heart":
-      note(a, out, 620, t, 0.08, 0.12, "sine", 980);
-      bell(a, out, 1320, t + 0.06, 0.18, 0.06);
-      break;
     case "correct":
       // The right-answer chime: two quick rising bell notes.
       bell(a, out, 784, t, 0.16, 0.2);
@@ -131,15 +122,4 @@ export function playSfx(kind: Sfx) {
       for (let i = 0; i < 6; i++) note(a, out, 2000 + i * 260, t + 0.55 + i * 0.045, 0.08, 0.04);
       break;
   }
-}
-
-/** A soft tap whenever a button is pressed, site-wide (buttons can opt out with data-silent). */
-export function installTapSounds(): () => void {
-  const onDown = (e: PointerEvent) => {
-    const el = (e.target as Element | null)?.closest?.("button, [role=button], a[href]");
-    if (!el || el.closest("[data-silent]") || (el as HTMLButtonElement).disabled) return;
-    playSfx("tap");
-  };
-  document.addEventListener("pointerdown", onDown, { passive: true });
-  return () => document.removeEventListener("pointerdown", onDown);
 }

@@ -42,7 +42,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   if (allergy && firstDrug && hidden.history[allergy.id] !== undefined && hidden.history[allergy.id]! <= firstDrug.at) {
     didWell.push("Asked about allergies before prescribing.");
   }
-  for (const h of hidden.hazards) {
+  for (const h of hidden.hazards.filter((x) => !x.superseded)) {
     if (h.rescue === "full" && h.manifestedAt !== undefined) didWell.push(`Recognised the deterioration and rescued it within the window (${h.label.toLowerCase()}).`);
   }
   if (score.bonuses.some((b) => b.label === "Cost-effective work-up")) didWell.push("Kept the work-up focused and cost-effective.");
@@ -80,7 +80,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     if (d.frequencyError) missed.push({ what: `${d.generic} written ${d.frequency}.`, why: "This frequency is unsafe for this drug.", better: "Write the exact dosing day and interval in words.", severity: "major" });
     if (d.doseError) missed.push({ what: `${d.generic} ${d.dose ?? ""} — dose outside the safe range.`.replace(/\s+—/, " —"), why: "Under-dosing fails; over-dosing harms.", better: "Check the dose against weight, renal function and indication before ordering.", severity: "moderate" });
   }
-  for (const h of hidden.hazards) {
+  for (const h of hidden.hazards.filter((x) => !x.superseded)) {
     const hz = lib.get(h.id);
     if (!hz || hz.omission) continue;
     missed.push({ what: h.trigger, why: hz.review.whyItCausedHarm, better: hz.review.earliestRescueWindow, severity: "major" });
@@ -109,7 +109,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   missed.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
   /* Rescue -------------------------------------------------------------- */
-  const episodes: RescueEpisode[] = hidden.hazards.map((h) => {
+  const episodes: RescueEpisode[] = hidden.hazards.filter((x) => !x.superseded).map((h) => {
     const hz = lib.get(h.id)!;
     const manifested = h.manifestedAt !== undefined;
     const outcome = h.died

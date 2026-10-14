@@ -14,9 +14,9 @@ interface Words {
 }
 
 const WORDS: Record<Country, Words> = {
-  IN: { check: "Check RBS", recheck: "Recheck RBS", bolus: "Give 25% dextrose 100 mL IV", drip: "Start 10% dextrose infusion", low: "hypoglycaemia" },
-  US: { check: "Check glucose", recheck: "Recheck glucose", bolus: "Give D50 50 mL IV", drip: "Start D10 infusion", low: "hypoglycemia" },
-  UK: { check: "Check CBG", recheck: "Recheck CBG", bolus: "Give 20% glucose 100 mL IV", drip: "Start 10% glucose infusion", low: "hypoglycaemia" },
+  IN: { check: "Check RBS", recheck: "Recheck RBS", bolus: "Give 25% dextrose 100 mL IV", drip: "Start 10% dextrose at 100 mL/h", low: "hypoglycaemia" },
+  US: { check: "Check glucose", recheck: "Recheck glucose", bolus: "Give D50 50 mL IV", drip: "Start D10 at 100 mL/h", low: "hypoglycemia" },
+  UK: { check: "Check CBG", recheck: "Recheck CBG", bolus: "Give 20% glucose 100 mL IV", drip: "Start 10% glucose at 100 mL/h", low: "hypoglycaemia" },
 };
 
 export interface DemoScript {

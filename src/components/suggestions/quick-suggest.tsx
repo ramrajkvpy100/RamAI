@@ -7,7 +7,6 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { ClinicalEngineError } from "@/lib/engine-client";
 import { CATEGORY_LABEL, sendSuggestion, type SuggestionCategory } from "@/lib/suggestions-client";
-import { playSfx } from "@/lib/sfx";
 
 /**
  * A suggestion in two taps, from any page: a small button in the corner opens a box — pick what it is,
@@ -42,7 +41,6 @@ export function QuickSuggest() {
     try {
       await sendSuggestion({ category, message: message.trim(), page: path });
       setState("sent");
-      playSfx("send");
       setMessage("");
       setTimeout(() => {
         setOpen(false);

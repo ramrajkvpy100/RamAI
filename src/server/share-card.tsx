@@ -12,7 +12,7 @@ import { join } from "node:path";
 
 import type { ReactNode } from "react";
 
-import type { ProgressCard, ResultCard } from "./share";
+import type { AchievementCard, ProgressCard, ResultCard } from "./share";
 
 export type CardFormat = "story" | "square" | "wide";
 export const CARD_SIZE: Record<CardFormat, { width: number; height: number }> = {
@@ -455,6 +455,106 @@ export function ProgressCardImage({ card, format, site, img }: { card: ProgressC
                 <div style={{ display: "flex", width: `${Math.max(4, sp.percent)}%`, height: "100%", borderRadius: 999, backgroundImage: gradient(tier.colors, 90) }} />
               </div>
             </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 * s }}>
+        {!wide && <Trace width={story ? 860 : 900} scale={s} color={tier.colors[1]!} />}
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 26 * s }}>
+          <div style={{ display: "flex", color: "#fff", fontWeight: 600 }}>Think like a doctor, every day.</div>
+          <div style={{ display: "flex", color: "#93c5fd" }}>{site}</div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** A medal on a burst of light: a ribbon, a ring in the tier's colours, a star (a badge) or the heart (a rank). */
+function Medal({ size, tier, rank, img }: { size: number; tier: Tier; rank: boolean; img: string | null }) {
+  const rays = Array.from({ length: 24 }, (_, i) => {
+    const a = (i / 24) * 2 * Math.PI;
+    const b = a + Math.PI / 48;
+    const c = a - Math.PI / 48;
+    return `M50 50 L${50 + Math.cos(b) * 50} ${50 + Math.sin(b) * 50} L${50 + Math.cos(c) * 50} ${50 + Math.sin(c) * 50} Z`;
+  });
+  const disc = size * 0.56;
+  return (
+    <div style={{ display: "flex", position: "relative", width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <svg width={size} height={size} viewBox="0 0 100 100" style={{ position: "absolute", top: 0, left: 0 }}>
+        <defs>
+          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor={tier.colors[1]!} stopOpacity="0.55" />
+            <stop offset="1" stopColor={tier.colors[1]!} stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor={tier.colors[0]!} />
+            <stop offset="1" stopColor={tier.colors[2]!} />
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="50" fill="url(#glow)" />
+        {rays.map((d, i) => (
+          <path key={i} d={d} fill={tier.accent} fillOpacity={i % 2 ? 0.1 : 0.18} />
+        ))}
+        <path d="M37 62 L30 92 L40 86 L46 95 L50 66 Z" fill="url(#ribbon)" />
+        <path d="M63 62 L70 92 L60 86 L54 95 L50 66 Z" fill="url(#ribbon)" />
+      </svg>
+      <div style={{ display: "flex", width: disc, height: disc, borderRadius: 9999, padding: disc * 0.05, backgroundImage: gradient(tier.colors), boxShadow: `0 0 ${disc * 0.4}px ${tier.glow}` }}>
+        <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 9999, backgroundImage: "radial-gradient(circle at 35% 30%, #2a2f5a, #0b0d18 70%)" }}>
+          {rank && img ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={img} width={disc * 0.5 * HEART_RATIO} height={disc * 0.5} alt="" />
+          ) : (
+            <svg width={disc * 0.52} height={disc * 0.52} viewBox="0 0 24 24">
+              <defs>
+                <linearGradient id="star" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#fef3c7" />
+                  <stop offset="1" stopColor={tier.colors[1]!} />
+                </linearGradient>
+              </defs>
+              <path d="M12 1.8l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 17.6l-6.2 3.3L7 14 2 9.1l6.9-1z" fill="url(#star)" />
+            </svg>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** An achievement, as a card to post: the medal, what was earned, by whom — and their record so far. */
+export function AchievementCardImage({ card, format, site, img }: { card: AchievementCard; format: CardFormat; site: string; img: string | null }) {
+  const tier = rankTier(card.tier);
+  const story = format === "story";
+  const wide = format === "wide";
+  const s = story ? 1 : wide ? 0.62 : 0.86;
+  const rank = card.prize.kind === "rank";
+  const medal = story ? 600 : wide ? 360 : 360;
+  const label = card.prize.label;
+  const readouts: [string, string, string][] = [
+    ["CASES", card.cases.toLocaleString("en-IN"), "#34d399"],
+    ["BADGES", `${card.unlocked}/${card.of}`, "#22d3ee"],
+    [rank ? "XP" : "RANK", rank ? card.xp.toLocaleString("en-IN") : card.rank, "#fbbf24"],
+  ];
+  return (
+    <Frame tier={tier} padding={story ? 64 : wide ? 36 : 48} inset={story ? 44 : wide ? 22 : 32} radius={story ? 72 : wide ? 44 : 60}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Brand scale={s} />
+        <div style={{ display: "flex", fontSize: 20 * s, letterSpacing: 6 * s, color: tier.accent, fontWeight: 700 }}>{rank ? "PROMOTED" : "ACHIEVEMENT UNLOCKED"}</div>
+      </div>
+      <div style={{ display: "flex", flex: 1, flexDirection: wide ? "row" : "column", alignItems: "center", justifyContent: "center", gap: wide ? 30 : 10 * s }}>
+        <Medal size={medal} tier={tier} rank={rank} img={img} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: wide ? "flex-start" : "center", gap: 14 * s, ...(wide ? { flex: 1 } : {}) }}>
+          <div style={{ display: "flex", fontSize: (label.length > 18 ? 72 : 92) * s, fontWeight: 700, letterSpacing: -3 * s, lineHeight: 1.02, textAlign: wide ? "left" : "center", backgroundImage: gradient(tier.colors, 90), backgroundClip: "text", color: "transparent" }}>{label}</div>
+          <div style={{ display: "flex", fontSize: 32 * s, lineHeight: 1.35, color: "rgba(255,255,255,0.78)", maxWidth: story ? 860 : wide ? 620 : 820, textAlign: wide ? "left" : "center" }}>{card.prize.description}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 * s, marginTop: 10 * s, marginBottom: wide ? 0 : 18 * s }}>
+            <AvatarDisc avatar={card.avatar} size={64 * s} ring={3 * s} ringColor={tier.colors[1]!} />
+            <div style={{ display: "flex", fontSize: 32 * s, color: "#fff", fontWeight: 600 }}>{card.name}</div>
+          </div>
+        </div>
+      </div>
+      {!wide && (
+        <div style={{ display: "flex", gap: 14 * s, marginBottom: 22 * s }}>
+          {readouts.map(([l, value, color]) => (
+            <Readout key={l} label={l} value={value} color={color} scale={story ? 0.92 : 0.78} />
           ))}
         </div>
       )}

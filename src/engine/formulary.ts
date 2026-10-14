@@ -304,6 +304,38 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "ffp", generic: "Fresh frozen plasma", brands: ["FFP"], aliases: ["ffp", "fresh frozen plasma", "plasma"], classes: ["blood-product", "fluid"], route: "IV", dose: "2 units", frequency: "stat", fluid: true },
 ];
 
+/**
+ * The routes a drug is commonly given by, when there is more than one — so an order that doesn't
+ * say is asked about. Anything not listed is given by its one usual route.
+ */
+const ROUTE_OPTIONS: Record<string, DrugRoute[]> = {
+  paracetamol: ["PO", "IV", "PR"], diclofenac: ["PO", "IM", "IV", "PR"], ketorolac: ["IV", "IM", "PO"], tramadol: ["PO", "IV", "IM"],
+  morphine: ["IV", "IM", "SC", "PO"], fentanyl: ["IV", "IN", "IM"], pentazocine: ["IM", "IV"],
+  pantoprazole: ["PO", "IV"], omeprazole: ["PO", "IV"], esomeprazole: ["PO", "IV"], famotidine: ["PO", "IV"], ondansetron: ["PO", "IV", "IM"],
+  metoclopramide: ["PO", "IV", "IM"], drotaverine: ["PO", "IV", "IM"], hyoscine: ["IV", "IM", "PO"],
+  "amox-clav": ["PO", "IV"], azithromycin: ["PO", "IV"], ceftriaxone: ["IV", "IM"], cefuroxime: ["PO", "IV"], ciprofloxacin: ["PO", "IV"],
+  levofloxacin: ["PO", "IV"], metronidazole: ["PO", "IV"], vancomycin: ["IV", "PO"], clindamycin: ["PO", "IV"], linezolid: ["PO", "IV"],
+  gentamicin: ["IV", "IM"], cotrimoxazole: ["PO", "IV"],
+  dexamethasone: ["IV", "IM", "PO"], hydrocortisone: ["IV", "IM"], methylprednisolone: ["IV", "PO"],
+  acyclovir: ["PO", "IV"], artesunate: ["IV", "IM"],
+  "insulin-regular": ["SC", "IV"],
+  metoprolol: ["PO", "IV"], furosemide: ["IV", "PO", "IM"], torsemide: ["PO", "IV"], digoxin: ["PO", "IV"], gtn: ["SL", "IV"], "isosorbide-dinitrate": ["SL", "PO"],
+  heparin: ["IV", "SC"], enoxaparin: ["SC", "IV"], amiodarone: ["IV", "PO"], diltiazem: ["PO", "IV"], atropine: ["IV", "IM"],
+  adrenaline: ["IM", "IV", "SC"], acetylcysteine: ["IV", "PO"], naloxone: ["IV", "IM", "IN"], glucagon: ["IM", "IV", "SC"],
+  "potassium-chloride": ["IV", "PO"], "sodium-bicarbonate": ["IV", "PO"], "magnesium-sulphate": ["IV", "IM"],
+  salbutamol: ["NEB", "INH"], "levosalbutamol-ipratropium": ["NEB", "INH"], budesonide: ["NEB", "INH"],
+  phenobarbitone: ["IV", "PO", "IM"], levetiracetam: ["IV", "PO"], phenytoin: ["IV", "PO"], valproate: ["PO", "IV"],
+  lorazepam: ["IV", "IM", "PO"], midazolam: ["IV", "IM", "IN"], diazepam: ["IV", "PR", "PO"],
+  olanzapine: ["PO", "IM"], haloperidol: ["IM", "IV", "PO"], thiamine: ["IV", "IM", "PO"], methylcobalamin: ["PO", "IM"],
+  cyclophosphamide: ["IV", "PO"], "tranexamic-acid": ["PO", "IV"],
+};
+
+/** The routes this drug is given by — its usual one first. */
+export function routesFor(drug: FormularyDrug): DrugRoute[] {
+  const list = ROUTE_OPTIONS[drug.id];
+  return list ? [drug.route, ...list.filter((r) => r !== drug.route)] : [drug.route];
+}
+
 const BRAND_STEM_STOPLIST = new Set(["pause", "tide", "mox", "pan", "met", "clop", "zita", "warf", "dns", "rl", "tt"]);
 
 export function formularyDrug(id: string): FormularyDrug | undefined {
@@ -333,12 +365,12 @@ const ROUTE_PATTERNS: [RegExp, DrugRoute][] = [
   [/\b(iv|intravenous(?:ly)?|i v|infusion|bolus|drip)\b/, "IV"],
   [/\b(im|intramuscular(?:ly)?|i m)\b/, "IM"],
   [/\b(sc|s c|subcut(?:aneous(?:ly)?)?|sub cutaneous)\b/, "SC"],
-  [/\b(sl|sublingual(?:ly)?|under the tongue)\b/, "SL"],
+  [/\b(sl|sublingual(?:ly)?|under (?:the|his|her|your|their) tongue)\b/, "SL"],
   [/\b(pr|per rectal|rectal(?:ly)?|suppository)\b/, "PR"],
   [/\b(neb|nebuli[sz](?:e|ation|ed)|nebs)\b/, "NEB"],
   [/\b(inhaler|mdi|inhaled|puffs?)\b/, "INH"],
   [/\b(topical(?:ly)?|local(?:ly)?|apply|application|cream|gel|ointment|lotion)\b/, "TOP"],
-  [/\b(po|oral(?:ly)?|per oral|by mouth|tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syrup|syp)\b/, "PO"],
+  [/\b(po|oral(?:ly)?|per oral|by mouth|swallow|tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syrup|syp)\b/, "PO"],
 ];
 
 const FREQUENCY_PATTERNS: [RegExp, string][] = [
@@ -349,7 +381,8 @@ const FREQUENCY_PATTERNS: [RegExp, string][] = [
   [/\b(bd|bid|twice daily|twice a day|two times a day|1 0 1|12 hourly|q12h)\b/, "BD"],
   [/\b(tds|tid|thrice daily|three times a day|1 1 1|8 hourly|q8h)\b/, "TDS"],
   [/\b(qid|qds|four times a day|6 hourly|q6h)\b/, "QID"],
-  [/\b(hs|at night|at bedtime|bedtime|night time|nightly)\b/, "HS"],
+  [/\b(hs|at night|at bedtime|bedtime|night time|nightly|every night|every evening)\b/, "HS"],
+  [/\b(every morning|in the morning|each morning|mornings)\b/, "OD (morning)"],
   [/\b(alternate days?|every other day)\b/, "alternate days"],
 ];
 
@@ -370,10 +403,15 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
 
   // Fluid volume: litres, millilitres, ml/kg, pints.
   const litre = t.match(/(\d+(?:\.\d+)?)\s*(?:l|lt|ltr|litre|litres|liter|liters)\b/);
-  const ml = t.match(/(\d+(?:\.\d+)?)\s*(?:ml|cc)\b(?!\s*\/\s*(?:kg|h|hr|hour))/);
+  const ml = t.match(/(\d+(?:\.\d+)?)\s*(?:ml|cc)\b(?!\s*(?:\/|per|an?|each)\s*(?:kg|h|hr|hrs|hour))/);
   const mlPerKg = t.match(/(\d+(?:\.\d+)?)\s*ml\s*\/\s*kg/);
   const pints = t.match(/(\d+|one|two|three|a)\s*(?:pint|pints|unit|units)\b/);
   const wordLitre = t.match(/\b(one|two|three|four|half|a)\s*(?:l|litre|litres|liter|liters)\b/);
+  // A drip's rate: "100 mL/h", "30 drops a minute" (a standard set: 20 drops a mL).
+  const perHour = t.match(/(\d+(?:\.\d+)?)\s*(?:ml|cc)\s*(?:\/|per|an?|each)\s*(?:h|hr|hrs|hour)\b/);
+  const drops = t.match(/(\d+)\s*(?:drops?|dpm)\s*(?:\/|per|a|each)?\s*(?:min|minute)?\b/);
+  if (perHour?.[1]) out.rateMlH = parseFloat(perHour[1]);
+  else if (drops?.[1] && /drop|dpm/.test(drops[0])) out.rateMlH = parseFloat(drops[1]) * 3;
   if (mlPerKg?.[1]) out.volumeMl = Math.round(parseFloat(mlPerKg[1]) * (opts.weightKg ?? 60));
   else if (litre?.[1]) out.volumeMl = Math.round(parseFloat(litre[1]) * 1000);
   else if (wordLitre?.[1]) out.volumeMl = Math.round((wordToNumber(wordLitre[1]) ?? 1) * 1000);
@@ -385,11 +423,19 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
   const dose =
     t.match(/(\d+(?:[.,]\d+)?)\s*(mg|mcg|µg|ug|g|gm|grams?|iu|units?|u|meq|mmol|mg\/kg|vials?)(?![a-z])/) ??
     (out.volumeMl ? null : t.match(/(\d+(?:[.,]\d+)?)\s*(%)(?![a-z])/));
+  // Counted forms: "2 tablets", "one respule", "2 puffs".
+  const count = dose ? null : t.match(/\b(\d+(?:\.\d+)?|one|two|three|four|half|a|an)\s*(tabs?|tablets?|caps?|capsules?|respules?|puffs?|sachets?|ampoules?|amps?|drops?)\b/);
   if (dose?.[1] && dose[2]) {
     const unit = dose[2].replace(/^(gm|grams?)$/, "g").replace(/^(ug|µg)$/, "mcg").replace(/^u$/, "units").replace(/^unit$/, "units").replace(/^vial$/, "vials");
     out.amount = parseFloat(dose[1].replace(",", ""));
     out.unit = unit;
     out.text = `${dose[1].replace(",", "")} ${unit}`;
+  } else if (count?.[1] && count[2]) {
+    const n = wordToNumber(count[1]) ?? 1;
+    const unit = count[2].replace(/^tabs?$|^tablets$/, "tablet").replace(/^caps?$|^capsules$/, "capsule").replace(/s$/, "").replace(/^amp$/, "ampoule");
+    out.amount = n;
+    out.unit = unit;
+    out.text = `${n} ${unit}${n === 1 ? "" : "s"}`;
   } else if (out.volumeMl) {
     out.text = out.volumeMl >= 1000 ? `${+(out.volumeMl / 1000).toFixed(2)} L` : `${out.volumeMl} mL`;
   }
@@ -408,6 +454,7 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     out.overMin = /^s/.test(over[2]) ? Math.max(n / 60, 0.02) : /^h/.test(over[2]) ? n * 60 : n;
   } else if (/\b(push|bolus|stat push|iv push|rapid|rapidly|fast|wide open|free flow|free-flow)\b/.test(t)) {
     out.overMin = 1;
+    out.rapid = true;
   }
 
   // The course: "for 5 days", "x 2 weeks" ("over 2 hours" is the rate, above — though "over 3 days" is still a course).
@@ -417,6 +464,8 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     const unit = dur[2].replace(/^(wk|wks)$/, "weeks").replace(/^(hr|hrs|h)$/, "hours").replace(/^(min|mins)$/, "minutes");
     const singular = unit.replace(/s$/, "");
     out.duration = `${n} ${n === 1 ? singular : singular + "s"}`;
+  } else if (/\b(long term|longterm|life ?long|indefinitely|continue|continued|ongoing|till (?:next )?(?:review|follow up)|until (?:next )?(?:review|follow up)|chronic(?:ally)?)\b/.test(t)) {
+    out.duration = "long term";
   }
   return out;
 }

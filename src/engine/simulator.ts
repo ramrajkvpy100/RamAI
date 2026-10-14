@@ -9,12 +9,15 @@
  */
 
 import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
-import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition } from "./catalog";
+import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
+import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
+import { drugNeeds, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
-import { globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
+import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
+import { saltGrams } from "./toxicity";
 import { capitalise, describeSpan, hash, pick } from "./text";
 import type {
   ActionRecord,
@@ -73,6 +76,10 @@ export interface GivenDrug {
   multiple?: number;
   /** Minutes it was given over, when the order said. */
   overMin?: number;
+  /** IV fluid: the share of the patient's deficit it filled (0–1) — all it does for the circulation (fluids.ts). */
+  benefit?: number;
+  /** An infusion stopped part-way: when. */
+  stoppedAt?: number;
   /** Its effects are played out by a toxicity hazard rather than the drug-effect layer. */
   toxic?: boolean;
   /** Vitals whose change the case itself wrote for this drug (scheduled, not added again) — "all" for the case's definitive treatment, whose response it wrote. */
@@ -98,7 +105,21 @@ export interface ArmedHazard {
   died: boolean;
   /** Player actions taken after the hazard became visible. */
   responses: string[];
+  /** The orders that set it off ("drug:ns@12"), so what follows is put down to them. */
+  orders?: string[];
+  /** A complication of an order (the safety layer's), laid on top of the illness — not the illness's own course. */
+  iatrogenic?: boolean;
+  /** How far its stages have moved each vital (layered on the illness), so recovery takes back exactly that. */
+  shifted?: Partial<Record<ShiftKey, number>>;
+  /** The patient's status, findings and words before it began — what recovery returns to. */
+  statusBefore?: PatientStatus;
+  examBefore?: Record<string, string | null>;
+  saysBefore?: string | null;
+  /** A graver course of the same thing took over (more fluid on top of fluid): this one no longer runs. */
+  superseded?: boolean;
 }
+
+type ShiftKey = "hr" | "sbp" | "dbp" | "rr" | "spo2" | "temp" | "gcs" | "rbs" | "urine";
 
 export interface HiddenState {
   clock: number;
@@ -129,6 +150,10 @@ export interface HiddenState {
   scheduled: { at: number; patches: VitalPatch[]; status?: PatientStatus }[];
   /** Treatments being watched: the nurse reports what changed once each has had time to act. */
   watches: Watch[];
+  /** Orders given without what's needed to carry them out — asked about, waiting for the doctor's answer. */
+  pendingOrders: PendingOrder[];
+  /** When the patient responded to the definitive treatment, and to which order. */
+  responded?: { at: number; order?: string };
   hazards: ArmedHazard[];
   /** Omission hazards already evaluated at their deadline. */
   omissionsChecked: string[];
@@ -181,6 +206,7 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
     fluidMl: 0,
     scheduled: [],
     watches: [],
+    pendingOrders: [],
     hazards: [],
     omissionsChecked: [],
     treatmentResponded: false,
@@ -208,14 +234,22 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
 export interface Watch {
   label: string;
   drugId?: string;
+  /** The order this watches ("drug:ns@12"): complications it set off are its doing. */
+  order?: string;
+  /** Vitals the case says this treatment moves, and from when. */
+  authored?: { keys: VitalKey[]; from: number };
   /** When it went in. */
   at: number;
+  /** The drug as the effect layer has it (its own clock). */
+  drugAt?: number;
   /** When to look again (absolute minutes); the last one says "no change" if nothing moved. */
   checks: number[];
   reported: number;
-  /** The vitals the nurse rechecks, as they were just before. */
+  /** The vitals the nurse rechecks, as they were just before (then as last told). */
   before: Partial<Record<VitalKey, string>>;
   status: PatientStatus;
+  /** Something it did has been told. */
+  told?: boolean;
 }
 
 const WATCH_NAMES: Partial<Record<VitalKey, string>> = { hr: "pulse", bp: "BP", rr: "breathing", spo2: "SpO₂", temp: "temperature", rbs: "sugar", gcs: "GCS", pain: "pain score", urine: "urine output" };
@@ -234,12 +268,15 @@ function moved(key: VitalKey, from: string | undefined, to: string): boolean {
 }
 
 /** Starts watching a treatment: which vitals to recheck (those already measured, and those it acts on) and when. */
-function watch(hidden: HiddenState, w: { label: string; drugId?: string; at: number; checks: number[]; keys: VitalKey[] }) {
+function watch(hidden: HiddenState, w: { label: string; drugId?: string; drugAt?: number; order?: string; authored?: Watch["authored"]; at: number; checks: number[]; keys: VitalKey[] }) {
   const now = vitalsNow(hidden);
   const keys = [...new Set([...hidden.measured, ...w.keys])].filter((k) => k in WATCH_NAMES && now[k]?.value);
   const checks = [...new Set(w.checks.map((c) => Math.max(w.at, Math.round(c))))].sort((a, b) => a - b);
-  hidden.watches.push({ label: w.label, drugId: w.drugId, at: w.at, checks, reported: 0, before: Object.fromEntries(keys.map((k) => [k, now[k].value])), status: hidden.status });
+  hidden.watches.push({ label: w.label, drugId: w.drugId, drugAt: w.drugAt, order: w.order, authored: w.authored, at: w.at, checks, reported: 0, before: Object.fromEntries(keys.map((k) => [k, now[k].value])), status: hidden.status });
 }
+
+/** The key that ties a drug order to what it sets off: "drug:ns@12". */
+const orderKey = (drugId: string, at: number) => `drug:${drugId}@${at}`;
 
 /** What changed since each watched treatment, for those whose time to look has come. */
 function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEffect[] {
@@ -254,22 +291,58 @@ function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEff
     const last = due === w.checks.length;
     const now = vitalsNow(hidden);
     const changed = phone ? [] : (Object.keys(w.before) as VitalKey[]).filter((k) => moved(k, w.before[k], now[k].value));
-    const acting = w.drugId ? actingDrugs(hidden).filter((d) => d.drugId === w.drugId && d.at === w.at) : [];
+    const drugAt = w.drugAt ?? w.at;
+    const acting = w.drugId ? actingDrugs(hidden).filter((d) => d.drugId === w.drugId && d.at === drugAt) : [];
     const feel = acting.length ? drugFeeling(acting, troublesOf(def, hidden), hidden.clock) : undefined;
     const better = STATUS_RANK[hidden.status] < STATUS_RANK[w.status];
     const worse = STATUS_RANK[hidden.status] > STATUS_RANK[w.status];
-    if (!changed.length && !feel && !better && !worse && !last) continue;
+
+    // What this treatment itself did — its own action, the complications it set off, what the case says
+    // it does — kept apart from what the illness (or anything else) did meanwhile. Nothing is blamed on a
+    // drug that didn't do it.
+    const mine = new Set<VitalKey>();
+    let mineCourse = false;
+    if (w.drugId) {
+      const without = withDrugEffects(hidden.vitals, actingDrugs(hidden).filter((d) => !(d.drugId === w.drugId && d.at === drugAt)), hidden.clock);
+      for (const k of changed) if (moved(k, without[k]?.value, now[k].value)) mine.add(k);
+    } else {
+      // A measure (oxygen, a procedure) is looked at as it's done: what changed is its doing.
+      for (const k of changed) mine.add(k);
+      mineCourse = true;
+    }
+    if (w.order && hidden.hazards.some((a) => a.orders?.includes(w.order!) && a.manifestedAt !== undefined && a.manifestedAt >= w.at)) {
+      for (const k of changed) mine.add(k);
+      mineCourse = true;
+    }
+    if (w.authored && hidden.clock >= w.authored.from) for (const k of changed) if (w.authored.keys.includes(k)) mine.add(k);
+    if (w.order && hidden.responded?.order === w.order) {
+      for (const k of changed) mine.add(k);
+      mineCourse = true;
+    }
+    const own = changed.filter((k) => mine.has(k));
+    const other = changed.filter((k) => !mine.has(k));
+    const moving = better || worse;
+    if (!own.length && !feel && !(moving && mineCourse) && !last) continue;
+    // Already told: the last look adds only what's new.
+    if (last && w.told && !own.length && !feel && !moving && !other.length) continue;
     const span = describeSpan(Math.max(1, hidden.clock - w.at));
-    const parts = changed.map((k) => `${WATCH_NAMES[k]} ${w.before[k]} → ${now[k].value}${WATCH_UNITS[k] ?? ""}`);
-    const course = better ? ` ${capitalise(he)} looks better.` : worse ? ` ${capitalise(he)} looks worse.` : "";
+    const fmt = (k: VitalKey) => `${WATCH_NAMES[k]} ${w.before[k]} → ${now[k].value}${WATCH_UNITS[k] ?? ""}`;
+    const course = moving && mineCourse ? ` ${capitalise(he)} looks ${better ? "better" : "worse"}.` : "";
     const says = feel ? ` ${capitalise(he)} says: "${feel}"` : "";
-    const text = parts.length || course || says
-      ? `${span} after the ${w.label}:${parts.length ? ` ${parts.join(", ")}.` : ""}${course}${says}`
-      : `${span} after the ${w.label} — no change in ${he === "they" ? "them" : he === "she" ? "her" : "him"} so far.`;
+    const meanwhile = other.length || (moving && !mineCourse)
+      ? ` Meanwhile${other.length ? ` ${other.map(fmt).join(", ")}` : ""}${moving && !mineCourse ? `${other.length ? " —" : ""} ${he} looks ${better ? "better" : "worse"}` : ""}.`
+      : "";
+    const text = own.length || course || says
+      ? `${span} after the ${w.label}:${own.length ? ` ${own.map(fmt).join(", ")}.` : ""}${course}${says}${meanwhile}`
+      : `${span} after the ${w.label} — no change from it so far.${meanwhile}`;
     if (changed.length) {
       for (const k of changed) if (!hidden.measured.includes(k)) hidden.measured.push(k);
       fx.push({ type: "vitals", readings: changed.map((k) => reading(hidden, k)) });
     }
+    // The next look compares with now — nothing is told twice.
+    for (const k of changed) w.before[k] = now[k].value;
+    w.status = hidden.status;
+    if (own.length || course || says) w.told = true;
     // An observation on the screen, not a nurse's report: what changed, and what the patient says.
     fx.push(phone ? { type: "message", role: "attendant", kind: "speech", text: text.replace(/\s+/g, " ").trim() } : { type: "message", role: "system", kind: "finding", text: text.replace(/\s+/g, " ").trim() });
   }
@@ -300,9 +373,9 @@ export function openingEffects(def: ClinicalCaseDefinition, hidden: HiddenState)
 /* Small helpers                                                               */
 /* -------------------------------------------------------------------------- */
 
-/** The drugs given, as the effect layer reads them. */
+/** The drugs given, as the effect layer reads them. An IV fluid acts by how much of the patient's deficit it filled — nothing, if they had none. */
 function actingDrugs(hidden: HiddenState): ActingDrug[] {
-  return hidden.drugs.map((d) => ({ drugId: d.drugId, at: d.at, route: d.route, mode: d.mode, multiple: d.multiple ?? 1, overMin: d.overMin, skip: d.toxic ? "all" : d.authored }));
+  return hidden.drugs.map((d) => ({ drugId: d.drugId, at: d.at, route: d.route, mode: d.mode, multiple: d.benefit !== undefined ? d.benefit * 5 : d.multiple ?? 1, overMin: d.overMin, skip: d.toxic ? "all" : d.authored }));
 }
 
 /** The vitals as they are this minute: the patient's own course (the illness, the case's hazards) moved by every drug acting now. */
@@ -538,8 +611,9 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
         interrupts: false,
         run: () => {
           hidden.treatmentResponded = true;
-          const troubled = hidden.hazards.some((a) => a.manifestedAt !== undefined && !a.died && (a.rescuedAt === undefined || a.rescue === "too-late"));
+          const troubled = hidden.hazards.some((a) => a.manifestedAt !== undefined && !a.died && !a.superseded && (a.rescuedAt === undefined || a.rescue === "too-late"));
           if (troubled || STATUS_RANK[hidden.status] <= STATUS_RANK.stable) return [];
+          hidden.responded = { at: hidden.clock, order: drug ? orderKey(drug.drugId, drug.at) : undefined };
           hidden.status = "improving";
           settleVitals(hidden);
           const response = def.onResponse;
@@ -575,7 +649,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
   if (hidden.status === "deceased") return events;
   for (const armed of hidden.hazards) {
     const h = lib.get(armed.id);
-    if (!h || armed.died) continue;
+    if (!h || armed.died || armed.superseded) continue;
     if (armed.rescuedAt === undefined || armed.rescue === "too-late") {
       const stage = h.stages[armed.stageIdx + 1];
       if (stage) {
@@ -585,7 +659,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
             armed.stageIdx += 1;
             armed.manifestedAt ??= hidden.clock;
             if (stage.status === "deceased") armed.died = true;
-            return applyStage(def, hidden, stage);
+            return applyStage(def, hidden, stage, armed);
           },
         });
       }
@@ -597,7 +671,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
           run: () => {
             armed.recoveryIdx += 1;
             const capped: HazardStage = armed.rescue === "partial" && STATUS_RANK[stage.status] < STATUS_RANK.guarded ? { ...stage, status: "guarded" } : stage;
-            return applyStage(def, hidden, capped);
+            return applyStage(def, hidden, capped, armed, armed.recoveryIdx === h.recovery.length - 1 ? "last" : "partway");
           },
         });
       }
@@ -606,20 +680,171 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
   return events;
 }
 
-function applyStage(def: ClinicalCaseDefinition, hidden: HiddenState, stage: HazardStage): TurnEffect[] {
+const worseOf = (...statuses: PatientStatus[]): PatientStatus => statuses.reduce((a, b) => (STATUS_RANK[b] > STATUS_RANK[a] ? b : a));
+
+/** Normal ranges: a complication makes a vital worse in its own direction — never better than the illness already has it. */
+const ABNORMAL: Partial<Record<ShiftKey, [number, number]>> = { hr: [60, 100], sbp: [100, 140], rr: [12, 20], temp: [97, 99.5], rbs: [70, 180] };
+const SHIFT_LIMITS: Record<ShiftKey, [number, number]> = { hr: [0, 250], sbp: [0, 280], dbp: [0, 180], rr: [0, 60], spo2: [0, 100], temp: [86, 108], gcs: [3, 15], rbs: [10, 900], urine: [0, 1500] };
+
+/** Where a complication's stage takes a vital, given where the illness already has it. */
+function worseValue(key: ShiftKey, current: number, stage: number): number {
+  if (key === "spo2" || key === "gcs") return Math.min(current, stage);
+  const range = ABNORMAL[key === "dbp" ? "sbp" : key];
+  if (!range) return stage;
+  const [lo, hi] = range;
+  if (stage > hi && current > hi) return Math.max(current, stage);
+  if (stage < lo && current < lo) return Math.min(current, stage);
+  return stage;
+}
+
+const readNum = (hidden: HiddenState, key: ShiftKey): number | undefined => {
+  if (key === "sbp" || key === "dbp") {
+    const [s, d] = (hidden.vitals.bp?.value ?? "").split("/").map(parseFloat);
+    const v = key === "sbp" ? s : d;
+    return Number.isFinite(v) ? v : undefined;
+  }
+  const v = parseFloat(hidden.vitals[key]?.value ?? "");
+  return Number.isFinite(v) ? v : undefined;
+};
+
+/** Sets one numeric vital (BP by its halves), recording how far it moved on the hazard's layer. */
+function setNum(hidden: HiddenState, key: ShiftKey, value: number, armed?: ArmedHazard) {
+  const [lo, hi] = SHIFT_LIMITS[key];
+  const before = readNum(hidden, key);
+  if (before === undefined) return;
+  const v = Math.min(hi, Math.max(lo, value));
+  if (key === "sbp" || key === "dbp") {
+    const [s, d] = hidden.vitals.bp.value.split("/").map(parseFloat) as [number, number];
+    const ns = key === "sbp" ? Math.round(v) : s;
+    const nd = key === "dbp" ? Math.round(Math.min(v, ns - 10)) : Math.min(d, ns - 10);
+    hidden.vitals.bp = { ...hidden.vitals.bp, value: ns <= 0 ? "0/0" : `${ns}/${Math.max(0, nd)}` };
+  } else {
+    hidden.vitals[key] = { ...hidden.vitals[key], value: key === "temp" ? v.toFixed(1) : String(Math.round(v)) };
+  }
+  const after = readNum(hidden, key) ?? before;
+  if (armed?.shifted) armed.shifted[key] = (armed.shifted[key] ?? 0) + (after - before);
+}
+
+/** A complication's stage, laid on top of the illness: each vital no better than it already is, then the stage's shifts. */
+function layerStage(hidden: HiddenState, armed: ArmedHazard, stage: HazardStage): VitalKey[] {
+  const touched = new Set<VitalKey>();
+  for (const v of stage.vitals) {
+    if (v.key === "bp") {
+      const [ss, sd] = v.value.split("/").map(parseFloat);
+      const cs = readNum(hidden, "sbp"), cd = readNum(hidden, "dbp");
+      if (ss === undefined || sd === undefined || cs === undefined || cd === undefined || !Number.isFinite(ss) || !Number.isFinite(sd)) continue;
+      const ns = worseValue("sbp", cs, ss);
+      // Diastolic follows the systolic's choice.
+      const nd = ns === cs ? cd : sd;
+      setNum(hidden, "sbp", ns, armed);
+      setNum(hidden, "dbp", nd, armed);
+      touched.add("bp");
+    } else if (["hr", "rr", "spo2", "temp", "gcs", "rbs", "urine"].includes(v.key)) {
+      const cur = readNum(hidden, v.key as ShiftKey);
+      const target = parseFloat(v.value);
+      if (cur === undefined || !Number.isFinite(target)) continue;
+      setNum(hidden, v.key as ShiftKey, worseValue(v.key as ShiftKey, cur, target), armed);
+      touched.add(v.key);
+    } else {
+      hidden.vitals[v.key] = { ...v };
+      touched.add(v.key);
+    }
+  }
+  for (const [k, d] of Object.entries(stage.shift ?? {}) as [ShiftKey, number][]) {
+    const cur = readNum(hidden, k);
+    if (cur === undefined) continue;
+    setNum(hidden, k, cur + d, armed);
+    touched.add(k === "sbp" || k === "dbp" ? "bp" : (k as VitalKey));
+  }
+  return [...touched];
+}
+
+/** Recovery from a complication takes back what it did — half on the way, all of it at the end — leaving the illness as it is. */
+function undoLayer(hidden: HiddenState, armed: ArmedHazard, share: number): VitalKey[] {
+  const touched = new Set<VitalKey>();
+  for (const [k, d] of Object.entries(armed.shifted ?? {}) as [ShiftKey, number][]) {
+    if (!d) continue;
+    const cur = readNum(hidden, k);
+    if (cur === undefined) continue;
+    const back = d * share;
+    const shifted = armed.shifted!;
+    setNum(hidden, k, cur - back);
+    shifted[k] = d - back;
+    touched.add(k === "sbp" || k === "dbp" ? "bp" : (k as VitalKey));
+  }
+  return [...touched];
+}
+
+/** The worst status any other running complication or illness stage holds the patient at. */
+function heldAt(def: ClinicalCaseDefinition, hidden: HiddenState, except: ArmedHazard): PatientStatus {
+  const lib = hazardLibrary(def);
+  let worst: PatientStatus = "improving";
+  for (const a of hidden.hazards) {
+    if (a === except || a.superseded || a.died || a.stageIdx < 0 || (a.rescuedAt !== undefined && a.rescue !== "too-late")) continue;
+    const st = lib.get(a.id)?.stages[a.stageIdx]?.status;
+    if (st) worst = worseOf(worst, st);
+  }
+  return worst;
+}
+
+function applyStage(def: ClinicalCaseDefinition, hidden: HiddenState, stage: HazardStage, armed?: ArmedHazard, recovering?: "partway" | "last"): TurnEffect[] {
   const fx: TurnEffect[] = [];
   const previous = hidden.status;
+  // A complication of an order is laid on top of the illness: it never makes the patient better than the
+  // illness already has them, and recovering from it returns them to where the illness has them now.
+  const layered = !!armed?.iatrogenic && stage.status !== "deceased";
+  const status: PatientStatus = !layered
+    ? stage.status
+    : recovering
+      ? worseOf(stage.status, armed!.statusBefore ?? stage.status, heldAt(def, hidden, armed!))
+      : worseOf(stage.status, previous);
   // A patient turning critical in hospital goes on the monitor — the nurse sees to it, so every change shows from here.
-  if (!hidden.monitored && stage.status === "critical" && !["OPD", "Teleconsult"].includes(hidden.setting) && def.track !== "phone") {
+  if (!hidden.monitored && status === "critical" && !["OPD", "Teleconsult"].includes(hidden.setting) && def.track !== "phone") {
     hidden.monitored = true;
     fx.push({ type: "monitoring", on: true, rhythm: monitorRhythm(def) });
     fx.push({ type: "message", role: "system", kind: "action", text: "Patient put on the monitor." });
   }
-  applyVitals(hidden, stage.vitals);
-  for (const [examId, finding] of Object.entries(stage.examFindings ?? {})) {
-    if (finding) hidden.examOverrides[examId] = finding;
+  let touched: VitalKey[] = stage.vitals.map((v) => v.key);
+  if (layered && recovering) {
+    touched = undoLayer(hidden, armed!, recovering === "last" ? 1 : 0.5);
+  } else if (layered) {
+    touched = layerStage(hidden, armed!, stage);
+  } else {
+    applyVitals(hidden, stage.vitals);
+    for (const [k, d] of Object.entries(stage.shift ?? {}) as [ShiftKey, number][]) {
+      const cur = readNum(hidden, k);
+      if (cur !== undefined) setNum(hidden, k, cur + d);
+      touched.push(k === "sbp" || k === "dbp" ? "bp" : (k as VitalKey));
+    }
   }
-  if (stage.patientSays) hidden.patientSays = stage.patientSays;
+  if (layered && !recovering) {
+    for (const [examId, finding] of Object.entries(stage.examFindings ?? {})) {
+      if (!finding) continue;
+      armed!.examBefore ??= {};
+      if (!(examId in armed!.examBefore)) armed!.examBefore[examId] = hidden.examOverrides[examId] ?? null;
+      hidden.examOverrides[examId] = finding;
+    }
+    if (stage.patientSays) {
+      if (armed!.saysBefore === undefined) armed!.saysBefore = hidden.patientSays ?? null;
+      hidden.patientSays = stage.patientSays;
+    }
+  } else if (layered && recovering === "last") {
+    // Back to the illness's own findings and words.
+    for (const [examId, before] of Object.entries(armed!.examBefore ?? {})) {
+      if (before === null) delete hidden.examOverrides[examId];
+      else hidden.examOverrides[examId] = before;
+    }
+    hidden.patientSays = armed!.saysBefore ?? undefined;
+    if (STATUS_RANK[status] <= STATUS_RANK.guarded && stage.patientSays && armed!.saysBefore == null) hidden.patientSays = stage.patientSays;
+  } else if (layered) {
+    for (const [examId, finding] of Object.entries(stage.examFindings ?? {})) if (finding) hidden.examOverrides[examId] = finding;
+    if (stage.patientSays && STATUS_RANK[status] <= STATUS_RANK.guarded) hidden.patientSays = stage.patientSays;
+  } else {
+    for (const [examId, finding] of Object.entries(stage.examFindings ?? {})) {
+      if (finding) hidden.examOverrides[examId] = finding;
+    }
+    if (stage.patientSays) hidden.patientSays = stage.patientSays;
+  }
 
   let triage = false;
   if (stage.setting && stage.setting !== hidden.setting) {
@@ -629,13 +854,13 @@ function applyStage(def: ClinicalCaseDefinition, hidden: HiddenState, stage: Haz
     triage = stage.setting === "ER";
   }
 
-  const worse = STATUS_RANK[stage.status] > STATUS_RANK[previous];
-  if (stage.status !== previous) {
-    hidden.status = stage.status;
-    fx.push({ type: "patient_status", status: stage.status, notice: "Patient status changed." });
-    fx.push({ type: "timeline", label: stage.status === "deceased" ? "Patient died" : "Patient status changed", category: "status" });
+  const worse = STATUS_RANK[status] > STATUS_RANK[previous];
+  if (status !== previous) {
+    hidden.status = status;
+    fx.push({ type: "patient_status", status, notice: "Patient status changed." });
+    fx.push({ type: "timeline", label: status === "deceased" ? "Patient died" : "Patient status changed", category: "status" });
     // A change is noticed through the nurse, the family or the monitor; the generic notice is only for when none of them says anything.
-    if (worse && stage.status !== "deceased" && !stage.observation) fx.push({ type: "message", role: "system", kind: "status", text: "Patient status changed." });
+    if (worse && status !== "deceased" && !stage.observation) fx.push({ type: "message", role: "system", kind: "status", text: "Patient status changed." });
   }
   if (stage.observation) {
     fx.push({ type: "message", role: stage.observation.role, kind: stage.observation.role === "nurse" || stage.observation.role === "system" ? "status" : "speech", text: stage.observation.text });
@@ -643,37 +868,58 @@ function applyStage(def: ClinicalCaseDefinition, hidden: HiddenState, stage: Haz
 
   // Monitored patients (and fresh ER arrivals, via triage) show vitals as they change.
   const visible = triage
-    ? stage.vitals.map((v) => v.key)
+    ? touched
     : hidden.monitored
-      ? stage.vitals.map((v) => v.key).filter((k) => ["hr", "bp", "rr", "spo2"].includes(k))
+      ? touched.filter((k) => ["hr", "bp", "rr", "spo2"].includes(k))
       : [];
   if (visible.length > 0) {
     for (const k of visible) if (!hidden.measured.includes(k)) hidden.measured.push(k);
     fx.push({ type: "vitals", readings: visible.map((k) => reading(hidden, k)) });
   }
-  if (stage.status === "deceased") {
+  if (status === "deceased") {
     fx.push({ type: "message", role: "system", kind: "status", text: "The patient has died. End the case to review the encounter." });
   }
   return fx;
 }
 
-/** Arms a hazard; its stages count from `from` (the moment a drug went in), or from now. */
-function armHazard(def: ClinicalCaseDefinition, hidden: HiddenState, id: string, trigger: string, prescribed: boolean, from = hidden.clock) {
+/**
+ * Arms a hazard; its stages count from `from` (the moment a drug went in), or from now. `order`: the
+ * order that set it off, so what follows is put down to it.
+ */
+function armHazard(def: ClinicalCaseDefinition, hidden: HiddenState, id: string, trigger: string, prescribed: boolean, from = hidden.clock, order?: string) {
   const h = hazardLibrary(def).get(id);
   if (!h) return;
-  const live = hidden.hazards.find((a) => a.id === id && !a.died && a.rescuedAt === undefined);
+  const live = hidden.hazards.find((a) => a.id === id && !a.died && !a.superseded && a.rescuedAt === undefined);
   if (live) {
     // More of what is already doing harm: it moves on to its next stage now — a second push of adrenaline into VT brings VF.
     if (prescribed) return;
     const next = h.stages[live.stageIdx + 1];
     if (next) live.armedAt = Math.min(live.armedAt, hidden.clock - next.afterMin);
     live.trigger = `${live.trigger}; then ${trigger}`;
+    if (order) (live.orders ??= []).push(order);
     return;
   }
   // Rescued before, and given again: it starts over.
   if (hidden.hazards.some((a) => a.id === id && (a.died || prescribed))) return;
   const onset = prescribed ? h.prescribedOnsetMin ?? 0 : 0;
-  hidden.hazards.push({ id, label: h.label, triggeredAt: from, armedAt: from + onset, trigger, stageIdx: -1, recoveryIdx: -1, died: false, responses: [] });
+  const armed: ArmedHazard = {
+    id, label: h.label, triggeredAt: from, armedAt: from + onset, trigger, stageIdx: -1, recoveryIdx: -1, died: false, responses: [],
+    orders: order ? [order] : [],
+    iatrogenic: GLOBAL_HAZARD_IDS.has(id) && !def.hazards.some((x) => x.id === id),
+    shifted: {},
+    statusBefore: hidden.status,
+  };
+  // A graver course of the same thing takes over from a milder one still running — and inherits what it already did.
+  for (const a of hidden.hazards) {
+    if (!(COVERS[id] ?? []).includes(a.id) || a.died || a.superseded || a.rescuedAt !== undefined) continue;
+    a.superseded = true;
+    for (const [k, d] of Object.entries(a.shifted ?? {}) as [ShiftKey, number][]) armed.shifted![k] = (armed.shifted![k] ?? 0) + d;
+    armed.examBefore = { ...(a.examBefore ?? {}), ...(armed.examBefore ?? {}) };
+    if (a.saysBefore !== undefined) armed.saysBefore = a.saysBefore;
+    if (a.statusBefore) armed.statusBefore = a.statusBefore;
+    armed.orders = [...new Set([...(a.orders ?? []), ...(armed.orders ?? [])])];
+  }
+  hidden.hazards.push(armed);
 }
 
 /** Marks hazards as rescued when their AND-of-ORs rescue condition is met. */
@@ -775,7 +1021,7 @@ export type TreatmentQuality = "ideal" | "acceptable" | "harmful" | "untreated";
 export function treatmentQuality(def: ClinicalCaseDefinition, hidden: HiddenState): TreatmentQuality {
   const harmfulRule = def.therapeutics.some((r) => (r.appropriateness === "harmful" || r.appropriateness === "dangerous") && done(hidden, r.id));
   const harmfulDrug = hidden.drugs.some((d) => d.appropriateness === "harmful" || d.appropriateness === "dangerous" || d.frequencyError);
-  const unrescued = hidden.hazards.some((h) => h.rescue !== "full" && h.rescue !== "partial");
+  const unrescued = hidden.hazards.some((h) => !h.superseded && h.rescue !== "full" && h.rescue !== "partial");
   if (harmfulRule || harmfulDrug || unrescued) return "harmful";
   const groups = def.rubric.idealTreatment;
   const satisfied = groups.filter((g) => g.some((id) => done(hidden, id))).length;
@@ -798,6 +1044,8 @@ interface TurnContext {
   stages: EncounterStage[];
   /** One-off notices already shown this turn. */
   notices: string[];
+  /** Orders asked about this turn (they wait for the doctor's answer). */
+  asked: PendingOrder[];
 }
 
 const HISTORY_TIMELINE: Partial<Record<FactGroup, string>> = {
@@ -1075,7 +1323,7 @@ function activeHazardStage(def: ClinicalCaseDefinition, hidden: HiddenState): Ha
   const lib = hazardLibrary(def);
   const out: HazardStage[] = [];
   for (const a of hidden.hazards) {
-    if (a.stageIdx < 0 || (a.rescuedAt !== undefined && a.rescue !== "too-late")) continue;
+    if (a.superseded || a.stageIdx < 0 || (a.rescuedAt !== undefined && a.rescue !== "too-late")) continue;
     const stage = lib.get(a.id)?.stages[a.stageIdx];
     if (stage) out.push(stage);
   }
@@ -1123,9 +1371,100 @@ function knownValues(def: ClinicalCaseDefinition, hidden: HiddenState): Map<stri
   return known;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Studies of a part: which X-ray, CT, ultrasound or MRI, and what's still to be said */
+/* -------------------------------------------------------------------------- */
+
+const STUDY_TURNAROUND: Record<ImagingKind, number> = { xray: 20, ct: 45, usg: 30, mri: 120 };
+const STUDY_COST: Record<ImagingKind, number> = { xray: 400, ct: 4000, usg: 1000, mri: 7000 };
+/** A facility that can do this catalogue study can do any study of that kind. */
+const STUDY_BASE: Record<ImagingKind, string> = { xray: "cxr", ct: "ct-head", usg: "usg-abdomen", mri: "mri-brain" };
+const KIND_NAME: Record<ImagingKind, string> = { xray: "X-ray", ct: "CT", usg: "USG", mri: "MRI" };
+/** Orders that name only the kind of study ("an X-ray", "a CT"): the part is asked for. */
+const GENERIC_STUDY = new Set<string>(["xray", "ct", "usg", "mri"]);
+/** The parts the catalogue's studies are of. */
+const CATALOG_PARTS: Record<string, string[]> = {
+  cxr: ["chest"], hrct: ["chest"], "xray-abdomen": ["abdomen"], "usg-abdomen": ["abdomen", "pelvis", "kub"], "ct-abdomen": ["abdomen", "pelvis", "kub"],
+  "ct-head": ["head"], "mri-brain": ["head"], "mri-spine": ["spine", "c-spine", "t-spine", "l-spine"],
+};
+
+/** A study of a part the catalogue doesn't list ("xray-knee", "ct-chest"): named and reported from the part. */
+function partStudy(id: string): CatalogInvestigation | undefined {
+  const m = id.match(/^(xray|ct|usg|mri)-(.+)$/);
+  const region = m ? regionById(m[2]) : undefined;
+  if (!m || !region) return undefined;
+  const kind = m[1] as ImagingKind;
+  const name = id === "ct-chest" ? "CECT chest" : `${KIND_NAME[kind]} ${region.label}`;
+  return {
+    id, name, short: name, category: "imaging", menu: "Imaging", match: [],
+    turnaroundMin: STUDY_TURNAROUND[kind], cost: STUDY_COST[kind] + (id === "ct-chest" ? 1500 : 0),
+    normal: () => ({ report: region.normal[kind] ?? `No abnormality in the ${region.label}.` }),
+  };
+}
+
+/** A test in the catalogue, or a study of a part. */
+const investigationEntry = (id: string): CatalogInvestigation | undefined => catalogInvestigation(id) ?? partStudy(id);
+
+interface Study {
+  id: string;
+  kind: ImagingKind | null;
+  needs: OrderNeed[];
+  region?: string;
+  side?: string;
+  view?: string;
+  contrast?: "plain" | "contrast";
+}
+
+const str = (x: unknown) => (typeof x === "string" ? x : "");
+
+/** Which study an order is — and what it still needs said: the part, the view, contrast or not. */
+function settleStudy(def: ClinicalCaseDefinition, idIn: string, phrase: string, payload: Record<string, unknown>): Study {
+  const override = def.investigations.find((i) => i.id === idIn);
+  const generic = GENERIC_STUDY.has(idIn);
+  const kind = generic ? (idIn as ImagingKind) : imagingKind(idIn, override?.name ?? investigationEntry(idIn)?.name ?? "");
+  if (!kind) return { id: idIn, kind: null, needs: [] };
+  const said = parseImaging(`${phrase} ${str(payload.region)} ${str(payload.side)} ${str(payload.view)} ${str(payload.contrast)}`);
+  const region = str(payload.region) || said.region || (CATALOG_PARTS[idIn]?.length === 1 ? CATALOG_PARTS[idIn]![0] : undefined);
+  const needs = imagingNeeds(kind, idIn, override?.name ?? "", phrase, { ...(payload as Record<string, string>), ...(region ? { region } : {}) });
+  const study: Study = { id: idIn, kind, needs, region, side: said.side, view: said.view, contrast: said.contrast };
+  if (needs.length > 0 || !region) return study;
+  if (generic || (CATALOG_PARTS[idIn] && !CATALOG_PARTS[idIn]!.includes(region))) study.id = studyOf(def, kind, region, said.contrast);
+  else if (idIn === "hrct" && said.contrast === "contrast") study.id = "ct-chest";
+  return study;
+}
+
+/** The study of a part: the case's own, the catalogue's, or one of that part. */
+function studyOf(def: ClinicalCaseDefinition, kind: ImagingKind, region: string, contrast?: "plain" | "contrast"): string {
+  const own = def.investigations.find((i) => imagingKind(i.id, i.name ?? "") === kind && parseImaging(`${i.name ?? ""} ${(i.match ?? []).join(" ")}`).region === region);
+  if (own) return own.id;
+  if (kind === "ct" && region === "chest") return contrast === "contrast" ? "ct-chest" : "hrct";
+  return regionById(region)?.catalog?.[kind] ?? `${kind}-${region}`;
+}
+
+/** The study's name as the request reads: "Chest X-ray AP (portable)", "CECT abdomen & pelvis", "X-ray right knee AP & lateral". */
+function studyName(study: Study, base: string): string {
+  const { kind, region, view, contrast, side, id } = study;
+  if (!kind) return base;
+  if (id === "cxr") return `Chest X-ray ${view ?? "PA"}${view === "AP" ? " (portable)" : ""}`;
+  if (id === "xray-abdomen") return `X-ray abdomen ${view ?? "erect"}`;
+  if (id === "ct-head") return contrast === "contrast" ? "CECT head" : "NCCT head";
+  if (id === "ct-abdomen") return region === "kub" ? "CT KUB (plain)" : contrast === "contrast" ? "CECT abdomen & pelvis" : "NCCT abdomen & pelvis";
+  if (id === "hrct") return "HRCT chest";
+  if (id === "ct-chest") return "CECT chest";
+  if (id === "usg-abdomen") return region === "kub" ? "USG KUB" : region === "pelvis" ? "USG pelvis" : base;
+  if (partStudy(id)) {
+    const r = regionById(region);
+    const what = kind === "ct" ? (contrast === "contrast" ? "CECT" : "NCCT") : KIND_NAME[kind];
+    const sideWord = side === "both" ? "both " : side ? `${side} ` : "";
+    return `${what} ${sideWord}${r?.label ?? region ?? ""}${kind === "xray" && view ? ` ${view}` : ""}`.replace(/\s+/g, " ").trim();
+  }
+  // The case's own study: its name, with the view added when the name doesn't carry one.
+  return kind === "xray" && view && !/(view|pa|ap|lateral|erect|supine)/i.test(base) ? `${base} ${view}` : base;
+}
+
 /** What a test reports when the case has no word on it: the catalogue's normal result for this patient. */
 function catalogueResult(def: ClinicalCaseDefinition, hidden: HiddenState, id: string): OrderedInvestigation["result"] {
-  const cat = catalogInvestigation(id);
+  const cat = investigationEntry(id);
   return cat ? cat.normal({ patient: def.patient, hr: parseInt(vitalsNow(hidden).hr.value, 10) || 78, seed: hash(def.id + id) }) : {};
 }
 
@@ -1135,16 +1474,20 @@ function catalogueResult(def: ClinicalCaseDefinition, hidden: HiddenState, id: s
  * before the turn runs, consistent with the patient (stored with the action,
  * so the case replays exactly); without it, the normal result stands.
  */
-export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, id: string, phrase = ""): { id: string; name: string; analytes: LabRow[]; report: boolean } | null {
-  const cat = catalogInvestigation(id);
+export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, idIn: string, phrase = "", payload: Record<string, unknown> = {}): { id: string; name: string; analytes: LabRow[]; report: boolean } | null {
+  // A study still waiting for its part, view or contrast to be said isn't done yet.
+  const study = settleStudy(def, idIn, phrase, payload);
+  if (study.needs.length > 0 || GENERIC_STUDY.has(study.id) || idIn === "blood") return null;
+  const id = study.id;
+  const cat = investigationEntry(id);
   const override = def.investigations.find((i) => i.id === id);
   if (!cat && !override) return null;
   // Nothing to write for a test that won't be done: on the phone, beyond this facility, or just done.
-  if (def.track === "phone" || !canPerform(def.level, id, { inCatalog: !!cat, minLevel: override?.minLevel })) return null;
+  if (def.track === "phone" || !canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel })) return null;
   const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
   if (prior && !REPEAT_RE.test(phrase) && (!prior.delivered || hidden.clock - prior.resultAt < RECENT_MIN)) return null;
   const normal = catalogueResult(def, hidden, id);
-  const name = override?.name ?? cat?.name ?? id;
+  const name = studyName(study, override?.name ?? cat?.name ?? id);
   const written = new Set((override?.rows ?? []).map((r) => analyteKey(r.analyte)));
   const known = knownValues(def, hidden);
   const analytes = override?.report || override?.media ? [] : (normal.rows ?? []).filter((r) => !written.has(analyteKey(r.analyte)) && !known.has(analyteKey(r.analyte)));
@@ -1165,9 +1508,31 @@ function generatedResult(record: ActionRecord, id: string): { rows?: LabRow[]; r
 
 function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
-  const id = intent.targetId ?? "";
+  const payload = intent.payload ?? {};
+  const requested = intent.targetId ?? "";
+
+  // "Send bloods": which ones?
+  if (requested === "blood") {
+    if (def.track === "phone") return [];
+    return askAbout(ctx, { kind: "investigation", targetId: "blood", payload, phrase: intent.phrase, needs: ["tests"] }, `Which blood tests${askerRole(ctx, "test") === "system" ? "" : ", doctor"}?`, "test");
+  }
+  // "Show me the X-ray" — the last study of that kind.
+  if (GENERIC_STUDY.has(requested) && payload.reshow) {
+    const region = parseImaging(intent.phrase).region;
+    const last = [...hidden.investigations].reverse().find((i) => imagingKind(i.defId, i.name) === requested && (!region || parseImaging(i.name).region === region || CATALOG_PARTS[i.defId]?.includes(region)));
+    if (last?.delivered) {
+      if (payload.report && last.result.report) return [{ type: "message", role: "system", kind: "finding", text: `${last.name} report — ${last.result.report}`, attachmentIds: [last.instanceId] }];
+      return [{ type: "message", role: "system", kind: "finding", text: `${last.name} — showing the result again.`, attachmentIds: [last.instanceId] }];
+    }
+  }
+  // An imaging order: which part, which view, contrast or not — asked when not said.
+  const study = settleStudy(def, requested, intent.phrase, payload);
+  if (study.needs.length > 0 && !payload.reshow && def.track !== "phone") {
+    return askAbout(ctx, { kind: "investigation", targetId: requested, payload: { ...payload, ...(study.region ? { region: study.region } : {}) }, phrase: intent.phrase, needs: study.needs }, imagingQuestion(study.kind!, study.needs, { ...payload, ...(study.region ? { region: study.region } : {}) }, askerRole(ctx, "test") !== "system"), "test");
+  }
+  const id = study.id;
   const override = def.investigations.find((i) => i.id === id);
-  const cat = catalogInvestigation(id);
+  const cat = investigationEntry(id);
   if (!override && !cat) return [];
 
   // "Show me the ECG again" — re-display an existing result rather than repeating the test.
@@ -1204,12 +1569,12 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     }
     return [];
   }
-  if (!canPerform(def.level, id, { inCatalog: !!cat, minLevel: override?.minLevel })) {
+  if (!canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel })) {
     hidden.unavailable.push(id);
     return [{ type: "message", role: "system", kind: "status", text: `${testName} isn't available at this ${facilityName(def)}. Decide clinically, or refer.` }];
   }
 
-  const name = override?.short ?? cat?.short ?? override?.name ?? id;
+  const name = study.kind ? studyName(study, override?.short ?? cat?.short ?? override?.name ?? id) : override?.short ?? cat?.short ?? override?.name ?? id;
   const category = override?.category ?? cat?.category ?? "lab";
   const turnaround = INSTANT_RESULTS ? 0 : (override?.turnaroundMin ?? cat?.turnaroundMin ?? 30);
   const cost = override?.cost ?? cat?.cost ?? 0;
@@ -1240,6 +1605,17 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   for (const stage of activeHazardStage(def, hidden)) {
     const o = stage.investigations?.[id];
     if (o) result = { rows: o.rows ?? result.rows, report: o.report ?? result.report, media: o.media ?? result.media };
+  }
+  // The film as it was taken: an AP portable chest film can't judge the heart's size; a supine abdomen can't show fluid levels.
+  if (id === "cxr" && study.view?.startsWith("AP")) {
+    const spec = result.media?.spec;
+    if (result.media && spec?.kind === "xray") result = { ...result, media: { ...result.media, spec: { ...spec, view: "AP" }, alt: "Anteroposterior portable chest radiograph.", caption: "AP portable · semi-erect" } };
+    if (!override?.report && !generated?.report && !activeHazardStage(def, hidden).some((st) => st.investigations?.cxr)) {
+      result = { ...result, report: "AP portable film. Trachea central. Heart size can't be judged reliably on an AP film; mediastinum within normal limits for the projection. Lung fields clear. Costophrenic angles sharp." };
+    }
+  }
+  if (id === "xray-abdomen" && study.view?.includes("supine") && !override?.report && !generated?.report) {
+    result = { ...result, report: "Supine film: normal bowel gas pattern. No dilated loops. (Air–fluid levels and free gas under the diaphragm need an erect film.)" };
   }
 
   hidden.invSeq += 1;
@@ -1275,6 +1651,25 @@ function findConcernRule(def: ClinicalCaseDefinition, drug: FormularyDrug | unde
   return def.therapeutics.find((r) => r.concernsDrugs?.some((x) => x === drug.id || drug.classes.includes(x as never)));
 }
 
+/**
+ * Who takes an order and asks about what it's missing: the nurse at the bedside, the relative on the
+ * phone. A prescription, and an outpatient test request, are the doctor's own to complete.
+ */
+function askerRole(ctx: TurnContext, mode: "given" | "prescribed" | "test"): MessageRole {
+  if (ctx.def.track === "phone") return "attendant";
+  if (mode === "prescribed" || (mode === "test" && ["OPD", "Teleconsult"].includes(ctx.hidden.setting))) return "system";
+  return "nurse";
+}
+
+/** Asks for an order's missing details; the order waits for the doctor's answer (one turn). */
+function askAbout(ctx: TurnContext, pending: PendingOrder, question: string, mode: "given" | "prescribed" | "test"): TurnEffect[] {
+  const role = askerRole(ctx, mode);
+  ctx.hidden.pendingOrders = [...ctx.hidden.pendingOrders.filter((o) => !(o.kind === pending.kind && o.targetId === pending.targetId)), pending];
+  ctx.asked.push(pending);
+  ctx.stages.push("treatment");
+  return [{ type: "message", role, kind: role === "system" ? "status" : "speech", text: question }];
+}
+
 function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
@@ -1283,19 +1678,30 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     fx.push({ type: "message", role: "system", kind: "action", text: "Which medicine, dose and route?" });
     return fx;
   }
-  const p = intent.payload ?? {};
-  const mode = (p.mode as "given" | "prescribed") ?? "prescribed";
-  if (def.track === "phone" && ["IV", "IM", "SC", "NEB"].includes(String(p.route ?? drug.route))) {
+  const mode = (intent.payload?.mode as "given" | "prescribed") ?? "prescribed";
+  if (def.track === "phone" && ["IV", "IM", "SC", "NEB"].includes(String(intent.payload?.route ?? drug.route))) {
     fx.push({ type: "message", role: "attendant", kind: "speech", text: "Doctor, we can't give injections or drips at home." });
     return fx;
+  }
+  // An order without what it takes to carry it out — the dose, the route, a drip's volume and rate, a
+  // prescription's frequency and duration — is asked about, not guessed.
+  const p = intent.payload?.usual === true ? usualOrder(drug, intent.payload, mode) : intent.payload ?? {};
+  const needs = drugNeeds(drug, p, mode);
+  if (needs.length > 0) {
+    const question = def.track === "phone" ? phoneDrugQuestion(drug, needs) : drugQuestion(drug, needs, p, askerRole(ctx, mode) !== "system");
+    return askAbout(ctx, { kind: "drug", targetId: drug.id, payload: { ...p, mode }, phrase: intent.phrase, needs }, question, mode);
   }
   const route = (p.route as DrugRoute) ?? drug.route;
   const amount = typeof p.amount === "number" ? p.amount : undefined;
   const unit = typeof p.unit === "string" ? p.unit : undefined;
-  const dose = (p.dose as string | undefined) ?? drug.dose;
+  let dose = (p.dose as string | undefined) ?? drug.dose;
   const frequency = (p.frequency as string | undefined) ?? (mode === "prescribed" ? drug.frequency : "stat");
   const duration = p.duration as string | undefined;
-  const volumeMl = drug.fluid ? (typeof p.volumeMl === "number" ? p.volumeMl : drug.id === "prbc" ? 350 : 500) : undefined;
+  const volumeMl = drug.fluid ? (typeof p.volumeMl === "number" ? p.volumeMl : drug.id === "prbc" ? 350 * (typeof p.amount === "number" ? p.amount : 1) : 500) : undefined;
+  // A drip at a rate: the bag runs over as long as that rate takes.
+  const rateMlH = typeof p.rateMlH === "number" && p.rateMlH > 0 ? p.rateMlH : undefined;
+  if (drug.fluid && volumeMl && typeof p.dose !== "string") dose = volumeMl >= 1000 ? `${+(volumeMl / 1000).toFixed(2)} L` : `${volumeMl} mL`;
+  if (rateMlH) dose = `${dose ?? ""} at ${rateMlH} mL/h`.trim();
 
   const minutes = mode === "given" ? (route === "IV" || route === "IM" || route === "NEB" ? 3 : 1) : 1;
   // When it went in: what it does counts from here, though giving it takes a few minutes.
@@ -1311,15 +1717,24 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   }
   const frequencyError = !!(rule?.wrongFrequencies && frequency && rule.wrongFrequencies.some((f) => f.toLowerCase() === frequency.toLowerCase()));
 
-  if (drug.fluid && route === "IV" && mode === "given") hidden.fluidMl += volumeMl ?? 0;
   // How much it is (ten litres is twenty bags) and how fast — the drug-effect layer and the toxicity hazards both read it.
   const weightKg = parseFloat(hidden.vitals.weight.value) || 60;
   const multiple = doseMultiple(drug, { amount, unit, volumeMl }, weightKg);
-  const overMin = typeof p.overMin === "number" && p.overMin > 0 ? p.overMin : undefined;
+  // A drip "stat" or "fast" runs as fast as a pressure bag through a wide cannula allows (about 100 mL a minute) — not in one minute.
+  const overMin = drug.fluid && rateMlH && volumeMl ? Math.round((volumeMl / rateMlH) * 60) : typeof p.overMin === "number" && p.overMin > 0 ? (drug.fluid && p.rapid === true ? Math.max(5, (volumeMl ?? 500) / 100) : p.overMin) : undefined;
+  // IV fluid acts by what the patient needs: it fills a deficit (and helps), and beyond it, less what
+  // the kidneys clear, it collects in the lungs.
+  let fluid: ReturnType<typeof fluidOutcome> | undefined;
+  if (drug.fluid && route === "IV" && mode === "given" && volumeMl) {
+    const before: FluidGiven[] = hidden.drugs.filter((d) => formularyDrug(d.drugId)?.fluid && d.route === "IV" && d.mode === "given" && d.volumeMl).map((d) => ({ at: d.at, volumeMl: d.volumeMl!, drugId: d.drugId, overMin: d.overMin }));
+    const saltLoaded = hidden.hazards.some((a) => (a.id === "salt-poisoning" || a.id.startsWith("fluid-")) && !a.died && !a.superseded && a.rescuedAt === undefined);
+    fluid = fluidOutcome(volumeState(def, { ...arrivalVitals(def), weight: hidden.vitals.weight.value }, saltLoaded), before, { at: startedAt, volumeMl, drugId: drug.id, overMin });
+    hidden.fluidMl += volumeMl;
+  }
 
   const given: GivenDrug = {
     drugId: drug.id, generic: drug.generic, brand: drug.brands[0], classes: drug.classes, at: hidden.clock,
-    mode, route, dose, amount, unit, frequency, duration, volumeMl, multiple, overMin,
+    mode, route, dose, amount, unit, frequency, duration, volumeMl, multiple, overMin, benefit: fluid?.benefit,
     authored: rule && def.rubric.definitiveTreatment?.ids.includes(rule.id) ? "all" : rule?.vitalsAfter?.flatMap((v): EffectKey[] => (v.key === "bp" ? ["sbp", "dbp"] : [v.key as EffectKey])),
     ruleId: rule?.id, appropriateness, doseError, frequencyError,
   };
@@ -1337,7 +1752,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const verb = route === "IV" && drug.fluid ? "running" : route === "NEB" ? "nebulisation started" : "given";
     const k = kineticsFor(drug, route);
     const full = Math.max(k.peak, overMinOf(p) ?? 0);
-    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}. ${k.onset <= minutes ? "Starting to act" : `Starts to act in about ${describeSpan(k.onset)}`}, full effect by about ${describeSpan(full)} — what changes will be reported.` });
+    const rate = drug.fluid && overMin && !rateMlH ? ` over ${describeSpan(overMin)}` : "";
+    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. ${k.onset <= minutes ? "Starting to act" : `Starts to act in about ${describeSpan(k.onset)}`}, full effect by about ${describeSpan(full)} — what changes will be reported.` });
   } else {
     fx.push({ type: "message", role: "system", kind: "action", text: `Prescribed — ${prescriptionLine({ generic: drug.generic, dose, route, frequency, duration })}` });
   }
@@ -1345,8 +1761,12 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   for (const r of rule?.response ?? []) fx.push({ type: "message", role: r.role, kind: r.kind, text: r.text });
 
   // Consequences.
+  const salt = (d: { amount?: number; unit?: string; multiple?: number }) => saltGrams(d);
+  const saltBefore = hidden.drugs.filter((d) => d.drugId === "table-salt" && d !== given).reduce((sum, d) => sum + salt(d), 0);
   const snap = {
     fluidMl: hidden.fluidMl,
+    fluid: fluid ? { tier: fluid.tier, tierBefore: fluid.tierBefore, large: fluid.large } : undefined,
+    salt: drug.id === "table-salt" ? { before: saltBefore, after: saltBefore + salt({ amount, unit, multiple }), weightKg } : undefined,
     recentOpioidMme: hidden.drugs.filter((d) => d.classes.includes("opioid") && d.mode === "given" && hidden.clock - d.at <= 60).reduce((s, d) => s + morphineEquivalent(d.drugId, d.amount, d.unit), 0),
     rbs: parseFloat(vitalsNow(hidden).rbs.value) || 100,
     drugIds: hidden.drugs.map((d) => d.drugId),
@@ -1355,16 +1775,19 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     arrested: hidden.status === "deceased",
   };
   const prescribed = mode === "prescribed";
+  const order = orderKey(drug.id, given.at);
   const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
-  for (const hz of triggered) armHazard(def, hidden, hz, label, prescribed, startedAt);
+  // Fluid overload starts when the infusion crosses into it, not when the bag is hung.
+  for (const hz of triggered) armHazard(def, hidden, hz, label, prescribed, startedAt + (hz.startsWith("fluid-") ? fluid?.crossAfterMin ?? 0 : 0), order);
   // What this order does to the patient is now that hazard's course — not the drug's usual effect as well.
-  if (triggered.length > 0) given.toxic = true;
+  // (A fluid still does what it does for a deficit, whatever it does to the lungs beyond it.)
+  if (triggered.some((hz) => !hz.startsWith("fluid-"))) given.toxic = true;
   if (rule?.arms) {
     const h = hazardLibrary(def).get(rule.arms);
     const cond = h?.condition;
     const fluidOk = !cond?.minFluidMl || hidden.fluidMl > cond.minFluidMl;
     const freqOk = !cond?.frequencyAnyOf || (!!frequency && cond.frequencyAnyOf.some((f) => f.toLowerCase() === frequency.toLowerCase()));
-    if (fluidOk && freqOk) armHazard(def, hidden, rule.arms, label, prescribed);
+    if (fluidOk && freqOk) armHazard(def, hidden, rule.arms, label, prescribed, hidden.clock, order);
   }
   // What the case says this treatment does, once it has had time to act: partway by its onset, fully by its peak.
   // (The guided demo responds at once, as scripted.)
@@ -1389,7 +1812,15 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const peak = Math.max(k.peak, overMin ?? 0);
     const acts = Object.keys(profileFor(drug)?.effects ?? {}).map((e) => EFFECT_VITAL[e as EffectKey]);
     const authored = (rule?.vitalsAfter ?? []).map((v) => v.key);
-    watch(hidden, { label: `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}`, drugId: drug.id, at: startedAt, checks: [startedAt + Math.min(k.onset, peak), startedAt + peak], keys: [...acts, ...authored] });
+    // A fluid that floods the lungs is watched where it shows: breathing and saturation.
+    const lungs: VitalKey[] = fluid && fluid.tier > 0 ? ["rr", "spo2"] : [];
+    const checks = [startedAt + Math.min(k.onset, peak), startedAt + peak];
+    watch(hidden, {
+      label: `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}${overMin && drug.fluid ? ` over ${describeSpan(overMin)}` : ""}`,
+      drugId: drug.id, drugAt: given.at, order,
+      authored: authored.length && !def.guided ? { keys: authored, from: hidden.clock + Math.min(k.onset, Math.max(1, overMin ?? 0, k.peak)) } : undefined,
+      at: startedAt, checks, keys: [...acts, ...authored, ...lungs],
+    });
     if (startedAt + peak > hidden.clock) fx.push({ type: "watching", label: drug.generic, until: startedAt + peak });
   }
   noteResponse(hidden, `${label} ${mode}`);
@@ -1408,6 +1839,11 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
     watch(hidden, { label: rule.label.toLowerCase(), at: hidden.clock, checks: [hidden.clock], keys: (rule.vitalsAfter ?? []).map((v) => v.key) });
   }
 
+  // Oxygen without a device or flow is asked about before anything is done.
+  if (rule.measureIds?.includes("oxygen") && intent) {
+    const asked = askOxygen(ctx, intent, rule.id);
+    if (asked) return asked;
+  }
   // A rule built on catalogue measures (monitor, admit, oxygen…) performs the measure itself,
   // then adds the case-specific consequences.
   if (rule.measureIds?.length) {
@@ -1485,10 +1921,29 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
   return fx;
 }
 
+/** Oxygen as ordered: the device and flow said (or asked for). */
+function oxygenOrdered(intent: ResolvedIntent) {
+  const p = intent.payload ?? {};
+  return { ...parseOxygen(intent.phrase), ...(typeof p.device === "string" ? { device: p.device as ReturnType<typeof parseOxygen>["device"] } : {}), ...(typeof p.flowL === "number" ? { flowL: p.flowL } : {}), ...(typeof p.fio2 === "number" ? { fio2: p.fio2 } : {}) };
+}
+
+/** Oxygen without a device or flow: the nurse asks. Returns the question, or null when it can go on. */
+function askOxygen(ctx: TurnContext, intent: ResolvedIntent, targetId: string): TurnEffect[] | null {
+  if (ctx.def.track === "phone" || ctx.def.guided) return null;
+  const o = oxygenOrdered(intent);
+  const needs = oxygenNeeds(o);
+  if (needs.length === 0) return null;
+  return askAbout(ctx, { kind: "oxygen", targetId, payload: { ...(intent.payload ?? {}) }, phrase: intent.phrase, needs }, oxygenQuestion(o, needs, askerRole(ctx, "given") !== "system"), "given");
+}
+
 function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedIntent): TurnEffect[] {
   const { hidden } = ctx;
   const m = catalogMeasure(measureId);
   if (!m) return [];
+  if (m.id === "oxygen" && intent.targetId === "measure:oxygen") {
+    const asked = askOxygen(ctx, intent, "measure:oxygen");
+    if (asked) return asked;
+  }
   const fx: TurnEffect[] = [];
   record(hidden, `measure:${m.id}`);
   hidden.clock += m.durationMin;
@@ -1511,12 +1966,21 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
     }
     case "oxygen":
     case "niv": {
-      watch(hidden, { label: m.id === "niv" ? "BiPAP" : "oxygen", at: hidden.clock, checks: [hidden.clock], keys: ["spo2"] });
+      const o2 = m.id === "oxygen" ? oxygenDelivered(oxygenOrdered(intent)) : undefined;
+      watch(hidden, { label: m.id === "niv" ? "BiPAP" : `oxygen (${o2!.label})`, at: hidden.clock, checks: [hidden.clock], keys: ["spo2"] });
       const spo2 = parseFloat(hidden.vitals.spo2.value);
-      const gain = m.id === "niv" ? 6 : 4;
-      if (spo2 < 95 && spo2 > 0) applyVitals(hidden, [{ key: "spo2", value: String(Math.min(97, Math.round(spo2 + gain))) }]);
-      fx.push({ type: "message", role: actor, kind: "action", text: m.id === "niv" ? "BiPAP started via full-face mask." : "Oxygen started via face mask at 6 L/min." });
-      fx.push({ type: "timeline", label: m.label, category: "treatment" });
+      // Saturation rises with the oxygen breathed (FiO₂) — less where blood is shunted past flooded or collapsed lung.
+      const shunt = hidden.hazards.some((a) => !a.superseded && a.manifestedAt !== undefined && !a.died && a.rescuedAt === undefined);
+      if (spo2 > 0 && spo2 < 96) {
+        if (m.id === "niv") applyVitals(hidden, [{ key: "spo2", value: String(Math.min(97, Math.round(spo2 + 6))) }]);
+        else {
+          const reach = 1 - Math.exp(-(o2!.fio2 - 21) / 15);
+          const gain = (99 - spo2) * reach * (shunt ? 0.45 : 0.85);
+          applyVitals(hidden, [{ key: "spo2", value: String(Math.min(98, Math.round(spo2 + gain))) }]);
+        }
+      }
+      fx.push({ type: "message", role: actor, kind: "action", text: m.id === "niv" ? "BiPAP started via full-face mask." : `Oxygen started — ${o2!.label}.` });
+      fx.push({ type: "timeline", label: m.id === "niv" ? m.label : `Oxygen — ${o2!.label}`, category: "treatment" });
       break;
     }
     case "admit": {
@@ -1553,10 +2017,33 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       fx.push({ type: "timeline", label: drug ? `${drug.generic} stopped` : "Medication stopped", category: "treatment" });
       break;
     }
-    case "stop-fluids":
-      fx.push({ type: "message", role: actor, kind: "action", text: "IV fluids stopped." });
+    case "stop-fluids": {
+      // A drip stopped part-way has given only what ran in; what was still to come won't flood the lungs.
+      const running = hidden.drugs.filter((d) => formularyDrug(d.drugId)?.fluid && d.route === "IV" && d.mode === "given" && d.volumeMl && d.stoppedAt === undefined && hidden.clock - d.at < Math.max(1, d.overMin ?? 15));
+      for (const d of running) {
+        const share = Math.max(0, hidden.clock - d.at) / Math.max(1, d.overMin ?? 15);
+        d.volumeMl = Math.round(d.volumeMl! * share);
+        if (d.benefit !== undefined) d.benefit *= share;
+        d.overMin = Math.max(1, hidden.clock - d.at);
+        d.stoppedAt = hidden.clock;
+      }
+      if (running.length > 0) {
+        const lib = hazardLibrary(ctx.def);
+        for (const a of hidden.hazards) {
+          if (!a.id.startsWith("fluid-") || a.superseded || a.stageIdx >= 0) continue;
+          const first = lib.get(a.id)?.stages[0];
+          if (first && a.armedAt + first.afterMin > hidden.clock) a.superseded = true;
+        }
+        const state = volumeState(ctx.def, { ...arrivalVitals(ctx.def), weight: hidden.vitals.weight.value });
+        const given: FluidGiven[] = hidden.drugs.filter((d) => formularyDrug(d.drugId)?.fluid && d.route === "IV" && d.mode === "given" && d.volumeMl).map((d) => ({ at: d.at, volumeMl: d.volumeMl!, drugId: d.drugId, overMin: d.overMin }));
+        const tier = tierAt(state, given, hidden.clock);
+        const live = hidden.hazards.some((a) => a.id.startsWith("fluid-") && !a.superseded && !a.died && a.rescuedAt === undefined);
+        if (tier > 0 && !live) armHazard(ctx.def, hidden, tier === 3 ? "fluid-catastrophe" : tier === 2 ? "fluid-flood" : "fluid-overload", "IV fluid beyond the deficit", false, hidden.clock, running[0] ? orderKey(running[0].drugId, running[0].at) : undefined);
+      }
+      fx.push({ type: "message", role: actor, kind: "action", text: running.length ? `IV fluids stopped — ${running.map((d) => `${d.volumeMl} mL of the ${d.generic.toLowerCase()} had gone in`).join("; ")}.` : "IV fluids stopped." });
       fx.push({ type: "timeline", label: "IV fluids stopped", category: "treatment" });
       break;
+    }
     case "cpr":
       if (hidden.status === "deceased") {
         fx.push({ type: "message", role: "system", kind: "status", text: "CPR continued for 20 minutes per ACLS. No return of spontaneous circulation." });
@@ -1700,7 +2187,7 @@ const SIGNIFICANT: ResolvedIntent["kind"][] = ["history", "vitals", "exam", "inv
 
 export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record: ActionRecord): TurnEffect[] {
   const fx: TurnEffect[] = [];
-  const ctx: TurnContext = { def, hidden, record, sent: [], stages: [], notices: [] };
+  const ctx: TurnContext = { def, hidden, record, sent: [], stages: [], notices: [], asked: [] };
   const conversational = record.intents.some((i) => i.kind === "history" || i.kind === "greeting" || (i.kind === "unknown" && (i.payload?.question || i.payload?.speaker === "patient" || i.payload?.speaker === "attendant")));
   // A real-time tick has no words: time passes without the doctor saying anything.
   const tick = isTick(record);
@@ -1708,6 +2195,9 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
 
   if (hidden.closed) return fx;
   if (!tick && record.intents.some((i) => i.matched && SIGNIFICANT.includes(i.kind))) hidden.actionCount += 1;
+  // An order asked about waits for one answer: whatever the doctor says next, it doesn't wait longer
+  // (unless they only said "ok" — then it's asked again). The clock running on its own doesn't count.
+  if (!tick && !record.intents.some((i) => i.payload?.keepPending === true)) hidden.pendingOrders = [];
 
   // Several vitals in one instruction are one measurement ("Check BP and RBS").
   const vitalKeys = record.intents.filter((i) => i.kind === "vitals").flatMap((i) => (i.targetId ?? "").split(",").filter(Boolean)) as VitalKey[];

@@ -48,7 +48,7 @@ describe("guided demo case", () => {
     const { hidden, state } = play(TUTORIAL_CASE, [
       "What happened?", "Is he diabetic?", "What medicines does he take?", "When did he last eat?", "Any allergies?", "Check RBS",
       "Give 25% dextrose 100 mL IV", "Recheck RBS", "Check vitals", "Examine the patient", "Neurological examination",
-      "Start 10% dextrose infusion", "Stop glimepiride", "Admit to the ward", "Diagnosis: sulfonylurea induced hypoglycaemia", "End case",
+      "Start 10% dextrose at 100 mL/h", "Stop glimepiride", "Admit to the ward", "Diagnosis: sulfonylurea induced hypoglycaemia", "End case",
     ]);
     const debrief = generateDebrief(TUTORIAL_CASE, hidden, state);
     expect(debrief.verdict).toBe("correct");
@@ -64,8 +64,8 @@ describe("guided demo case abroad — the coach's words work", () => {
   ];
 
   it.each([
-    ["US", plan("Check glucose", "Give D50 50 mL IV", "Recheck glucose", "Start D10 infusion")],
-    ["UK", plan("Check CBG", "Give 20% glucose 100 mL IV", "Recheck CBG", "Start 10% glucose infusion")],
+    ["US", plan("Check glucose", "Give D50 50 mL IV", "Recheck glucose", "Start D10 at 100 mL/h")],
+    ["UK", plan("Check CBG", "Give 20% glucose 100 mL IV", "Recheck CBG", "Start 10% glucose at 100 mL/h")],
   ] as const)("%s: same recovery, same score", async (country, inputs) => {
     const { localizeCase } = await import("@/engine/i18n/country");
     const def = localizeCase(TUTORIAL_CASE, country);

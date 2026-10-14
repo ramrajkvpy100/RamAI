@@ -75,6 +75,16 @@ function generic(text: string, speaker: Speaker, p: PatientIdentity): string | u
     return `Ghar pe sirf ${devices} hai, doctor${m[2] ? " — baaki check nahi kar sakte" : ""}.`;
   }
   if ((m = text.match(/^The machine shows (.+)\.$/))) return `Machine mein ${m[1]} aa raha hai.`;
+  if ((m = text.match(/^Doctor, how much (.+) should we give(, and how often)?(, and for how many days)?\?$/))) {
+    return `Doctor, ${m[1]} kitna dena hai${m[2] ? ", aur din mein kitni baar" : ""}${m[3] ? ", aur kitne din tak" : ""}?`;
+  }
+  if ((m = text.match(/^Doctor, should we give the (.+?) (by mouth|under the tongue|in the back passage|by inhaler|by nebuliser|on the skin|in the nose)(?:, )?(.*?)(, and how often)?(, and for how many days)?\?$/))) {
+    const lay: Record<string, string> = { "by mouth": "khila dein", "under the tongue": "jeebh ke neeche rakhein", "in the back passage": "peeche se dein", "by inhaler": "inhaler se dein", "by nebuliser": "nebuliser se dein", "on the skin": "skin pe lagayein", "in the nose": "naak mein dein" };
+    const ways = text.match(/by mouth|under the tongue|in the back passage|by inhaler|by nebuliser|on the skin|in the nose/g) ?? [];
+    return `Doctor, ${m[1]} ${ways.map((w) => lay[w]).join(" ya ")}${m[4] ? ", aur din mein kitni baar" : ""}${m[5] ? ", aur kitne din tak" : ""}?`;
+  }
+  if ((m = text.match(/^Doctor, how often should we give the (.+?)(, and for how many days)?\?$/))) return `Doctor, ${m[1]} din mein kitni baar dena hai${m[2] ? ", aur kitne din tak" : ""}?`;
+  if ((m = text.match(/^Doctor, for how many days should we give the (.+)\?$/))) return `Doctor, ${m[1]} kitne din tak dena hai?`;
   if ((m = text.match(/^Okay, doctor — (he's|she's|they're) taking the (.+) now\.$/))) {
     return `Theek hai doctor — abhi ${m[2]} le ${m[1] === "she's" ? "rahi" : "rahe"} hain.`;
   }

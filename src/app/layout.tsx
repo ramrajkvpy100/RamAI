@@ -8,7 +8,6 @@ import { SITE } from "@/lib/site";
 
 import "./globals.css";
 import { QuickSuggest } from "@/components/suggestions/quick-suggest";
-import { InterfaceSounds } from "@/components/app/interface-sounds";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
@@ -52,7 +51,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <StartingOverlay />
         <ServiceWorker />
         <QuickSuggest />
-        <InterfaceSounds />
       </body>
     </html>
   );

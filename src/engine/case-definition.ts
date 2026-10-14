@@ -175,6 +175,11 @@ export interface HazardStage {
   afterMin: number;
   status: PatientStatus;
   vitals: VitalPatch[];
+  /**
+   * Changes on top of where the patient is (+6 breaths a minute, −4% saturation), for a complication
+   * that adds to the illness rather than replacing it. Applied after `vitals`.
+   */
+  shift?: Partial<Record<"hr" | "sbp" | "dbp" | "rr" | "spo2" | "temp" | "gcs" | "rbs" | "urine", number>>;
   /** Observable sign surfaced by the patient, an attendant or nursing staff. */
   observation?: { role: MessageRole; text: string };
   /** Examination findings that change while this stage is current (by exam id). */
@@ -241,6 +246,10 @@ export interface PatientProfile {
   thrombocytopenia?: boolean;
   /** Cumulative IV crystalloid (mL) above which pulmonary oedema develops. */
   fluidToleranceMl?: number;
+  /** The patient's fluid state on arrival — read from the illness when not given (see fluids.ts). */
+  volume?: "depleted" | "normal" | "overloaded";
+  /** How much fluid the patient is short of, mL/kg (30 moderate dehydration or septic shock, 70–100 DKA or cholera). */
+  fluidDeficitMlPerKg?: number;
   weightKg?: number;
 }
 
@@ -386,4 +395,8 @@ export interface ParsedDose {
   volumeMl?: number;
   /** Minutes it's to be given over: "in 1 min", "over 2 hours", "push" (a minute). */
   overMin?: number;
+  /** "Push", "bolus", "fast", "wide open" — as fast as it will go, rather than a stated time. */
+  rapid?: boolean;
+  /** A drip's rate, mL an hour ("100 mL/h", "30 drops a minute"). */
+  rateMlH?: number;
 }

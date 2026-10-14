@@ -9,7 +9,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { levelMeta, trackLabel } from "@/engine/levels";
-import { rankFor } from "@/engine/progression";
+import { BADGE_LIST, rankFor } from "@/engine/progression";
 import { deriveSecret } from "@/engine/session";
 import type { CareLevel, CaseTrack } from "@/engine/types";
 import { isCountry, type Country } from "@/engine/countries";
@@ -19,16 +19,16 @@ import { dailyNumber } from "@/lib/daily";
 import { db } from "./db";
 import { progressFor } from "./progress";
 
-type Kind = "r" | "u";
+type Kind = "r" | "u" | "a";
 
 /** 16 characters of an HMAC with a key derived from the server's own secret. */
 const sign = (kind: Kind, value: string) => createHmac("sha256", deriveSecret("ramai/share/v1")).update(`${kind}:${value}`).digest("base64url").slice(0, 16);
 
-/** "r123.sig" for result 123; "u<uuid>.sig" for a doctor's progress. */
+/** "r123.sig" for result 123; "u<uuid>.sig" for a doctor's progress; "a<uuid>_<badge>.sig" for an achievement. */
 export const shareIdFor = (kind: Kind, value: string | number) => `${kind}${value}.${sign(kind, String(value))}`;
 
 export function readShareId(id: string): { kind: Kind; value: string } | null {
-  const m = id.match(/^([ru])([A-Za-z0-9-]{1,64})\.([A-Za-z0-9_-]{16})$/);
+  const m = id.match(/^([rua])([A-Za-z0-9_-]{1,120})\.([A-Za-z0-9_-]{16})$/);
   if (!m) return null;
   const [, kind, value, sig] = m as unknown as [string, Kind, string, string];
   const expected = Buffer.from(sign(kind, value));
@@ -131,6 +131,46 @@ export async function progressCard(userId: string): Promise<ProgressCard | null>
       .slice(0, 3)
       .map((m) => ({ name: m.specialty, percent: m.percent })),
   };
+}
+
+export interface AchievementCard {
+  kind: "achievement";
+  name: string;
+  avatar: AvatarLook;
+  /** Their rank's rung, for the card's colours. */
+  tier: number;
+  rank: string;
+  /** What is shown off: a badge, or the rank itself. */
+  prize: { kind: "badge" | "rank"; label: string; description: string };
+  cases: number;
+  xp: number;
+  /** Badges unlocked so far, out of all there are. */
+  unlocked: number;
+  of: number;
+}
+
+/** The share value for one of a doctor's achievements: a badge ("<user>_b-<badge>") or their rank ("<user>_rank"). */
+export const achievementValue = (userId: string, badgeId?: string) => `${userId}_${badgeId ? `b-${badgeId}` : "rank"}`;
+
+/**
+ * An achievement's card — only one the doctor really holds: a badge they've unlocked, or the rank
+ * they're at now. What it shows comes from their record, never from the link.
+ */
+export async function achievementCard(value: string): Promise<AchievementCard | null> {
+  const [userId, key] = value.split("_");
+  if (!userId || !key) return null;
+  const u = await db.get<{ name: string; is_guest: number }>("SELECT name, is_guest FROM users WHERE id = ?", userId);
+  if (!u) return null;
+  const p = await progressFor(userId);
+  const rank = rankFor(p.percent);
+  let prize: AchievementCard["prize"];
+  if (key === "rank") prize = { kind: "rank", label: rank.label, description: "Promoted on the average of recent cases." };
+  else {
+    const badge = p.badges.find((b) => `b-${b.id}` === key);
+    if (!badge) return null;
+    prize = { kind: "badge", label: badge.label, description: badge.description };
+  }
+  return { kind: "achievement", name: shownName(u.name, u.is_guest === 1), avatar: avatarOf(u.name), tier: rank.tier, rank: rank.label, prize, cases: p.casesCompleted, xp: p.xp, unlocked: p.badges.length, of: BADGE_LIST.length };
 }
 
 /** The doctor's own result for a case they played — the only one they can share. */

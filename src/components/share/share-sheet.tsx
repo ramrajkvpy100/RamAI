@@ -8,7 +8,8 @@ import { cn } from "@/lib/cn";
 
 type Format = "story" | "square";
 type Style = "collectible" | "monitor" | "badge";
-export type ShareTarget = { kind: "result"; sessionId: string } | { kind: "progress" };
+/** What is shared: a case result, the doctor's progress, or an achievement (a badge by id, or — without one — their rank). */
+export type ShareTarget = { kind: "result"; sessionId: string } | { kind: "progress" } | { kind: "achievement"; badge?: string };
 
 /** The card's three looks — each with the doctor's avatar. */
 const STYLES: { id: Style; label: string; swatch: string }[] = [
@@ -26,6 +27,7 @@ interface Shared {
 const TEXT: Record<ShareTarget["kind"], string> = {
   result: "I just solved a clinical case on RamAI — can you beat my score?",
   progress: "My progress on RamAI — a new clinical case every day.",
+  achievement: "New on my RamAI card — clinical cases where you're the doctor.",
 };
 
 /** Links that open a share box on each platform with the link filled in (Instagram has none — it takes the picture). */
@@ -38,7 +40,7 @@ const PLATFORMS = (text: string, url: string) => [
 ];
 
 /** A picture of the result (or progress) to post — a Status or Story, or a square post — and a link that previews itself. */
-export function ShareSheet({ open, onClose, target, title = "Share" }: { open: boolean; onClose: () => void; target: ShareTarget; title?: string }) {
+export function ShareSheet({ open, onClose, target, title = "Share", text: textIn }: { open: boolean; onClose: () => void; target: ShareTarget; title?: string; text?: string }) {
   const [shared, setShared] = useState<Shared | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [format, setFormat] = useState<Format>("story");
@@ -56,12 +58,14 @@ export function ShareSheet({ open, onClose, target, title = "Share" }: { open: b
       localStorage.setItem(STYLE_KEY, s);
     } catch {}
   };
+  // An achievement has one look of its own.
+  const styled = target.kind !== "achievement" && style !== "collectible";
   /** The picture and the link, in the chosen look. */
-  const imageOf = (f: Format) => (shared ? `${shared.images[f]}${style === "collectible" ? "" : `&s=${style}`}` : "");
-  const link = shared ? `${shared.url}${style === "collectible" ? "" : `?s=${style}`}` : "";
+  const imageOf = (f: Format) => (shared ? `${shared.images[f]}${styled ? `&s=${style}` : ""}` : "");
+  const link = shared ? `${shared.url}${styled ? `?s=${style}` : ""}` : "";
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const key = target.kind === "result" ? target.sessionId : "progress";
+  const key = target.kind === "result" ? target.sessionId : target.kind === "achievement" ? `achievement:${target.badge ?? "rank"}` : "progress";
 
   useEffect(() => {
     if (!open) return;
@@ -80,7 +84,7 @@ export function ShareSheet({ open, onClose, target, title = "Share" }: { open: b
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one share link per thing shared
   }, [open, key]);
 
-  const text = TEXT[target.kind];
+  const text = textIn ?? TEXT[target.kind];
   const picture = async (): Promise<File> => {
     const res = await fetch(imageOf(format));
     if (!res.ok) throw new Error("The picture isn't ready yet.");
@@ -136,7 +140,7 @@ export function ShareSheet({ open, onClose, target, title = "Share" }: { open: b
         </p>
       ) : (
         <div className="flex flex-col gap-4">
-          <div role="radiogroup" aria-label="Card style" className="grid grid-cols-3 gap-2">
+          {target.kind !== "achievement" && <div role="radiogroup" aria-label="Card style" className="grid grid-cols-3 gap-2">
             {STYLES.map((s) => (
               <button
                 key={s.id}
@@ -150,7 +154,7 @@ export function ShareSheet({ open, onClose, target, title = "Share" }: { open: b
                 {s.label}
               </button>
             ))}
-          </div>
+          </div>}
           <div role="radiogroup" aria-label="Picture size" className="flex self-center rounded-full bg-surface-3 p-1">
             {(
               [

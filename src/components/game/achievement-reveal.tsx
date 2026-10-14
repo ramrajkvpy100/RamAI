@@ -5,11 +5,12 @@ import { createPortal } from "react-dom";
 
 import { DoctorFigure } from "@/components/game/caricature";
 import { RankBadge } from "@/components/game/rank-badge";
+import { ShareSheet } from "@/components/share/share-sheet";
 import { Icon } from "@/components/ui/icon";
 import { playSfx } from "@/lib/sfx";
 
 /** What is revealed: a badge, or a new rank. */
-export type Prize = { kind: "badge"; label: string; description: string } | { kind: "rank"; label: string; tier: number };
+export type Prize = { kind: "badge"; id: string; label: string; description: string } | { kind: "rank"; label: string; tier: number };
 
 const BURST = ["#fde047", "#f472b6", "#60a5fa", "#a78bfa", "#34d399", "#fb923c"];
 
@@ -18,39 +19,13 @@ export function shareText(prize: Prize): string {
   return prize.kind === "rank" ? `I've been promoted to ${prize.label} on RamAI 🩺 — clinical cases where you're the doctor.` : `I unlocked the "${prize.label}" badge on RamAI 🏅 — ${prize.description}`;
 }
 
-export async function sharePrize(prize: Prize): Promise<"shared" | "copied" | "failed"> {
-  const url = typeof window !== "undefined" ? `${window.location.origin}/achievements` : "https://ram-ai-liard.vercel.app/achievements";
-  const text = shareText(prize);
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: "RamAI", text, url });
-      return "shared";
-    }
-    await navigator.clipboard.writeText(`${text} ${url}`);
-    return "copied";
-  } catch {
-    return "failed";
-  }
-}
-
-export function ShareLinks({ prize }: { prize: Prize }) {
-  const url = typeof window !== "undefined" ? `${window.location.origin}/achievements` : "";
-  const text = shareText(prize);
-  const links = [
-    { name: "WhatsApp", href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}` },
-    { name: "X", href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
-    { name: "LinkedIn", href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
-    { name: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
-  ];
-  return (
-    <div className="flex flex-wrap justify-center gap-2">
-      {links.map((l) => (
-        <a key={l.name} href={l.href} target="_blank" rel="noopener noreferrer" className="rounded-full bg-white/10 px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-white/20">
-          {l.name}
-        </a>
-      ))}
-    </div>
-  );
+/**
+ * Shares an achievement as a picture — a card drawn on the server, with the doctor's name and
+ * record — through the share sheet: as an image to WhatsApp Status, Instagram and the rest, a
+ * download, or a link that previews as the card.
+ */
+export function SharePrize({ prize, open, onClose }: { prize: Prize; open: boolean; onClose: () => void }) {
+  return <ShareSheet open={open} onClose={onClose} target={{ kind: "achievement", badge: prize.kind === "badge" ? prize.id : undefined }} title={prize.kind === "rank" ? "Share your promotion" : "Share your achievement"} text={shareText(prize)} />;
 }
 
 function PrizeArt({ prize }: { prize: Prize }) {
@@ -75,7 +50,7 @@ function PrizeArt({ prize }: { prize: Prize }) {
  */
 export function AchievementReveal({ prizes, storageKey, onDone }: { prizes: Prize[]; storageKey: string | null; onDone?: () => void }) {
   const [index, setIndex] = useState(-1);
-  const [note, setNote] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     if (prizes.length === 0) return;
@@ -100,7 +75,7 @@ export function AchievementReveal({ prizes, storageKey, onDone }: { prizes: Priz
 
   useEffect(() => {
     if (index < 0 || index >= prizes.length) return;
-    setNote(null);
+    setSharing(false);
     playSfx(prizes[index]!.kind === "rank" ? "levelup" : "reveal");
   }, [index, prizes]);
 
@@ -161,21 +136,18 @@ export function AchievementReveal({ prizes, storageKey, onDone }: { prizes: Priz
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={async () => {
-              const r = await sharePrize(prize);
-              setNote(r === "copied" ? "Copied — paste it anywhere." : r === "failed" ? null : "Shared!");
-            }}
+            onClick={() => setSharing(true)}
             className="flex h-12 items-center gap-2 rounded-full bg-amber-400 px-6 text-[15px] font-extrabold text-[#3b0764] shadow-[0_6px_0_#b45309] active:translate-y-1 active:shadow-[0_2px_0_#b45309]"
           >
-            <Icon name="share-ios" size={16} /> Share
+            <Icon name="share-ios" size={16} /> Share card
           </button>
           <button type="button" onClick={next} autoFocus className="h-12 rounded-full bg-white px-6 text-[15px] font-bold text-[#1e1b4b] shadow-[0_6px_0_rgb(255_255_255/0.35)] active:translate-y-1">
             {index + 1 < prizes.length ? "Next" : "Collect"}
           </button>
         </div>
-        <ShareLinks prize={prize} />
-        {note && <p className="text-[13px] text-white/70">{note}</p>}
+        <p className="text-[12.5px] text-white/60">Share it as a card — for your Status, Story or feed.</p>
       </div>
+      <SharePrize prize={prize} open={sharing} onClose={() => setSharing(false)} />
     </div>,
     document.body,
   );

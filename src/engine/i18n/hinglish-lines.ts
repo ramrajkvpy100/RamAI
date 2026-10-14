@@ -606,6 +606,18 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "Ek mahine ventilator pe thi. Ab phir se chammach pakadna seekh rahi hoon.",
   },
   "global-templates": {
+    "I feel a little breathless now, doctor.":
+      "Ab thodi saans phool rahi hai, doctor.",
+    "The breathing has settled, doctor.":
+      "Saans ab theek ho gayi hai, doctor.",
+    "I'm very thirsty, doctor… and I feel a little sick.":
+      "Bahut pyaas lag rahi hai, doctor… aur thoda ji machal raha hai.",
+    "Doctor, the child is very thirsty and feels like vomiting.":
+      "Doctor, bachche ko bahut pyaas lag rahi hai aur ulti jaisa ho raha hai.",
+    "So thirsty… my stomach feels queasy.":
+      "Bahut pyaas… pet mein ajeeb sa lag raha hai.",
+    "The thirst has settled, doctor.":
+      "Pyaas ab kam ho gayi hai, doctor.",
     "My chest feels heavy… I can't lie flat.":
       "Chhaati bhaari lag rahi hai… lete hue saans nahi aati.",
     "(Gasping, too breathless to talk.)":

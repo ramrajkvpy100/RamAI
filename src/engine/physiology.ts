@@ -12,6 +12,7 @@
  */
 
 import type { ClinicalCaseDefinition, HazardDefinition, PatientProfile } from "./case-definition";
+import { fluidTier, volumeState } from "./fluids";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { TOXICITY } from "./toxicity";
 import type { DrugRoute } from "./types";
@@ -44,6 +45,14 @@ export interface PhysiologySnapshot {
   recentFluidMl?: number;
   /** In cardiac arrest — when adrenaline IV is the treatment, not a hazard. */
   arrested?: boolean;
+  /**
+   * IV fluid (fluids.ts): how far into overload this order takes the patient — 0 none, 1 oedema
+   * starting, 2 pulmonary oedema, 3 catastrophic — from where they were, and whether this order on
+   * its own is a large load (more of it into lungs already filling makes them worse at once).
+   */
+  fluid?: { tier: number; tierBefore: number; large: boolean };
+  /** Salt eaten in this encounter, in grams, before and with this order, and the patient's weight. */
+  salt?: { before: number; after: number; weightKg: number };
 }
 
 export interface GlobalHazardTemplate {
@@ -170,11 +179,47 @@ const pde5Nitrate: GlobalHazardTemplate = {
   }),
 };
 
+
+/** The arrival vitals, as fluids.ts reads them. */
+export const arrivalVitals = (def: ClinicalCaseDefinition) => Object.fromEntries(Object.entries(def.baselineVitals).map(([k, v]) => [k, v?.value])) as Record<string, string | undefined>;
+
+/** Fluid beyond the deficit in a heart and kidneys that cope: wet lung bases and a little breathlessness — no further unless more goes in. */
+const mildOverload = (): HazardDefinition => ({
+  id: "fluid-overload",
+  label: "Interstitial pulmonary oedema after IV fluid",
+  stages: [
+    {
+      afterMin: 15, status: "guarded", vitals: [],
+      shift: { rr: 6, spo2: -4, hr: 8, sbp: 8, dbp: 4 },
+      observation: { role: "system", text: "Breathing faster since the fluids went in." },
+      examFindings: { rs: "Fine end-inspiratory crepitations at both lung bases.", jvp: "JVP raised, about 5 cm above the sternal angle.", oedema: "Mild pitting oedema over both ankles." },
+      patientSays: "I feel a little breathless now, doctor.",
+    },
+  ],
+  rescue: [["drug:furosemide", "drug:torsemide", "measure:stop-fluids", "measure:propped-up", "measure:oxygen"]],
+  fullRecoveryWindowMin: 240,
+  lastRescueMin: 1440,
+  recovery: [
+    { afterMin: 45, status: "stable", vitals: [], patientSays: "The breathing has settled, doctor.", examFindings: { rs: "Lung bases clear." } },
+  ],
+  review: {
+    cause: "More IV fluid was given than this patient needed — beyond any deficit they had.",
+    whyItCausedHarm: "Fluid beyond what the circulation needs raises capillary pressure; water moves into the lung interstitium and the bases become wet. A healthy heart and kidneys clear it over hours, if no more is given.",
+    earliestRescueWindow: "At the order: decide whether the patient is short of fluid at all (pulse, BP, capillary refill, JVP, urine output), and give it in measured boluses with reassessment.",
+    correctRescueSequence: ["Stop or slow the IV fluid", "Sit the patient up; oxygen if saturation falls", "Furosemide 20–40 mg IV if breathless or hypoxic", "Strict input–output; reassess the chest"],
+    lastRealisticRescueWindow: "Hours — it worsens only if more fluid is given or the heart or kidneys can't cope.",
+  },
+});
+
 const fluidOverload: GlobalHazardTemplate = {
   id: "fluid-overload",
-  applies: (p) => typeof p.fluidToleranceMl === "number",
-  triggers: (o, p, snap) => o.drug.classes.includes("fluid") && o.route === "IV" && snap.fluidMl > (p.fluidToleranceMl ?? Infinity),
-  build: () => ({
+  applies: () => true,
+  triggers: fluidTier(1),
+  build: (def) => (volumeState(def, arrivalVitals(def)).atRisk ? acuteOverload() : mildOverload()),
+};
+
+/** Fluid beyond what a failing heart, failing kidneys or sick lungs can take: frank pulmonary oedema. */
+const acuteOverload = (): HazardDefinition => ({
     id: "fluid-overload",
     label: "Acute pulmonary oedema after IV fluid",
     stages: [
@@ -235,8 +280,7 @@ const fluidOverload: GlobalHazardTemplate = {
       ],
       lastRealisticRescueWindow: "Roughly within the first hour. Once hypotension and drowsiness set in, intubation is likely and the prognosis falls sharply.",
     },
-  }),
-};
+});
 
 const opioidRespiratory: GlobalHazardTemplate = {
   id: "opioid-respiratory-depression",
@@ -523,9 +567,10 @@ export const GLOBAL_HAZARDS: GlobalHazardTemplate[] = [
 ];
 
 /** When a graver hazard fires, the milder ones it covers don't (one course of events, not two). */
-const COVERS: Record<string, string[]> = {
+export const COVERS: Record<string, string[]> = {
   "fluid-catastrophe": ["fluid-flood", "fluid-overload"],
-  "fluid-overload": ["fluid-flood"],
+  "fluid-flood": ["fluid-overload"],
+  "salt-poisoning": ["salt-load"],
   "insulin-overdose-iv": ["hypoglycaemia", "insulin-overdose-sc"],
   "insulin-overdose-sc": ["hypoglycaemia"],
   "drug-toxicity-severe": ["drug-toxicity"],
@@ -535,6 +580,9 @@ const COVERS: Record<string, string[]> = {
 /* -------------------------------------------------------------------------- */
 /* Library                                                                     */
 /* -------------------------------------------------------------------------- */
+
+/** Hazards the safety layer brings (a complication of an order), as opposed to the illness's own, which the case writes. */
+export const GLOBAL_HAZARD_IDS: ReadonlySet<string> = new Set(GLOBAL_HAZARDS.map((t) => t.id));
 
 /** Case hazards plus every global template that applies to this patient. */
 export function hazardLibrary(def: ClinicalCaseDefinition): Map<string, HazardDefinition> {

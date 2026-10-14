@@ -12,7 +12,6 @@ import { cn } from "@/lib/cn";
 
 import { ago, feed, like } from "./community-client";
 import { Composer, type Draft } from "./composer";
-import { playSfx } from "@/lib/sfx";
 
 /** One post in the feed. A spoiler stays blurred until it's opened. */
 function PostCard({ post, onLike }: { post: PostSummary; onLike: () => void }) {
@@ -45,7 +44,6 @@ function PostCard({ post, onLike }: { post: PostSummary; onLike: () => void }) {
       </Link>
       <div className="mt-3 flex items-center gap-4 text-[13px] text-fg-2">
         <button type="button" onClick={() => {
-            if (!post.liked) playSfx("heart");
             onLike();
           }} aria-pressed={post.liked} aria-label={post.liked ? "Unheart" : "Heart"} className={cn("flex items-center gap-1.5 rounded-full px-2 py-1 transition-colors hover:bg-surface-3", post.liked && "text-danger")}>
           <Icon name="heart" size={15} fill={post.liked ? "currentColor" : "none"} className={post.liked ? "animate-pop" : undefined} /> {post.likes}

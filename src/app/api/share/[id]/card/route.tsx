@@ -1,8 +1,8 @@
 import { ImageResponse } from "next/og";
 
-import { CARD_SIZE, cardFonts, heartImage, ProgressCardImage, ResultCardImage, type CardFormat } from "@/server/share-card";
+import { AchievementCardImage, CARD_SIZE, cardFonts, heartImage, ProgressCardImage, ResultCardImage, type CardFormat } from "@/server/share-card";
 import { BadgeCardImage, CARD_STYLES, MonitorCardImage, type CardStyle } from "@/server/share-styles";
-import { progressCard, readShareId, resultCard } from "@/server/share";
+import { achievementCard, progressCard, readShareId, resultCard } from "@/server/share";
 import { rateLimited } from "@/lib/server/http";
 import { SITE } from "@/lib/site";
 
@@ -18,9 +18,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const f = q.get("f");
   const format: CardFormat = f === "square" || f === "wide" ? f : "story";
   const style: CardStyle = CARD_STYLES.includes(q.get("s") as CardStyle) ? (q.get("s") as CardStyle) : "collectible";
+  const site = new URL(SITE.url).host;
+  if (share.kind === "a") {
+    const achievement = await achievementCard(share.value);
+    if (!achievement) return new Response("Not found", { status: 404 });
+    const [img, fonts] = await Promise.all([heartImage(), cardFonts()]);
+    return new ImageResponse(<AchievementCardImage card={achievement} format={format} site={site} img={img} />, { ...CARD_SIZE[format], fonts, headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" } });
+  }
   const card = share.kind === "r" ? await resultCard(Number(share.value)) : await progressCard(share.value);
   if (!card) return new Response("Not found", { status: 404 });
-  const site = new URL(SITE.url).host;
   const [img, fonts] = await Promise.all([heartImage(), cardFonts()]);
   const element =
     style === "monitor" ? (

@@ -156,7 +156,7 @@ export const DialogueSchema = z.object({
   baselineVitals: z.record(z.string(), z.coerce.string()).transform((v) => Object.fromEntries(Object.entries(v).filter(([k]) => VitalKey.safeParse(k).success).map(([k, x]) => [k, x.slice(0, 20)]))),
   triageVitals: listOf(VitalKey, 12),
   profile: z
-    .object({ allergies: strs(6, 60), currentDrugs: strs(8, 60), pregnancyPossible: z.boolean().optional().catch(undefined), pregnant: z.boolean().optional().catch(undefined), asthma: z.boolean().optional().catch(undefined), ckd: z.boolean().optional().catch(undefined), heartFailure: z.boolean().optional().catch(undefined), thrombocytopenia: z.boolean().optional().catch(undefined) })
+    .object({ allergies: strs(6, 60), currentDrugs: strs(8, 60), pregnancyPossible: z.boolean().optional().catch(undefined), pregnant: z.boolean().optional().catch(undefined), asthma: z.boolean().optional().catch(undefined), ckd: z.boolean().optional().catch(undefined), heartFailure: z.boolean().optional().catch(undefined), thrombocytopenia: z.boolean().optional().catch(undefined), volume: z.enum(["depleted", "normal", "overloaded"]).optional().catch(undefined), fluidDeficitMlPerKg: z.number().min(0).max(150).optional().catch(undefined) })
     .catch({ allergies: [], currentDrugs: [] }),
   history: listOf(z.object({ id: str(40), group: FactGroup, label: str(60), match: strs(10, 60), reply: str(500), fact: optStr(200), abnormal: z.boolean().optional().catch(undefined), importance: Importance, speaker: z.enum(["patient", "attendant"]).optional().catch(undefined) }), 16),
 });

@@ -54,7 +54,7 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
   const prizes: Prize[] = rewards
     ? [
         ...(promoted ? [{ kind: "rank" as const, label: rewards.rankAfter, tier: RANKS[rankIndex(rewards.rankAfter)]?.tier ?? 1 }] : []),
-        ...rewards.newBadges.map((b) => ({ kind: "badge" as const, label: b.label, description: b.description })),
+        ...rewards.newBadges.map((b) => ({ kind: "badge" as const, id: b.id, label: b.label, description: b.description })),
       ]
     : [];
 

@@ -9,9 +9,8 @@
  * rescued in time, and is reviewed in the debrief.
  */
 
+import { fluidTier } from "./fluids";
 import type { GlobalHazardTemplate } from "./physiology";
-
-const isFluid = (classes: readonly string[]) => classes.includes("fluid") || classes.includes("crystalloid");
 
 /** Covered by a specific template (or not toxic in this sense) — the generic overdose templates leave these alone. */
 const SPECIFIC = new Set(["fluid", "crystalloid", "colloid", "blood-product", "insulin", "opioid", "benzodiazepine", "beta-blocker", "ccb", "antiarrhythmic", "vasopressor", "glucose", "vaccine"]);
@@ -20,7 +19,8 @@ const specific = (classes: readonly string[], id: string) => classes.some((c) =>
 const fluidFlood: GlobalHazardTemplate = {
   id: "fluid-flood",
   applies: () => true,
-  triggers: (o, _p, snap) => isFluid(o.drug.classes) && o.route === "IV" && o.mode === "given" && (snap.recentFluidMl ?? 0) > 6000,
+  // Well beyond the deficit and what the kidneys clear (fluids.ts) — sooner in a failing heart or sick lungs.
+  triggers: fluidTier(2),
   build: () => ({
     id: "fluid-flood",
     label: "Pulmonary oedema from a massive IV fluid load",
@@ -78,9 +78,7 @@ const fluidFlood: GlobalHazardTemplate = {
 const fluidCatastrophe: GlobalHazardTemplate = {
   id: "fluid-catastrophe",
   applies: () => true,
-  triggers: (o, _p, snap) =>
-    isFluid(o.drug.classes) && o.route === "IV" && o.mode === "given" &&
-    ((snap.recentFluidMl ?? 0) > 15_000 || (o.volumeMl ?? 0) >= 20_000 || ((o.volumeMl ?? 0) >= 5_000 && o.overMin !== undefined && o.overMin <= 10)),
+  triggers: fluidTier(3),
   build: () => ({
     id: "fluid-catastrophe",
     label: "Catastrophic IV fluid overload",
@@ -464,11 +462,54 @@ const drugToxicitySevere: GlobalHazardTemplate = {
   }),
 };
 
-/** A child's weight from their age (an adult: 60 kg) — for doses per kilogram when the case gives none. */
-const weightFor = (age: number) => (age < 1 ? 7 : age <= 12 ? 2 * age + 8 : age < 16 ? 45 : 60);
 /** Grams of salt in an order ("50 g", "5000 mg", "2 spoons" ≈ 6 g each). */
-const saltGrams = (o: { amount?: number; unit?: string; multiple?: number }) =>
+export const saltGrams = (o: { amount?: number; unit?: string; multiple?: number }) =>
   o.unit === "g" ? (o.amount ?? 0) : o.unit === "mg" ? (o.amount ?? 0) / 1000 : /spoon|tsp/i.test(o.unit ?? "") ? (o.amount ?? 0) * 6 : (o.multiple ?? 1);
+
+/**
+ * Salt eaten in this encounter crossing `perKg` g/kg — or, once over it, another large helping
+ * (a quarter of a gram per kilo or more). A pinch more doesn't hasten anything.
+ */
+const saltCrosses = (perKg: number, below?: number) => (o: { drug: { id: string }; amount?: number; unit?: string; multiple?: number }, _p: unknown, snap: { salt?: { before: number; after: number; weightKg: number } }) => {
+  if (o.drug.id !== "table-salt" || !snap.salt) return false;
+  const { before, after, weightKg } = snap.salt;
+  if (after / weightKg < perKg || (below !== undefined && after / weightKg >= below)) return false;
+  return before / weightKg < perKg || saltGrams(o) / weightKg >= 0.25;
+};
+
+/** 0.2–0.5 g/kg of salt: thirsty and queasy, the sodium a little high — it passes with water. */
+const saltLoad: GlobalHazardTemplate = {
+  id: "salt-load",
+  applies: () => true,
+  triggers: saltCrosses(0.2, 0.5),
+  build: (def) => {
+    const kid = def.patient.age <= 12;
+    const watcher = kid || def.track === "phone" ? "attendant" : "patient";
+    return {
+      id: "salt-load",
+      label: "Salt load — mild hypernatraemia",
+      stages: [
+        {
+          afterMin: 25, status: "guarded", vitals: [],
+          observation: { role: watcher, text: watcher === "attendant" ? "Doctor, the child is very thirsty and feels like vomiting." : "I'm very thirsty, doctor… and I feel a little sick." },
+          patientSays: "So thirsty… my stomach feels queasy.",
+          investigations: { electrolytes: { rows: [{ analyte: "Sodium", value: "149", unit: "mEq/L", reference: "135–145", flag: "high" }] } },
+        },
+      ],
+      rescue: [["measure:oral-fluids", "drug:d5", "drug:dextrose-25"]],
+      fullRecoveryWindowMin: 720,
+      lastRescueMin: 1440,
+      recovery: [{ afterMin: 60, status: "stable", vitals: [], patientSays: "The thirst has settled, doctor." }],
+      review: {
+        cause: "Salt was ordered to be eaten — several grams of it.",
+        whyItCausedHarm: "A salt load raises serum sodium; thirst and nausea follow. Below about 0.5 g/kg it settles with free water.",
+        earliestRescueWindow: "At the order: salt is not a treatment given by mouth in grams.",
+        correctRescueSequence: ["No more salt", "Water by mouth (or 5% dextrose IV if vomiting)", "Recheck the sodium"],
+        lastRealisticRescueWindow: "Hours — mild salt loads correct easily.",
+      },
+    };
+  },
+};
 
 /**
  * Salt poisoning: about 0.5–1 g/kg makes a child very ill and 1–3 g/kg can kill — acute
@@ -477,7 +518,7 @@ const saltGrams = (o: { amount?: number; unit?: string; multiple?: number }) =>
 const saltPoisoning: GlobalHazardTemplate = {
   id: "salt-poisoning",
   applies: () => true,
-  triggers: (o, _p, snap) => o.drug.id === "table-salt" && saltGrams(o) / weightFor(snap.age) >= 0.5,
+  triggers: saltCrosses(0.5),
   build: (def) => {
     const kid = def.patient.age <= 12;
     const he = def.patient.sex === "Female" ? "She" : "He";
@@ -497,7 +538,8 @@ const saltPoisoning: GlobalHazardTemplate = {
         {
           afterMin: 60, status: "critical",
           vitals: [{ key: "hr", value: kid ? "146" : "124" }, { key: "bp", value: kid ? "126/84" : "156/96" }, { key: "temp", value: "100.8" }, { key: "gcs", value: "12" }],
-          observation: { role: watcher, text: `${he}'s very irritable and confused now, and ${he.toLowerCase()}'s twitching.` },
+          // What the family sees and says; in hospital, what anyone at the bedside sees.
+          observation: watcher === "attendant" ? { role: "attendant", text: `${he}'s very irritable and confused now, and ${he.toLowerCase()}'s twitching.` } : { role: "system", text: `${he}'s irritable and confused now, and twitching.` },
           patientSays: "(Irritable, confused, crying out — muscles twitching.)",
           examFindings: { cns: "Irritable, disoriented; hyperreflexia and muscle twitching; GCS 12." },
           investigations: { electrolytes: na("176", "critical"), rft: na("176", "critical") },
@@ -505,7 +547,7 @@ const saltPoisoning: GlobalHazardTemplate = {
         {
           afterMin: 150, status: "critical",
           vitals: [{ key: "hr", value: kid ? "160" : "136" }, { key: "rr", value: "30" }, { key: "spo2", value: "90" }, { key: "gcs", value: "7" }],
-          observation: { role: watcher, text: `${he}'s having a fit — ${he.toLowerCase()} isn't responding!` },
+          observation: watcher === "attendant" ? { role: "attendant", text: `${he}'s having a fit — ${he.toLowerCase()} isn't responding!` } : { role: "nurse", text: `Doctor, ${he.toLowerCase()}'s having a fit — not responding!` },
           patientSays: "(Generalised seizure; unresponsive.)",
           investigations: { electrolytes: na("188", "critical"), rft: na("188", "critical") },
           interrupts: true,
@@ -516,7 +558,7 @@ const saltPoisoning: GlobalHazardTemplate = {
           observation: { role: "system", text: "Cerebral oedema and intracranial bleeding from the sodium load — cardiorespiratory arrest." },
         },
       ],
-      rescue: [["drug:d5", "drug:dextrose-25", "measure:dialysis"]],
+      rescue: [["drug:d5", "drug:dextrose-25", "measure:dialysis", "measure:oral-fluids"]],
       fullRecoveryWindowMin: 60,
       lastRescueMin: 240,
       recovery: [
@@ -542,6 +584,7 @@ const saltPoisoning: GlobalHazardTemplate = {
 
 export const TOXICITY: GlobalHazardTemplate[] = [
   saltPoisoning,
+  saltLoad,
   fluidCatastrophe,
   fluidFlood,
   insulinOverdose("iv"),

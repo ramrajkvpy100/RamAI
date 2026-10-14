@@ -28,7 +28,7 @@ describe("orders beyond reason are carried out — and the patient lives (or die
   });
 
   it("free water in time rescues salt poisoning", () => {
-    const { state } = play(dermAcne, ["Eat 50 g of salt", "Wait 30 minutes", "Start 5% dextrose 1000 mL IV", "Wait 6 hours"]);
+    const { state } = play(dermAcne, ["Eat 50 g of salt", "Wait 30 minutes", "Start 5% dextrose 1000 mL IV over 2 hours", "Wait 6 hours"]);
     expect(state.patientStatus).not.toBe("deceased");
   });
 

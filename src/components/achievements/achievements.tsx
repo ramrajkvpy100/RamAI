@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { AchievementReveal, sharePrize, type Prize } from "@/components/game/achievement-reveal";
+import { AchievementReveal, SharePrize, type Prize } from "@/components/game/achievement-reveal";
 import { DoctorFigure } from "@/components/game/caricature";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Icon } from "@/components/ui/icon";
@@ -18,15 +18,11 @@ export function Achievements({ initial }: { initial: Me }) {
   const earned = new Set(p.badges.map((b) => b.id));
   const rank = rankFor(p.percent);
   const [open, setOpen] = useState<Prize | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<Prize | null>(null);
   const unlocked = BADGE_LIST.filter((b) => earned.has(b.id));
   const locked = BADGE_LIST.filter((b) => !earned.has(b.id));
 
-  const share = async (prize: Prize) => {
-    const r = await sharePrize(prize);
-    setNote(r === "copied" ? "Copied — paste it anywhere." : r === "shared" ? "Shared!" : null);
-    setTimeout(() => setNote(null), 2500);
-  };
+  const share = (prize: Prize) => setSharing(prize);
 
   return (
     <div className="flex flex-col gap-8">
@@ -35,7 +31,6 @@ export function Achievements({ initial }: { initial: Me }) {
         <p className="mt-2 text-[15px] text-fg-2">
           {unlocked.length} of {BADGE_LIST.length} unlocked. Tap one to open it again, or share it.
         </p>
-        {note && <p className="mt-2 text-[13px] font-medium text-success">{note}</p>}
       </div>
 
       <section className="ink flex flex-col items-center gap-4 rounded-3xl px-6 py-6 text-center sm:flex-row sm:text-left">
@@ -52,7 +47,7 @@ export function Achievements({ initial }: { initial: Me }) {
             ))}
           </div>
         </div>
-        <button type="button" onClick={() => void share({ kind: "rank", label: rank.label, tier: rank.tier })} className="flex h-10 items-center gap-2 rounded-full bg-white px-4 text-[13.5px] font-semibold text-[#0b1220]">
+        <button type="button" onClick={() => share({ kind: "rank", label: rank.label, tier: rank.tier })} className="flex h-10 items-center gap-2 rounded-full bg-white px-4 text-[13.5px] font-semibold text-[#0b1220]">
           <Icon name="share-ios" size={15} /> Share
         </button>
       </section>
@@ -68,7 +63,7 @@ export function Achievements({ initial }: { initial: Me }) {
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {unlocked.map((b) => {
-              const prize: Prize = { kind: "badge", label: b.label, description: b.description };
+              const prize: Prize = { kind: "badge", id: b.id, label: b.label, description: b.description };
               return (
                 <li key={b.id} className="panel flex flex-col items-center gap-2 p-4 text-center">
                   <button type="button" onClick={() => setOpen(prize)} className="flex flex-col items-center gap-2" aria-label={`Open ${b.label}`}>
@@ -80,7 +75,7 @@ export function Achievements({ initial }: { initial: Me }) {
                     <span className="text-[14px] font-semibold">{b.label}</span>
                     <span className="text-[12px] leading-5 text-fg-2">{b.description}</span>
                   </button>
-                  <button type="button" onClick={() => void share(prize)} className="mt-1 flex h-8 items-center gap-1.5 rounded-full bg-surface-3 px-3 text-[12.5px] font-semibold hover:bg-surface-2">
+                  <button type="button" onClick={() => share(prize)} className="mt-1 flex h-8 items-center gap-1.5 rounded-full bg-surface-3 px-3 text-[12.5px] font-semibold hover:bg-surface-2">
                     <Icon name="share-ios" size={13} /> Share
                   </button>
                 </li>
@@ -110,6 +105,7 @@ export function Achievements({ initial }: { initial: Me }) {
       )}
 
       {open && <AchievementReveal key={`${open.kind}-${open.label}`} prizes={[open]} storageKey={null} onDone={() => setOpen(null)} />}
+      {sharing && <SharePrize prize={sharing} open onClose={() => setSharing(null)} />}
     </div>
   );
 }

@@ -95,7 +95,7 @@ describe("facility levels", () => {
   it("ASV doses are checked in vials", () => {
     const ok = play(emViperPhc, ["Give ASV 10 vials IV over 1 hour"]);
     expect(ok.hidden.drugs[0]?.doseError).toBe(false);
-    const low = play(emViperPhc, ["Give ASV 2 vials IV"]);
+    const low = play(emViperPhc, ["Give ASV 2 vials IV over 1 hour"]);
     expect(low.hidden.drugs[0]?.doseError).toBe(true);
   });
 
@@ -126,13 +126,13 @@ describe("images on request", () => {
 
 describe("Grand Rounds and Apex cases", () => {
   it("a porphyrinogenic anticonvulsant deepens the attack", () => {
-    const { hidden, state } = play(grAip, ["Give phenytoin 1 g IV", "Wait 40 minutes"]);
+    const { hidden, state } = play(grAip, ["Give phenytoin 1 g IV over 30 minutes", "Wait 40 minutes"]);
     expect(hidden.hazards.some((h) => h.id === "porphyrinogenic-drug")).toBe(true);
     expect(state.patientStatus).toBe("deteriorating");
   });
 
   it("stopping the pill runs the counselling rule; haem is dosed in mg", () => {
-    const { hidden } = play(grAip, ["Stop the OCP", "Give haem arginate 150 mg IV"]);
+    const { hidden } = play(grAip, ["Stop the OCP", "Give haem arginate 150 mg IV over 30 minutes"]);
     expect(hidden.actions["stop-ocp"]?.length).toBe(1);
     expect(hidden.drugs.find((d) => d.drugId === "haem-arginate")?.doseError).toBe(false);
   });
@@ -165,13 +165,13 @@ describe("bedside monitor", () => {
 
 describe("response to treatment", () => {
   it("a sick patient improves after the definitive treatment", () => {
-    const { state } = play(emAdhf, ["Sit her up, start oxygen, attach monitor", "Give furosemide 40 mg IV", "Wait 40 minutes"]);
+    const { state } = play(emAdhf, ["Sit her up, start oxygen 6 L by face mask, attach monitor", "Give furosemide 40 mg IV", "Wait 40 minutes"]);
     expect(state.patientStatus).toBe("improving");
     expect(state.timeline.some((e) => e.label === "Responding to treatment")).toBe(true);
   });
 
   it("an attached monitor shows the response as it happens", () => {
-    const { state } = play(emAdhf, ["Sit her up, start oxygen, attach monitor", "Give furosemide 40 mg IV", "Wait 40 minutes"]);
+    const { state } = play(emAdhf, ["Sit her up, start oxygen 6 L by face mask, attach monitor", "Give furosemide 40 mg IV", "Wait 40 minutes"]);
     const now = (k: "hr" | "rr" | "spo2") => state.vitals[k]!.current.numeric!;
     expect(now("hr")).toBeLessThan(132);
     expect(now("rr")).toBeLessThan(30);
@@ -195,7 +195,7 @@ describe("response to treatment", () => {
   });
 
   it("no improvement while a harm is unfolding", () => {
-    const { state } = play(grAip, ["Give phenytoin 1 g IV", "Give haem arginate 150 mg IV", "Wait 60 minutes", "Wait 60 minutes"]);
+    const { state } = play(grAip, ["Give phenytoin 1 g IV over 30 minutes", "Give haem arginate 150 mg IV over 30 minutes", "Wait 60 minutes", "Wait 60 minutes"]);
     expect(state.patientStatus).not.toBe("improving");
   });
 });
@@ -214,12 +214,12 @@ describe("live monitor", () => {
   });
 
   it("oxygen lifts the saturation at once", () => {
-    const { state } = play(emAdhf, ["Attach monitor", "Start oxygen"]);
+    const { state } = play(emAdhf, ["Attach monitor", "Start oxygen by face mask at 6 L/min"]);
     expect(state.vitals.spo2!.current.numeric!).toBeGreaterThan(88);
   });
 
   it("the cuff re-measures blood pressure every 15 minutes", () => {
-    const { state } = play(emAdhf, ["Sit her up, start oxygen, attach monitor", "Give furosemide 40 mg IV", "Wait 60 minutes"]);
+    const { state } = play(emAdhf, ["Sit her up, start oxygen 6 L by face mask, attach monitor", "Give furosemide 40 mg IV", "Wait 60 minutes"]);
     const at = series(state, "bp").map((r) => r.at);
     const cycles = at.slice(2).map((t, i) => t - at[i + 1]!);
     expect(cycles.length).toBeGreaterThanOrEqual(3);

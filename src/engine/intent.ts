@@ -227,9 +227,23 @@ function examCandidates(rawClause: string, tk: string[], ctx: IntentContext, req
 /** "Show me the X-ray", "generate the ECG", "see the scan again" — display, don't repeat. */
 const SHOW_WORDS = ["show", "see", "view", "display", "look at", "image", "picture", "photo", "photograph", "film", "strip", "tracing", "again", "generate", "pull up", "open"];
 
+/** Orders that name only the kind of study — the part (and view, or contrast) is asked for. */
+const GENERIC_STUDIES: [string, string[]][] = [
+  ["xray", ["x ray", "xray", "x rays", "xrays", "radiograph", "radiographs", "skiagram", "plain film"]],
+  ["ct", ["ct", "ct scan", "cect", "ncct", "cat scan", "computed tomography"]],
+  ["usg", ["usg", "ultrasound", "sonography", "ultrasonography", "sonogram"]],
+  ["mri", ["mri", "mri scan", "magnetic resonance", "mr scan"]],
+];
+/** "Send bloods" — which ones is asked. */
+const GENERIC_BLOODS = ["blood tests", "blood test", "bloods", "blood work", "bloodwork", "routine bloods", "routine blood tests", "routine investigations", "basic investigations", "basic labs", "labs", "lab tests", "baseline investigations"];
+
 function investigationCandidates(rawClause: string, tk: string[], ctx: IntentContext): Candidate[] {
   const out: Candidate[] = [];
   const payload = hasAny(tk, SHOW_WORDS) ? { reshow: true } : undefined;
+  for (const [kind, phrases] of GENERIC_STUDIES) {
+    for (const hit of allHits(tk, phrases)) out.push({ hit, priority: 3, intent: { kind: "investigation", targetId: kind, phrase: rawClause, matched: true, payload } });
+  }
+  const bloods = allHits(tk, GENERIC_BLOODS);
   for (const inv of ctx.def.investigations) {
     if (!inv.match) continue;
     for (const hit of allHits(tk, inv.match)) {
@@ -241,6 +255,9 @@ function investigationCandidates(rawClause: string, tk: string[], ctx: IntentCon
       out.push({ hit, priority: 4, intent: { kind: "investigation", targetId: inv.id, phrase: rawClause, matched: true, payload } });
     }
   }
+  // "Bloods" alone is asked about; "bloods — CBC and RFT" is those tests.
+  const named = out.some((c) => !["xray", "ct", "usg", "mri"].includes(c.intent.targetId ?? ""));
+  if (!named) for (const hit of bloods) out.push({ hit, priority: 2, intent: { kind: "investigation", targetId: "blood", phrase: rawClause, matched: true, payload } });
   return out;
 }
 
@@ -291,6 +308,23 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
     }
     // Salt is food, not a drug: only an order to eat an amount of it ("eat 50 g of salt") is an order; "low salt diet" is advice.
     if (drug.id === "table-salt" && !(details.amount !== undefined && /\b(eat|give|take|swallow|feed|have|consume|drink|mix|add|lick)\b/.test(lower))) return;
+    // A brand that names its strength ("Dolo 650") is a dose.
+    if (details.amount === undefined && /\d/.test(hit.phrase) && drug.brands.some((b) => b.toLowerCase().includes(hit.phrase))) {
+      const n = hit.phrase.match(/(\d+(?:\.\d+)?)/)?.[1];
+      const unit = drug.dose?.match(/^[\d.,]+\s*([a-zµ]+)/i)?.[1];
+      if (n && unit) {
+        details.amount = parseFloat(n);
+        details.unit = unit.toLowerCase();
+        details.text = `${n} ${unit.toLowerCase()}`;
+      }
+    }
+    // "A Sorbitrate", "one Crocin": one tablet of it.
+    if (details.amount === undefined && ["PO", "SL"].includes(drug.route) && hit.start > 0 && ["a", "an", "one"].includes(tk[hit.start - 1] ?? "")) {
+      details.amount = 1;
+      details.unit = "tablet";
+      details.text = "1 tablet";
+    }
+    // The route as said; when it isn't, the drug's usual route decides only whether it's given now — the nurse asks.
     const route = details.route ?? drug.route;
     const givenNow =
       /\b(give|administer|inject|infuse|bolus|push|stat|now|nebuli[sz]e|transfuse|load|chew|immediately)\b/.test(lower) ||
@@ -304,7 +338,10 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
       !!details.duration;
     const outpatient = ctx.setting === "OPD" || ctx.setting === "Teleconsult";
     const mode = givenNow && !prescribing ? "given" : prescribing ? "prescribed" : outpatient ? "prescribed" : "given";
-    const payload: Record<string, string | number | boolean> = { mode, route };
+    const payload: Record<string, string | number | boolean> = { mode };
+    if (details.route) payload.route = details.route;
+    if (details.rapid) payload.rapid = true;
+    if (details.rateMlH !== undefined) payload.rateMlH = details.rateMlH;
     if (details.text) payload.dose = details.text;
     if (details.amount !== undefined) payload.amount = details.amount;
     if (details.unit) payload.unit = details.unit;

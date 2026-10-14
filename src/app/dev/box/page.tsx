@@ -10,7 +10,7 @@ export default function RevealPreview() {
       storageKey={null}
       prizes={[
         { kind: "rank", label: "Junior Resident", tier: 3 },
-        { kind: "badge", label: "Sharp eye", description: "Diagnosed five cases correctly in a row." },
+        { kind: "badge", id: "sharp-eye", label: "Sharp eye", description: "Diagnosed five cases correctly in a row." },
       ]}
     />
   );

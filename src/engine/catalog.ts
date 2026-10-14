@@ -602,7 +602,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "arterial-doppler", name: "Lower-limb arterial Doppler", short: "Arterial Doppler", category: "imaging", menu: "Cardiac",
     turnaroundMin: 45, cost: 3500,
-    match: ["arterial doppler", "doppler", "lower limb doppler", "arterial duplex", "peripheral doppler", "leg doppler", "duplex"],
+    match: ["arterial doppler", "lower limb arterial doppler", "arterial duplex", "peripheral arterial doppler", "leg arterial doppler", "arterial doppler lower limb"],
     normal: () => ({ report: "Triphasic waveforms throughout the aorto-iliac, femoro-popliteal and tibial segments bilaterally. Peak systolic velocities within normal limits." }),
   },
 
@@ -610,7 +610,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "cxr", name: "Chest X-ray PA", short: "CXR", category: "imaging", menu: "Imaging",
     turnaroundMin: 20, cost: 450,
-    match: ["cxr", "chest x ray", "chest xray", "x ray chest", "xray chest", "chest radiograph", "chest film", "x ray chest pa", "chest pa", "x ray", "xray", "radiograph"],
+    match: ["cxr", "chest x ray", "chest xray", "x ray chest", "xray chest", "chest radiograph", "chest film", "x ray chest pa", "chest pa", "chest ap", "x ray chest ap", "chest x rays", "x ray of the chest", "x ray of chest"],
     normal: (c) => ({
       media: {
         spec: { kind: "xray", view: "PA", features: [{ id: "normal" }], seed: c.seed },
@@ -629,7 +629,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "usg-abdomen", name: "USG abdomen & pelvis", short: "USG abdomen", category: "imaging", menu: "Imaging",
     turnaroundMin: 30, cost: 1200,
-    match: ["usg", "usg abdomen", "ultrasound", "ultrasound abdomen", "sonography", "usg whole abdomen", "usg kub", "abdominal ultrasound", "pelvic ultrasound"],
+    match: ["usg abdomen", "ultrasound abdomen", "usg whole abdomen", "usg kub", "abdominal ultrasound", "pelvic ultrasound", "usg pelvis", "ultrasound pelvis", "usg abdomen and pelvis", "ultrasound of the abdomen", "sonography abdomen", "usg of abdomen", "ultrasound kub"],
     normal: (c) => ({
       media: {
         spec: { kind: "usg", view: "Right iliac fossa, linear probe", features: [{ id: "normal" }], seed: c.seed },
@@ -642,7 +642,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "ct-abdomen", name: "CECT abdomen & pelvis", short: "CECT abdomen", category: "imaging", menu: "Imaging",
     turnaroundMin: 60, cost: 6500,
-    match: ["ct abdomen", "cect abdomen", "ct scan abdomen", "ct abdomen pelvis", "cect", "ncct abdomen", "ct kub"],
+    match: ["ct abdomen", "cect abdomen", "ct scan abdomen", "ct abdomen pelvis", "ncct abdomen", "ct kub", "ct of the abdomen", "ct scan of abdomen", "cect abdomen and pelvis"],
     normal: () => ({ report: "Solid organs unremarkable. Bowel loops normal in calibre and wall thickness. No free fluid or free gas. No lymphadenopathy." }),
   },
   {
@@ -660,7 +660,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
   {
     id: "mri-brain", name: "MRI brain", short: "MRI brain", category: "imaging", menu: "Imaging",
     turnaroundMin: 120, cost: 8000,
-    match: ["mri", "mri brain", "mri head", "brain mri"],
+    match: ["mri brain", "mri head", "brain mri", "mri of the brain", "mri of brain"],
     normal: () => ({ report: "Brain parenchyma normal in signal intensity. No diffusion restriction. Ventricles normal. No mass lesion." }),
   },
   {
@@ -942,6 +942,7 @@ export const MEASURES: CatalogMeasure[] = [
   { id: "refer", label: "Referral", kind: "disposition", durationMin: 2, match: ["refer", "referral", "consult", "consultation", "opinion", "call surgeon", "call cardiology", "call medicine"], note: "Referral made." },
   { id: "stop-fluids", label: "Stop IV fluids", kind: "supportive", durationMin: 0, match: ["stop fluids", "stop iv fluids", "stop the fluids", "stop ns", "stop saline", "fluid restriction", "restrict fluids", "stop infusion"], note: "IV fluids stopped." },
   { id: "stop-drug", label: "Stop medication", kind: "supportive", durationMin: 0, match: ["stop the drug", "stop medication", "stop the medicine", "discontinue", "withhold", "stop all medicines", "hold the", "stop nsaid", "stop nsaids", "stop painkiller", "stop painkillers", "stop the painkiller", "stop the tablets"], note: "Medication withheld." },
+  { id: "oral-fluids", label: "Water by mouth", kind: "supportive", durationMin: 1, match: ["drink water", "give water", "sips of water", "free water", "water to drink", "oral water", "glass of water", "let her drink water", "let him drink water", "water orally", "water by mouth"], note: "Water given by mouth." },
   { id: "oral-glucose", label: "Oral glucose", kind: "supportive", durationMin: 1, match: ["oral glucose", "sugar water", "glucose powder", "glucon d", "give sugar", "sweet drink", "fruit juice", "glucose drink"], note: "Oral glucose given." },
 ];
 
