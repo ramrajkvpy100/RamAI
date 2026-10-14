@@ -22,7 +22,20 @@ export class ClinicalEngineError extends Error {
   }
 }
 
+/** Turns are safe to send twice (the case lives in the token), so a failed one is quietly tried once more. */
+const RETRIED = new Set(["/api/cases/turn", "/api/cases/tick", "/api/cases/resume"]);
+
 async function call<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  try {
+    return await callOnce<T>(path, body, signal);
+  } catch (err) {
+    if (!RETRIED.has(path) || signal?.aborted || !(err instanceof ClinicalEngineError) || (err.code !== "NETWORK" && err.code !== "ENGINE_UNAVAILABLE")) throw err;
+    await new Promise((r) => setTimeout(r, 800));
+    return callOnce<T>(path, body, signal);
+  }
+}
+
+async function callOnce<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
@@ -33,12 +46,13 @@ async function call<T>(path: string, body?: unknown, signal?: AbortSignal): Prom
       signal,
     });
   } catch {
-    throw new ClinicalEngineError("NETWORK", UNAVAILABLE_MESSAGE, true);
+    throw new ClinicalEngineError("NETWORK", `${UNAVAILABLE_MESSAGE} (no connection)`, true);
   }
   const json = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
   if (!res.ok) {
     const code = json?.error?.code ?? "ENGINE_UNAVAILABLE";
-    const message = SAFE_CODES.has(code) && json?.error?.message ? json.error.message : UNAVAILABLE_MESSAGE;
+    // The status code, so a report of the problem says what it was (never the server's own words).
+    const message = SAFE_CODES.has(code) && json?.error?.message ? json.error.message : `${UNAVAILABLE_MESSAGE} (code ${res.status})`;
     throw new ClinicalEngineError(code, message, code === "ENGINE_UNAVAILABLE" || code === "NETWORK" || code === "RATE_LIMITED" || code === "AUTH_UNAVAILABLE");
   }
   return json as T;
