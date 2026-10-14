@@ -7,7 +7,7 @@ import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { ClinicalEngineError, examAnswer, examSet } from "@/lib/engine-client";
-import { EXAMS, MIXED, type ExamId, type ExamSet, type ExamStats } from "@/lib/exams";
+import { EXAM_STYLES, EXAMS, MIXED, type ExamId, type ExamSet, type ExamStats, type ExamStyle } from "@/lib/exams";
 
 type Checked = { choice: number; correct: boolean; answer: number; explanation: string };
 
@@ -18,6 +18,7 @@ const pct = (c: number, n: number) => (n ? Math.round((c / n) * 100) : 0);
 export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stats: ExamStats | null }) {
   const info = EXAMS[exam];
   const [subject, setSubject] = useState<string>(MIXED);
+  const [style, setStyle] = useState<ExamStyle>("pyq");
   const [set, setSet] = useState<ExamSet | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
     setLoading(true);
     setError(null);
     try {
-      const { set } = await examSet(exam, s);
+      const { set } = await examSet(exam, s, style);
       setSet(set);
       setIndex(0);
       setChecked({});
@@ -92,6 +93,14 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
 
       {!set && (
         <div className="panel flex flex-col gap-4 p-5 sm:p-6">
+          <div role="radiogroup" aria-label="Question style" className="grid gap-2 sm:grid-cols-2">
+            {(Object.keys(EXAM_STYLES) as ExamStyle[]).map((id) => (
+              <button key={id} type="button" role="radio" aria-checked={style === id} onClick={() => setStyle(id)} className={cn("flex flex-col items-start rounded-xl border px-4 py-3 text-left", style === id ? "border-accent-line bg-accent-soft" : "border-line hover:bg-surface-2")}>
+                <span className="text-[14.5px] font-semibold">{EXAM_STYLES[id].label}</span>
+                <span className="mt-0.5 text-[12.5px] leading-5 text-fg-2">{EXAM_STYLES[id].note}</span>
+              </button>
+            ))}
+          </div>
           <label htmlFor="subject" className="text-[14px] font-semibold">
             Subject
           </label>
@@ -193,6 +202,7 @@ function Question({
       <div className="flex items-center justify-between text-[12.5px] text-fg-2 tabular">
         <span>
           Question {n + 1} of {total} · {subject === MIXED ? q.topic : subject}
+          {q.pattern && <span className="ml-2 rounded-full bg-accent-soft px-2 py-0.5 text-[11.5px] font-medium text-accent-text">{q.pattern} · recall-based</span>}
         </span>
         <span>{right} right</span>
       </div>

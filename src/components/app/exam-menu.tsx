@@ -42,7 +42,7 @@ export function ExamMenu({ country, className }: { country: Country; className?:
         <div role="menu" className="popover absolute top-full left-0 z-50 mt-2 w-60 animate-enter rounded-2xl p-1.5">
           {exams.map((e) => (
             <Link key={e.id} role="menuitem" href={`/exams/${e.id}`} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[14px] font-medium hover:bg-surface-3">
-              {e.label} MCQs
+              {e.label} PYQ-pattern MCQs
               <Icon name="arrow-right" size={13} className="text-fg-3" />
             </Link>
           ))}

@@ -134,5 +134,5 @@ export async function fetchDaily(): Promise<DailyInfo | null> {
 
 /* Exam practice -------------------------------------------------------------- */
 
-export const examSet = (exam: string, subject: string) => call<{ set: import("./exams").ExamSet }>("/api/exams/set", { exam, subject });
+export const examSet = (exam: string, subject: string, style: "pyq" | "concept" = "pyq") => call<{ set: import("./exams").ExamSet }>("/api/exams/set", { exam, subject, style });
 export const examAnswer = (setId: string, q: number, choice: number) => call<{ correct: boolean; answer: number; explanation: string }>("/api/exams/answer", { setId, q, choice });

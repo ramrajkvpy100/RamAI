@@ -15,6 +15,8 @@ export const dynamic = "force-dynamic";
 const BLURB: Record<string, string> = {
   "neet-pg": "All 19 subjects, NBE style — drug of choice, investigation of choice, next best step.",
   "ini-cet": "AIIMS style — conceptual, two-step reasoning and recent advances.",
+  "neet-ss": "DM/MCh entrance — super-speciality vignettes, trials and guidelines.",
+  "ini-ss": "AIIMS super-speciality entrance — applied, recent advances and landmark trials.",
   usmle: "Step 1 sciences and Step 2 CK clinical vignettes with five options.",
   ukmla: "The MLA content map — Applied Knowledge Test style, NICE and BNF.",
   plab: "PLAB 1 vignettes set in NHS practice — NICE, CKS, BNF and GMC guidance.",
@@ -30,7 +32,7 @@ export default async function ExamsPage() {
     <PublicPage>
       <div className="mx-auto w-full max-w-3xl">
         <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.025em] sm:text-[38px]">Exam practice</h1>
-        <p className="mt-2 text-[15px] leading-7 text-fg-2">Single-best-answer questions in your exam&apos;s own style, each checked by an AI examiner, with an explanation after every answer. Practice here is separate from your cases, XP and rank.</p>
+        <p className="mt-2 text-[15px] leading-7 text-fg-2">Previous-year-pattern questions by default (recall-based, never the actual papers) and concept practice, in your exam&apos;s own style, each checked by an AI examiner, with an explanation after every answer. Practice here is separate from your cases, XP and rank.</p>
         <div className="mt-7 grid gap-4 sm:grid-cols-2">
           {exams.map((e, i) => {
             const st = stats[i];

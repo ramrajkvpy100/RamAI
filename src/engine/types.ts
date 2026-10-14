@@ -799,6 +799,8 @@ export interface Mcq {
   /** A short tag for progress tracking, e.g. "ACS — management". */
   topic: string;
   difficulty: "easy" | "medium" | "hard";
+  /** Previous-year-pattern sets: the paper whose pattern it follows ("NEET PG 2023 pattern"). */
+  pattern?: string;
 }
 
 /** After the case: high-yield pearls and practice questions in the style of the doctor's own exam. */

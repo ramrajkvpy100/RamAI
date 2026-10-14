@@ -457,7 +457,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 18;
+const SCHEMA_VERSION = 19;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
@@ -517,6 +517,9 @@ async function migrate(b: Backend) {
   if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
   // The doctor's own specialty, asked once: NULL = not asked yet, 'mixed' = every specialty.
   if (!columns.includes("specialty")) add.push("ALTER TABLE users ADD COLUMN specialty TEXT");
+  // Exam practice sets: previous-year pattern or concept practice.
+  const examSetColumns = (await b.all<{ name: string }>("PRAGMA table_info(exam_sets)")).map((c) => c.name);
+  if (!examSetColumns.includes("style")) add.push("ALTER TABLE exam_sets ADD COLUMN style TEXT NOT NULL DEFAULT 'concept'");
   if (add.length) await b.batch(add.map((sql) => ({ sql })));
   await b.exec("CREATE INDEX IF NOT EXISTS results_daily ON results(daily_key, score); CREATE INDEX IF NOT EXISTS case_starts_daily ON case_starts(user_id, daily_key)");
   await b.exec("CREATE UNIQUE INDEX IF NOT EXISTS users_auth_id ON users(auth_id) WHERE auth_id IS NOT NULL");

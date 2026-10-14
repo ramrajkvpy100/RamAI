@@ -277,6 +277,8 @@ const McqSchema = z
     explanation: str(1600),
     topic: str(80),
     difficulty: z.enum(["easy", "medium", "hard"]).catch("medium"),
+    /** Previous-year-pattern sets: which paper's pattern it follows, e.g. "NEET PG 2023 pattern". */
+    pattern: optStr(60),
   })
   .refine((q) => q.options.length >= 4 && q.answer >= 0 && q.answer < q.options.length && q.stem.length >= 15);
 

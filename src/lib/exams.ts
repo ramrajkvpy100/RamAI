@@ -1,11 +1,11 @@
 /**
  * Exam practice — the exams each country's doctors sit, and their subjects. Isomorphic: the menu and
- * pages show them, the server writes questions for them. India: NEET PG and INI-CET; the USA: USMLE;
+ * pages show them, the server writes questions for them. India: NEET PG and INI-CET, and the super-speciality NEET SS and INI-SS; the USA: USMLE;
  * the UK: UKMLA and PLAB.
  */
 import type { Country } from "@/engine/countries";
 
-export type ExamId = "neet-pg" | "ini-cet" | "usmle" | "ukmla" | "plab";
+export type ExamId = "neet-pg" | "ini-cet" | "neet-ss" | "ini-ss" | "usmle" | "ukmla" | "plab";
 
 export interface ExamInfo {
   id: ExamId;
@@ -22,6 +22,14 @@ export interface ExamInfo {
 const NEET_SUBJECTS = [
   "Anatomy", "Physiology", "Biochemistry", "Pathology", "Pharmacology", "Microbiology", "Forensic Medicine", "Community Medicine (PSM)",
   "ENT", "Ophthalmology", "Medicine", "Surgery", "Obstetrics & Gynaecology", "Paediatrics", "Orthopaedics", "Dermatology", "Psychiatry", "Anaesthesia", "Radiology",
+];
+
+/** Super-speciality entrance (DM, MCh): the feeder specialities' question areas. */
+const SS_SUBJECTS = [
+  "Cardiology", "Neurology", "Nephrology", "Gastroenterology & Hepatology", "Endocrinology", "Clinical Haematology", "Medical Oncology", "Pulmonary & Critical Care", "Rheumatology & Clinical Immunology", "Infectious Diseases",
+  "Neonatology", "Paediatric Cardiology", "Paediatric Neurology", "Paediatric Gastroenterology",
+  "Cardiothoracic & Vascular Surgery", "Neurosurgery", "Urology", "Surgical Gastroenterology", "Surgical Oncology", "Plastic Surgery", "Paediatric Surgery", "Endocrine Surgery",
+  "Reproductive Medicine", "Gynaecologic Oncology", "Interventional Radiology", "Cardiac Anaesthesia",
 ];
 
 const UK_AREAS = [
@@ -48,6 +56,24 @@ export const EXAMS: Record<ExamId, ExamInfo> = {
     options: 4,
     style: "INI-CET single best answer: conceptual and image-free, a little harder than NEET PG — two-step reasoning, recent advances and AIIMS-style clinical vignettes — with FOUR options, per standard Indian textbooks and national guidelines",
     subjects: NEET_SUBJECTS,
+  },
+  "neet-ss": {
+    id: "neet-ss",
+    label: "NEET SS",
+    board: "the National Board of Examinations (DM/MCh entrance)",
+    country: "IN",
+    options: 4,
+    style: "NEET SS single best answer at super-speciality level: clinical vignettes, recent trials and guidelines, investigation interpretation and advanced management in the feeder speciality, with FOUR options, per current international and Indian guidelines",
+    subjects: SS_SUBJECTS,
+  },
+  "ini-ss": {
+    id: "ini-ss",
+    label: "INI-SS",
+    board: "AIIMS New Delhi (super-speciality entrance)",
+    country: "IN",
+    options: 4,
+    style: "INI-SS (AIIMS super-speciality) single best answer: conceptual and applied, recent advances, landmark trials and multi-step clinical reasoning in the feeder speciality, with FOUR options",
+    subjects: SS_SUBJECTS,
   },
   usmle: {
     id: "usmle",
@@ -96,12 +122,22 @@ export interface ExamQuestion {
   options: string[];
   topic: string;
   difficulty: "easy" | "medium" | "hard";
+  /** "NEET PG 2023 pattern" — previous-year-pattern sets only. */
+  pattern?: string;
 }
+
+/** Previous-year pattern (the default): topics and question patterns from recent papers. Concept: any high-yield topic. */
+export type ExamStyle = "pyq" | "concept";
+export const EXAM_STYLES: Record<ExamStyle, { label: string; note: string }> = {
+  pyq: { label: "Previous-year pattern", note: "Topics and patterns asked in recent papers — recall-based practice, not the actual papers" },
+  concept: { label: "Concept practice", note: "Any high-yield topic in the subject" },
+};
 
 export interface ExamSet {
   id: string;
   exam: ExamId;
   subject: string;
+  style: ExamStyle;
   questions: ExamQuestion[];
 }
 

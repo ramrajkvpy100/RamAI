@@ -15,7 +15,7 @@ import { chatJSON, openAIConfig, type ChatMessage } from "@/engine/providers/ope
 import { applyExaminerReview, GUIDELINES } from "@/engine/providers/openai-review";
 import { ExamReviewSchema, ExamSetSchema } from "@/engine/providers/openai-schema";
 import type { Mcq } from "@/engine/types";
-import { EXAMS, MIXED, SET_SIZE, type ExamId, type ExamSet, type ExamStats } from "@/lib/exams";
+import { EXAMS, MIXED, SET_SIZE, type ExamId, type ExamSet, type ExamStats, type ExamStyle } from "@/lib/exams";
 
 import type { User } from "./auth";
 import { db } from "./db";
@@ -31,18 +31,23 @@ export class ExamError extends Error {
 
 export const examWritingAvailable = () => !!openAIConfig().key;
 
-function writerPrompt(exam: ExamId, subject: string, avoid: string[]): ChatMessage[] {
+function writerPrompt(exam: ExamId, subject: string, style: ExamStyle, avoid: string[]): ChatMessage[] {
   const e = EXAMS[exam];
   const scope = subject === MIXED ? `a mix across ${e.subjects.join(", ")} — no more than two from any one subject` : `${subject}`;
+  const year = new Date().getFullYear();
+  const pyq =
+    style === "pyq"
+      ? `\nPREVIOUS-YEAR PATTERN: choose the topics and question patterns that were actually asked in ${e.label} papers from ${year - 7} to ${year - 1} (as known from candidates' recalls) — the classic, repeatedly asked facts and the way they are framed. Write each question afresh in that pattern; never reproduce a paper's or a coaching book's wording, and never claim a question is the actual one. Tag each with "pattern": "${e.label} <year> pattern" for the year whose pattern it follows.`
+      : "";
   return [
     { role: "system", content: `You are a senior clinician and an experienced item writer for ${e.label} (${e.board}). Every fact you write is accurate and current — ${GUIDELINES[e.country]}. Output JSON only.` },
     {
       role: "user",
       content: `Write ${SET_SIZE} practice questions for ${e.label}: ${scope}.
 Style: ${e.style}.
-Cover different high-yield topics — no two questions on the same fact. A spread of difficulty: about a third easy, half medium, the rest hard.${avoid.length ? `\nTopics already in recent sets — choose others: ${avoid.slice(0, 40).join("; ")}.` : ""}
+Cover different high-yield topics — no two questions on the same fact.${pyq} A spread of difficulty: about a third easy, half medium, the rest hard.${avoid.length ? `\nTopics already in recent sets — choose others: ${avoid.slice(0, 40).join("; ")}.` : ""}
 Exactly one best answer each; plausible, homogeneous distractors; no "all of the above" or "none of the above". In explanations, refer to options by their content, never by letter or position.
-Each question: {"stem","options":[${e.options} options],"answer": the 0-based index of the best answer,"explanation":"why it's right, and briefly why each other option isn't","topic":"a short tag, e.g. 'Brachial plexus — Erb palsy'","difficulty":"easy"|"medium"|"hard"}
+Each question: {"stem","options":[${e.options} options],"answer": the 0-based index of the best answer,"explanation":"why it's right, and briefly why each other option isn't","topic":"a short tag, e.g. 'Brachial plexus — Erb palsy'","difficulty":"easy"|"medium"|"hard"${style === "pyq" ? ',"pattern"' : ""}}
 Return {"pearls":[],"mcqs":[…]}`,
     },
   ];
@@ -69,11 +74,11 @@ function shuffle(q: Mcq): Mcq {
 }
 
 /** Writes a set, has it examined, and keeps it for everyone — within a minute (the writer 40 s, the examiner 15 s; an unexamined draft is kept if the examiner runs out of time). */
-export async function writeSet(exam: ExamId, subject: string): Promise<{ id: string; mcqs: Mcq[] }> {
+export async function writeSet(exam: ExamId, subject: string, style: ExamStyle = "pyq"): Promise<{ id: string; mcqs: Mcq[] }> {
   if (!examWritingAvailable()) throw new ExamError("UNAVAILABLE", "Exam practice needs the AI question writer, which isn't switched on here.");
-  const recent = await db.all<{ data: string }>("SELECT data FROM exam_sets WHERE exam = ? AND subject = ? ORDER BY created_at DESC LIMIT 4", exam, subject);
+  const recent = await db.all<{ data: string }>("SELECT data FROM exam_sets WHERE exam = ? AND subject = ? AND style = ? ORDER BY created_at DESC LIMIT 4", exam, subject, style);
   const avoid = recent.flatMap((r) => (JSON.parse(r.data) as Mcq[]).map((q) => q.topic));
-  const parsed = ExamSetSchema.safeParse(await chatJSON(writerPrompt(exam, subject, avoid), 7000, true, 40_000));
+  const parsed = ExamSetSchema.safeParse(await chatJSON(writerPrompt(exam, subject, style, avoid), 7000, true, 40_000));
   if (!parsed.success || parsed.data.mcqs.length < 5) throw new ExamError("UNAVAILABLE", "The questions couldn't be written just now. Please try again.");
   const draft = { pearls: [] as string[], mcqs: parsed.data.mcqs };
   const reviewed = await chatJSON(examinerPrompt(exam, draft.mcqs as Mcq[]), 3600, true, 15_000)
@@ -83,27 +88,28 @@ export async function writeSet(exam: ExamId, subject: string): Promise<{ id: str
   const mcqs = (reviewed.part.mcqs as Mcq[]).slice(0, SET_SIZE).map(shuffle);
   if (mcqs.length < 5) throw new ExamError("UNAVAILABLE", "The questions couldn't be written just now. Please try again.");
   const id = randomUUID();
-  await db.run("INSERT INTO exam_sets (id, exam, subject, data, model, created_at) VALUES (?, ?, ?, ?, ?, ?)", id, exam, subject, JSON.stringify(mcqs), openAIConfig().model, Date.now());
+  await db.run("INSERT INTO exam_sets (id, exam, subject, style, data, model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)", id, exam, subject, style, JSON.stringify(mcqs), openAIConfig().model, Date.now());
   return { id, mcqs };
 }
 
-const forPlayer = (id: string, exam: ExamId, subject: string, mcqs: Mcq[]): ExamSet => ({
+const forPlayer = (id: string, exam: ExamId, subject: string, style: ExamStyle, mcqs: Mcq[]): ExamSet => ({
   id,
   exam,
   subject,
-  questions: mcqs.map((q) => ({ stem: q.stem, options: q.options, topic: q.topic, difficulty: q.difficulty })),
+  style,
+  questions: mcqs.map((q) => ({ stem: q.stem, options: q.options, topic: q.topic, difficulty: q.difficulty, ...(style === "pyq" && q.pattern ? { pattern: q.pattern } : {}) })),
 });
 
 /** A set they haven't answered — kept from before if there is one, else written now. `ready` says whether another is waiting. */
-export async function nextSet(user: User, exam: ExamId, subject: string): Promise<{ set: ExamSet; another: boolean }> {
+export async function nextSet(user: User, exam: ExamId, subject: string, style: ExamStyle = "pyq"): Promise<{ set: ExamSet; another: boolean }> {
   const fresh = await db.all<{ id: string; data: string }>(
-    "SELECT id, data FROM exam_sets s WHERE exam = ? AND subject = ? AND NOT EXISTS (SELECT 1 FROM exam_answers a WHERE a.user_id = ? AND a.set_id = s.id) ORDER BY created_at ASC LIMIT 2",
-    exam, subject, user.id,
+    "SELECT id, data FROM exam_sets s WHERE exam = ? AND subject = ? AND style = ? AND NOT EXISTS (SELECT 1 FROM exam_answers a WHERE a.user_id = ? AND a.set_id = s.id) ORDER BY created_at ASC LIMIT 2",
+    exam, subject, style, user.id,
   );
   const first = fresh[0];
-  if (first) return { set: forPlayer(first.id, exam, subject, JSON.parse(first.data) as Mcq[]), another: fresh.length > 1 };
-  const written = await writeSet(exam, subject);
-  return { set: forPlayer(written.id, exam, subject, written.mcqs), another: false };
+  if (first) return { set: forPlayer(first.id, exam, subject, style, JSON.parse(first.data) as Mcq[]), another: fresh.length > 1 };
+  const written = await writeSet(exam, subject, style);
+  return { set: forPlayer(written.id, exam, subject, style, written.mcqs), another: false };
 }
 
 /** Checks an answer, records the first one, and returns the key and explanation. */
