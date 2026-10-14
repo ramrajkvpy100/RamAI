@@ -116,6 +116,8 @@ export interface EncounterMessage {
   at: number;
   /** Investigation instance ids rendered inline beneath this message. */
   attachmentIds?: string[];
+  /** Ready-made answers to the question this message asks (dose, route, how often…). */
+  replies?: { text: string; send?: boolean }[];
   /** Clinical media shown inline (photographs, dermoscopy, tracings). */
   media?: MediaAsset;
   /**
@@ -595,7 +597,7 @@ export interface ActionRecord {
  * render state. This keeps the interface identical for every provider.
  */
 export type TurnEffect =
-  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; media?: MediaAsset; attachmentIds?: string[]; stethoscope?: ListenArea[]; sounds?: Auscultation[] }
+  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; media?: MediaAsset; attachmentIds?: string[]; stethoscope?: ListenArea[]; sounds?: Auscultation[]; replies?: { text: string; send?: boolean }[] }
   | { type: "vitals"; readings: VitalPatch[] }
   | { type: "fact"; group: FactGroup; label: string; value: string; abnormal?: boolean }
   | { type: "investigation_ordered"; instanceId: string; defId: string; name: string; category: InvestigationCategory; turnaroundMin: number; cost?: number }

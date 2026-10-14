@@ -476,6 +476,12 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     return done([{ kind: "results", phrase: rawClause, matched: true }]);
   }
 
+  // "Show me (the picture / the rash / it)": the doctor wants to see — the examination that has a photograph.
+  if (/^(?:please\s+|can you\s+|let me\s+)?(?:show(?: me)?|let me see|can i see)\b(?:\s+(?:the|your|a|it|that|them))*\s*(?:picture|photo|photograph|image|pic|lesions?|rash|skin|spots?|lumps?|swelling|wound|it|that|them)?\s*$/.test(norm)) {
+    const pictured = ctx.def.exam.find((e) => e.media) ?? ctx.def.exam.find((e) => e.group === "local-exam");
+    if (pictured) return done([{ kind: "exam", targetId: pictured.id, phrase: rawClause, matched: true }]);
+  }
+
   // "How are you feeling?" — the patient says how they are now.
   if (feelingQuestion) return done([{ kind: "history", targetId: "identity:feeling", phrase: rawClause, matched: true }]);
 

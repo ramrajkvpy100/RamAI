@@ -9,6 +9,9 @@ import type { CaseState, EncounterMessage } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { clockAt } from "@/lib/format";
 
+import { send } from "@/lib/case-store";
+
+import { useComposer } from "./composer-context";
 import { ResultCard } from "./result-card";
 import { StethoscopePlayer } from "./stethoscope-player";
 import { figureSeed, statusAt } from "./scene/figures";
@@ -200,6 +203,41 @@ function SystemLine({ m, isNew }: { m: EncounterMessage; isNew: boolean }) {
   );
 }
 
+/**
+ * Ready-made answers under a question about an order — "Usual dose" sends at
+ * once; the rest (a dose, a route, how often, how long) go into the message
+ * box to be combined, then sent.
+ */
+function QuickReplies({ message }: { message: EncounterMessage | undefined }) {
+  const { draft, setDraft, focus } = useComposer();
+  if (!message?.replies?.length) return null;
+  return (
+    <div className="-mt-1 flex animate-enter flex-wrap gap-2 pl-1" aria-label="Quick answers">
+      {message.replies.map((r) => (
+        <button
+          key={r.text}
+          type="button"
+          onClick={() => {
+            if (r.send) {
+              void send(draft.trim() ? `${draft.trim()} ${r.text}` : r.text);
+              setDraft("");
+              return;
+            }
+            setDraft(draft.trim() ? `${draft.trim()} ${r.text}` : r.text);
+            focus();
+          }}
+          className={cn(
+            "h-9 rounded-full px-3.5 text-[13.5px] font-medium shadow-sm transition-colors",
+            r.send ? "bg-ai text-white" : "border border-line bg-surface text-fg hover:bg-surface-2",
+          )}
+        >
+          {r.text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Conversation({
   state,
   sendingInput,
@@ -274,6 +312,8 @@ export function Conversation({
               </div>
             );
           })}
+
+          {!sendingInput && <QuickReplies message={state.messages.at(-1)} />}
 
           {sendingInput && (
             <>

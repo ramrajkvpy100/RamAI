@@ -452,3 +452,30 @@ export function isConfirmation(text: string): boolean {
 
 /** "No", "cancel", "hold it": the queried order isn't given. */
 export const DECLINE_RE = /^\s*(?:no+|nope|nahi|na|cancel(?: it| that)?|stop|hold(?: it| on| off)?|don'?t|do not|leave it|skip it|scrap that|actually no|my mistake|sorry|wait)\b/i;
+
+/* -------------------------------------------------------------------------- */
+/* Ready-made answers                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** A tap-to-answer button under the question: added to the message box, or (send) sent at once. */
+export interface QuickReply {
+  text: string;
+  send?: boolean;
+}
+
+/** Buttons for what an order is waiting on — the usual dose, the routes it can go by, how often, how long. */
+export function orderReplies(p: PendingOrder): QuickReply[] {
+  if (p.kind === "confirm") return [{ text: "Yes, give it", send: true }, { text: "No, hold it", send: true }];
+  if (p.kind === "oxygen") return ["Nasal prongs 2 L/min", "Face mask 6 L/min", "Non-rebreather mask 15 L/min"].map((text) => ({ text, send: true }));
+  if (p.kind !== "drug") return [];
+  const drug = formularyDrug(p.targetId);
+  if (!drug) return [];
+  const out: QuickReply[] = [{ text: "Usual dose", send: true }];
+  if (p.needs.includes("volume")) out.push(...["250 mL", "500 mL", "1 L"].map((text) => ({ text })));
+  if (p.needs.includes("dose") && drug.dose && /^\d/.test(drug.dose)) out.push({ text: drug.dose.replace(/\s*\(.*\)$/, "") });
+  if (p.needs.includes("route")) out.push(...routesFor(drug).map((r) => ({ text: ROUTE_WORDS[r] ?? r })));
+  if (p.needs.includes("rate")) out.push(...["over 15 min", "over 30 min", "over 1 hour"].map((text) => ({ text })));
+  if (p.needs.includes("frequency")) out.push(...["OD", "BD", "TDS", "SOS"].map((text) => ({ text })));
+  if (p.needs.includes("duration")) out.push(...["for 3 days", "for 5 days", "for 7 days"].map((text) => ({ text })));
+  return out.slice(0, 12);
+}

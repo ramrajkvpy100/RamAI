@@ -14,7 +14,7 @@ import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, Therapeutic
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
-import { confirmQuestion, graveHazards, drugNeeds, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
+import { confirmQuestion, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { saltGrams } from "./toxicity";
@@ -407,6 +407,9 @@ function record(hidden: HiddenState, token: string) {
 function done(hidden: HiddenState, token: string, since = -Infinity): boolean {
   return (hidden.actions[token] ?? []).some((t) => t >= since);
 }
+
+/** A fact worth showing: words, not a stray "true" or "yes" from a model. */
+const realFact = (f: string | undefined): f is string => !!f && !/^(?:true|false|yes|no|null|undefined|n\/a)$/i.test(f.trim());
 
 /** Halfway between a vital now and where a treatment takes it ("140/90" → "130/85"); null when it can't be read. */
 function midway(from: VitalPatch | undefined, to: VitalPatch): VitalPatch | null {
@@ -1076,7 +1079,7 @@ function handleHistory(ctx: TurnContext, intent: ResolvedIntent, index: number):
   if (entry) {
     const first = hidden.history[entry.id] === undefined;
     if (first) hidden.history[entry.id] = hidden.clock;
-    fx.push({ type: "fact", group: entry.group, label: entry.label, value: entry.fact ?? entry.reply, abnormal: entry.abnormal });
+    fx.push({ type: "fact", group: entry.group, label: entry.label, value: realFact(entry.fact) ? entry.fact! : entry.reply, abnormal: entry.abnormal });
     if (first) {
       const label = HISTORY_TIMELINE[entry.group] ?? `${entry.label} ${entry.group === "systemic" ? "reviewed" : "assessed"}`;
       fx.push(...timelineOnce(hidden, `hx:${HISTORY_TIMELINE[entry.group] ? entry.group : entry.id}`, { type: "timeline", label, category: "history" }));
@@ -1204,7 +1207,7 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     finding = "No abnormality detected on that examination.";
   }
 
-  let factValue = caseEntry?.fact && !hidden.examOverrides[id] ? caseEntry.fact : finding;
+  let factValue = realFact(caseEntry?.fact) && !hidden.examOverrides[id] ? caseEntry!.fact! : finding;
   // A whole system's examination: what's seen and felt in words, what's heard only through the stethoscope.
   const part = SOUND_PART[id];
   if (part) {
@@ -1669,7 +1672,7 @@ function askAbout(ctx: TurnContext, pending: PendingOrder, question: string, mod
   ctx.hidden.pendingOrders = [...ctx.hidden.pendingOrders.filter((o) => !(o.kind === pending.kind && o.targetId === pending.targetId)), pending];
   ctx.asked.push(pending);
   ctx.stages.push("treatment");
-  return [{ type: "message", role, kind: role === "system" ? "status" : "speech", text: question }];
+  return [{ type: "message", role, kind: role === "system" ? "status" : "speech", text: question, replies: orderReplies(pending) }];
 }
 
 function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
@@ -2102,6 +2105,10 @@ function handleAction(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     ];
   }
   if (id === "counsel:generic") {
+    // "Advise" alone: advise what? Asked, not taken as advice given.
+    if (/^(?:please\s+)?(?:advise|advice|counsel|counselling|counseling|explain|educate|tell him|tell her|tell the patient|inform|instruct|recommend)[.!\s]*$/i.test(intent.phrase.trim())) {
+      return [{ type: "message", role: def.track === "phone" ? "attendant" : "nurse", kind: "speech", text: "What would you like to advise, doctor?", replies: ["Advise rest and plenty of fluids", "Advise diet and lifestyle changes", "Advise when to come back", "Explain the warning signs"].map((text) => ({ text })) }];
+    }
     hidden.clock += 3;
     hidden.counselling.push(intent.phrase);
     ctx.stages.push("treatment");
