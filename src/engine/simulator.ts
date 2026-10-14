@@ -1788,6 +1788,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     arrested: hidden.status === "deceased",
   };
   const prescribed = mode === "prescribed";
+  const statusBefore = hidden.status;
   const order = orderKey(drug.id, given.at);
   const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
   const grave = graveHazards(triggered);
@@ -1844,10 +1845,30 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     });
     if (startedAt + peak > hidden.clock) fx.push({ type: "watching", label: drug.generic, until: startedAt + peak });
   }
+  // A course prescribed: taken as if its time is up — and the patient says, in their own words, what it did.
+  if (prescribed && !def.guided && def.track !== "phone") fx.push(...afterCourse(def, hidden, drug, duration, statusBefore));
   noteResponse(hidden, `${label} ${mode}`);
   evaluateRescues(def, hidden);
   ctx.stages.push("treatment");
   return fx;
+}
+
+/** After a prescribed course: what the patient noticed, if anything. */
+function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, duration: string | undefined, before: PatientStatus): TurnEffect[] {
+  const name = drug.generic.toLowerCase();
+  const when = duration ? `After ${duration.replace(/^for\s+/i, "")} of ${name}` : `After taking the ${name}`;
+  const feels = profileFor(drug)?.feels;
+  const relief = feels && troublesOf(def, hidden).has(feels.when) ? feels.says : undefined;
+  const now = hidden.status;
+  let says: string;
+  if (STATUS_RANK[now] > STATUS_RANK[before]) says = "It hasn't helped, doctor — if anything I feel worse.";
+  else if (STATUS_RANK[now] < STATUS_RANK[before]) says = relief ? `${relief} I feel much better overall.` : "I feel much better, doctor.";
+  else if (relief) says = `${relief} But the main problem is still there.`;
+  else says = "No real change, doctor. I feel about the same.";
+  return [
+    { type: "message", role: "system", kind: "action", text: `${when} —` },
+    { type: "message", role: patientRole(def), kind: "speech", text: says },
+  ];
 }
 
 /** "I'm sure", "I know", "deliberately": said with the order, the nurse doesn't query it. */

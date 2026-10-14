@@ -74,3 +74,12 @@ describe("orders are carried out as given — and the patient lives with them", 
     expect(said(state)).not.toMatch(/arrest|no pulse/i);
   });
 });
+
+describe("a prescribed course", () => {
+  it("is taken as if its days are up, and the patient says what changed", async () => {
+    const { dermTinea: medPad } = await import("@/engine/cases/derm-tinea");
+    
+    const { state } = play(medPad, ["Prescribe cetirizine 10 mg oral OD for 5 days"]);
+    expect(said(state)).toMatch(/After 5 days of cetirizine/);
+  });
+});

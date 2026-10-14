@@ -1,6 +1,7 @@
 "use client";
 
 import { PatientFigure } from "@/components/game/caricature";
+import { MediaFigure } from "@/components/media/media-figure";
 import { Label } from "@/components/ui/primitives";
 import type { CaseState, FactGroup, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
@@ -83,6 +84,7 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
       <FactList title="History" id="pp-history" facts={historyFacts} empty="Nothing obtained yet." flashKeys={flashKeys} />
       {scene !== "phone" && <FactList title="Examination" id="pp-exam" facts={examFacts} empty="Not examined yet." flashKeys={flashKeys} />}
 
+      <CaseImages state={state} />
       {(state.drugs.length > 0 || state.procedures.length > 0) && (
         <section aria-labelledby="pp-tx">
           <Label as="h2" className="mb-2">
@@ -110,6 +112,30 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
         </section>
       )}
     </div>
+  );
+}
+
+/** Every picture so far — examination photos and scans — kept in view. */
+function CaseImages({ state }: { state: CaseState }) {
+  const items = [
+    ...state.messages.filter((m) => m.media).map((m) => ({ key: m.id, media: m.media!, title: m.text.split(" — ")[0]?.slice(0, 60) || "Image" })),
+    ...state.investigations.filter((i) => i.status === "resulted" && i.media).map((i) => ({ key: i.id, media: i.media!, title: i.name })),
+  ];
+  if (items.length === 0) return null;
+  return (
+    <section aria-labelledby="pp-img">
+      <Label as="h2" className="mb-2">
+        <span id="pp-img">Images</span>
+      </Label>
+      <ul className="grid grid-cols-2 gap-2">
+        {items.map((it) => (
+          <li key={it.key} className="min-w-0">
+            <MediaFigure media={it.media} viewerKey={it.key} title={it.title} compact />
+            <p className="mt-1 truncate text-[11px] text-fg-3">{it.title}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
