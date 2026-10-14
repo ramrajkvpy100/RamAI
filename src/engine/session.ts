@@ -68,6 +68,9 @@ function key(): Buffer {
   if (!secret || secret.length < 32) {
     // No secret of its own: derive one from the cloud database's token, which is just as private.
     // Setting RAMAI_SESSION_SECRET later is still better — it then takes over (open cases restart).
+    // A secret every deploy shares (the database's token can change with each deploy): the server's AI key.
+    const stable = process.env.OPENAI_API_KEY;
+    if (stable && stable.length >= 32) return createHmac("sha256", stable).update("ramai/session-key/v2").digest();
     const dbToken = remoteDatabase()?.authToken;
     if (dbToken && dbToken.length >= 32) return createHmac("sha256", dbToken).update("ramai/session-key/v1").digest();
     if (process.env.NODE_ENV === "production") {
@@ -110,7 +113,7 @@ export function unseal(token: string): SessionPayload {
       plain = open(key());
     } catch (err) {
       const old = legacyKey();
-      if (err instanceof ConfigError || !old || !process.env.RAMAI_SESSION_SECRET) throw err;
+      if (err instanceof ConfigError || !old) throw err;
       plain = open(old);
     }
     const payload = JSON.parse(inflateRawSync(plain).toString("utf8")) as SessionPayload;

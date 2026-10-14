@@ -7,7 +7,6 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 
-import { db } from "./db";
 import { supabaseAdmin } from "./supabase";
 
 let loading: Promise<void> | null = null;
@@ -40,12 +39,5 @@ async function loadSessionKey(): Promise<void> {
       return;
     }
   }
-  await db.run("CREATE TABLE IF NOT EXISTS app_secrets (name TEXT PRIMARY KEY, value TEXT NOT NULL, created_at INTEGER NOT NULL)");
-  // Two servers starting at once: only the first one's key is kept, and both read that one.
-  await db.run("INSERT OR IGNORE INTO app_secrets (name, value, created_at) VALUES ('session', ?, ?)", randomBytes(48).toString("base64url"), Date.now());
-  const row = await db.get<{ value: string }>("SELECT value FROM app_secrets WHERE name = 'session'");
-  if (row?.value && row.value.length >= 32) {
-    process.env.RAMAI_SESSION_SECRET = row.value;
-    keySource.from = "db";
-  }
+  // Otherwise the key is derived from a secret every deploy shares (see engine/session).
 }
