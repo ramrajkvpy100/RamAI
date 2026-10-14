@@ -15,7 +15,7 @@ const isFluid = (classes: readonly string[]) => classes.includes("fluid") || cla
 
 /** Covered by a specific template (or not toxic in this sense) — the generic overdose templates leave these alone. */
 const SPECIFIC = new Set(["fluid", "crystalloid", "colloid", "blood-product", "insulin", "opioid", "benzodiazepine", "beta-blocker", "ccb", "antiarrhythmic", "vasopressor", "glucose", "vaccine"]);
-const specific = (classes: readonly string[], id: string) => classes.some((c) => SPECIFIC.has(c)) || id === "potassium-chloride" || id === "methotrexate";
+const specific = (classes: readonly string[], id: string) => classes.some((c) => SPECIFIC.has(c)) || id === "potassium-chloride" || id === "methotrexate" || id === "table-salt";
 
 const fluidFlood: GlobalHazardTemplate = {
   id: "fluid-flood",
@@ -464,7 +464,84 @@ const drugToxicitySevere: GlobalHazardTemplate = {
   }),
 };
 
+/** A child's weight from their age (an adult: 60 kg) — for doses per kilogram when the case gives none. */
+const weightFor = (age: number) => (age < 1 ? 7 : age <= 12 ? 2 * age + 8 : age < 16 ? 45 : 60);
+/** Grams of salt in an order ("50 g", "5000 mg", "2 spoons" ≈ 6 g each). */
+const saltGrams = (o: { amount?: number; unit?: string; multiple?: number }) =>
+  o.unit === "g" ? (o.amount ?? 0) : o.unit === "mg" ? (o.amount ?? 0) / 1000 : /spoon|tsp/i.test(o.unit ?? "") ? (o.amount ?? 0) * 6 : (o.multiple ?? 1);
+
+/**
+ * Salt poisoning: about 0.5–1 g/kg makes a child very ill and 1–3 g/kg can kill — acute
+ * hypernatraemia shrinks the brain (thirst, vomiting, irritability, then seizures, coma, bleeding).
+ */
+const saltPoisoning: GlobalHazardTemplate = {
+  id: "salt-poisoning",
+  applies: () => true,
+  triggers: (o, _p, snap) => o.drug.id === "table-salt" && saltGrams(o) / weightFor(snap.age) >= 0.5,
+  build: (def) => {
+    const kid = def.patient.age <= 12;
+    const he = def.patient.sex === "Female" ? "She" : "He";
+    const watcher = kid || def.track === "phone" ? "attendant" : "patient";
+    const na = (v: string, flag: "high" | "critical") => ({ rows: [{ analyte: "Sodium", value: v, unit: "mEq/L", reference: "135–145", flag }] });
+    return {
+      id: "salt-poisoning",
+      label: "Acute salt poisoning — hypernatraemia",
+      stages: [
+        {
+          afterMin: 15, status: "deteriorating",
+          vitals: [{ key: "hr", value: kid ? "128" : "108" }, { key: "bp", value: kid ? "118/78" : "148/92" }],
+          observation: { role: watcher, text: watcher === "attendant" ? `Doctor, ${he.toLowerCase()} has vomited twice and keeps asking for water!` : "I've vomited… I'm so thirsty, doctor." },
+          patientSays: "I'm so thirsty… my stomach hurts.",
+          investigations: { electrolytes: na("158", "high"), rft: na("158", "high") },
+        },
+        {
+          afterMin: 60, status: "critical",
+          vitals: [{ key: "hr", value: kid ? "146" : "124" }, { key: "bp", value: kid ? "126/84" : "156/96" }, { key: "temp", value: "100.8" }, { key: "gcs", value: "12" }],
+          observation: { role: watcher, text: `${he}'s very irritable and confused now, and ${he.toLowerCase()}'s twitching.` },
+          patientSays: "(Irritable, confused, crying out — muscles twitching.)",
+          examFindings: { cns: "Irritable, disoriented; hyperreflexia and muscle twitching; GCS 12." },
+          investigations: { electrolytes: na("176", "critical"), rft: na("176", "critical") },
+        },
+        {
+          afterMin: 150, status: "critical",
+          vitals: [{ key: "hr", value: kid ? "160" : "136" }, { key: "rr", value: "30" }, { key: "spo2", value: "90" }, { key: "gcs", value: "7" }],
+          observation: { role: watcher, text: `${he}'s having a fit — ${he.toLowerCase()} isn't responding!` },
+          patientSays: "(Generalised seizure; unresponsive.)",
+          investigations: { electrolytes: na("188", "critical"), rft: na("188", "critical") },
+          interrupts: true,
+        },
+        {
+          afterMin: 300, status: "deceased",
+          vitals: [{ key: "hr", value: "0" }, { key: "bp", value: "0/0" }, { key: "spo2", value: "0" }, { key: "rr", value: "0" }, { key: "gcs", value: "3" }],
+          observation: { role: "system", text: "Cerebral oedema and intracranial bleeding from the sodium load — cardiorespiratory arrest." },
+        },
+      ],
+      rescue: [["drug:d5", "drug:dextrose-25", "measure:dialysis"]],
+      fullRecoveryWindowMin: 60,
+      lastRescueMin: 240,
+      recovery: [
+        { afterMin: 60, status: "guarded", vitals: [{ key: "hr", value: kid ? "112" : "98" }, { key: "gcs", value: "14" }], patientSays: "I feel a bit better… still thirsty." },
+        { afterMin: 360, status: "improving", vitals: [{ key: "hr", value: kid ? "98" : "86" }, { key: "gcs", value: "15" }], patientSays: "I'm feeling better now." },
+      ],
+      review: {
+        cause: "A large amount of salt was ordered to be eaten.",
+        whyItCausedHarm: "Over about 0.5 g/kg of salt raises serum sodium within hours. Water leaves the brain cells: thirst, vomiting, irritability, then seizures, coma, and bleeding from torn bridging veins. 1–3 g/kg can be fatal, children most of all.",
+        earliestRescueWindow: "At the order: salt is never given as a treatment by mouth in grams like this.",
+        correctRescueSequence: [
+          "Stop further salt; airway, breathing, circulation",
+          "Serum sodium and osmolality urgently",
+          "Free water: 5% dextrose IV (and water by mouth or NG if safe)",
+          "Haemodialysis for severe acute salt poisoning (sodium over ~180, seizures)",
+          "Benzodiazepine for seizures; ICU",
+        ],
+        lastRealisticRescueWindow: "Hours — before seizures and coma; acute salt poisoning can be corrected quickly, unlike chronic hypernatraemia.",
+      },
+    };
+  },
+};
+
 export const TOXICITY: GlobalHazardTemplate[] = [
+  saltPoisoning,
   fluidCatastrophe,
   fluidFlood,
   insulinOverdose("iv"),

@@ -634,6 +634,30 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "(Chhaati pakadte hain, phir gir padte hain.)",
     "My chest felt very strange…":
       "Chhaati mein bahut ajeeb sa hua…",
+    "Doctor, he has vomited twice and keeps asking for water!":
+      "Doctor, isne do baar ulti ki hai aur baar-baar paani maang raha hai!",
+    "Doctor, she has vomited twice and keeps asking for water!":
+      "Doctor, isne do baar ulti ki hai aur baar-baar paani maang rahi hai!",
+    "I've vomited… I'm so thirsty, doctor.":
+      "Ulti ho gayi… bahut pyaas lag rahi hai, doctor.",
+    "I'm so thirsty… my stomach hurts.":
+      "Bahut pyaas lag rahi hai… pet mein dard hai.",
+    "He's very irritable and confused now, and he's twitching.":
+      "Ab yeh bahut chidchida aur behka hua hai, aur jhatke aa rahe hain.",
+    "She's very irritable and confused now, and she's twitching.":
+      "Ab yeh bahut chidchidi aur behki hui hai, aur jhatke aa rahe hain.",
+    "(Irritable, confused, crying out — muscles twitching.)":
+      "(Chidchida, behka hua, chillata hua — maanspeshiyon mein jhatke.)",
+    "He's having a fit — he isn't responding!":
+      "Ise daura pad raha hai — jawab nahi de raha!",
+    "She's having a fit — she isn't responding!":
+      "Ise daura pad raha hai — jawab nahi de rahi!",
+    "(Generalised seizure; unresponsive.)":
+      "(Poore shareer mein daura; koi jawab nahi.)",
+    "I feel a bit better… still thirsty.":
+      "Thoda behtar lag raha hai… abhi bhi pyaas hai.",
+    "I'm feeling better now.":
+      "Ab behtar lag raha hai.",
     "My head is bursting… my chest is pounding!":
       "Sar phat raha hai… chhaati dhak-dhak kar rahi hai!",
     "(Pale, sweaty, barely answering.)":

@@ -78,6 +78,8 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "hyoscine", generic: "Hyoscine butylbromide", brands: ["Buscopan"], aliases: ["hyoscine"], classes: ["antispasmodic", "anticholinergic"], route: "IV", dose: "20 mg", frequency: "stat" },
   { id: "sucralfate", generic: "Sucralfate", brands: ["Sucrafil"], classes: ["ppi"], route: "PO", dose: "1 g", frequency: "TDS" },
   { id: "lactulose", generic: "Lactulose", brands: ["Duphalac"], classes: ["laxative"], route: "PO", dose: "15 mL", frequency: "HS" },
+  // Not a medicine — but an order to eat it is carried out (salt poisoning is real).
+  { id: "table-salt", generic: "Table salt (sodium chloride)", brands: ["Tata Salt"], aliases: ["table salt", "common salt", "namak", "salt"], classes: ["electrolyte"], route: "PO", dose: "1 g", frequency: "stat" },
   { id: "ors", generic: "Oral rehydration salts", brands: ["Electral"], aliases: ["pedialyte", "dioralyte", "ors", "oral rehydration", "oral rehydration solution"], classes: ["ors", "electrolyte"], route: "PO", dose: "1 sachet in 1 L water", frequency: "sips as tolerated" },
 
   // Antibiotics

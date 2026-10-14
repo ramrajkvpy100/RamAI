@@ -289,9 +289,12 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
       });
       return;
     }
+    // Salt is food, not a drug: only an order to eat an amount of it ("eat 50 g of salt") is an order; "low salt diet" is advice.
+    if (drug.id === "table-salt" && !(details.amount !== undefined && /\b(eat|give|take|swallow|feed|have|consume|drink|mix|add|lick)\b/.test(lower))) return;
     const route = details.route ?? drug.route;
     const givenNow =
       /\b(give|administer|inject|infuse|bolus|push|stat|now|nebuli[sz]e|transfuse|load|chew|immediately)\b/.test(lower) ||
+      (drug.id === "table-salt") ||
       // On a phone call, "take" / "put under the tongue" is done at home, now.
       (ctx.setting === "Teleconsult" && /\b(take|swallow|put|place|keep)\b/.test(lower)) ||
       ["IV", "IM", "NEB"].includes(route) ||

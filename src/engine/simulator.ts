@@ -657,9 +657,19 @@ function applyStage(def: ClinicalCaseDefinition, hidden: HiddenState, stage: Haz
 
 /** Arms a hazard; its stages count from `from` (the moment a drug went in), or from now. */
 function armHazard(def: ClinicalCaseDefinition, hidden: HiddenState, id: string, trigger: string, prescribed: boolean, from = hidden.clock) {
-  if (hidden.hazards.some((h) => h.id === id)) return;
   const h = hazardLibrary(def).get(id);
   if (!h) return;
+  const live = hidden.hazards.find((a) => a.id === id && !a.died && a.rescuedAt === undefined);
+  if (live) {
+    // More of what is already doing harm: it moves on to its next stage now — a second push of adrenaline into VT brings VF.
+    if (prescribed) return;
+    const next = h.stages[live.stageIdx + 1];
+    if (next) live.armedAt = Math.min(live.armedAt, hidden.clock - next.afterMin);
+    live.trigger = `${live.trigger}; then ${trigger}`;
+    return;
+  }
+  // Rescued before, and given again: it starts over.
+  if (hidden.hazards.some((a) => a.id === id && (a.died || prescribed))) return;
   const onset = prescribed ? h.prescribedOnsetMin ?? 0 : 0;
   hidden.hazards.push({ id, label: h.label, triggeredAt: from, armedAt: from + onset, trigger, stageIdx: -1, recoveryIdx: -1, died: false, responses: [] });
 }
