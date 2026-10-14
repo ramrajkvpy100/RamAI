@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { db } from "@/server/db";
 
 import { deriveSecret } from "@/engine/session";
 import { remoteDatabase } from "@/lib/server/database-env";
@@ -19,5 +20,7 @@ export async function GET() {
     err = e instanceof Error ? e.name : "?";
   }
   const remote = remoteDatabase();
-  return Response.json({ from: keySource.from, secretSet: !!s, secretLen: s?.length ?? 0, remoteDb: !!remote, remoteToken: !!remote?.authToken, fp, err, region: process.env.VERCEL_REGION ?? null, deploy: (process.env.VERCEL_DEPLOYMENT_ID ?? "").slice(-6) }, { headers: { "Cache-Control": "no-store" } });
+  const row = await db.get<{ n: number; at: number }>("SELECT count(*) AS n, min(created_at) AS at FROM app_secrets").catch(() => undefined);
+  const users = await db.get<{ n: number; first: number }>("SELECT count(*) AS n, min(created_at) AS first FROM users").catch(() => undefined);
+  return Response.json({ from: keySource.from, secretSet: !!s, secretLen: s?.length ?? 0, remoteDb: !!remote, remoteToken: !!remote?.authToken, fp, err, dbHost: createHash("sha256").update(remote?.url ?? "").digest("hex").slice(0, 8), secrets: row, users, region: process.env.VERCEL_REGION ?? null, deploy: (process.env.VERCEL_DEPLOYMENT_ID ?? "").slice(-6) }, { headers: { "Cache-Control": "no-store" } });
 }
