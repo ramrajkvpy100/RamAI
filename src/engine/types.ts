@@ -518,6 +518,8 @@ export interface CaseState {
   differentials: string[];
   /** Whether the patient is on continuous monitoring. */
   monitored: boolean;
+  /** The latest treatment still acting, and when its full effect is due — offered as "Wait N min". */
+  watching?: { label: string; until: number };
   /** Rhythm on the bedside monitor — revealed only once the monitor is attached. */
   monitorRhythm?: EcgSpec["rhythm"];
   /** Every observable change in the patient's condition, for the condition trend. */
@@ -607,7 +609,9 @@ export type TurnEffect =
   | { type: "case_status"; status: CaseStatus }
   | { type: "setting"; setting: CareSetting }
   | { type: "monitoring"; on: boolean; rhythm?: EcgSpec["rhythm"] }
-  | { type: "working_diagnosis"; diagnosis?: string; differentials?: string[] };
+  | { type: "working_diagnosis"; diagnosis?: string; differentials?: string[] }
+  /** A treatment given whose full effect is due at `until` (case minutes): its response will be reported. */
+  | { type: "watching"; label: string; until: number };
 
 export interface VitalPatch {
   key: VitalKey;

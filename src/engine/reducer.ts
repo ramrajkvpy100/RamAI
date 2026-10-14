@@ -182,6 +182,10 @@ export function applyEffects(input: CaseState, effects: readonly TurnEffect[]): 
         if (e.diagnosis !== undefined) s.workingDiagnosis = e.diagnosis;
         if (e.differentials !== undefined) s.differentials = e.differentials;
         break;
+
+      case "watching":
+        if (!s.watching || e.until >= s.watching.until) s.watching = { label: e.label, until: e.until };
+        break;
     }
   }
   return s;

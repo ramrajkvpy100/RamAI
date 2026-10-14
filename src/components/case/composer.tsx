@@ -20,6 +20,7 @@ export function Composer({
   history,
   phone = false,
   country,
+  watch,
 }: {
   onSend: (text: string) => Promise<boolean>;
   disabled?: boolean;
@@ -30,6 +31,8 @@ export function Composer({
   phone?: boolean;
   /** Shortcuts use the test and drug names of the country the case is set in. */
   country?: Country;
+  /** A treatment still acting: one tap waits for its full effect, and what changed is reported. */
+  watch?: { label: string; minutes: number } | null;
 }) {
   const { draft, setDraft, insert, inputRef } = useComposer();
   const [menu, setMenu] = useState<string | null>(null);
@@ -155,6 +158,17 @@ export function Composer({
         />
         <div className="flex items-center gap-2 px-2 pb-2">
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+            {watch && (
+              <button
+                type="button"
+                disabled={disabled || sending}
+                onClick={() => void onSend(`Wait ${watch.minutes} minutes`)}
+                title={`Wait for the ${watch.label.toLowerCase()} to take full effect — what changes is reported`}
+                className="flex h-8 shrink-0 animate-enter items-center gap-1.5 rounded-full bg-accent px-3 text-[13px] font-semibold text-on-accent transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                <Icon name="clock" size={14} /> Wait {watch.minutes} min
+              </button>
+            )}
             {actions.map((a) => (
               <button
                 key={a.id}

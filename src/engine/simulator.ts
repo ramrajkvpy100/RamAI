@@ -13,7 +13,7 @@ import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagV
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
-import { doseMultiple, drugFeeling, kineticsFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
+import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { capitalise, describeSpan, hash, pick } from "./text";
 import type {
@@ -127,6 +127,8 @@ export interface HiddenState {
   fluidMl: number;
   /** Changes a treatment brings, due when it has had time to act. */
   scheduled: { at: number; patches: VitalPatch[]; status?: PatientStatus }[];
+  /** Treatments being watched: the nurse reports what changed once each has had time to act. */
+  watches: Watch[];
   hazards: ArmedHazard[];
   /** Omission hazards already evaluated at their deadline. */
   omissionsChecked: string[];
@@ -177,6 +179,7 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
     actions: {},
     fluidMl: 0,
     scheduled: [],
+    watches: [],
     hazards: [],
     omissionsChecked: [],
     treatmentResponded: false,
@@ -190,6 +193,85 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
     discharged: false,
     closed: false,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Watching a treatment act                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A treatment given, and what the patient was like just before it. When its
+ * checks fall due (the drug's onset, then its peak), whoever is with the
+ * patient says what changed — unasked. Nobody has to ask "what happened?".
+ */
+export interface Watch {
+  label: string;
+  drugId?: string;
+  /** When it went in. */
+  at: number;
+  /** When to look again (absolute minutes); the last one says "no change" if nothing moved. */
+  checks: number[];
+  reported: number;
+  /** The vitals the nurse rechecks, as they were just before. */
+  before: Partial<Record<VitalKey, string>>;
+  status: PatientStatus;
+}
+
+const WATCH_NAMES: Partial<Record<VitalKey, string>> = { hr: "pulse", bp: "BP", rr: "breathing", spo2: "SpO₂", temp: "temperature", rbs: "sugar", gcs: "GCS", pain: "pain score", urine: "urine output" };
+const WATCH_UNITS: Partial<Record<VitalKey, string>> = { hr: "/min", rr: "/min", spo2: "%", temp: " °F", rbs: " mg/dL", pain: "/10", urine: " mL/h" };
+/** How much a reading has to move to be worth saying. */
+const WATCH_MIN: Partial<Record<VitalKey, number>> = { hr: 4, bp: 6, rr: 2, spo2: 1, temp: 0.4, rbs: 15, gcs: 1, pain: 1, urine: 10 };
+
+const EFFECT_VITAL: Record<EffectKey, VitalKey> = { hr: "hr", sbp: "bp", dbp: "bp", rr: "rr", spo2: "spo2", temp: "temp", rbs: "rbs", gcs: "gcs", pain: "pain", urine: "urine" };
+
+function moved(key: VitalKey, from: string | undefined, to: string): boolean {
+  if (from === undefined || from === to) return false;
+  const a = from.split("/").map(parseFloat);
+  const b = to.split("/").map(parseFloat);
+  if (a.some((x) => !Number.isFinite(x)) || b.some((x) => !Number.isFinite(x))) return from !== to;
+  return a.some((x, i) => Math.abs(x - (b[i] ?? x)) >= (WATCH_MIN[key] ?? 1));
+}
+
+/** Starts watching a treatment: which vitals to recheck (those already measured, and those it acts on) and when. */
+function watch(hidden: HiddenState, w: { label: string; drugId?: string; at: number; checks: number[]; keys: VitalKey[] }) {
+  const now = vitalsNow(hidden);
+  const keys = [...new Set([...hidden.measured, ...w.keys])].filter((k) => k in WATCH_NAMES && now[k]?.value);
+  const checks = [...new Set(w.checks.map((c) => Math.max(w.at, Math.round(c))))].sort((a, b) => a - b);
+  hidden.watches.push({ label: w.label, drugId: w.drugId, at: w.at, checks, reported: 0, before: Object.fromEntries(keys.map((k) => [k, now[k].value])), status: hidden.status });
+}
+
+/** What changed since each watched treatment, for those whose time to look has come. */
+function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEffect[] {
+  if (hidden.closed || hidden.status === "deceased") return [];
+  const fx: TurnEffect[] = [];
+  const he = def.patient.sex === "Female" ? "she" : def.patient.sex === "Male" ? "he" : "they";
+  const phone = def.track === "phone";
+  for (const w of hidden.watches) {
+    const due = w.checks.filter((c) => c <= hidden.clock).length;
+    if (due <= w.reported) continue;
+    w.reported = due;
+    const last = due === w.checks.length;
+    const now = vitalsNow(hidden);
+    const changed = phone ? [] : (Object.keys(w.before) as VitalKey[]).filter((k) => moved(k, w.before[k], now[k].value));
+    const acting = w.drugId ? actingDrugs(hidden).filter((d) => d.drugId === w.drugId && d.at === w.at) : [];
+    const feel = acting.length ? drugFeeling(acting, troublesOf(def, hidden), hidden.clock) : undefined;
+    const better = STATUS_RANK[hidden.status] < STATUS_RANK[w.status];
+    const worse = STATUS_RANK[hidden.status] > STATUS_RANK[w.status];
+    if (!changed.length && !feel && !better && !worse && !last) continue;
+    const span = describeSpan(Math.max(1, hidden.clock - w.at));
+    const parts = changed.map((k) => `${WATCH_NAMES[k]} ${w.before[k]} → ${now[k].value}${WATCH_UNITS[k] ?? ""}`);
+    const course = better ? ` ${capitalise(he)} looks better.` : worse ? ` ${capitalise(he)} looks worse.` : "";
+    const says = feel ? ` ${capitalise(he)} says: "${feel}"` : "";
+    const text = parts.length || course || says
+      ? `${span} after the ${w.label}:${parts.length ? ` ${parts.join(", ")}.` : ""}${course}${says}`
+      : `${span} after the ${w.label} — no change in ${he === "they" ? "them" : he === "she" ? "her" : "him"} so far.`;
+    if (changed.length) {
+      for (const k of changed) if (!hidden.measured.includes(k)) hidden.measured.push(k);
+      fx.push({ type: "vitals", readings: changed.map((k) => reading(hidden, k)) });
+    }
+    fx.push({ type: "message", role: phone ? "attendant" : "nurse", kind: "speech", text: text.replace(/\s+/g, " ").trim() });
+  }
+  return fx;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1241,7 +1323,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     fx.push({ type: "message", role: "attendant", kind: "speech", text: `Okay, doctor — ${pronoun} taking the ${drug.generic.toLowerCase()} now.` });
   } else if (mode === "given") {
     const verb = route === "IV" && drug.fluid ? "running" : route === "NEB" ? "nebulisation started" : "given";
-    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}.` });
+    const k = kineticsFor(drug, route);
+    const full = Math.max(k.peak, overMinOf(p) ?? 0);
+    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}. ${k.onset <= minutes ? "Starting to act" : `Starts to act in about ${describeSpan(k.onset)}`}, full effect by about ${describeSpan(full)} — what changes will be reported.` });
   } else {
     fx.push({ type: "message", role: "system", kind: "action", text: `Prescribed — ${prescriptionLine({ generic: drug.generic, dose, route, frequency, duration })}` });
   }
@@ -1287,15 +1371,30 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     }
     hidden.scheduled.push({ at: hidden.clock + peak, patches: rule.vitalsAfter ?? [], status: rule.statusAfter });
   }
+  // Watched from when it went in: at its onset and its peak, what changed is said.
+  if (mode === "given") {
+    const k = kineticsFor(drug, route);
+    const peak = Math.max(k.peak, overMin ?? 0);
+    const acts = Object.keys(profileFor(drug)?.effects ?? {}).map((e) => EFFECT_VITAL[e as EffectKey]);
+    const authored = (rule?.vitalsAfter ?? []).map((v) => v.key);
+    watch(hidden, { label: `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}`, drugId: drug.id, at: startedAt, checks: [startedAt + Math.min(k.onset, peak), startedAt + peak], keys: [...acts, ...authored] });
+    if (startedAt + peak > hidden.clock) fx.push({ type: "watching", label: drug.generic, until: startedAt + peak });
+  }
   noteResponse(hidden, `${label} ${mode}`);
   evaluateRescues(def, hidden);
   ctx.stages.push("treatment");
   return fx;
 }
 
+const overMinOf = (p: Record<string, unknown>) => (typeof p.overMin === "number" && p.overMin > 0 ? p.overMin : undefined);
+
 function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
+  // A treatment the case says changes the patient: what changed is reported when it's done.
+  if (rule.vitalsAfter?.length || rule.statusAfter) {
+    watch(hidden, { label: rule.label.toLowerCase(), at: hidden.clock, checks: [hidden.clock], keys: (rule.vitalsAfter ?? []).map((v) => v.key) });
+  }
 
   // A rule built on catalogue measures (monitor, admit, oxygen…) performs the measure itself,
   // then adds the case-specific consequences.
@@ -1400,6 +1499,7 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
     }
     case "oxygen":
     case "niv": {
+      watch(hidden, { label: m.id === "niv" ? "BiPAP" : "oxygen", at: hidden.clock, checks: [hidden.clock], keys: ["spo2"] });
       const spo2 = parseFloat(hidden.vitals.spo2.value);
       const gain = m.id === "niv" ? 6 : 4;
       if (spo2 < 95 && spo2 > 0) applyVitals(hidden, [{ key: "spo2", value: String(Math.min(97, Math.round(spo2 + gain))) }]);
@@ -1705,6 +1805,8 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
 
   // Fire anything that fell due this turn — including a response to treatment just given.
   if (!hidden.closed) fx.push(...catchUp(def, hidden));
+  // Treatments whose time has come: what changed, said without being asked.
+  if (!hidden.closed) fx.push(...watchReports(def, hidden));
   // The attached monitor shows where the patient is now.
   if (!hidden.closed) fx.push(...monitorTick(hidden));
 

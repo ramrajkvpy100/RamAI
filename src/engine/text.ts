@@ -187,7 +187,7 @@ export function describeSpan(minutes: number): string {
   if (minutes < 60) return `${Math.round(minutes)} min`;
   if (minutes < 1440) {
     const h = minutes / 60;
-    return `${Number.isInteger(h) ? h : h.toFixed(1)} h`;
+    return `${Number.isInteger(h) ? h : h.toFixed(1).replace(/\.0$/, "")} h`;
   }
   const days = Math.round(minutes / 1440);
   if (days % 7 === 0 && days >= 7) return `${days / 7} week${days === 7 ? "" : "s"}`;

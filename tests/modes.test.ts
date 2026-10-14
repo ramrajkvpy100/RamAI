@@ -179,11 +179,14 @@ describe("response to treatment", () => {
     expect(state.vitals.rr!.history.length).toBeGreaterThan(0);
   });
 
-  it("an unmonitored patient's change is only seen when measured", () => {
-    const before = play(emAdhf, ["Give furosemide 40 mg IV", "Wait 40 minutes"]);
-    expect(before.state.vitals.rr!.current.value).toBe("30");
-    const after = play(emAdhf, ["Give furosemide 40 mg IV", "Wait 40 minutes", "Check vitals"]);
-    expect(after.state.vitals.rr!.current.numeric!).toBeLessThan(30);
+  it("what a treatment changed is reported unasked, once it has had time to act", () => {
+    const given = play(emAdhf, ["Give furosemide 40 mg IV"]);
+    expect(given.state.vitals.rr!.current.value).toBe("30");
+    expect(given.state.messages.at(-1)?.text ?? "").not.toMatch(/after the furosemide/);
+    const { state } = play(emAdhf, ["Give furosemide 40 mg IV", "Wait 40 minutes"]);
+    expect(state.vitals.rr!.current.numeric!).toBeLessThan(30);
+    const report = state.messages.find((m) => m.role === "nurse" && /after the furosemide/.test(m.text));
+    expect(report?.text).toMatch(/breathing 30 → \d+\/min/);
   });
 
   it("calling an ambulance is not a treatment — the patient at home doesn't 'improve'", () => {
@@ -229,9 +232,10 @@ describe("live monitor", () => {
     expect(state.vitals.spo2!.current.value).toBe("82");
   });
 
-  it("without a monitor, nothing updates until someone measures", () => {
+  it("without a monitor, nothing streams: only the nurse's recheck after a treatment updates", () => {
     const { state } = play(emAdhf, ["Give furosemide 40 mg IV", "Wait 40 minutes"]);
-    expect(state.vitals.rr!.history).toHaveLength(0);
+    expect(state.vitals.rr!.history.length).toBeLessThanOrEqual(1);
+    expect(play(emAdhf, ["Wait 40 minutes"]).state.vitals.rr!.history).toHaveLength(0);
   });
 });
 

@@ -269,7 +269,7 @@ function Workspace() {
                       </button>
                     </div>
                     <Coach state={state} onTry={onSend} busy={!!snap.sending} />
-                  <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} country={state.country} />
+                  <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} country={state.country} watch={state.watching && state.watching.until > state.clock ? { label: state.watching.label, minutes: Math.ceil(state.watching.until - state.clock) } : null} />
                   </div>
                 </div>
               </main>
