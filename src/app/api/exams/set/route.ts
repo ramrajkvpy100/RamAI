@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 
+import { withUsage } from "@/engine/providers/usage";
 import { userOrGuest } from "@/server/auth";
 import { ExamError, nextSet, writeSet } from "@/server/exam-practice";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -23,9 +24,9 @@ export async function POST(req: Request) {
   if (body.subject !== MIXED && !exam.subjects.includes(body.subject)) return apiError(400, "BAD_REQUEST", "Pick one of the exam's subjects.");
   try {
     const user = await userOrGuest(exam.country);
-    const { set, another } = await nextSet(user, body.exam, body.subject, body.style);
+    const { set, another } = await withUsage({ kind: "exams" }, () => nextSet(user, body.exam, body.subject, body.style));
     // The next set is written while they answer this one, so "Next set" is instant.
-    if (!another) after(() => writeSet(body.exam, body.subject, body.style).then(() => undefined).catch(() => undefined));
+    if (!another) after(() => withUsage({ kind: "exams" }, () => writeSet(body.exam, body.subject, body.style).then(() => undefined).catch(() => undefined)));
     return ok({ set });
   } catch (err) {
     if (err instanceof ExamError) return apiError(err.code === "NOT_FOUND" ? 404 : 503, err.code === "UNAVAILABLE" ? "EXAMS_UNAVAILABLE" : err.code, err.message);

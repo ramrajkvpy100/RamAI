@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { withUsage } from "@/engine/providers/usage";
 import { advanceRealTime } from "@/engine/engine";
 import { requireUser } from "@/server/auth";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
   if (body instanceof Response) return body;
   try {
     const user = await requireUser();
-    return ok(await advanceRealTime(body.token, user.id, user.patientLang));
+    return ok(await withUsage({ kind: "turn" }, () => advanceRealTime(body.token, user.id, user.patientLang)));
   } catch (err) {
     return handleError(err);
   }

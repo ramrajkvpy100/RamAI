@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 
+import { withUsage } from "@/engine/providers/usage";
 import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { MODALITY_IDS, type Modality } from "@/lib/practice";
@@ -22,17 +23,19 @@ export async function POST(req: Request) {
     let r = await round(body.modality, body.mode);
     // Nothing kept yet for this modality: find the first few now (the progress bar covers it).
     if (r.ready < 4 && picturesAvailable()) {
-      const first = Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false)));
+      const first = withUsage({ kind: "practice" }, async () => Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false))));
       // Whatever is ready by 45 s; the rest carries on in the background.
       await Promise.race([first, new Promise((resolve) => setTimeout(resolve, 45_000))]);
       r = await round(body.modality, body.mode);
     }
     // More pictures, found in the background, for the next round.
     if (picturesAvailable()) {
-      after(async () => {
-        const next = await missingPictures(body.modality, 3);
-        await Promise.all(next.map((id) => addPicture(body.modality, id).catch(() => false)));
-      });
+      after(() =>
+        withUsage({ kind: "practice" }, async () => {
+          const next = await missingPictures(body.modality, 3);
+          await Promise.all(next.map((id) => addPicture(body.modality, id).catch(() => false)));
+        }),
+      );
     }
     return ok(r);
   } catch (err) {

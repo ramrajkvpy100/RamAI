@@ -1,5 +1,7 @@
 import "server-only";
 
+import { noteUsage, withUsage } from "@/engine/providers/usage";
+
 /**
  * Before a community post or reply appears, the model reads it: abuse, spam,
  * real patients' identifying details, dangerous advice stated as fact and
@@ -31,7 +33,8 @@ Return JSON: {"allowed": true|false, "message": "if blocked: one short, polite s
       }),
       signal: AbortSignal.timeout(8000),
     });
-    const json = (await res.json().catch(() => ({}))) as { choices?: { message?: { content?: string } }[] };
+    const json = (await res.json().catch(() => ({}))) as { choices?: { message?: { content?: string } }[]; usage?: unknown };
+    withUsage({ kind: "moderation" }, () => noteUsage(json.usage));
     const verdict = JSON.parse(json.choices?.[0]?.message?.content ?? "{}") as { allowed?: boolean; message?: string };
     if (verdict.allowed === false) return { allowed: false, message: String(verdict.message || "This can't be posted as it is.").slice(0, 300) };
     return { allowed: true };

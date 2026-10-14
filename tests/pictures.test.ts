@@ -4,7 +4,8 @@ import { dermAcne } from "@/engine/cases/derm-acne";
 import { dermMelasma } from "@/engine/cases/derm-melasma";
 import { surgAppendicitis } from "@/engine/cases/surg-appendicitis";
 import { createHiddenState, imagingPicture, openingEffects, openingPicture } from "@/engine/simulator";
-import { makePicture } from "@/server/ai-images";
+import { libraryPicture, makePicture } from "@/server/ai-images";
+import { db } from "@/server/db";
 
 import { play } from "./helpers";
 
@@ -109,6 +110,30 @@ describe("pictures are checked before the doctor sees them", () => {
   it("if the check itself is down, the drawing is shown rather than nothing", async () => {
     stub({ reviews: [], reviewDown: true });
     expect(text((await makePicture(BRIEF)).base64)).toBe("drawn-1");
+  });
+  it("the same picture, word for word, is found once and shared by every case after", async () => {
+    process.env.RAMAI_DB_PATH = ":memory:";
+    await db.run("DELETE FROM picture_library");
+    const first = stub({ reviews: [{ realistic: 9, matches: 8 }], commons: true });
+    expect(text((await libraryPicture(BRIEF)).base64)).toBe("real-image");
+    expect(first.length).toBeGreaterThan(0);
+    const second = stub({ reviews: [] });
+    const again = await libraryPicture(BRIEF);
+    expect(text(again.base64)).toBe("real-image");
+    expect(again.credit?.license).toBe("CC BY-SA 4.0");
+    expect(second).toEqual([]);
+    // A different finding is never served from it.
+    stub({ reviews: [{ realistic: 8, matches: 8 }] });
+    expect(text((await libraryPicture({ ...BRIEF, describe: "Chest X-ray PA: left pneumothorax." })).base64)).toBe("drawn-1");
+  });
+
+  it("a picture that failed its check is never kept for others", async () => {
+    process.env.RAMAI_DB_PATH = ":memory:";
+    await db.run("DELETE FROM picture_library");
+    const brief = { ...BRIEF, view: "AP supine" };
+    stub({ reviews: [{ realistic: 3, matches: 3 }, { realistic: 3, matches: 3 }] });
+    await libraryPicture(brief);
+    expect(await db.get("SELECT COUNT(*) AS n FROM picture_library")).toMatchObject({ n: 0 });
   });
 });
 

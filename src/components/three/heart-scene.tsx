@@ -65,6 +65,14 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
         setFallback(true);
         return;
       }
+      // The organ (three.js and a model of a few hundred KB) waits until the page itself has loaded and gone quiet, so it never slows first paint.
+      await new Promise<void>((resolve) => {
+        const idle = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+        const go = () => (idle ? idle(() => resolve(), { timeout: 2000 }) : window.setTimeout(resolve, 300));
+        if (document.readyState === "complete") go();
+        else window.addEventListener("load", go, { once: true });
+      });
+      if (disposed) return;
       // The detailed model for large screens; a lighter one for phones and small cards.
       const detailed = density === "hero" && Math.max(window.innerWidth, window.innerHeight) >= 900;
       const [THREE, { loadHeart }, { studioScene, wetTissue }] = await Promise.all([import("three"), import("./heart-asset"), import("./heart-material")]);

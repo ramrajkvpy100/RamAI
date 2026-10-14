@@ -1,3 +1,4 @@
+import { withUsage } from "@/engine/providers/usage";
 import { sessionInfo, submitDoctorAction } from "@/engine/engine";
 import type { TeachingPack } from "@/engine/providers/types";
 import { getCaseAI } from "@/server/case-ai";
@@ -18,12 +19,11 @@ export async function POST(req: Request) {
   const body = await parseBody(req, TurnSchema);
   if (body instanceof Response) return body;
   try {
-    const user = await requireUser();
-    // An invented case's teaching, if the background writer has finished it.
+    // An invented case's teaching, if the background writer has finished it — read alongside the sign-in check.
     const info0 = sessionInfo(body.token);
-    const stored = info0.generated ? await getCaseAI(info0.sessionId, "teaching").catch(() => undefined) : undefined;
+    const [user, stored] = await Promise.all([requireUser(), info0.generated ? getCaseAI(info0.sessionId, "teaching").catch(() => undefined) : undefined]);
     const teaching = stored ? (JSON.parse(stored.data) as TeachingPack) : undefined;
-    const res = await submitDoctorAction(body.token, body.input, user.id, user.patientLang, teaching);
+    const res = await withUsage({ kind: "turn", sessionId: info0.sessionId }, () => submitDoctorAction(body.token, body.input, user.id, user.patientLang, teaching));
     if (res.debrief) {
       const info = sessionInfo(body.token);
       res.rewards = await recordCase(user, info.sessionId, res.debrief, { daily: info.daily, state: res.state });

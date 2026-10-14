@@ -7,6 +7,8 @@ import { EngineError } from "@/engine/engine";
 import { ConfigError } from "@/engine/session";
 import { isAuthError } from "@supabase/supabase-js";
 
+// Records each AI call's usage (see server/ai-usage) — loaded with every route.
+import "@/server/ai-usage";
 import { AuthError } from "@/server/auth";
 import { AuthConfigError } from "@/server/supabase";
 import { SuggestionsError } from "@/server/suggestions";

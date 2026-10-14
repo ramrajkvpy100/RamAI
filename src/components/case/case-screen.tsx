@@ -1,11 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Wordmark } from "@/components/brand/wordmark";
-import { DebriefView } from "@/components/debrief/debrief-view";
 import { SpecialtySheet } from "@/components/home/specialty-sheet";
 import { UpgradeSheet } from "@/components/home/upgrade-sheet";
 import { useLauncher } from "@/components/home/use-launcher";
@@ -40,6 +40,11 @@ import { alarmLevel, sceneFor } from "./scene/scene";
 import { SceneStrip } from "./scene/scene-strip";
 import { Timeline } from "./timeline";
 import { PanelRail, ToolsPanel, type PanelTab } from "./tools-panel";
+
+/** The debrief (scores, teaching, sharing) is its own download — fetched while the case is played, so it is ready when it ends. */
+const loadDebrief = () => import("@/components/debrief/debrief-view");
+const DebriefView = dynamic(() => loadDebrief().then((m) => m.DebriefView));
+if (typeof window !== "undefined") window.setTimeout(() => void loadDebrief().catch(() => undefined), 4000);
 
 /* -------------------------------------------------------------------------- */
 

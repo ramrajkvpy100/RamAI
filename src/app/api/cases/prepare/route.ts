@@ -1,3 +1,4 @@
+import { withUsage } from "@/engine/providers/usage";
 import { prepareNext } from "@/server/case-pool";
 import { requireUser } from "@/server/auth";
 import { totalCasesStarted } from "@/server/results";
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     const user = await requireUser();
     const own = user.specialty && user.specialty !== "mixed" ? user.specialty : undefined;
     const newcomer = user.isGuest || (await totalCasesStarted(user.id)) <= 3;
-    const status = await prepareNext(user.id, { specialty: own, easy: newcomer, country: user.country, lang: user.patientLang }, { allowedLevels: planFor(user).levels, exclude: [] });
+    const status = await withUsage({ kind: "case-start" }, () => prepareNext(user.id, { specialty: own, easy: newcomer, country: user.country, lang: user.patientLang }, { allowedLevels: planFor(user).levels, exclude: [] }));
     return ok({ status });
   } catch (err) {
     return handleError(err);

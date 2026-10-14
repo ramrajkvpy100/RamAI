@@ -39,6 +39,7 @@ import type { z } from "zod";
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
 import { labGap, vitalsNow } from "../simulator";
+import { noteUsage } from "./usage";
 import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
 export interface ChatMessage {
@@ -77,7 +78,8 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
       const err = (await res.json().catch(() => ({}))) as { error?: { code?: string } };
       throw new UpstreamError(`OpenAI responded ${res.status}${err.error?.code ? ` (${err.error.code})` : ""}`);
     }
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[]; usage?: unknown };
+    noteUsage(data.usage);
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new UpstreamError("Empty completion");
     return JSON.parse(content);
@@ -767,10 +769,12 @@ export function createOpenAIProvider(): ClinicalProvider {
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
       const ruled = (await mockProvider.interpret(text, ctx)).intents;
       const unresolved = ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:")));
-      const read = unresolved ? await understand(text, ctx, ruled) : ctx.def.guided || openAIConfig().voice !== "all" ? { intents: ruled } : await voice(text, ctx, ruled);
+      const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : voice(text, ctx, ruled);
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
-      if (ctx.def.guided) return read;
-      const labs = await completeLabs(ctx, read.intents);
+      if (ctx.def.guided) return reading;
+      // When the rules placed the order, its results are written while the patient's words are (the voice keeps the rules' intents).
+      const [read, early] = await Promise.all([reading, unresolved ? null : completeLabs(ctx, ruled)]);
+      const labs = early ?? (await completeLabs(ctx, read.intents));
       return Object.keys(labs).length ? { ...read, generated: { ...read.generated, ...labs } } : read;
     },
 

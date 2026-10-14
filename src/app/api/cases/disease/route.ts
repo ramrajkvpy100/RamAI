@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { withUsage } from "@/engine/providers/usage";
 import { diseaseTopic, sessionInfo } from "@/engine/engine";
 import { requireUser } from "@/server/auth";
 import { explainDisease } from "@/server/disease";
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     if (sessionInfo(body.token).userId !== user.id) return apiError(404, "NOT_FOUND", "Not found.");
     const topic = await diseaseTopic(body.token, user.id);
     if (!topic) return apiError(409, "NOT_CLOSED", "Finish the case first.");
-    return ok({ disease: await explainDisease(topic) });
+    return ok({ disease: await withUsage({ kind: "disease" }, () => explainDisease(topic)) });
   } catch (err) {
     return handleError(err);
   }

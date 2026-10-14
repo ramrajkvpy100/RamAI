@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { withUsage } from "@/engine/providers/usage";
 import { caseClosed, learnFor, sessionInfo } from "@/engine/engine";
 import type { LearnPack } from "@/engine/types";
 import { requireUser } from "@/server/auth";
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
     if (!(await caseClosed(body.token, user.id))) return apiError(409, "NOT_CLOSED", "Finish the case first.");
     const kept = await getCaseAI(info.learnKey, "learn");
     if (kept) return ok({ pack: JSON.parse(kept.data) as LearnPack });
-    const pack = await learnFor(body.token, user.id);
+    const pack = await withUsage({ kind: "learn", sessionId: info.sessionId }, () => learnFor(body.token, user.id));
     if (pack) await putCaseAI(info.learnKey, "learn", info.generated ? user.id : "system", "application/json", JSON.stringify(pack));
     return ok({ pack: pack ?? null });
   } catch (err) {

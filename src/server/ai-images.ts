@@ -1,7 +1,11 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
+import { noteUsage } from "@/engine/providers/usage";
 import type { PictureType } from "@/engine/types";
 
+import { db } from "./db";
 import { findRealImage, type Credit } from "./real-images";
 
 /**
@@ -46,8 +50,9 @@ export async function drawPicture(p: PictureBrief): Promise<{ mime: string; base
     body: JSON.stringify({ model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2.5-flare", prompt, n: 1, size: "1024x1024", quality: "medium", output_format: "jpeg", output_compression: 82 }),
     signal: AbortSignal.timeout(55_000),
   });
-  const json = (await res.json().catch(() => ({}))) as { data?: { b64_json?: string }[]; error?: { code?: string; message?: string } };
+  const json = (await res.json().catch(() => ({}))) as { data?: { b64_json?: string }[]; usage?: unknown; error?: { code?: string; message?: string } };
   const base64 = json.data?.[0]?.b64_json;
+  if (res.ok) noteUsage(json.usage, 1);
   if (!res.ok || !base64) throw new Error(`Image model answered ${res.status}${json.error?.code ? ` (${json.error.code})` : ""}`);
   return { mime: "image/jpeg", base64 };
 }
@@ -93,7 +98,8 @@ Return JSON {"realistic": 1-10 (does it look like a real clinical image of this 
     }),
     signal: AbortSignal.timeout(20_000),
   });
-  const json = (await res.json().catch(() => ({}))) as { choices?: { message?: { content?: string } }[]; error?: { code?: string } };
+  const json = (await res.json().catch(() => ({}))) as { choices?: { message?: { content?: string } }[]; usage?: unknown; error?: { code?: string } };
+  noteUsage(json.usage);
   const content = json.choices?.[0]?.message?.content;
   if (!res.ok || !content) throw new Error(`Picture review answered ${res.status}${json.error?.code ? ` (${json.error.code})` : ""}`);
   const r = JSON.parse(content) as { realistic?: number; matches?: number; labels?: boolean; problems?: string; search?: string };
@@ -112,16 +118,38 @@ Return JSON {"realistic": 1-10 (does it look like a real clinical image of this 
  * agrees shows exactly this finding, credited. Only when none can be found is one drawn by the image
  * model — checked the same way, and drawn once more if the first attempt doesn't pass.
  */
-export async function makePicture(p: PictureBrief): Promise<{ mime: string; base64: string; credit?: Credit }> {
+export async function makePicture(p: PictureBrief): Promise<{ mime: string; base64: string; credit?: Credit; checked: boolean }> {
   const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = KIND[p.type];
   const real = await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`], accept, 18_000);
-  if (real) return real;
+  if (real) return { ...real, checked: true };
   const drawn = await drawPicture(p);
   const review = await reviewPicture(drawn, p).catch(() => null);
-  if (!review || review.ok) return drawn;
+  if (!review || review.ok) return { ...drawn, checked: !!review };
   const again = await drawPicture({ ...p, describe: `${p.describe}\nAvoid the last attempt's problems: ${review.problems}` }).catch(() => null);
-  if (!again) return drawn;
+  if (!again) return { ...drawn, checked: false };
   const second = await reviewPicture(again, p).catch(() => null);
-  return second && second.score > review.score ? again : drawn;
+  return second && second.score > review.score ? { ...again, checked: second.ok } : { ...drawn, checked: false };
+}
+
+/**
+ * A case's picture from the shared library: every case asking for exactly the same picture (same kind,
+ * view, findings and diagnosis — word for word) gets the one already found or drawn, at once and for
+ * nothing. Only pictures the model checked are kept; a picture that failed its check is made afresh
+ * next time, so accuracy is never traded for the saving.
+ */
+export async function libraryPicture(p: PictureBrief): Promise<{ mime: string; base64: string; credit?: Credit }> {
+  const brief = createHash("sha256").update(JSON.stringify([p.type, p.view.trim(), p.describe.trim(), p.topic?.trim() ?? "", p.style ?? ""])).digest("hex");
+  const kept = await db.get<{ mime: string; data: string; credit: string | null }>("SELECT mime, data, credit FROM picture_library WHERE brief = ?", brief).catch(() => undefined);
+  if (kept) {
+    void db.run("UPDATE picture_library SET uses = uses + 1 WHERE brief = ?", brief).catch(() => undefined);
+    return { mime: kept.mime, base64: kept.data, credit: kept.credit ? (JSON.parse(kept.credit) as Credit) : undefined };
+  }
+  const { checked, ...made } = await makePicture(p);
+  if (checked) {
+    await db
+      .run("INSERT OR IGNORE INTO picture_library (brief, mime, data, credit, source, uses, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)", brief, made.mime, made.base64, made.credit ? JSON.stringify(made.credit) : null, made.credit ? "commons" : "ai", Date.now())
+      .catch(() => undefined);
+  }
+  return made;
 }

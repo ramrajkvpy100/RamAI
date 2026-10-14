@@ -9,6 +9,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { noteUsage, withUsage } from "@/engine/providers/usage";
 import { ALL_SPECIALTIES } from "@/engine/progression";
 import { SKILL_LABELS } from "@/engine/scoring";
 import { CASE_TRACKS, type ScoreCategory } from "@/engine/types";
@@ -115,7 +116,8 @@ Return {"headline":"one line that sums up where they are","strengths":["2–4 th
       }),
       signal: AbortSignal.timeout(45_000),
     });
-    const json = (await res.json().catch(() => ({}))) as { choices?: { message?: { content?: string } }[] };
+    const json = (await res.json().catch(() => ({}))) as { choices?: { message?: { content?: string } }[]; usage?: unknown };
+    withUsage({ kind: "report" }, () => noteUsage(json.usage));
     const parsed = ReportSchema.safeParse(JSON.parse(json.choices?.[0]?.message?.content ?? "null"));
     if (!res.ok || !parsed.success) return null;
     const report: PersonalReport = { ...parsed.data, recommendations: parsed.data.recommendations as PersonalReport["recommendations"], writtenAt: Date.now(), cases: detail.cases, model };

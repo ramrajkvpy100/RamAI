@@ -298,6 +298,29 @@ CREATE TABLE IF NOT EXISTS practice_rounds (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS practice_rounds_user ON practice_rounds(user_id, modality);
+-- Case pictures shared by every player: one per exact picture brief, found on Commons or drawn once, then reused.
+CREATE TABLE IF NOT EXISTS picture_library (
+  brief TEXT PRIMARY KEY,
+  mime TEXT NOT NULL,
+  data TEXT NOT NULL,
+  credit TEXT,
+  source TEXT NOT NULL,
+  uses INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+-- Every AI call's tokens (and every picture drawn), so the real cost of a case is known.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT,
+  kind TEXT NOT NULL,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  cached_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  images INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ai_usage_session ON ai_usage(session_id);
+CREATE INDEX IF NOT EXISTS ai_usage_created ON ai_usage(created_at);
 -- Razorpay webhooks already processed (each event id once), with the order or payment they were about.
 CREATE TABLE IF NOT EXISTS payment_events (
   event_id TEXT PRIMARY KEY,
@@ -457,7 +480,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 19;
+const SCHEMA_VERSION = 20;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

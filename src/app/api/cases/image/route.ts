@@ -1,7 +1,8 @@
 import { z } from "zod";
 
+import { withUsage } from "@/engine/providers/usage";
 import { pictureFor, sessionInfo } from "@/engine/engine";
-import { makePicture } from "@/server/ai-images";
+import { libraryPicture } from "@/server/ai-images";
 import { requireUser } from "@/server/auth";
 import { getCaseAI, picturesDrawn, putCaseAI } from "@/server/case-ai";
 import { apiError, crossSite, handleError, parseBody, rateLimited } from "@/lib/server/http";
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
       const picture = await pictureFor(body.token, user.id, body.ref);
       if (!picture) return apiError(404, "NOT_FOUND", "There's no picture there yet.");
       if ((await picturesDrawn(info.sessionId)) >= MAX_PICTURES) return apiError(429, "LIMIT", "This case has all the pictures it can have.");
-      const made = await makePicture(picture);
+      const made = await withUsage({ kind: "picture", sessionId: info.sessionId }, () => libraryPicture(picture));
       stored = { mime: made.mime, data: made.base64 };
       credit = made.credit ? { mime: "application/json", data: JSON.stringify(made.credit) } : undefined;
       await Promise.all([putCaseAI(info.sessionId, key, user.id, stored.mime, stored.data), credit && putCaseAI(info.sessionId, `credit:${body.ref}`, user.id, credit.mime, credit.data)]);
