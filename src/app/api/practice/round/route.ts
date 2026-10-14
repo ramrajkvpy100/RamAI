@@ -22,7 +22,9 @@ export async function POST(req: Request) {
     let r = await round(body.modality, body.mode);
     // Nothing kept yet for this modality: find the first few now (the progress bar covers it).
     if (r.ready < 4 && picturesAvailable()) {
-      await Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false)));
+      const first = Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false)));
+      // Whatever is ready by 45 s; the rest carries on in the background.
+      await Promise.race([first, new Promise((resolve) => setTimeout(resolve, 45_000))]);
       r = await round(body.modality, body.mode);
     }
     // More pictures, found in the background, for the next round.

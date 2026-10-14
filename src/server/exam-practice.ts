@@ -68,15 +68,15 @@ function shuffle(q: Mcq): Mcq {
   return { ...q, options: order.map((i) => q.options[i]!), answer: order.indexOf(q.answer) };
 }
 
-/** Writes a set, has it examined, and keeps it for everyone. */
+/** Writes a set, has it examined, and keeps it for everyone — within a minute (the writer 40 s, the examiner 15 s; an unexamined draft is kept if the examiner runs out of time). */
 export async function writeSet(exam: ExamId, subject: string): Promise<{ id: string; mcqs: Mcq[] }> {
   if (!examWritingAvailable()) throw new ExamError("UNAVAILABLE", "Exam practice needs the AI question writer, which isn't switched on here.");
   const recent = await db.all<{ data: string }>("SELECT data FROM exam_sets WHERE exam = ? AND subject = ? ORDER BY created_at DESC LIMIT 4", exam, subject);
   const avoid = recent.flatMap((r) => (JSON.parse(r.data) as Mcq[]).map((q) => q.topic));
-  const parsed = ExamSetSchema.safeParse(await chatJSON(writerPrompt(exam, subject, avoid), 7000, true, 55_000));
+  const parsed = ExamSetSchema.safeParse(await chatJSON(writerPrompt(exam, subject, avoid), 7000, true, 40_000));
   if (!parsed.success || parsed.data.mcqs.length < 5) throw new ExamError("UNAVAILABLE", "The questions couldn't be written just now. Please try again.");
   const draft = { pearls: [] as string[], mcqs: parsed.data.mcqs };
-  const reviewed = await chatJSON(examinerPrompt(exam, draft.mcqs as Mcq[]), 3600, true, 45_000)
+  const reviewed = await chatJSON(examinerPrompt(exam, draft.mcqs as Mcq[]), 3600, true, 15_000)
     .then((raw) => applyExaminerReview(draft, raw, ExamReviewSchema))
     .catch(() => ({ part: draft, fixes: [] as string[] }));
   if (reviewed.fixes.length) console.info(`[ramai] exam examiner (${exam}/${subject}): ${reviewed.fixes.join(" | ").slice(0, 600)}`);
