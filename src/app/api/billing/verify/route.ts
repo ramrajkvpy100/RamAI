@@ -17,7 +17,9 @@ export async function POST(req: Request) {
   } catch (err) {
     if (err instanceof BillingError) {
       // Razorpay couldn't be reached: the payment may well be fine — the page waits for the webhook.
-      if (err.code === "PROVIDER") return apiError(502, "PAYMENT_PENDING", err.message);
+      if (err.code === "PROVIDER") return apiError(500, "PAYMENT_PENDING", err.message);
+      if (err.code === "AUTH") return apiError(401, "PAYMENT_AUTH", err.message);
+      // A signature that doesn't match, or a payment that doesn't agree with the order (missing fields are a 400 from parseBody).
       return apiError(400, "PAYMENT_UNVERIFIED", err.message);
     }
     return handleError(err);

@@ -19,8 +19,10 @@ export async function POST(req: Request) {
     return ok({ mode: "razorpay", order: await createOrder(user, body.period) });
   } catch (err) {
     if (err instanceof BillingError) {
-      const status = err.code === "GUEST" ? 403 : err.code === "INTERNATIONAL_UNAVAILABLE" || err.code === "UNAVAILABLE" ? 503 : 502;
-      return apiError(status, err.code === "PROVIDER" ? "PAYMENT_ERROR" : err.code, err.message);
+      // Razorpay rejected our keys → 401; any other Razorpay failure → 500; a price under 100 paise → 400.
+      const status = { GUEST: 403, INTERNATIONAL_UNAVAILABLE: 503, UNAVAILABLE: 503, AMOUNT: 400, AUTH: 401 }[err.code as string] ?? 500;
+      const code = err.code === "AUTH" ? "PAYMENT_AUTH" : err.code === "AMOUNT" ? "BAD_AMOUNT" : err.code === "PROVIDER" ? "PAYMENT_ERROR" : err.code;
+      return apiError(status, code, err.message);
     }
     return handleError(err);
   }

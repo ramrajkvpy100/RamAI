@@ -14,12 +14,19 @@ process.env.RAZORPAY_WEBHOOK_SECRET = "hook-secret";
 /** Razorpay's API, as the SDK would return it — no network in tests. */
 const razorpay = vi.hoisted(() => ({
   orders: [] as { amount: number; currency: string }[],
+  /** The next order call fails as Razorpay would. */
+  fail: null as null | { statusCode: number; error: { code: string; description: string } },
   payments: new Map<string, { id: string; order_id: string; amount: number; currency: string; status: string; method: string }>(),
 }));
 vi.mock("razorpay", () => ({
   default: class {
     orders = {
       create: async (o: { amount: number; currency: string }) => {
+        if (razorpay.fail) {
+          const f = razorpay.fail;
+          razorpay.fail = null;
+          throw f;
+        }
         razorpay.orders.push(o);
         return { id: `order_${razorpay.orders.length}`, amount: o.amount, currency: o.currency, status: "created" };
       },
@@ -81,6 +88,15 @@ describe("orders", () => {
 
   it("need an account, not a guest", async () => {
     await expect(createOrder(await createGuest(), "monthly")).rejects.toMatchObject({ code: "GUEST" });
+  });
+
+  it("tell rejected keys (401) apart from other Razorpay failures", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    razorpay.fail = { statusCode: 401, error: { code: "BAD_REQUEST_ERROR", description: "Authentication failed" } };
+    await expect(createOrder(asha, "monthly")).rejects.toMatchObject({ code: "AUTH" });
+    razorpay.fail = { statusCode: 500, error: { code: "SERVER_ERROR", description: "We are facing some trouble" } };
+    await expect(createOrder(asha, "monthly")).rejects.toMatchObject({ code: "PROVIDER" });
+    expect(await db.get("SELECT COUNT(*) AS n FROM payments")).toMatchObject({ n: 0 });
   });
 });
 

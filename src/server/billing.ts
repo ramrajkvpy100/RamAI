@@ -40,7 +40,7 @@ export const paymentMode = (): PaymentMode | null => (!paymentsConfigured() ? nu
 export const internationalEnabled = () => process.env.RAZORPAY_INTERNATIONAL === "1";
 export const demoBillingEnabled = () => process.env.NODE_ENV !== "production" && process.env.RAMAI_DEMO_BILLING === "1";
 
-export type BillingErrorCode = "UNAVAILABLE" | "INTERNATIONAL_UNAVAILABLE" | "GUEST" | "UNKNOWN_ORDER" | "UNVERIFIED" | "PROVIDER";
+export type BillingErrorCode = "UNAVAILABLE" | "INTERNATIONAL_UNAVAILABLE" | "GUEST" | "UNKNOWN_ORDER" | "UNVERIFIED" | "PROVIDER" | "AUTH" | "AMOUNT";
 
 export class BillingError extends Error {
   constructor(
@@ -73,6 +73,13 @@ const providerMessage = (err: unknown) => {
   const e = err as { statusCode?: number; error?: { code?: string; description?: string } };
   return e?.error ? `${e.statusCode ?? ""} ${e.error.code ?? ""} ${e.error.description ?? ""}`.trim() : err instanceof Error ? err.message : "unknown error";
 };
+
+/** A failed Razorpay call: logged on the server; the buyer gets `message` — or, when Razorpay rejected our keys, a plain "not available". */
+function providerFailure(err: unknown, what: string, message: string): BillingError {
+  console.error(`[ramai] razorpay ${what} failed:`, providerMessage(err));
+  if ((err as { statusCode?: number })?.statusCode === 401) return new BillingError("AUTH", "Payments aren't available right now. Please try again later.");
+  return new BillingError("PROVIDER", message);
+}
 
 interface PaymentRow {
   id: string;
@@ -107,6 +114,8 @@ export async function createOrder(user: User, period: BillingPeriod): Promise<Ch
   if (price.currency !== "INR" && !internationalEnabled()) {
     throw new BillingError("INTERNATIONAL_UNAVAILABLE", "Card payments from outside India open soon. You can keep using RamAI in the meantime.");
   }
+  // Razorpay's minimum is 100 paise (or cents/pence); a price below it is a price-book mistake.
+  if (!Number.isInteger(price.minor) || price.minor < 100) throw new BillingError("AMOUNT", "This plan can't be bought right now.");
   const description = `RamAI Pro — ${PERIODS[period].days} days`;
   const order = (o: { order_id: string; amount: number; currency: string }): CheckoutOrder => ({
     orderId: o.order_id,
@@ -134,8 +143,7 @@ export async function createOrder(user: User, period: BillingPeriod): Promise<Ch
       notes: { userId: user.id, period },
     });
   } catch (err) {
-    console.error("[ramai] razorpay order failed:", providerMessage(err));
-    throw new BillingError("PROVIDER", "We couldn't start the payment. Please try again.");
+    throw providerFailure(err, "order", "We couldn't start the payment. Please try again.");
   }
   const now = Date.now();
   // waiver_at: the buyer asked for Pro to start immediately (recorded as consumer-law evidence).
@@ -187,8 +195,7 @@ async function confirmedWithRazorpay(row: PaymentRow, paymentId: string): Promis
   try {
     p = (await razorpay().payments.fetch(paymentId)) as unknown as RazorpayPayment;
   } catch (err) {
-    console.error("[ramai] razorpay payment lookup failed:", providerMessage(err));
-    throw new BillingError("PROVIDER", "We couldn't reach Razorpay to confirm the payment. It will be confirmed automatically in a few minutes.");
+    throw providerFailure(err, "payment lookup", "We couldn't reach Razorpay to confirm the payment. It will be confirmed automatically in a few minutes.");
   }
   if (p.order_id !== row.order_id || Number(p.amount) !== row.amount || p.currency !== row.currency) {
     throw new BillingError("UNVERIFIED", "Payment could not be verified.");
@@ -198,8 +205,7 @@ async function confirmedWithRazorpay(row: PaymentRow, paymentId: string): Promis
     try {
       p = (await razorpay().payments.capture(paymentId, row.amount, row.currency)) as unknown as RazorpayPayment;
     } catch (err) {
-      console.error("[ramai] razorpay capture failed:", providerMessage(err));
-      throw new BillingError("PROVIDER", "The payment is being processed. Pro will start as soon as Razorpay confirms it.");
+      throw providerFailure(err, "capture", "The payment is being processed. Pro will start as soon as Razorpay confirms it.");
     }
   }
   if (p.status !== "captured") throw new BillingError("UNVERIFIED", "This payment hasn't gone through.");
