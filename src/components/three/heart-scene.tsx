@@ -31,7 +31,8 @@ const VESSEL_HEX = { artery: 0xd04a74, vein: 0x6a5ee0 } as const;
 /** The organs the site shows, and how each sits and moves. */
 const ORGANS = {
   heart: { scale: 1.42, turn: [0.06, -0.3, 0.02], sway: 0.5, lean: -0.22 },
-  brain: { scale: 1.32, turn: [0.18, -0.5, 0], sway: 0.55, lean: -0.45 },
+  // The real brain (x: the patient's left, z: forwards): turned to show the left hemisphere's lateral surface, frontal lobe to the left.
+  brain: { scale: 1.32, turn: [0.16, -1.3, 0], sway: 0.55, lean: -0.45 },
   lungs: { scale: 1.3, turn: [0.04, 0, 0], sway: 0.32, lean: 0 },
 } as const;
 export type Organ = keyof typeof ORGANS;
@@ -94,7 +95,7 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
       const isDark = () => tone === "dark" || document.documentElement.getAttribute("data-theme") === "dark";
 
       /* The heart --------------------------------------------------------- */
-      const { material, uniforms } = wetTissue(THREE, { bump: detailed ? 0.012 : 0.009 });
+      const { material, uniforms } = wetTissue(THREE, { bump: detailed ? 0.012 : 0.009, finish: organ === "heart" ? "lacquer" : "moist" });
       const geos: InstanceType<typeof THREE.BufferGeometry>[] = [];
       const body = new THREE.BufferGeometry();
       body.setAttribute("position", new THREE.BufferAttribute(asset.positions, 3));
@@ -369,6 +370,8 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
     // Callers position the scene (usually `absolute …`); default to `relative` only when they don't.
     <div ref={host} aria-hidden className={className && /\b(absolute|fixed|relative|sticky)\b/.test(className) ? className : cn("relative", className)}>
       {fallback && <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle_at_40%_35%,rgb(244_63_94/0.45),rgb(139_92_246/0.2)_45%,transparent_70%)] blur-2xl" />}
+      {/* The brain and lungs are real anatomy (BodyParts3D, CC BY-SA 2.1 JP): credited where they're shown. Full credit on /about. */}
+      {organ !== "heart" && !bare && <span className="absolute right-2 bottom-1 text-[8.5px] leading-none text-white/35">BodyParts3D © DBCLS · CC BY-SA</span>}
     </div>
   );
 }

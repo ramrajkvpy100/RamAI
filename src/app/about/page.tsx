@@ -67,6 +67,21 @@ export default function AboutPage() {
           </List>
         </Section>
 
+        <Section title="Credits">
+          <List>
+            <li>
+              <b className="text-fg">The 3D brain and lungs</b> are built from BodyParts3D, © The Database Center for Life Science, licensed under{" "}
+              <A href="https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en">CC Attribution-Share Alike 2.1 Japan</A> — meshes segmented from the
+              scans of a real human body (Mitsuhashi N et al., Nucleic Acids Res 2009). RamAI&apos;s simplified, shaded versions of them are shared under
+              the same licence.
+            </li>
+            <li>
+              <b className="text-fg">Real clinical images</b> in cases and Practice come from Wikimedia Commons under free licences; each is credited
+              under the picture.
+            </li>
+          </List>
+        </Section>
+
         <Section title="Talk to us">
           <p>
             Found a mistake in a case, have an idea, or want RamAI for your college or hospital? We'd love to hear from you — see{" "}

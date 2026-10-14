@@ -61,6 +61,10 @@ Add cases in `src/engine/cases/` and register them in `cases/index.ts`; `tests/c
 
 ECGs, X-rays, ultrasound, fundus and skin photographs are procedural vector renders driven by structured specs — players can ask to see any result again ("show me the ECG"). Set `media.src` on a case to use licensed photography instead. Photorealistic AI image generation is planned for the OpenAI step.
 
+## 3D organs
+
+The heart is RamAI's own procedural model (`scripts/build-heart.mjs`). The brain and lungs are real anatomy — BodyParts3D meshes segmented from a real body's scans (© DBCLS, CC BY-SA 2.1 JP) — simplified and shaded by `scripts/build-organ-scans.mjs`; the derived files in `public/models` carry the same licence (see `public/models/CREDITS.txt`) and are credited on the scenes and on /about.
+
 ## Connecting OpenAI
 
 Set `RAMAI_ENGINE=openai` and `OPENAI_API_KEY` (server-side only). `src/engine/providers/openai.ts` generates cases for any specialty, mode and level as JSON validated by `openai-schema.ts`, and handles free text the rules can't place (`patient_response` contract). Model output is recorded into the sealed log so replay never calls the model again; any failure falls back to the offline library and rules. **This path is written but not yet exercised against the live API.**

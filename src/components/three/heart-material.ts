@@ -135,20 +135,21 @@ const FRAGMENT_AO = /* glsl */ `
 `;
 
 /** The tissue material; returns it with the uniforms that drive the beat. */
-export function wetTissue(THREE: Three, opts: { bump: number }): { material: THREE_NS.MeshPhysicalMaterial; uniforms: HeartUniforms } {
+export function wetTissue(THREE: Three, opts: { bump: number; /** "moist": brain and lungs from real scans — a thin film of moisture, not the heart's lacquer. */ finish?: "lacquer" | "moist" }): { material: THREE_NS.MeshPhysicalMaterial; uniforms: HeartUniforms } {
   const uniforms: HeartUniforms = { uSystole: { value: 0 }, uAtrial: { value: 0 }, uBump: { value: opts.bump }, uSaturation: { value: 0.85 } };
-  // Lacquered: a deep glossy coat, a rose sheen at the edges and the faintest pearl shimmer.
+  const moist = opts.finish === "moist";
+  // Lacquered: a deep glossy coat, a rose sheen at the edges and the faintest pearl shimmer. Moist: soft highlights, no shimmer.
   const material = new THREE.MeshPhysicalMaterial({
     vertexColors: true,
-    roughness: 0.42,
+    roughness: moist ? 0.62 : 0.42,
     metalness: 0,
-    clearcoat: 1,
-    clearcoatRoughness: 0.12,
-    sheen: 0.55,
-    sheenRoughness: 0.45,
-    sheenColor: new THREE.Color("#ff9ccf"),
-    specularIntensity: 0.7,
-    iridescence: 0.28,
+    clearcoat: moist ? 0.3 : 1,
+    clearcoatRoughness: moist ? 0.38 : 0.12,
+    sheen: moist ? 0.3 : 0.55,
+    sheenRoughness: moist ? 0.6 : 0.45,
+    sheenColor: new THREE.Color(moist ? "#ffc4c4" : "#ff9ccf"),
+    specularIntensity: moist ? 0.4 : 0.7,
+    iridescence: moist ? 0 : 0.28,
     iridescenceIOR: 1.3,
     iridescenceThicknessRange: [180, 420],
   });
@@ -163,7 +164,7 @@ export function wetTissue(THREE: Three, opts: { bump: number }): { material: THR
       .replace("#include <clearcoat_normal_fragment_maps>", FRAGMENT_CLEARCOAT)
       .replace("#include <aomap_fragment>", FRAGMENT_AO);
   };
-  material.customProgramCacheKey = () => "ramai-wet-tissue-3";
+  material.customProgramCacheKey = () => `ramai-wet-tissue-3-${moist ? "moist" : "lacquer"}`;
   return { material, uniforms };
 }
 

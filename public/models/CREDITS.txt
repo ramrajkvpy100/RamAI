@@ -1,0 +1,11 @@
+brain-hd.bin.gz, brain-sd.bin.gz, lungs-hd.bin.gz, lungs-sd.bin.gz
+
+Derived from BodyParts3D, (c) The Database Center for Life Science, licensed under
+Creative Commons Attribution-Share Alike 2.1 Japan (https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en).
+Mitsuhashi N, Fujieda K, Tamura T, Kawamoto S, Takagi T, Okubo K. BodyParts3D: 3D structure database
+for anatomical concepts. Nucleic Acids Res. 2009;37(Database issue):D782-5. doi:10.1093/nar/gkn613
+
+Changes: parts welded, simplified, re-oriented, scaled, vertex-shaded and packed by
+scripts/build-organ-scans.mjs. These derived files are shared under the same licence (CC BY-SA 2.1 JP).
+
+heart-hd.bin.gz, heart-sd.bin.gz: RamAI's own procedural model (scripts/build-heart.mjs).
