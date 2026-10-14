@@ -16,6 +16,7 @@ import { money, STATUS_LABEL } from "@/lib/format";
 import { useStartingMessage } from "@/lib/use-starting-message";
 
 import { Bullets } from "./flow";
+import { DiseaseSection } from "./disease";
 import { LearnSection, useCoach } from "./learn";
 import { DailyShare } from "./daily-share";
 import { RewardsPanel } from "./rewards";
@@ -266,6 +267,7 @@ export function DebriefView({
           </div>
         </section>
 
+        <DiseaseSection token={session.token} />
         <LearnSection token={session.token} />
 
         {/* Debrief ---------------------------------------------------------- */}

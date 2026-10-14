@@ -9,7 +9,7 @@
  */
 
 import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
-import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, vitalDefinition } from "./catalog";
+import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
@@ -160,6 +160,7 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
   for (const [k, v] of Object.entries(def.baselineVitals)) {
     if (v) vitals[k as VitalKey] = { ...v, key: k as VitalKey };
   }
+  saneBody(def.patient, vitals);
   return {
     clock: 0,
     setting: def.setting,
@@ -1792,7 +1793,9 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
               ? { type: "message", role, kind: "speech", text: said }
               : intent.payload?.question || def.track === "phone"
                 ? { type: "message", role: patientRole(def), kind: "speech", text: "Sorry, doctor — I didn't quite follow." }
-                : { type: "message", role: "nurse", kind: "speech", text: pick(NURSE_UNSURE, hash(record.id + index)) },
+                : def.track === "emergency"
+                  ? { type: "message", role: "nurse", kind: "speech", text: pick(NURSE_UNSURE, hash(record.id + index)) }
+                  : { type: "message", role: patientRole(def), kind: "speech", text: "Sorry, doctor — could you say that again?" },
         );
         break;
       }

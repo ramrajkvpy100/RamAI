@@ -204,6 +204,13 @@ export async function learnFor(token: string, userId: string, opts: { early?: bo
   return provider.learn(def, country);
 }
 
+/** What the case was, for explaining the disease once it has ended (never before: it names the diagnosis). */
+export async function diseaseTopic(token: string, userId: string): Promise<{ diagnosis: string; qualifier?: string; age: number; sex: string; country: Country } | null> {
+  const { def, hidden, country } = rebuild(open(token, userId), await getProvider());
+  if (!hidden.closed) return null;
+  return { diagnosis: def.truth.diagnosis, qualifier: def.truth.qualifier, age: def.patient.age, sex: def.patient.sex, country };
+}
+
 /** Whether the doctor has ended this case — before then nothing that names the diagnosis is handed out. */
 export async function caseClosed(token: string, userId: string): Promise<boolean> {
   return rebuild(open(token, userId), await getProvider()).hidden.closed;

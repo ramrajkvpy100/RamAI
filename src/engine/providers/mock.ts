@@ -17,6 +17,8 @@ export class NoCaseError extends Error {
 }
 import type { ClinicalProvider } from "./types";
 
+const AFFIRM = /^(y+a+|yes+|yeah|yep|ok(ay)?|haan|ha|sure|go ahead|do it|please do|of course|correct|right)[.!]*$/i;
+
 export const mockProvider: ClinicalProvider = {
   id: "mock",
 
@@ -35,7 +37,13 @@ export const mockProvider: ClinicalProvider = {
 
   async interpret(text, ctx) {
     const weightKg = parseFloat(ctx.hidden.vitals.weight.value) || 60;
-    return { intents: resolveIntents(text, { def: ctx.def, setting: ctx.hidden.setting, weightKg }) };
+    const intents = resolveIntents(text, { def: ctx.def, setting: ctx.hidden.setting, weightKg });
+    // "Ya", "yes", "ok" after someone in the room asked a question: they hear it and go along.
+    const last = [...ctx.transcript].reverse().find((m) => m.role !== "doctor" && m.role !== "system");
+    if (intents.length === 1 && intents[0]!.kind === "unknown" && AFFIRM.test(text.trim()) && last && /\?\s*$/.test(last.text) && (last.role === "patient" || last.role === "attendant" || last.role === "nurse")) {
+      return { intents: [{ ...intents[0]!, payload: { ...intents[0]!.payload, speaker: last.role } }], generated: { "0": last.role === "nurse" ? "Right away, doctor." : "Okay, doctor." } };
+    }
+    return { intents };
   },
 
   async availability(country) {

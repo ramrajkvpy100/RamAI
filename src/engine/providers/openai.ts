@@ -153,7 +153,8 @@ Read the doctor's words in the context of the conversation — a follow-up is ab
 Orders are carried out exactly as given, however unusual, excessive or unsafe — the simulation plays out the consequences. Never refuse, soften or correct an order: map it to the matching id with the dose, route and rate exactly as said, in "payload": {"mode":"given"|"prescribed","route":"IV|IM|PO|SC|SL|NEB|INH|PR|TOP|IN","amount":<number>,"unit":"mg|mcg|g|units|mL|L|mmol","volumeMl":<for fluids>,"overMin":<minutes it is given over, if said>}.
 Map to existing ids whenever the meaning matches — the game answers those itself.
 For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" (or "attendant" if the doctor spoke to the relative), and put the reply in "message", in ${language(country, lang)}.
-For anything else no id covers — a remark, reassurance, small talk, a request the ward can't carry out, or words that are unclear — use kind "unknown" and always write "message": the brief, natural reply of whoever would answer. The patient or relative answers if the doctor spoke to them (in ${language(country, lang)}); otherwise the nurse answers (speaker "nurse", plain English, one or two short sentences). The nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If it can't be done here, the nurse says so plainly; if the words are unclear, the nurse asks briefly what exactly the doctor wants.
+Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
+For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient or relative (in ${language(country, lang)}). The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
 
 The doctor said: """${clause}"""`,
     },
@@ -370,6 +371,19 @@ export function cleanVitals(vitals: Record<string, string>): Record<string, stri
   const out: Record<string, string> = {};
   for (const [key, raw] of Object.entries(vitals)) {
     const text = String(raw);
+    // Heights written as 5'7", 5 ft 7 in or 1.72 m become centimetres.
+    if (key === "height") {
+      const ft = text.match(/(\d)\s*(?:'|ft|feet|foot)\s*(\d{1,2})?/i);
+      const m = text.match(/^\s*([12](?:\.\d+)?)\s*m\b/i) ?? text.match(/^\s*([12]\.\d+)\s*$/);
+      if (ft) {
+        out.height = String(Math.round(Number(ft[1]) * 30.48 + Number(ft[2] ?? 0) * 2.54));
+        continue;
+      }
+      if (m) {
+        out.height = String(Math.round(Number(m[1]) * 100));
+        continue;
+      }
+    }
     const value = key === "bp" ? text.match(/(\d{2,3})\s*\/\s*(\d{2,3})/)?.slice(1, 3).join("/") : text.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/)?.[0];
     if (value) out[key] = value;
   }

@@ -95,11 +95,40 @@ export function flagVital(key: VitalKey, value: string): { flag: Flag; numeric?:
   }
 }
 
-/** Sensible adult defaults when a case does not specify a vital. */
+/** Typical height (cm) and weight (kg) for an age and sex — Indian growth references, roughly. */
+export function expectedBody(age: number, sex: PatientIdentity["sex"]): { height: number; weight: number } {
+  const male = sex === "Male";
+  if (age < 1) return { height: 70, weight: 8 };
+  if (age <= 12) return { height: Math.round(6 * age + 77), weight: Math.round(2 * age + 8) };
+  if (age < 18) {
+    const t = (age - 12) / 6;
+    const adult = male ? { height: 168, weight: 62 } : { height: 155, weight: 52 };
+    return { height: Math.round(149 + (adult.height - 149) * t), weight: Math.round(32 + (adult.weight - 32) * t) };
+  }
+  return male ? { height: 170, weight: 70 } : { height: 157, weight: 58 };
+}
+
+/**
+ * Height and weight a person of this age and sex could really have: anything outside it (a 40-year-old
+ * man 102 cm tall) is replaced by the typical value. BMI follows.
+ */
+export function saneBody(patient: PatientIdentity, vitals: Record<VitalKey, VitalPatch>) {
+  const typical = expectedBody(patient.age, patient.sex);
+  const adult = patient.age >= 18;
+  const h = parseFloat(vitals.height?.value ?? "");
+  const w = parseFloat(vitals.weight?.value ?? "");
+  const heightOk = Number.isFinite(h) && (adult ? h >= 135 && h <= 210 : Math.abs(h - typical.height) <= typical.height * 0.2);
+  const weightOk = Number.isFinite(w) && (adult ? w >= 30 && w <= 220 : w >= typical.weight * 0.55 && w <= typical.weight * 2.2);
+  const height = heightOk ? h : typical.height;
+  const weight = weightOk ? w : typical.weight;
+  vitals.height = { key: "height", value: String(Math.round(height)) };
+  vitals.weight = { key: "weight", value: String(Math.round(weight)) };
+  vitals.bmi = { key: "bmi", value: (weight / (height / 100) ** 2).toFixed(1) };
+}
+
+/** Sensible defaults (for the patient's age and sex) when a case does not specify a vital. */
 export function defaultVitals(patient: PatientIdentity): Record<VitalKey, VitalPatch> {
-  const male = patient.sex === "Male";
-  const weight = male ? 70 : 58;
-  const height = male ? 170 : 157;
+  const { weight, height } = expectedBody(patient.age, patient.sex);
   return {
     bp: { key: "bp", value: "122/78" },
     hr: { key: "hr", value: "78" },
