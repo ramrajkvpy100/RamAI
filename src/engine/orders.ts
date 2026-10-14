@@ -20,7 +20,8 @@ type Payload = Record<string, string | number | boolean>;
 
 /** An order waiting for its missing details. */
 export interface PendingOrder {
-  kind: "drug" | "investigation" | "oxygen";
+  /** "confirm": a complete order the nurse queried because it could kill — it waits for the doctor to say so again. */
+  kind: "drug" | "investigation" | "oxygen" | "confirm";
   /** Formulary drug id, investigation id (or a generic kind: "xray", "ct", "usg", "mri", "blood"), or "oxygen". */
   targetId: string;
   payload: Payload;
@@ -352,6 +353,7 @@ export function oxygenDelivered(o: OxygenOrder): { device: OxygenDevice; flowL?:
  * when these words don't answer it (another order, a question, a remark).
  */
 export function completeOrder(pending: PendingOrder, clause: string, weightKg: number): Payload | null {
+  if (pending.kind === "confirm") return isConfirmation(clause) ? { ...pending.payload, confirmed: true } : null;
   const usual = USUAL_RE.test(clause);
   if (pending.kind === "drug") {
     const d = parseOrderDetails(clause, { weightKg });
@@ -388,11 +390,13 @@ export function completeOrder(pending: PendingOrder, clause: string, weightKg: n
 export function completedIntent(pending: PendingOrder, payload: Payload, words: string): { kind: "drug" | "investigation" | "action"; targetId: string; phrase: string; matched: true; payload: Payload } {
   const phrase = `${pending.phrase} — ${words}`.slice(0, 400);
   if (pending.kind === "oxygen") return { kind: "action", targetId: "measure:oxygen", phrase, matched: true, payload: { ...payload, completes: true } };
+  if (pending.kind === "confirm") return { kind: "drug", targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
   return { kind: pending.kind, targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
 }
 
 /** The question an order is waiting on, asked again (the doctor said "ok" without answering it). */
 export function pendingQuestion(p: PendingOrder, polite: boolean): string {
+  if (p.kind === "confirm") return String(p.payload.question ?? "Are you sure, doctor?");
   if (p.kind === "drug") {
     const drug = formularyDrug(p.targetId);
     return drug ? drugQuestion(drug, p.needs, p.payload, polite) : "Which medicine, dose and route?";
@@ -402,3 +406,49 @@ export function pendingQuestion(p: PendingOrder, polite: boolean): string {
   const kind = (["xray", "ct", "usg", "mri"].includes(p.targetId) ? p.targetId : imagingKind(p.targetId)) as ImagingKind | null;
   return kind ? imagingQuestion(kind, p.needs, p.payload, polite) : `Which test${polite ? ", doctor" : ""}?`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* The nurse's challenge                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Orders that could kill, and what the nurse says about them. Only these are
+ * queried — and only once: said again, or "yes", and it's given.
+ */
+const GRAVE: Record<string, (them: string) => string> = {
+  "fluid-flood": (them) => `That much fluid that fast could flood ${them} lungs.`,
+  "fluid-catastrophe": (them) => `That much fluid that fast could flood ${them} lungs.`,
+  "potassium-bolus": () => "Potassium that fast into a vein can stop the heart.",
+  "adrenaline-bolus": () => "That much adrenaline into a vein can set off a dangerous rhythm.",
+  "insulin-overdose-iv": (them) => `That's a very big insulin dose — it could drop ${them} sugar dangerously.`,
+  "insulin-overdose-sc": (them) => `That's a very big insulin dose — it could drop ${them} sugar dangerously.`,
+  "sedative-overdose": () => "That dose could stop the breathing.",
+  "cardiodepressant-overdose": () => "That dose could drop the heart rate and pressure dangerously.",
+  "drug-toxicity": () => "That's far above the usual dose.",
+  "drug-toxicity-severe": () => "That's many times the usual dose.",
+  "salt-poisoning": () => "That much salt could be poisonous.",
+};
+
+/** Whether any of these hazards is one the nurse would query before carrying the order out. */
+export const graveHazards = (ids: readonly string[]) => ids.filter((id) => id in GRAVE);
+
+/** The words for a patient's lungs, sugar…: "her", "his", "their". */
+const possessive = (sex?: string) => (sex === "Female" ? "her" : sex === "Male" ? "his" : "their");
+
+/** "Doctor, potassium chloride 40 mEq IV over 2 min? Potassium that fast … Do you still want it given?" */
+export function confirmQuestion(label: string, hazards: readonly string[], sex?: string): string {
+  const why = GRAVE[hazards[0]!]?.(possessive(sex)) ?? "That could be dangerous.";
+  return `Doctor — ${label}? ${why} Do you still want it given?`;
+}
+
+/** Words that, said instead of an answer, only confirm ("yes, give it", "I'm sure", "go ahead"). */
+const CONFIRM_WORDS = /\b(?:yes|yeah|yep|yup|ya|yah|ok|okay|sure|haan|han|ha|ji|confirm(?:ed)?|proceed|go ahead|go on|do it|give it|give|carry on|continue|i'?m sure|im sure|i am sure|i know|absolutely|definitely|as ordered|i said(?: so)?|just|please|now|stat|still|anyway|sister|nurse|doctor|it|so|that's right|thats right|correct|right|fine|dena hai|de do|do)\b/gi;
+
+/** The whole of these words is a confirmation — nothing else in them (a dose, a different drug, "not"). */
+export function isConfirmation(text: string): boolean {
+  const t = text.toLowerCase().replace(/[’]/g, "'").trim();
+  return /[a-z]/.test(t) && t.replace(CONFIRM_WORDS, " ").replace(/[\s.,!—–-]+/g, "") === "";
+}
+
+/** "No", "cancel", "hold it": the queried order isn't given. */
+export const DECLINE_RE = /^\s*(?:no+|nope|nahi|na|cancel(?: it| that)?|stop|hold(?: it| on| off)?|don'?t|do not|leave it|skip it|scrap that|actually no|my mistake|sorry|wait)\b/i;

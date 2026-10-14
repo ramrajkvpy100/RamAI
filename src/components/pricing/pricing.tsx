@@ -12,15 +12,15 @@ import { priceFor, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { PlanCards } from "./plan-cards";
 
-interface RazorpayResponse {
+export interface RazorpayResponse {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
 }
-interface RazorpayFailure {
+export interface RazorpayFailure {
   error?: { description?: string; reason?: string; metadata?: { order_id?: string; payment_id?: string } };
 }
-interface RazorpayCtor {
+export interface RazorpayCtor {
   new (opts: Record<string, unknown>): { open: () => void; on: (event: "payment.failed", cb: (r: RazorpayFailure) => void) => void };
 }
 
@@ -31,7 +31,7 @@ export interface BillingInfo {
   international: boolean;
 }
 
-function loadRazorpay(): Promise<RazorpayCtor> {
+export function loadRazorpay(): Promise<RazorpayCtor> {
   const w = window as unknown as { Razorpay?: RazorpayCtor };
   if (w.Razorpay) return Promise.resolve(w.Razorpay);
   return new Promise((resolve, reject) => {

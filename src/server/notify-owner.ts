@@ -12,7 +12,7 @@ import { db } from "./db";
 import { sendPush, type PushTarget } from "./push";
 
 const ownerEmails = () =>
-  (process.env.RAMAI_ADMIN_EMAILS ?? SITE.email)
+  (process.env.RAMAI_ADMIN_EMAILS ?? SITE.ownerAccounts.join(","))
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);

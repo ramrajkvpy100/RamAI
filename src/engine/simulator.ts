@@ -14,7 +14,7 @@ import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, Therapeutic
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
-import { drugNeeds, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
+import { confirmQuestion, graveHazards, drugNeeds, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { saltGrams } from "./toxicity";
@@ -1046,6 +1046,8 @@ interface TurnContext {
   notices: string[];
   /** Orders asked about this turn (they wait for the doctor's answer). */
   asked: PendingOrder[];
+  /** Orders the nurse queried last turn as dangerous: ordered again now, they're given. */
+  challenged: string[];
 }
 
 const HISTORY_TIMELINE: Partial<Record<FactGroup, string>> = {
@@ -1703,6 +1705,14 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   if (drug.fluid && volumeMl && typeof p.dose !== "string") dose = volumeMl >= 1000 ? `${+(volumeMl / 1000).toFixed(2)} L` : `${volumeMl} mL`;
   if (rateMlH) dose = `${dose ?? ""} at ${rateMlH} mL/h`.trim();
 
+  // An order that could kill is queried once by the nurse, before it goes in — what it would do is worked
+  // out on a copy of the case, and only if the doctor says so again does it happen. (Not in the guided
+  // demo, nor on the phone: no nurse there.)
+  const challenge =
+    mode === "given" && !def.guided && def.track !== "phone" && p.confirmed !== true && !ctx.challenged.includes(drug.id) && !SURE_RE.test(ctx.record.raw)
+      ? structuredClone(hidden)
+      : undefined;
+
   const minutes = mode === "given" ? (route === "IV" || route === "IM" || route === "NEB" ? 3 : 1) : 1;
   // When it went in: what it does counts from here, though giving it takes a few minutes.
   const startedAt = hidden.clock;
@@ -1777,6 +1787,14 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const prescribed = mode === "prescribed";
   const order = orderKey(drug.id, given.at);
   const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
+  const grave = graveHazards(triggered);
+  if (challenge && grave.length > 0) {
+    for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
+    Object.assign(hidden, challenge);
+    const what = `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}${overMin && route === "IV" && !rateMlH ? ` over ${describeSpan(overMin)}` : ""}`;
+    const question = confirmQuestion(what, grave, def.patient.sex);
+    return askAbout(ctx, { kind: "confirm", targetId: drug.id, payload: { ...p, mode, question }, phrase: intent.phrase, needs: [] }, question, mode);
+  }
   // Fluid overload starts when the infusion crosses into it, not when the bag is hung.
   for (const hz of triggered) armHazard(def, hidden, hz, label, prescribed, startedAt + (hz.startsWith("fluid-") ? fluid?.crossAfterMin ?? 0 : 0), order);
   // What this order does to the patient is now that hazard's course — not the drug's usual effect as well.
@@ -1828,6 +1846,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   ctx.stages.push("treatment");
   return fx;
 }
+
+/** "I'm sure", "I know", "deliberately": said with the order, the nurse doesn't query it. */
+const SURE_RE = /\b(?:i'?m sure|i am sure|i know(?: it'?s| that)?|deliberately|i insist|confirmed|as ordered)\b/i;
 
 const overMinOf = (p: Record<string, unknown>) => (typeof p.overMin === "number" && p.overMin > 0 ? p.overMin : undefined);
 
@@ -2187,7 +2208,7 @@ const SIGNIFICANT: ResolvedIntent["kind"][] = ["history", "vitals", "exam", "inv
 
 export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record: ActionRecord): TurnEffect[] {
   const fx: TurnEffect[] = [];
-  const ctx: TurnContext = { def, hidden, record, sent: [], stages: [], notices: [], asked: [] };
+  const ctx: TurnContext = { def, hidden, record, sent: [], stages: [], notices: [], asked: [], challenged: [] };
   const conversational = record.intents.some((i) => i.kind === "history" || i.kind === "greeting" || (i.kind === "unknown" && (i.payload?.question || i.payload?.speaker === "patient" || i.payload?.speaker === "attendant")));
   // A real-time tick has no words: time passes without the doctor saying anything.
   const tick = isTick(record);
@@ -2197,6 +2218,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   if (!tick && record.intents.some((i) => i.matched && SIGNIFICANT.includes(i.kind))) hidden.actionCount += 1;
   // An order asked about waits for one answer: whatever the doctor says next, it doesn't wait longer
   // (unless they only said "ok" — then it's asked again). The clock running on its own doesn't count.
+  if (!tick) ctx.challenged = (hidden.pendingOrders ?? []).filter((o) => o.kind === "confirm").map((o) => o.targetId);
   if (!tick && !record.intents.some((i) => i.payload?.keepPending === true)) hidden.pendingOrders = [];
 
   // Several vitals in one instruction are one measurement ("Check BP and RBS").

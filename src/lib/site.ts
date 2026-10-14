@@ -8,6 +8,8 @@ export const SITE = {
   name: "RamAI",
   url: "https://ram-ai-liard.vercel.app",
   email: "ramrajkansana100@gmail.com",
+  /** The owner's sign-in accounts: admin, and told of new suggestions. */
+  ownerAccounts: ["ramrajkansana100@gmail.com", "ramrajkvpy100@gmail.com"],
   /** Full legal name of the person or company that runs RamAI. */
   owner: "Dr. Ramraj Singh Kansana" as string | null,
   /** Shown as written; dialled as digits. */

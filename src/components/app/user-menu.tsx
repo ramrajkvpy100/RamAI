@@ -136,6 +136,9 @@ export function UserMenu({ me }: { me: Me }) {
           <Link role="menuitem" href="/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
             <Icon name="bulb" size={15} className="text-fg-2" /> Suggest an improvement
           </Link>
+          <Link role="menuitem" href="/support" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
+            <Icon name="heart" size={15} className="text-fg-2" /> Support RamAI
+          </Link>
           {me.admin && (
             <Link role="menuitem" href="/admin/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium hover:bg-surface-3">
               <Icon name="shield" size={15} className="text-accent-text" /> Admin · Suggestions

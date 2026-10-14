@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { withUsage } from "@/engine/providers/usage";
+import { aiAnswering } from "@/server/ai-health";
 import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { MODALITY_IDS, type Modality } from "@/lib/practice";
@@ -20,13 +21,18 @@ export async function POST(req: Request) {
   const body = await parseBody(req, RoundRequest);
   if (body instanceof Response) return body;
   try {
-    let r = await round(body.modality, body.mode);
+    let r: Awaited<ReturnType<typeof round>> & { offline?: boolean } = await round(body.modality, body.mode);
     // Nothing kept yet for this modality: find the first few now (the progress bar covers it).
     if (r.ready < 4 && picturesAvailable()) {
-      const first = withUsage({ kind: "practice" }, async () => Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false))));
-      // Whatever is ready by 45 s; the rest carries on in the background.
-      await Promise.race([first, new Promise((resolve) => setTimeout(resolve, 45_000))]);
+      const first = withUsage({ kind: "practice" }, async () => Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false)))).catch((err) => {
+        console.error("[ramai] practice pictures:", err instanceof Error ? err.message : err);
+        return [] as boolean[];
+      });
+      // Whatever is ready by 35 s (well inside the minute the function has); the rest carries on in the background.
+      const found = await Promise.race([first, new Promise<null>((resolve) => setTimeout(() => resolve(null), 35_000))]);
       r = await round(body.modality, body.mode);
+      // Every search came back with nothing: the picture checker (the AI) isn't answering.
+      if (r.items.length === 0 && found !== null && !found.some(Boolean)) r = { ...r, offline: !(await aiAnswering()) };
     }
     // More pictures, found in the background, for the next round.
     if (picturesAvailable()) {

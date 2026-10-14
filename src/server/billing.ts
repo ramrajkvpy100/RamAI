@@ -29,8 +29,8 @@ import { db, tx } from "./db";
 
 export type PaymentMode = "test" | "live";
 
-const keyId = () => process.env.RAZORPAY_KEY_ID?.trim() ?? "";
-const keySecret = () => process.env.RAZORPAY_KEY_SECRET?.trim() ?? "";
+export const keyId = () => process.env.RAZORPAY_KEY_ID?.trim() ?? "";
+export const keySecret = () => process.env.RAZORPAY_KEY_SECRET?.trim() ?? "";
 const webhookSecret = () => process.env.RAZORPAY_WEBHOOK_SECRET?.trim() ?? "";
 
 export const paymentsConfigured = () => !!(keyId() && keySecret());
@@ -54,7 +54,7 @@ export class BillingError extends Error {
 
 let cached: { key: string; client: Razorpay } | null = null;
 /** The official Razorpay SDK, made once per set of keys. */
-function razorpay(): Razorpay {
+export function razorpay(): Razorpay {
   const key = `${keyId()}:${keySecret()}`;
   if (cached?.key !== key) cached = { key, client: new Razorpay({ key_id: keyId(), key_secret: keySecret() }) };
   return cached.client;
@@ -75,7 +75,7 @@ const providerMessage = (err: unknown) => {
 };
 
 /** A failed Razorpay call: logged on the server; the buyer gets `message` — or, when Razorpay rejected our keys, a plain "not available". */
-function providerFailure(err: unknown, what: string, message: string): BillingError {
+export function providerFailure(err: unknown, what: string, message: string): BillingError {
   console.error(`[ramai] razorpay ${what} failed:`, providerMessage(err));
   if ((err as { statusCode?: number })?.statusCode === 401) return new BillingError("AUTH", "Payments aren't available right now. Please try again later.");
   return new BillingError("PROVIDER", message);
@@ -270,6 +270,14 @@ export async function handleWebhook(raw: string, signature: string | null, event
     const fresh = await t.run("INSERT OR IGNORE INTO payment_events (event_id, event, order_id, payment_id, received_at) VALUES (?, ?, ?, ?, ?)", id, body.event, orderId, payment?.id ?? refund?.payment_id ?? null, Date.now());
     if (fresh.changes !== 1) return "duplicate";
     const row = orderId ? await t.get<PaymentRow>("SELECT * FROM payments WHERE order_id = ?", orderId) : refund ? await t.get<PaymentRow>("SELECT * FROM payments WHERE payment_id = ?", refund.payment_id) : undefined;
+    // A gift, not a purchase: recorded as paid once Razorpay has taken it.
+    if (!row && orderId && payment?.status === "captured" && (body.event === "payment.captured" || body.event === "order.paid")) {
+      const gift = await t.run(
+        "UPDATE donations SET status = 'paid', payment_id = ?, paid_at = ? WHERE order_id = ? AND status = 'created' AND amount = ? AND currency = ?",
+        payment.id, Date.now(), orderId, Number(payment.amount), payment.currency,
+      );
+      if (gift.changes === 1) return "processed";
+    }
     // Not one of RamAI's orders (another product on the same account): recorded and left alone.
     if (!row) return "ignored";
 

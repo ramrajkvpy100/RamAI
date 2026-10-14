@@ -104,6 +104,15 @@ export interface CheckoutOrder {
 export const checkout = (period: "monthly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: CheckoutOrder }>("/api/billing/checkout", { period, startNow });
 export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ status: "paid" }>("/api/billing/verify", body);
 export const orderStatus = (orderId: string) => call<{ status: "created" | "paid" | "failed" | "refunded" }>("/api/billing/status", { orderId });
+export interface DonationOrder {
+  orderId: string;
+  amount: number;
+  currency: "INR";
+  keyId: string;
+  mode: "test" | "live";
+}
+export const donate = (body: { rupees: number; name?: string; message?: string }) => call<{ order: DonationOrder }>("/api/donate", body);
+export const verifyDonation = (body: { orderId: string; paymentId: string; signature: string }) => call<{ status: "paid" }>("/api/donate/verify", body);
 export const demoUpgrade = () => call<{ ok: true }>("/api/billing/demo-upgrade", {});
 /** Asks the server to write the next patient ahead of time (fire and forget). */
 export const prepareCase = () => call<{ status: string }>("/api/cases/prepare", {});

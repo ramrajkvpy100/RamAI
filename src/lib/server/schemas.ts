@@ -68,6 +68,11 @@ export const CheckoutSchema = z.object({
 const RazorpayId = (prefix: string) => z.string().trim().max(80).regex(new RegExp(`^${prefix}_[A-Za-z0-9]+$`), "Invalid id.");
 export const VerifySchema = z.object({ orderId: RazorpayId("order"), paymentId: RazorpayId("pay"), signature: z.string().trim().regex(/^[a-f0-9]{64}$/, "Invalid signature.") });
 export const OrderStatusSchema = z.object({ orderId: RazorpayId("order") });
+export const DonateSchema = z.object({
+  rupees: z.number().int("Whole rupees, please.").min(10, "The smallest gift is ₹10.").max(50_000, "The largest gift is ₹50,000."),
+  name: z.string().trim().max(60).optional(),
+  message: z.string().trim().max(300).optional(),
+});
 
 export const TurnSchema = z.object({
   token: Token,

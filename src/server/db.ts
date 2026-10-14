@@ -321,6 +321,21 @@ CREATE TABLE IF NOT EXISTS ai_usage (
 );
 CREATE INDEX IF NOT EXISTS ai_usage_session ON ai_usage(session_id);
 CREATE INDEX IF NOT EXISTS ai_usage_created ON ai_usage(created_at);
+-- Gifts to support RamAI (Razorpay), from anyone — signed in or not. Paid once the payment is confirmed.
+CREATE TABLE IF NOT EXISTS donations (
+  order_id TEXT PRIMARY KEY,
+  user_id TEXT,
+  name TEXT,
+  message TEXT,
+  amount INTEGER NOT NULL,
+  currency TEXT NOT NULL,
+  status TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  payment_id TEXT,
+  created_at INTEGER NOT NULL,
+  paid_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS donations_paid ON donations(status, paid_at);
 -- Razorpay webhooks already processed (each event id once), with the order or payment they were about.
 CREATE TABLE IF NOT EXISTS payment_events (
   event_id TEXT PRIMARY KEY,
@@ -480,7 +495,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 20;
+const SCHEMA_VERSION = 21;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

@@ -21,7 +21,11 @@ const ICON: Record<Modality, "pulse" | "scan" | "layers" | "monitor" | "droplet"
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(String(res.status));
+  if (!res.ok) {
+    // The server's own words when it gave any (a rate limit, a sign-in problem); a timeout has none.
+    const json = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+    throw new Error(json?.error?.code === "RATE_LIMITED" && json.error.message ? json.error.message : res.status === 504 ? "Finding the pictures took too long. Please try again — the ones found so far are kept." : "The pictures couldn't be loaded. Please try again.");
+  }
   return (await res.json()) as T;
 }
 
@@ -47,9 +51,9 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
     setLoading(true);
     setError(null);
     try {
-      const r = await post<{ items: DrillItem[]; ready: number; total: number }>("/api/practice/round", { modality, mode });
+      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode });
       if (r.items.length === 0) {
-        setError("The pictures for this one are still being gathered. Try the ECGs meanwhile, or come back in a minute.");
+        setError(r.offline ? "Pictures for this one can't be gathered right now — the picture checker is offline. Try the ECGs meanwhile." : "The pictures for this one are still being gathered. Try the ECGs meanwhile, or come back in a minute.");
         return;
       }
       setReadyNote(r.ready < r.total ? `${r.ready} of ${r.total} diagnoses ready — more pictures are being added.` : null);
@@ -61,8 +65,8 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
       setOver(false);
       reported.current = false;
       setEnds(mode === "rapid" ? Date.now() + RAPID_SECONDS * 1000 : null);
-    } catch {
-      setError("The pictures couldn't be loaded. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error && err.message.length > 3 ? err.message : "The pictures couldn't be loaded. Please try again.");
     } finally {
       setLoading(false);
     }

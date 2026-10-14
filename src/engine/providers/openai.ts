@@ -47,7 +47,17 @@ export interface ChatMessage {
   content: string;
 }
 
-class UpstreamError extends Error {}
+/** OpenAI answered with an error: its HTTP status and error code (e.g. 429 insufficient_quota), never the key. */
+export class UpstreamError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = "UpstreamError";
+  }
+}
 
 export function openAIConfig() {
   return {
@@ -75,8 +85,9 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
       signal: controller.signal,
     });
     if (!res.ok) {
-      const err = (await res.json().catch(() => ({}))) as { error?: { code?: string } };
-      throw new UpstreamError(`OpenAI responded ${res.status}${err.error?.code ? ` (${err.error.code})` : ""}`);
+      const err = (await res.json().catch(() => ({}))) as { error?: { code?: string; type?: string } };
+      const code = err.error?.code ?? err.error?.type;
+      throw new UpstreamError(`OpenAI responded ${res.status}${code ? ` (${code})` : ""}`, res.status, code);
     }
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[]; usage?: unknown };
     noteUsage(data.usage);

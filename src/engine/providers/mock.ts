@@ -6,7 +6,7 @@ import "server-only";
 
 import { getCase, libraryAvailability, pickCase } from "../cases";
 import { resolveIntents, type IntentContext } from "../intent";
-import { completedIntent, completeOrder, pendingQuestion } from "../orders";
+import { completedIntent, completeOrder, DECLINE_RE, pendingQuestion } from "../orders";
 import { SessionError } from "../session";
 import { splitClauses } from "../text";
 import type { ResolvedIntent } from "../types";
@@ -73,6 +73,11 @@ export const mockProvider: ClinicalProvider = {
   async interpret(text, ctx) {
     const weightKg = parseFloat(ctx.hidden.vitals.weight.value) || 60;
     const rctx: IntentContext = { def: ctx.def, setting: ctx.hidden.setting, weightKg };
+    // "No", "cancel": the order the nurse queried isn't given.
+    const queried = ctx.hidden.pendingOrders?.find((o) => o.kind === "confirm");
+    if (queried && DECLINE_RE.test(text) && splitClauses(text).length === 1) {
+      return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: "nurse" } }], generated: { "0": "Okay, doctor — I'll hold it." } };
+    }
     // An order waiting on its details: these words may be the answer.
     const answer = answerPending(text, ctx, rctx);
     if (answer) return { intents: answer };

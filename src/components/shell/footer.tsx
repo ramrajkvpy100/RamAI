@@ -22,6 +22,9 @@ export function Footer() {
             <Link href="/pricing" className="hover:text-fg">
               Pricing
             </Link>
+            <Link href="/support" className="hover:text-fg">
+              Donate
+            </Link>
           </span>
         </div>
         <nav aria-label="Company and policies" className="flex flex-wrap gap-x-5 gap-y-2">

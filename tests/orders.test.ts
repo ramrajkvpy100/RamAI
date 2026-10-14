@@ -20,7 +20,7 @@ describe("IV fluid does what this patient needs — not what the bag says", () =
   });
 
   it("five litres in half an hour floods a healthy woman's lungs — no 'improvement' from it", () => {
-    const { state, turns } = play(dermAcne, ["Attach monitor", "Give NS 5 L IV over 30 minutes", "Wait 15 minutes", "Wait 15 minutes", "Wait 15 minutes"]);
+    const { state, turns } = play(dermAcne, ["Attach monitor", "Give NS 5 L IV over 30 minutes — I'm sure", "Wait 15 minutes", "Wait 15 minutes", "Wait 15 minutes"]);
     expect(["deteriorating", "critical"]).toContain(state.patientStatus);
     expect(Number(state.vitals.spo2!.current.value)).toBeLessThan(95);
     const all = turns.map(said).join(" ");
@@ -29,7 +29,7 @@ describe("IV fluid does what this patient needs — not what the bag says", () =
   });
 
   it("the same five litres into failing heart and lungs is catastrophic", () => {
-    const { state } = play(emAdhf, ["Attach monitor", "Give NS 5 L IV over 30 minutes", ...Array(8).fill("Wait 5 minutes")]);
+    const { state } = play(emAdhf, ["Attach monitor", "Give NS 5 L IV over 30 minutes — I'm sure", ...Array(8).fill("Wait 5 minutes")]);
     expect(state.patientStatus).toBe("deceased");
   });
 
@@ -44,7 +44,7 @@ describe("IV fluid does what this patient needs — not what the bag says", () =
   });
 
   it("a drip stopped part-way gives only what ran in", () => {
-    const { hidden, turns } = play(dermAcne, ["Give NS 5 L IV over 2 hours", "Wait 10 minutes", "Stop IV fluids", "Wait 2 hours"]);
+    const { hidden, turns } = play(dermAcne, ["Give NS 5 L IV over 2 hours — I'm sure", "Wait 10 minutes", "Stop IV fluids", "Wait 2 hours"]);
     expect(said(turns[2]!)).toMatch(/IV fluids stopped — \d+ mL of the 0\.9% sodium chloride had gone in/);
     expect(hidden.hazards.some((h) => h.id.startsWith("fluid-") && !h.superseded && h.manifestedAt !== undefined)).toBe(false);
   });
@@ -52,7 +52,7 @@ describe("IV fluid does what this patient needs — not what the bag says", () =
 
 describe("a drug is credited only with what it did", () => {
   it("a gram of salt after a salt load isn't blamed for the poisoning's course", () => {
-    const { turns, hidden } = play(dermAcne, ["Eat 50 g of salt", "Wait 20 minutes", "Eat 1 g of salt", "Wait 15 minutes", "Wait 15 minutes", "Wait 15 minutes"]);
+    const { turns, hidden } = play(dermAcne, ["Eat 50 g of salt — I'm sure", "Wait 20 minutes", "Eat 1 g of salt", "Wait 15 minutes", "Wait 15 minutes", "Wait 15 minutes"]);
     const reports = turns.flatMap((t) => messagesOf(t.effects)).filter((m) => /after the table salt \(sodium chloride\) 1 g/.test(m));
     expect(reports.length).toBeGreaterThan(0);
     for (const r of reports) expect(r).toMatch(/no change from it/);
@@ -146,5 +146,41 @@ describe("an order missing what's needed is asked about, and the answer complete
     expect(said(turns[0]!)).toMatch(/attendant: Doctor, how much aspirin should we give\?/);
     expect(toHinglish("Doctor, how much aspirin should we give?", phAcs.id, "attendant", phAcs.patient)).toBe("Doctor, aspirin kitna dena hai?");
     expect(toHinglish("Doctor, should we give the isosorbide dinitrate under the tongue or by mouth?", phAcs.id, "attendant", phAcs.patient)).toBe("Doctor, isosorbide dinitrate jeebh ke neeche rakhein ya khila dein?");
+  });
+});
+
+describe("an order that could kill is queried once — then carried out if the doctor says so", () => {
+  it("the nurse asks before a potassium push, and nothing has gone in yet", async () => {
+    const { hidden, turns } = await converse(surgAppendicitis, ["Give KCl 40 mEq IV push"]);
+    expect(said(turns[0]!)).toMatch(/nurse: Doctor — potassium chloride .* IV.*\? Potassium that fast into a vein can stop the heart\. Do you still want it given\?/);
+    expect(hidden.drugs).toHaveLength(0);
+    expect(hidden.clock).toBe(0);
+  });
+
+  it("'yes, give it' — it's given, with what it does", async () => {
+    const { state } = await converse(surgAppendicitis, ["Attach monitor", "Give KCl 40 mEq IV push", "yes give it", "Wait 5 minutes"]);
+    expect(state.patientStatus).toBe("deceased");
+  });
+
+  it("the same order said again is the answer too", () => {
+    const { hidden } = play(dermAcne, ["Give NS 5 L IV over 30 minutes", "Give NS 5 L IV over 30 minutes"]);
+    expect(hidden.drugs).toHaveLength(1);
+  });
+
+  it("'no' — it's held", async () => {
+    const { hidden, turns } = await converse(surgAppendicitis, ["Give KCl 40 mEq IV push", "no"]);
+    expect(said(turns[1]!)).toMatch(/nurse: Okay, doctor — I'll hold it\./);
+    expect(hidden.drugs).toHaveLength(0);
+  });
+
+  it("a safer order instead is simply given", async () => {
+    const { hidden } = await converse(surgAppendicitis, ["Give KCl 40 mEq IV push", "Give KCl 20 mEq IV over 2 hours"]);
+    expect(hidden.drugs).toHaveLength(1);
+    expect(hidden.drugs[0]).toMatchObject({ overMin: 120 });
+  });
+
+  it("ordinary orders aren't queried", async () => {
+    const { turns } = await converse(surgAppendicitis, ["Give paracetamol 1 g IV over 15 minutes", "Give NS 1 L IV over 8 hours"]);
+    expect(turns.map(said).join(" ")).not.toMatch(/Do you still want it given/);
   });
 });

@@ -139,6 +139,8 @@ export interface ExamSet {
   subject: string;
   style: ExamStyle;
   questions: ExamQuestion[];
+  /** New questions couldn't be written just now: a set they've done before, to keep practising. */
+  repeat?: boolean;
 }
 
 export interface ExamStats {

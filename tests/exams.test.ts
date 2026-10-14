@@ -3,13 +3,13 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { createProfile, type User } from "@/server/auth";
 import { answer, examStats, nextSet } from "@/server/exam-practice";
 import { db } from "@/server/db";
-import { examsFor } from "@/lib/exams";
+import { EXAMS, examsFor } from "@/lib/exams";
 
 process.env.RAMAI_DB_PATH = ":memory:";
 
 const mcq = (i: number) => ({ stem: `Question ${i}: a 30-year-old man presents with a classic finding. What is the drug of choice?`, options: ["Alpha", "Bravo", "Charlie", "Delta"], answer: 0, explanation: `Alpha is right for question ${i}.`, topic: `Topic ${i}`, difficulty: "medium" });
 
-/** The question writer and the examiner, stood in for: the examiner drops question 3 and re-keys question 1. */
+/** The question writer (asked for two halves at once) and the examiner, stood in for: the examiner drops question 3 and re-keys question 1. */
 function stubModel() {
   const calls: string[] = [];
   vi.stubGlobal(
@@ -18,7 +18,10 @@ function stubModel() {
       const body = JSON.parse(init.body) as { messages: { content: string }[] };
       const examiner = body.messages[0]!.content.includes("senior examiner");
       calls.push(examiner ? "examine" : "write");
-      const content = examiner ? { fixes: [{ index: 3, drop: true, why: "two right answers" }, { index: 1, answer: 2, why: "key was wrong" }] } : { pearls: [], mcqs: Array.from({ length: 10 }, (_, i) => mcq(i)) };
+      const ask = body.messages[1]?.content ?? "";
+      const count = Number(/Write (\d+) practice questions/.exec(ask)?.[1] ?? 10);
+      const from = /clinical application/.test(ask) ? 10 - count : 0;
+      const content = examiner ? { fixes: [{ index: 3, drop: true, why: "two right answers" }, { index: 1, answer: 2, why: "key was wrong" }] } : { pearls: [], mcqs: Array.from({ length: count }, (_, i) => mcq(from + i)) };
       return Response.json({ choices: [{ message: { content: JSON.stringify(content) } }] });
     }),
   );
@@ -49,7 +52,7 @@ describe("exam practice", () => {
   it("writes a set, has the examiner correct it, keeps the key on the server — and serves it to the next doctor at once", async () => {
     const calls = stubModel();
     const { set } = await nextSet(priya, "neet-pg", "Pharmacology");
-    expect(calls).toEqual(["write", "examine"]);
+    expect(calls).toEqual(["write", "write", "examine"]);
     expect(set.questions).toHaveLength(9);
     expect(set.questions[0]).not.toHaveProperty("answer");
     expect(set.questions[0]).not.toHaveProperty("explanation");
@@ -57,7 +60,7 @@ describe("exam practice", () => {
     // Ravi gets the same set without a word written.
     const again = await nextSet(ravi, "neet-pg", "Pharmacology");
     expect(again.set.id).toBe(set.id);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
 
     // Answers are checked on the server; the first answer counts.
     const stem = set.questions[1]!.stem;
@@ -75,6 +78,18 @@ describe("exam practice", () => {
     // Priya has started that set: her next one is new.
     const next = await nextSet(priya, "neet-pg", "Pharmacology");
     expect(next.set.id).not.toBe(set.id);
+  });
+
+  it("when OpenAI refuses, says why plainly — and offers a set done before rather than nothing", async () => {
+    stubModel();
+    const subject = EXAMS["ini-cet"].subjects[0]!;
+    const { set } = await nextSet(priya, "ini-cet", subject);
+    await answer(priya, set.id, 0, 0);
+    vi.unstubAllGlobals();
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: { type: "insufficient_quota", code: "insufficient_quota" } }, { status: 429 })));
+    const again = await nextSet(priya, "ini-cet", subject);
+    expect(again.set).toMatchObject({ id: set.id, repeat: true });
+    await expect(nextSet(ravi, "ini-cet", EXAMS["ini-cet"].subjects[1]!)).rejects.toMatchObject({ code: "UNAVAILABLE", message: expect.stringMatching(/offline/) });
   });
 
   it("says so when the question writer isn't switched on", async () => {

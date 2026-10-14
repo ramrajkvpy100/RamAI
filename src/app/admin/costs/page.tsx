@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { AppShell } from "@/components/app/app-shell";
+import { checkOpenAI } from "@/lib/server/openai-check";
 import { usageReport, type UsageRow } from "@/server/ai-usage";
+import { donationSummary } from "@/server/donations";
 import { getMe } from "@/server/me";
 
 export const metadata: Metadata = { title: "AI costs · Admin", robots: { index: false, follow: false } };
@@ -33,7 +36,7 @@ export default async function AdminCosts() {
   const me = await getMe();
   if (!me) redirect("/login?next=/admin/costs");
   if (!me.admin) notFound();
-  const r = await usageReport(30);
+  const [r, gifts] = await Promise.all([usageReport(30), donationSummary().catch(() => null)]);
   const rate = Number(process.env.RAMAI_USD_INR) || 88;
   const inr = (usd: number | null) => (usd === null ? "—" : `₹${(usd * rate).toFixed(usd * rate < 1 ? 2 : 1)}`);
   const row = (k: UsageRow, label: string, strong = false) => (
@@ -52,7 +55,10 @@ export default async function AdminCosts() {
     <AppShell me={me} wide>
       <div className="mx-auto max-w-4xl px-4 py-8">
         <h1 className="text-[24px] font-bold tracking-[-0.01em]">AI costs</h1>
-        <p className="mt-1 text-[14px] text-fg-2">The last {r.days} days, from the usage OpenAI reports with every call. Rupees at ₹{rate} to the dollar.</p>
+        <Suspense fallback={<p className="mt-4 rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-fg-2">Checking the OpenAI connection…</p>}>
+          <AiStatus />
+        </Suspense>
+        <p className="mt-4 text-[14px] text-fg-2">The last {r.days} days, from the usage OpenAI reports with every call. Rupees at ₹{rate} to the dollar.</p>
         {!r.prices && (
           <p className="mt-4 rounded-xl bg-warning-soft px-4 py-3 text-[13.5px] text-warning">
             Costs show once your OpenAI prices are set in Vercel (USD, from OpenAI&apos;s pricing page): RAMAI_PRICE_INPUT_PER_M, RAMAI_PRICE_CACHED_PER_M, RAMAI_PRICE_OUTPUT_PER_M (per million tokens) and RAMAI_PRICE_IMAGE (per picture). Tokens are counted either way.
@@ -95,8 +101,49 @@ export default async function AdminCosts() {
             </tbody>
           </table>
         </div>
+        {gifts && (
+          <section className="mt-10" aria-labelledby="gifts-heading">
+            <h2 id="gifts-heading" className="text-[18px] font-bold">
+              Donations
+            </h2>
+            <p className="mt-1 text-[14px] text-fg-2">
+              {gifts.count} paid {gifts.count === 1 ? "gift" : "gifts"} · <strong className="text-fg">₹{gifts.total.toLocaleString("en-IN")}</strong> in all (live payments; Razorpay&apos;s fee comes off this).
+            </p>
+            {gifts.recent.length > 0 && (
+              <ul className="mt-3 divide-y divide-line-2 text-[13.5px]">
+                {gifts.recent.map((g, i) => (
+                  <li key={i} className="flex gap-3 py-2">
+                    <span className="w-16 shrink-0 font-semibold tabular">₹{g.rupees.toLocaleString("en-IN")}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">{g.name ?? "Anonymous"}</span>
+                      {g.mode === "test" && <span className="ml-2 rounded bg-warning-soft px-1.5 text-[11px] font-semibold text-warning">TEST</span>}
+                      {g.message && <span className="block text-fg-2">{g.message}</span>}
+                    </span>
+                    <span className="shrink-0 text-[12.5px] text-fg-3">{new Date(g.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
         <p className="mt-4 text-[12.5px] text-fg-3">Case cost percentiles cover the {r.caseCost.counted} cases whose calls were counted against them. Pictures found on Wikimedia Commons cost only the model&apos;s check.</p>
       </div>
     </AppShell>
+  );
+}
+
+/** Whether the live site's AI works right now — and, when it doesn't, exactly why (no credit, wrong key, model). */
+async function AiStatus() {
+  const { OPENAI_API_KEY, OPENAI_MODEL, OPENAI_BASE_URL } = process.env;
+  const c = await checkOpenAI({ OPENAI_API_KEY, OPENAI_MODEL, OPENAI_BASE_URL }).catch(() => ({ ok: false, model: OPENAI_MODEL ?? "", problem: "The check itself failed. Try reloading." }));
+  return c.ok ? (
+    <p className="mt-4 rounded-xl bg-success-soft px-4 py-3 text-[13.5px] text-success">
+      AI working — model {c.model}
+      {"ms" in c && c.ms ? `, answered in ${(c.ms / 1000).toFixed(1)} s` : ""}.
+    </p>
+  ) : (
+    <p role="alert" className="mt-4 rounded-xl bg-danger-soft px-4 py-3 text-[13.5px] text-danger">
+      <strong>AI not working</strong> (model {c.model}): {c.problem} Until this is fixed, new cases, exam sets and practice pictures can&apos;t be made.
+    </p>
   );
 }

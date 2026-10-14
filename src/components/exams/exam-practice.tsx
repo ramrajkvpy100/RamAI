@@ -141,6 +141,11 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
         </div>
       )}
 
+      {set?.repeat && !finished && index === 0 && (
+        <p role="status" className="rounded-xl bg-warning-soft px-3.5 py-2.5 text-[13.5px] text-warning">
+          New questions can&apos;t be written just now, so here&apos;s a set you&apos;ve done before — good for revision.
+        </p>
+      )}
       {set && !finished && (
         <Question
           key={`${set.id}-${index}`}
