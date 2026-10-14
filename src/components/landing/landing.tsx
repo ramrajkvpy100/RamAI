@@ -48,6 +48,9 @@ export function LandingNav() {
           <Link href="/pricing" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
             Pricing
           </Link>
+          <Link href="/support" aria-label="Donate to RamAI" className="flex h-8 items-center gap-1.5 rounded-full bg-rose-500/10 px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-500/15 dark:text-rose-400">
+            <span aria-hidden>♥</span><span className="hidden min-[400px]:inline">Donate</span>
+          </Link>
           <Link href="/login" className="rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg">
             Log in
           </Link>
