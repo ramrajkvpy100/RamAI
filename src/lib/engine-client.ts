@@ -26,12 +26,13 @@ export class ClinicalEngineError extends Error {
 const RETRIED = new Set(["/api/cases/turn", "/api/cases/tick", "/api/cases/resume"]);
 
 async function call<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
-  try {
-    return await callOnce<T>(path, body, signal);
-  } catch (err) {
-    if (!RETRIED.has(path) || signal?.aborted || !(err instanceof ClinicalEngineError) || (err.code !== "NETWORK" && err.code !== "ENGINE_UNAVAILABLE")) throw err;
-    await new Promise((r) => setTimeout(r, 800));
-    return callOnce<T>(path, body, signal);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await callOnce<T>(path, body, signal);
+    } catch (err) {
+      if (attempt >= 2 || !RETRIED.has(path) || signal?.aborted || !(err instanceof ClinicalEngineError) || (err.code !== "NETWORK" && err.code !== "ENGINE_UNAVAILABLE")) throw err;
+      await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+    }
   }
 }
 
@@ -48,11 +49,11 @@ async function callOnce<T>(path: string, body?: unknown, signal?: AbortSignal): 
   } catch {
     throw new ClinicalEngineError("NETWORK", `${UNAVAILABLE_MESSAGE} (no connection)`, true);
   }
-  const json = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+  const json = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string; ref?: string } } | null;
   if (!res.ok) {
     const code = json?.error?.code ?? "ENGINE_UNAVAILABLE";
     // The status code, so a report of the problem says what it was (never the server's own words).
-    const message = SAFE_CODES.has(code) && json?.error?.message ? json.error.message : `${UNAVAILABLE_MESSAGE} (code ${res.status})`;
+    const message = SAFE_CODES.has(code) && json?.error?.message ? json.error.message : `${UNAVAILABLE_MESSAGE} (code ${res.status}${json?.error?.ref && /^[a-z]{2,8}$/.test(json.error.ref) ? ` · ${json.error.ref}` : ""})`;
     throw new ClinicalEngineError(code, message, code === "ENGINE_UNAVAILABLE" || code === "NETWORK" || code === "RATE_LIMITED" || code === "AUTH_UNAVAILABLE");
   }
   return json as T;

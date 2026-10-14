@@ -18,7 +18,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import type { StatementSync } from "node:sqlite";
 
-import type { Client } from "@libsql/client/http";
+import type { Client, InStatement, TransactionMode } from "@libsql/client/http";
 
 import { ConfigError } from "@/engine/session";
 import { remoteDatabase } from "@/lib/server/database-env";
@@ -424,7 +424,31 @@ async function tursoBackend(url: string, authToken?: string): Promise<Backend> {
   return clientBackend(createClient({ url: url.replace(/^libsql:\/\//, "https://"), authToken }));
 }
 
-function clientBackend(client: Client): Backend {
+/** A hiccup on the way to the database (not a bad statement): worth trying again. */
+function transient(err: unknown): boolean {
+  const text = `${err instanceof Error ? `${err.name} ${err.message} ${(err as { code?: string }).code ?? ""} ${String((err as { cause?: unknown }).cause ?? "")}` : String(err)}`;
+  return /fetch failed|network|socket|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|UND_ERR|timeout|timed out|aborted|\b(?:429|500|502|503|504)\b|SERVER_ERROR|HRANA_WEBSOCKET|STREAM_EXPIRED/i.test(text);
+}
+
+/** Up to three tries, a moment apart, when the connection stumbles. */
+async function retrying<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= 2 || !transient(err)) throw err;
+      await new Promise((r) => setTimeout(r, 150 * 3 ** attempt));
+    }
+  }
+}
+
+function clientBackend(raw: Client): Backend {
+  // Outside a transaction, every statement survives a brief network stumble.
+  const client = {
+    execute: (q: InStatement) => retrying(() => raw.execute(q)),
+    batch: (q: InStatement[], mode: TransactionMode) => retrying(() => raw.batch(q, mode)),
+    transaction: (mode: TransactionMode) => retrying(() => raw.transaction(mode)),
+  };
   type Target = Pick<Client, "execute">;
   const rows = (rs: { columns: string[]; rows: ArrayLike<unknown>[] }) => rs.rows.map((row) => Object.fromEntries(rs.columns.map((c, i) => [c, row[i]])));
   const on = (target: Target): Omit<Db, "batch" | "readMany"> => ({

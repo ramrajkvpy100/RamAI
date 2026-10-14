@@ -14,7 +14,7 @@ import { AuthConfigError } from "@/server/supabase";
 import { SuggestionsError } from "@/server/suggestions";
 
 export interface ApiErrorBody {
-  error: { code: string; message: string };
+  error: { code: string; message: string; ref?: string };
 }
 
 /** The only message users ever see for unexpected failures (spec §36). */
@@ -66,7 +66,17 @@ export function handleError(err: unknown) {
     return apiError(503, "ENGINE_UNAVAILABLE", UNAVAILABLE);
   }
   console.error("[ramai] unexpected engine error:", err);
-  return apiError(503, "ENGINE_UNAVAILABLE", UNAVAILABLE);
+  // Which part failed, in one word — never the error itself — so a screenshot of the problem says where to look.
+  return NextResponse.json<ApiErrorBody>({ error: { code: "ENGINE_UNAVAILABLE", message: UNAVAILABLE, ref: failedPart(err) } }, { status: 503, headers: { "Cache-Control": "no-store" } });
+}
+
+function failedPart(err: unknown): string {
+  const text = err instanceof Error ? `${err.name} ${err.message} ${err.stack ?? ""}` : String(err);
+  if (/libsql|sqlite|SQL|LibsqlError|db\.ts/i.test(text)) return "db";
+  if (/session|seal|token/i.test(text)) return "session";
+  if (/openai|chatJSON|model/i.test(text)) return "ai";
+  if (/fetch failed|network|ECONN|ETIMEDOUT|timeout/i.test(text)) return "net";
+  return "engine";
 }
 
 /* -------------------------------------------------------------------------- */
