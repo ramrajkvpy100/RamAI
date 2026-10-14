@@ -32,3 +32,12 @@ describe("all resources", () => {
     expect(state).toBeDefined();
   });
 });
+
+describe("all resources: a scan the catalogue doesn't have", () => {
+  it("is read as a picture", () => {
+    const def = { ...emViperPhc, unlimited: true };
+    const { hidden } = play(def, []);
+    runTurn(def, hidden, { id: "a1", at: 0, raw: "pet scan", intents: [{ kind: "investigation", targetId: "adhoc:PET-CT scan", phrase: "pet scan", matched: true }], generated: { "lab:adhoc:PET-CT scan": JSON.stringify({ report: "No FDG-avid lesion." }) } });
+    expect(hidden.investigations[0]?.category).toBe("imaging");
+  });
+});

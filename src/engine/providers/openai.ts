@@ -628,7 +628,7 @@ async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): P
     ...def.investigations.flatMap((i) => [...(i.rows ?? []).map((r) => `${r.analyte} ${r.value}${r.unit ? ` ${r.unit}` : ""}`), ...(i.report ? [`${i.name ?? i.id}: ${i.report}`] : [])]),
   ];
   const asked = unique.map((g) =>
-    g.adhoc ? `- ${g.id} (${g.name}): every analyte this test reports, with its unit and reference range (or a short report, for a test reported in words)` : g.report ? `- ${g.id} (${g.name}): the report` : `- ${g.id} (${g.name}): ${g.analytes.map((a) => `${a.analyte}${a.unit ? ` [${a.unit}]` : ""}${a.reference ? ` (ref ${a.reference})` : ""}`).join("; ")}`,
+    g.adhoc ? `- ${g.id} (${g.name}): a test this hospital does — report it fully for this patient: every analyte with its unit and reference range, or, for a scan, biopsy or scope, a report of the actual findings and an impression. Never say it's unavailable or that there are no findings` : g.report ? `- ${g.id} (${g.name}): the report` : `- ${g.id} (${g.name}): ${g.analytes.map((a) => `${a.analyte}${a.unit ? ` [${a.unit}]` : ""}${a.reference ? ` (ref ${a.reference})` : ""}`).join("; ")}`,
   );
   try {
     const raw = (await chatJSON(

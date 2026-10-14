@@ -1242,6 +1242,8 @@ export function pictureTypeFor(id: string, name: string, spec?: MediaSpec): Pict
   const s = `${id} ${name}`.toLowerCase();
   if (/\b(usg|ultrasound|sonograph\w*|echo\w*|doppler|e?fast)\b/.test(s)) return "usg";
   if (/\b(mri|mrcp|mra)\b/.test(s)) return "mri";
+  if (/\b(pet|spect|scintigraph\w*|bone scan|nuclear|angiogra\w*|angio|dexa)\b/.test(s)) return "ct";
+  if (/\b(biops\w*|histopatholog\w*|cytolog\w*|fnac|smear|slide|gram stain)\b/.test(s)) return "slide";
   if (/\b(ct|cect|ncct|hrct|ctpa|cta)\b/.test(s)) return "ct";
   if (/\b(x-?ray|xray|cxr|axr|radiograph\w*|kub)\b/.test(s)) return "xray";
   if (/\bfundus|fundoscop/.test(s)) return "fundus";
@@ -1481,6 +1483,7 @@ function catalogueResult(def: ClinicalCaseDefinition, hidden: HiddenState, id: s
  */
 export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, idIn: string, phrase = "", payload: Record<string, unknown> = {}): { id: string; name: string; analytes: LabRow[]; report: boolean; adhoc?: boolean } | null {
   // A study still waiting for its part, view or contrast to be said isn't done yet.
+  if (adhocTest(def, idIn)) return { id: idIn, name: adhocName(idIn), analytes: [], report: false, adhoc: true };
   const study = settleStudy(def, idIn, phrase, payload);
   if (study.needs.length > 0 || GENERIC_STUDY.has(study.id) || idIn === "blood") return null;
   const id = study.id;
@@ -1524,12 +1527,14 @@ function orderAdhoc(ctx: TurnContext, id: string): TurnEffect[] {
   const generated = generatedResult(ctx.record, id);
   const result: OrderedInvestigation["result"] = generated?.rows?.length || generated?.report ? { rows: generated.rows, report: generated.report } : { report: "Within normal limits." };
   const turnaround = INSTANT_RESULTS ? 0 : 60;
+  // A scan, a biopsy, a scope: a picture the doctor reads, drawn from its report.
+  const category = pictureTypeFor(id, name) ? "imaging" : "lab";
   hidden.invSeq += 1;
-  const inv: OrderedInvestigation = { instanceId: `inv-${hidden.invSeq}`, defId: id, name, category: "lab", orderedAt: hidden.clock, resultAt: hidden.clock + turnaround, cost: 0, delivered: false, result, priority: "unnecessary" };
+  const inv: OrderedInvestigation = { instanceId: `inv-${hidden.invSeq}`, defId: id, name, category, orderedAt: hidden.clock, resultAt: hidden.clock + turnaround, cost: 0, delivered: false, result, priority: "unnecessary" };
   hidden.investigations.push(inv);
   ctx.sent.push(inv);
   ctx.stages.push("investigation");
-  return [{ type: "investigation_ordered", instanceId: inv.instanceId, defId: id, name, category: "lab", turnaroundMin: turnaround, cost: 0 }];
+  return [{ type: "investigation_ordered", instanceId: inv.instanceId, defId: id, name, category, turnaroundMin: turnaround, cost: 0 }];
 }
 
 function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
@@ -1551,6 +1556,8 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
       return [{ type: "message", role: "system", kind: "finding", text: `${last.name} — showing the result again.`, attachmentIds: [last.instanceId] }];
     }
   }
+  // "All resources": a test the catalogue doesn't have is done as named.
+  if (adhocTest(def, requested) && !def.investigations.some((i) => i.id === requested)) return orderAdhoc(ctx, requested);
   // An imaging order: which part, which view, contrast or not — asked when not said.
   const study = settleStudy(def, requested, intent.phrase, payload);
   if (study.needs.length > 0 && !payload.reshow && def.track !== "phone") {
