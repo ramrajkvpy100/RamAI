@@ -204,9 +204,9 @@ export function openingEffects(def: ClinicalCaseDefinition, hidden: HiddenState)
     fx.push({ type: "vitals", readings: def.triageVitals.map((k) => reading(hidden, k)) });
     fx.push({ type: "timeline", label: "Triage vitals recorded", category: "monitor" });
   }
-  for (const beat of def.opening) {
-    fx.push({ type: "message", role: beat.role, kind: beat.kind, text: beat.text, media: beat.media });
-  }
+  def.opening.forEach((beat, i) => {
+    fx.push({ type: "message", role: beat.role, kind: beat.kind, text: beat.text, media: openingMedia(i, beat.media) });
+  });
   if (hidden.monitored) fx.push({ type: "monitoring", on: true, rhythm: monitorRhythm(def) });
   if (hidden.status !== "stable") fx.push({ type: "patient_status", status: hidden.status });
   return fx;
@@ -930,6 +930,27 @@ export function imagingPicture(def: ClinicalCaseDefinition, inv: OrderedInvestig
 function examMedia(id: string, media: MediaAsset | undefined, label: string): MediaAsset | undefined {
   if (!media || media.ai || media.spec?.kind !== "derm" || id === "genital" || id === "breast") return media;
   return { ...media, ai: { ref: `e-${id}`, type: "photo", view: label } };
+}
+
+/** A written case's opening photograph (the nurse's picture at presentation): a real photograph, not a drawing. */
+function openingMedia(index: number, media: MediaAsset | undefined): MediaAsset | undefined {
+  if (!media || media.ai || media.spec?.kind !== "derm") return media;
+  return { ...media, ai: { ref: `o-${index}`, type: "photo", view: media.caption ?? media.spec.site } };
+}
+
+/** What the image model draws (or a real image must show) for a written case's opening photograph. */
+export function openingPicture(def: ClinicalCaseDefinition, ref: string): { type: PictureType; view: string; describe: string } | null {
+  const index = Number(ref.slice(2));
+  const beat = def.opening[index];
+  if (!beat || !openingMedia(index, beat.media)?.ai) return null;
+  const spec = beat.media!.spec as DermSpec;
+  const lesions = spec.lesions.map((l) => `${l.count} ${l.morphology.replace(/-/g, " ")}${l.region ? ` (${l.region})` : ""}`).join(", ");
+  const skinExam = def.exam.find((e) => e.media?.spec?.kind === "derm")?.finding;
+  return {
+    type: "photo",
+    view: beat.media!.caption ?? spec.site,
+    describe: `Close-up clinical photograph of the ${spec.site} of a ${def.patient.age}-year-old ${def.patient.sex.toLowerCase()} with ${SKIN[spec.phototype - 1]} skin (Fitzpatrick ${spec.phototype}), showing the typical appearance of ${def.truth.diagnosis}.${skinExam ? ` What it shows: ${skinExam}` : ""} Lesions: ${lesions}.`,
+  };
 }
 
 const SKIN = ["very fair", "fair", "light brown", "brown", "dark brown", "deeply pigmented"] as const;

@@ -28,7 +28,7 @@ import type { CaseSource, ClinicalProvider, TeachingPack } from "./providers/typ
 import { applyEffects, createInitialState } from "./reducer";
 import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
-import { createHiddenState, examPicture, imagingPicture, isTick, openingEffects, runTurn, type HiddenState } from "./simulator";
+import { createHiddenState, examPicture, imagingPicture, isTick, openingEffects, openingPicture, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
 import type { ActionRecord, Auscultation, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, LearnPack, PatientLang, Specialty, TurnEffect, TurnResponse } from "./types";
 
@@ -246,6 +246,11 @@ export async function pictureFor(token: string, userId: string, ref: string): Pr
   }
   if (ref.startsWith("e-")) {
     const picture = examPicture(def, hidden, ref);
+    return picture && { ...picture, topic };
+  }
+  // The nurse's photograph at presentation: on show from the start.
+  if (ref.startsWith("o-")) {
+    const picture = openingPicture(def, ref);
     return picture && { ...picture, topic };
   }
   const picture = def.pictures?.[ref];

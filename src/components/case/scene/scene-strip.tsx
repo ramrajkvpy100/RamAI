@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { MonitorStrip } from "./bedside-monitor";
 import { callDuration, CallerAvatar, VoiceBars } from "./call-screen";
 import { useScene } from "./context";
-import { sceneFor, tokenNumber } from "./scene";
+import { sceneFor } from "./scene";
 
 const TONE = { normal: "text-fg", unknown: "text-fg", low: "text-warning", high: "text-warning", critical: "text-danger" } as const;
 
@@ -52,10 +52,6 @@ export function SceneStrip({ state, className }: { state: CaseState; className?:
   ];
   return (
     <button type="button" onClick={openPatient} className={cn("flex w-full items-center gap-3 border-b border-line-2 bg-surface px-3 py-2 text-left", className)} aria-label="Open the outpatient card">
-      <span className="shrink-0 rounded-md bg-fg px-2 py-0.5 text-center text-bg">
-        <span className="block text-[8.5px] font-medium tracking-[0.14em] uppercase opacity-70">Token</span>
-        <span className="block font-mono text-[14px] leading-none font-semibold tabular">{tokenNumber(state)}</span>
-      </span>
       <span className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto [scrollbar-width:none]">
         <span className="shrink-0 text-[12.5px] text-fg-2">
           {state.patient.age} {state.patient.sex[0]}

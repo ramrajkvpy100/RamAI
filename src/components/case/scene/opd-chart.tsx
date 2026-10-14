@@ -5,7 +5,6 @@ import { cn } from "@/lib/cn";
 import { clockAt } from "@/lib/format";
 
 import { AttachMonitorButton } from "./bedside-monitor";
-import { tokenNumber } from "./scene";
 
 const ROWS: { k: VitalKey; label: string; unit: string }[] = [
   { k: "bp", label: "BP", unit: "mmHg" },
@@ -19,7 +18,7 @@ const ROWS: { k: VitalKey; label: string; unit: string }[] = [
 
 const TONE = { normal: "text-fg", unknown: "text-fg", low: "text-warning", high: "text-warning", critical: "text-danger" } as const;
 
-/** The OPD card: token, facility and a hand-written-style vitals chart. */
+/** The OPD card: facility and a hand-written-style vitals chart. */
 export function OpdChart({ state, className }: { state: CaseState; className?: string }) {
   return (
     <section aria-label="Outpatient card" className={cn("overflow-hidden rounded-2xl border border-line bg-surface shadow-sm", className)}>
@@ -28,10 +27,6 @@ export function OpdChart({ state, className }: { state: CaseState; className?: s
           <div className="micro text-accent-text">Outpatient card</div>
           <div className="mt-1 truncate text-[13px] text-fg">{levelMeta(state.level, state.country).label}</div>
           <div className="text-[12px] text-fg-3 tabular">Registered {clockAt(state.arrivalMinuteOfDay, 0)}</div>
-        </div>
-        <div className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-fg px-3 py-1.5 text-bg">
-          <span className="text-[9px] font-medium tracking-[0.14em] uppercase opacity-70">Token</span>
-          <span className="font-mono text-[24px] leading-none font-semibold tabular">{tokenNumber(state)}</span>
         </div>
       </div>
       <dl className="px-4 py-1.5">

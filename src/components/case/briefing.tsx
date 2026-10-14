@@ -13,7 +13,6 @@ import { caseLabel, clockAt } from "@/lib/format";
 
 import { LangToggle } from "./lang-toggle";
 import { figureSeed } from "./scene/figures";
-import { tokenNumber } from "./scene/scene";
 
 const RULES: Record<CaseState["track"], string> = {
   opd: "Everything you need is behind your own questions, examinations and orders. Nothing will be suggested.",
@@ -55,16 +54,6 @@ function Visual({ state }: { state: CaseState }) {
         <span className="rounded-full bg-surface p-1 shadow-md ring-1 ring-line">
           <PatientFigure patient={state.patient} status={state.patientStatus} seed={seed} size={76} />
         </span>
-        <div className="inline-flex flex-col items-center rounded-2xl bg-[#0b0f17] px-6 py-3.5 ring-1 ring-black/10">
-          <span className="flex items-center gap-2 text-[10.5px] font-semibold tracking-[0.2em] text-amber-300/80 uppercase">
-            <span className="h-1.5 w-1.5 animate-[blink_1s_steps(2,start)_infinite] rounded-full bg-amber-300" />
-            Now calling
-          </span>
-          <span className="mt-1 font-mono text-[48px] leading-none font-semibold tracking-[0.06em] text-amber-300 tabular [text-shadow:0_0_18px_rgb(252_211_77/0.45)]">
-            {String(tokenNumber(state)).padStart(3, "0")}
-          </span>
-          <span className="mt-1 text-[10.5px] font-medium tracking-[0.18em] text-white/45 uppercase">Token</span>
-        </div>
       </div>
     );
   }

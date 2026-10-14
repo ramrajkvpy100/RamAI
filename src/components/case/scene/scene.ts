@@ -52,7 +52,5 @@ export function alarmingKeys(state: CaseState): Set<VitalKey> {
   return out;
 }
 
-/** A stable, purely cosmetic OPD token number. */
-export const tokenNumber = (state: CaseState) => 11 + ((state.caseNumber * 7 + state.arrivalMinuteOfDay) % 48);
 
 export const monitorSince = (state: CaseState) => state.timeline.find((e) => e.label === "Continuous monitoring started")?.clock;

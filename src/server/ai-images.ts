@@ -112,12 +112,21 @@ Return JSON {"realistic": 1-10 (does it look like a real clinical image of this 
  */
 export async function makePicture(p: PictureBrief): Promise<{ mime: string; base64: string; credit?: Credit }> {
   const started = Date.now();
-  const drawn = await drawPicture(p);
+  const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
+  const kind = KIND[p.type];
+  const drawn = await drawPicture(p).catch((err) => {
+    console.error("[ramai] image model failed:", err instanceof Error ? err.message : err);
+    return null;
+  });
+  // The image model is down or refused: a real photograph from the internet instead of nothing.
+  if (!drawn) {
+    const real = await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", `${kind} ${p.view}`], accept, 25_000);
+    if (real) return real;
+    throw new Error("No picture could be made or found");
+  }
   const review = await reviewPicture(drawn, p).catch(() => null);
   if (!review || review.ok) return drawn;
-  const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   // Most specific first: the checker's own words, then the kind of image and the condition.
-  const kind = KIND[p.type];
   const real = await findRealImage([review.search, p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", `${kind} ${p.view}`], accept, 15_000);
   if (real) return real;
   if (Date.now() - started > 28_000) return drawn;
