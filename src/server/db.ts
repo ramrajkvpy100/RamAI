@@ -252,6 +252,15 @@ CREATE TABLE IF NOT EXISTS payments (
   status TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS payments_user ON payments(user_id, created_at);
+-- Razorpay webhooks already processed (each event id once), with the order or payment they were about.
+CREATE TABLE IF NOT EXISTS payment_events (
+  event_id TEXT PRIMARY KEY,
+  event TEXT NOT NULL,
+  order_id TEXT,
+  payment_id TEXT,
+  received_at INTEGER NOT NULL
+);
 `;
 
 export { remoteDatabase };
@@ -403,7 +412,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 14;
+const SCHEMA_VERSION = 15;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
@@ -439,6 +448,12 @@ async function migrate(b: Backend) {
   if (!paymentColumns.includes("waiver_at")) add.push("ALTER TABLE payments ADD COLUMN waiver_at INTEGER");
   // Pro is charged in the country's currency: rupees, dollars or pounds (amounts in paise, cents or pence).
   if (!paymentColumns.includes("currency")) add.push("ALTER TABLE payments ADD COLUMN currency TEXT NOT NULL DEFAULT 'INR'");
+  // Razorpay: test or live, how it was paid, why an attempt failed, and when it changed.
+  if (!paymentColumns.includes("mode")) add.push("ALTER TABLE payments ADD COLUMN mode TEXT");
+  if (!paymentColumns.includes("method")) add.push("ALTER TABLE payments ADD COLUMN method TEXT");
+  if (!paymentColumns.includes("error")) add.push("ALTER TABLE payments ADD COLUMN error TEXT");
+  if (!paymentColumns.includes("paid_at")) add.push("ALTER TABLE payments ADD COLUMN paid_at INTEGER");
+  if (!paymentColumns.includes("updated_at")) add.push("ALTER TABLE payments ADD COLUMN updated_at INTEGER");
   const archiveColumns = (await b.all<{ name: string }>("PRAGMA table_info(payments_archive)")).map((c) => c.name);
   if (!archiveColumns.includes("currency")) add.push("ALTER TABLE payments_archive ADD COLUMN currency TEXT NOT NULL DEFAULT 'INR'");
   const startColumns = (await b.all<{ name: string }>("PRAGMA table_info(case_starts)")).map((c) => c.name);

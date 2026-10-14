@@ -13,7 +13,7 @@ import type { PreferredSpecialty } from "./specialty";
 export const UNAVAILABLE_MESSAGE = "Clinical engine temporarily unavailable.";
 
 /** Codes whose server message is written for players and safe to show. */
-const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "NOT_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED", "DAILY_DONE", "CODE_INVALID", "LEGACY_ACCOUNT", "SIGNUP_CLOSED", "AUTH_UNAVAILABLE"]);
+const SAFE_CODES = new Set(["BAD_INPUT", "BAD_SESSION", "CASE_CLOSED", "NOT_CLOSED", "LIMIT", "RATE_LIMITED", "NO_CASES", "PRO_REQUIRED", "DAILY_LIMIT", "SIGNUP_REQUIRED", "UNAUTHENTICATED", "INVALID", "EXISTS", "BAD_REQUEST", "PAYMENTS_UNAVAILABLE", "PAYMENT_ERROR", "PAYMENT_UNVERIFIED", "PAYMENT_PENDING", "INTERNATIONAL_UNAVAILABLE", "GUEST", "UNAVAILABLE", "COOLDOWN", "EMAIL_UNAVAILABLE", "LINK_EXPIRED", "VERIFY_REQUIRED", "DAILY_DONE", "CODE_INVALID", "LEGACY_ACCOUNT", "SIGNUP_CLOSED", "AUTH_UNAVAILABLE"]);
 
 export class ClinicalEngineError extends Error {
   constructor(public readonly code: string, message: string, public readonly retryable: boolean) {
@@ -91,8 +91,19 @@ export const resendCode = (email: string) => call<{ ok: true; cooldown: number }
 export const login = (body: { login: string; password: string }) => call<{ user: unknown }>("/api/auth/login", body);
 export const logout = () => call<{ ok: true }>("/api/auth/logout", {});
 export const deleteAccount = (password?: string) => call<{ ok: true }>("/api/me/delete", password ? { password } : {});
-export const checkout = (period: "monthly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: { orderId: string; amount: number; currency: string; keyId: string; name: string; email: string } }>("/api/billing/checkout", { period, startNow });
-export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ ok: true }>("/api/billing/verify", body);
+export interface CheckoutOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+  mode: "test" | "live";
+  description: string;
+  name: string;
+  email: string;
+}
+export const checkout = (period: "monthly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: CheckoutOrder }>("/api/billing/checkout", { period, startNow });
+export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ status: "paid" }>("/api/billing/verify", body);
+export const orderStatus = (orderId: string) => call<{ status: "created" | "paid" | "failed" | "refunded" }>("/api/billing/status", { orderId });
 export const demoUpgrade = () => call<{ ok: true }>("/api/billing/demo-upgrade", {});
 /** Asks the server to write the next patient ahead of time (fire and forget). */
 export const prepareCase = () => call<{ status: string }>("/api/cases/prepare", {});

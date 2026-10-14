@@ -34,9 +34,11 @@ export const PLANS: Record<PlanId, Plan> = {
 
 /**
  * For now, Pro is open to everyone: every level and mode, and unlimited cases
- * for anyone with an account. Turn this off to bring the paid plan back.
+ * for anyone with an account. Set NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE=0 (and
+ * redeploy) to bring the paid plan back — on a preview to test payments, and in
+ * production once Razorpay's live keys are in.
  */
-export const PRO_FOR_EVERYONE = true;
+export const PRO_FOR_EVERYONE = process.env.NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE !== "0";
 
 /** No account needed: the demo, then this many real cases a day. Signing up keeps the progress. */
 export const GUEST_DAILY_CASES = 10;

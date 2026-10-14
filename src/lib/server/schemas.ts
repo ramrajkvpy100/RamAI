@@ -65,7 +65,9 @@ export const CheckoutSchema = z.object({
   /** The buyer asked for Pro to start at once (giving up a statutory cancellation period, where one applies). */
   startNow: z.literal(true, { error: "Please confirm you want Pro to start straight away." }),
 });
-export const VerifySchema = z.object({ orderId: z.string().max(80), paymentId: z.string().max(80), signature: z.string().max(200) });
+const RazorpayId = (prefix: string) => z.string().trim().max(80).regex(new RegExp(`^${prefix}_[A-Za-z0-9]+$`), "Invalid id.");
+export const VerifySchema = z.object({ orderId: RazorpayId("order"), paymentId: RazorpayId("pay"), signature: z.string().trim().regex(/^[a-f0-9]{64}$/, "Invalid signature.") });
+export const OrderStatusSchema = z.object({ orderId: RazorpayId("order") });
 
 export const TurnSchema = z.object({
   token: Token,

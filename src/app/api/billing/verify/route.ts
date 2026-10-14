@@ -5,18 +5,21 @@ import { VerifySchema } from "@/lib/server/schemas";
 
 export const runtime = "nodejs";
 
-/** POST /api/billing/verify — verifies the Razorpay signature and activates Pro. */
+/** POST /api/billing/verify — checks Razorpay's signature and the payment itself, then activates Pro. */
 export async function POST(req: Request) {
-  const blocked = crossSite(req) ?? rateLimited(req, 10);
+  const blocked = crossSite(req) ?? rateLimited(req, 20);
   if (blocked) return blocked;
   const body = await parseBody(req, VerifySchema);
   if (body instanceof Response) return body;
   try {
     const user = await requireUser();
-    await verifyPayment(user, body);
-    return ok({ ok: true });
+    return ok(await verifyPayment(user, body));
   } catch (err) {
-    if (err instanceof BillingError) return apiError(400, "PAYMENT_UNVERIFIED", err.message);
+    if (err instanceof BillingError) {
+      // Razorpay couldn't be reached: the payment may well be fine — the page waits for the webhook.
+      if (err.code === "PROVIDER") return apiError(502, "PAYMENT_PENDING", err.message);
+      return apiError(400, "PAYMENT_UNVERIFIED", err.message);
+    }
     return handleError(err);
   }
 }

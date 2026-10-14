@@ -69,7 +69,7 @@ Set `RAMAI_ENGINE=openai` and `OPENAI_API_KEY` (server-side only). `src/engine/p
 
 - `RAMAI_SESSION_SECRET` is required in production.
 - SQLite suits a single server with a persistent volume (`RAMAI_DB_PATH`). For serverless or multiple instances, port the few tables in `src/server/db.ts` to Postgres — every query lives in `src/server/*`.
-- Payments are one-time Razorpay orders for 30 or 365 days; Pro is activated only after the HMAC signature is verified on the server. Demo billing and demo players are disabled in production.
+- Payments are one-time Razorpay orders for 30 days (official `razorpay` SDK, `src/server/billing.ts`). Prices come from `PRICE_BOOK` on the server. Pro starts only after the checkout signature is verified **and** Razorpay confirms the payment's order, amount and currency; `/api/billing/webhook` (signed with `RAZORPAY_WEBHOOK_SECRET`, each event processed once in `payment_events`) records payments even when the buyer closes the tab, plus failures and refunds. Dollars and pounds wait for `RAZORPAY_INTERNATIONAL=1`. Demo billing and demo players are disabled in production.
 - Rate limiting is per instance; use a shared store at scale.
 
 Clinical simulation for educational purposes. Cases are fictional.

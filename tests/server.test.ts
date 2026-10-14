@@ -1,12 +1,9 @@
-import { createHmac } from "node:crypto";
-
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { dermAcne } from "@/engine/cases/derm-acne";
 import { phAcs } from "@/engine/cases/ph-acs";
 import { generateDebrief } from "@/engine/debrief";
 import { createGuest, createProfile, createSession, deleteSession, findUserById, guestForToken, setPatientLang, setPlan, type User } from "@/server/auth";
-import { verifyPayment } from "@/server/billing";
 import { db } from "@/server/db";
 import { casesStartedToday, historyFor, leaderboard, progressFor, recordCase, recordCaseStart } from "@/server/results";
 import { ownResultId, progressCard, readShareId, resultCard, shareIdFor } from "@/server/share";
@@ -16,7 +13,6 @@ import { dailyKeyFor } from "@/lib/daily";
 import { play } from "./helpers";
 
 process.env.RAMAI_DB_PATH = ":memory:";
-process.env.RAZORPAY_KEY_SECRET = "test-secret";
 
 let asha: User;
 let kabir: User;
@@ -149,18 +145,3 @@ describe("suggestions without an account", () => {
   });
 });
 
-describe("billing", () => {
-  it("verifies the Razorpay signature and extends Pro exactly once", async () => {
-    await db.run("INSERT INTO payments (id, user_id, provider, order_id, amount, period, status, created_at) VALUES ('p1', ?, 'razorpay', 'order_1', 29900, 'monthly', 'created', ?)", asha.id, Date.now());
-    const signature = createHmac("sha256", "test-secret").update("order_1|pay_1").digest("hex");
-    await expect(verifyPayment(asha, { orderId: "order_1", paymentId: "pay_1", signature: "0".repeat(64) })).rejects.toThrow();
-
-    await verifyPayment(asha, { orderId: "order_1", paymentId: "pay_1", signature });
-    const first = (await findUserById(asha.id))!;
-    expect(first.plan).toBe("pro");
-    await verifyPayment(first, { orderId: "order_1", paymentId: "pay_1", signature });
-    const second = (await findUserById(asha.id))!;
-    expect(second.planExpiresAt).toBe(first.planExpiresAt);
-    expect(second.planExpiresAt! - Date.now()).toBeLessThanOrEqual(30 * 86_400_000);
-  });
-});

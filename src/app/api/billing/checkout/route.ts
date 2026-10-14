@@ -5,7 +5,7 @@ import { CheckoutSchema } from "@/lib/server/schemas";
 
 export const runtime = "nodejs";
 
-/** POST /api/billing/checkout — creates a Razorpay order for Pro. */
+/** POST /api/billing/checkout — a Razorpay order for Pro, priced on the server. */
 export async function POST(req: Request) {
   const blocked = crossSite(req) ?? rateLimited(req, 10);
   if (blocked) return blocked;
@@ -18,7 +18,10 @@ export async function POST(req: Request) {
     }
     return ok({ mode: "razorpay", order: await createOrder(user, body.period) });
   } catch (err) {
-    if (err instanceof BillingError) return apiError(502, "PAYMENT_ERROR", "We couldn't start the payment. Please try again.");
+    if (err instanceof BillingError) {
+      const status = err.code === "GUEST" ? 403 : err.code === "INTERNATIONAL_UNAVAILABLE" || err.code === "UNAVAILABLE" ? 503 : 502;
+      return apiError(status, err.code === "PROVIDER" ? "PAYMENT_ERROR" : err.code, err.message);
+    }
     return handleError(err);
   }
 }

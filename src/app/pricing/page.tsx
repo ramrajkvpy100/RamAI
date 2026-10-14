@@ -6,6 +6,7 @@ import { LandingNav } from "@/components/landing/landing";
 import { Pricing } from "@/components/pricing/pricing";
 import { Footer } from "@/components/shell/footer";
 import { countryFromIp } from "@/lib/plans";
+import { billingStatus } from "@/server/billing";
 import { getMe } from "@/server/me";
 
 export const metadata: Metadata = { title: "Pricing" };
@@ -16,7 +17,7 @@ export default async function PricingPage() {
   if (me) {
     return (
       <AppShell me={me} wide>
-        <Pricing initial={me} />
+        <Pricing initial={me} billing={billingStatus()} />
       </AppShell>
     );
   }
@@ -25,7 +26,7 @@ export default async function PricingPage() {
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(60%_60%_at_20%_0%,var(--mesh-1),transparent_70%),radial-gradient(50%_50%_at_85%_10%,var(--mesh-3),transparent_70%)]" />
       <LandingNav />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 pb-16 sm:px-6">
-        <Pricing initial={null} visitorCountry={countryFromIp((await headers()).get("x-vercel-ip-country"))} />
+        <Pricing initial={null} billing={billingStatus()} visitorCountry={countryFromIp((await headers()).get("x-vercel-ip-country"))} />
       </main>
       <Footer />
     </div>
