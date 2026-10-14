@@ -40,7 +40,7 @@ export interface PictureBrief {
   style?: string;
 }
 
-export async function drawPicture(p: PictureBrief): Promise<{ mime: string; base64: string }> {
+export async function drawPicture(p: PictureBrief, timeoutMs = 55_000): Promise<{ mime: string; base64: string }> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("No OpenAI key");
   const prompt = `${p.style ?? STYLE[p.type]}\nView: ${p.view}.\n${p.describe}\nNo text, labels, measurements, arrows, rulers or watermarks in the image (an X-ray may carry a small side marker).`;
@@ -48,7 +48,7 @@ export async function drawPicture(p: PictureBrief): Promise<{ mime: string; base
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({ model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2.5-flare", prompt, n: 1, size: "1024x1024", quality: "medium", output_format: "jpeg", output_compression: 82 }),
-    signal: AbortSignal.timeout(55_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const json = (await res.json().catch(() => ({}))) as { data?: { b64_json?: string }[]; usage?: unknown; error?: { code?: string; message?: string } };
   const base64 = json.data?.[0]?.b64_json;
@@ -113,22 +113,31 @@ Return JSON {"realistic": 1-10 (does it look like a real clinical image of this 
   };
 }
 
+/** What one picture may take, inside the request's 60 seconds. */
+const PICTURE_BUDGET_MS = 54_000;
+
 /**
  * A real picture first: a freely licensed image from the internet (Wikimedia Commons) that the model
  * agrees shows exactly this finding, credited. Only when none can be found is one drawn by the image
  * model — checked the same way, and drawn once more if the first attempt doesn't pass.
  */
-export async function makePicture(p: PictureBrief): Promise<{ mime: string; base64: string; credit?: Credit; checked: boolean }> {
+export async function makePicture(p: PictureBrief, budgetMs = PICTURE_BUDGET_MS): Promise<{ mime: string; base64: string; credit?: Credit; checked: boolean }> {
+  // Everything has to fit in one request (the server stops it at 60 s): each step gets what's left.
+  const deadline = Date.now() + budgetMs;
+  const left = () => deadline - Date.now();
   const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = KIND[p.type];
-  const real = await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`], accept, 18_000);
+  const real = await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`], accept, 10_000);
   if (real) return { ...real, checked: true };
-  const drawn = await drawPicture(p);
-  const review = await reviewPicture(drawn, p).catch(() => null);
+  const drawn = await drawPicture(p, Math.max(15_000, left() - 2_000));
+  // Checked, and drawn again, only while there's time for it: a picture shown beats a better one cut off.
+  if (left() < 8_000) return { ...drawn, checked: false };
+  const review = await Promise.race([reviewPicture(drawn, p).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), Math.max(0, left() - 3_000)))]);
   if (!review || review.ok) return { ...drawn, checked: !!review };
-  const again = await drawPicture({ ...p, describe: `${p.describe}\nAvoid the last attempt's problems: ${review.problems}` }).catch(() => null);
+  if (left() < 30_000) return { ...drawn, checked: false };
+  const again = await drawPicture({ ...p, describe: `${p.describe}\nAvoid the last attempt's problems: ${review.problems}` }, left() - 6_000).catch(() => null);
   if (!again) return { ...drawn, checked: false };
-  const second = await reviewPicture(again, p).catch(() => null);
+  const second = await Promise.race([reviewPicture(again, p).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), Math.max(0, left() - 2_000)))]);
   return second && second.score > review.score ? { ...again, checked: second.ok } : { ...drawn, checked: false };
 }
 

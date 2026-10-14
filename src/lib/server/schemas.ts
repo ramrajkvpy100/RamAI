@@ -21,6 +21,8 @@ export const StartSchema = z.object({
   specialty: z.union([Specialty, z.literal("any")]).optional(),
   track: z.enum(CASE_TRACKS as unknown as [string, ...string[]]).optional(),
   level: z.enum(CARE_LEVELS as unknown as [string, ...string[]]).optional(),
+  /** "All resources": every test and treatment available. */
+  unlimited: z.boolean().optional(),
 });
 
 export const SignupSchema = z.object({

@@ -530,6 +530,8 @@ export interface CaseState {
   lang?: PatientLang;
   /** The guided demo case: on-screen tips walk the player through it. */
   guided?: boolean;
+  /** "All resources": every test and treatment available. */
+  unlimited?: boolean;
   /** Where the case is set: units, money and names on screen follow it. */
   country?: Country;
   /** The daily case's day (IST) — the same patient for everyone that day. */

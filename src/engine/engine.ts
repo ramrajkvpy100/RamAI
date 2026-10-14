@@ -80,7 +80,8 @@ function withTeaching(def: ClinicalCaseDefinition, pack: TeachingPack | undefine
 /** Deterministically rebuilds hidden and visible state from a sealed payload. */
 function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
   const country = payload.c ?? "IN";
-  const def = localizeCase(withTeaching(provider.resolveCase(payload.src), storedTeaching(payload)), country);
+  const local = localizeCase(withTeaching(provider.resolveCase(payload.src), storedTeaching(payload)), country);
+  const def = payload.f ? { ...local, unlimited: true } : local;
   const hidden = createHiddenState(def);
   let state = createInitialState({
     sessionId: payload.sid,
@@ -93,6 +94,7 @@ function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
     arrivalMinuteOfDay: def.arrivalMinuteOfDay,
     specialty: payload.sp,
     guided: def.guided,
+    ...(def.unlimited ? { unlimited: true } : {}),
   });
   state = applyEffects(state, openingEffects(def, hidden));
   for (const record of payload.a) state = applyEffects(state, runTurn(def, hidden, record));
@@ -106,7 +108,29 @@ const speechIn = (country: Country, lang: PatientLang): PatientLang => (country 
 
 /** What the player sees: the patient's language, then the country's units, money and names. */
 function render(state: CaseState, def: ClinicalCaseDefinition, country: Country, lang: PatientLang): CaseState {
-  return withoutSoundParams(presentState(localizeState(state, def.id, speechIn(country, lang)), country));
+  const shown = withoutSoundParams(presentState(localizeState(state, def.id, speechIn(country, lang)), country));
+  return def.unlimited ? { ...shown, messages: shown.messages.map((m) => (isSpeech(m) ? { ...m, text: withEmoji(m.text) } : m)) } : shown;
+}
+
+const isSpeech = (m: { role: string; kind: string }) => (m.role === "patient" || m.role === "attendant") && m.kind === "speech";
+
+/** "All resources" cases: patients add one fitting emoji to what they say. */
+const EMOJI: [RegExp, string][] = [
+  [/\b(worse|not (?:getting )?better|hasn'?t helped|scared|afraid|worried)\b/i, "😟"],
+  [/\b(better|eased|settled|relief|cooler|easier)\b/i, "🙂"],
+  [/\b(fever|hot|chills?|shiver)/i, "🤒"],
+  [/\b(vomit|nause|throw(?:ing)? up)/i, "🤢"],
+  [/\b(cough|cold|sneez)/i, "😷"],
+  [/\b(itch|rash|spots?)\b/i, "😖"],
+  [/\b(pain|hurts?|ache|aching|sore|cramp)/i, "😣"],
+  [/\b(tired|weak|sleepy|exhausted)\b/i, "😴"],
+  [/\b(don'?t know|not sure|no idea)\b/i, "🤷"],
+  [/\b(thank|okay|ok|sure|i'?ll do)/i, "🙏"],
+];
+function withEmoji(text: string): string {
+  if (/\p{Extended_Pictographic}/u.test(text)) return text;
+  const hit = EMOJI.find(([re]) => re.test(text));
+  return hit ? `${text} ${hit[1]}` : text;
 }
 
 /**
@@ -117,8 +141,12 @@ function withoutSoundParams(state: CaseState): CaseState {
   if (!state.messages.some((m) => m.sounds)) return state;
   return { ...state, messages: state.messages.map(({ sounds: _hidden, ...m }) => m) };
 }
-const effectsForPlayer = (effects: TurnEffect[]): TurnEffect[] =>
-  effects.map((e) => (e.type === "message" && e.sounds ? (({ sounds: _hidden, ...m }) => m)(e) : e));
+const effectsForPlayer = (effects: TurnEffect[], unlimited = false): TurnEffect[] =>
+  effects.map((e) => {
+    if (e.type !== "message") return e;
+    const m = e.sounds ? (({ sounds: _hidden, ...rest }) => rest)(e) : e;
+    return unlimited && isSpeech(m) ? { ...m, text: withEmoji(m.text) } : m;
+  });
 
 /** The sounds a stethoscope message plays — rendered to audio on the server, never sent as parameters. */
 export async function stethoscopeSounds(token: string, userId: string, messageId: string): Promise<Auscultation[] | null> {
@@ -159,6 +187,8 @@ export interface StartCaseOptions {
   daily?: string;
   /** A patient already invented for this choice (the server's pool of ready cases). */
   ready?: CaseSource | null;
+  /** "All resources": every test and treatment available, whatever the level. */
+  unlimited?: boolean;
 }
 
 export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession> {
@@ -175,7 +205,7 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
     throw err;
   }
   const country = opts.country ?? "IN";
-  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }), ...(opts.daily && { d: opts.daily }) };
+  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }), ...(opts.daily && { d: opts.daily }), ...(opts.unlimited && !opts.tutorial && { f: 1 as const }) };
   const { def, state } = rebuild(payload, provider);
   return { token: seal(payload), state: render(state, def, country, opts.lang ?? "en") };
 }
@@ -337,7 +367,7 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   return {
     token: seal(payload),
     state: render(next, def, country, lang),
-    effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country)),
+    effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country), def.unlimited),
     debrief,
   };
 }
@@ -362,7 +392,7 @@ export async function advanceRealTime(token: string, userId: string, lang: Patie
   const next = applyEffects(state, effects);
   payload.a.push(record);
   const shown = speechIn(country, lang);
-  return { token: seal(payload), state: render(next, def, country, lang), effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country)) };
+  return { token: seal(payload), state: render(next, def, country, lang), effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country), def.unlimited) };
 }
 
 /* Convenience wrappers — every action is natural language underneath. */

@@ -74,6 +74,7 @@ export async function POST(req: Request) {
       tutorial,
       country: user.country,
       daily,
+      unlimited: body.unlimited,
     }));
     usage.sessionId = session.state.sessionId;
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);

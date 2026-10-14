@@ -60,6 +60,8 @@ export interface CaseChoice {
   specialty?: Specialty | "any";
   track?: CaseTrack;
   level?: CareLevel;
+  /** "All resources": every test and treatment available. */
+  unlimited?: boolean;
 }
 
 export const simulateCase = (choice: CaseChoice) => call<CaseSession>("/api/cases", choice);

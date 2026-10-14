@@ -93,6 +93,11 @@ export function AiPicture({ media, className, large = false, fallback }: { media
       .then((u) => live && setGot(u))
       .catch((err) => {
         if (!live) return;
+        // One quiet retry before asking the doctor: a slow first try is often fine the second time.
+        if (attempt === 0 && !(err instanceof Error && err.message === "off")) {
+          setAttempt(1);
+          return;
+        }
         setFailed(true);
         setOff(err instanceof Error && err.message === "off");
       });

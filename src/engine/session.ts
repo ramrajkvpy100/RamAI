@@ -36,6 +36,8 @@ export interface SessionPayload {
   c?: Country;
   /** The daily case's day (IST), e.g. "2026-10-10". */
   d?: string;
+  /** "All resources": every test and treatment available. */
+  f?: 1;
 }
 
 export class SessionError extends Error {

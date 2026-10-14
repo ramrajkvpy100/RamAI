@@ -50,6 +50,7 @@ export function CasePicker({
   const startingLabel = useStartingMessage(starting);
   const [track, setTrack] = useState<CaseTrack | undefined>();
   const [level, setLevel] = useState<CareLevel | undefined>();
+  const [unlimited, setUnlimited] = useState(false);
   // Starts at the doctor's own specialty; "Any specialty" means every one this time.
   const own = useMe()?.user.specialty;
   const [specialty, setSpecialty] = useState<Specialty | undefined>(own && own !== "mixed" ? own : undefined);
@@ -64,7 +65,7 @@ export function CasePicker({
       footer={
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
-          <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any" })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
+          <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
             {starting ? startingLabel : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
             {/* How far along the new patient is: a bar filling along the bottom of the button. */}
@@ -137,6 +138,21 @@ export function CasePicker({
               );
             })}
           </div>
+        </Group>
+
+        <Group label="Resources">
+          <button
+            type="button"
+            aria-pressed={unlimited}
+            onClick={() => setUnlimited((u) => !u)}
+            className={cn("flex min-h-[56px] items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors", unlimited ? "border-accent-line bg-accent-soft" : "border-line bg-surface hover:bg-surface-2")}
+          >
+            <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[12px]", unlimited ? "border-accent bg-accent text-white" : "border-line")}>{unlimited ? "✓" : ""}</span>
+            <span className="min-w-0">
+              <span className="block text-[13.5px] font-semibold">All resources 🏥</span>
+              <span className="block text-[11.5px] text-fg-2">Order any test, do anything — whatever the level. Patients reply with emojis.</span>
+            </span>
+          </button>
         </Group>
 
         <Group label="Patients and families speak">

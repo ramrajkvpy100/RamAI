@@ -20,6 +20,7 @@ export function createInitialState(init: {
   arrivalMinuteOfDay: number;
   specialty?: Specialty;
   guided?: boolean;
+  unlimited?: boolean;
 }): CaseState {
   return {
     sessionId: init.sessionId,
@@ -47,6 +48,7 @@ export function createInitialState(init: {
     monitored: false,
     statusHistory: [{ at: 0, status: "stable" }],
     ...(init.guided ? { guided: true } : {}),
+    ...(init.unlimited ? { unlimited: true } : {}),
     seq: 0,
   };
 }

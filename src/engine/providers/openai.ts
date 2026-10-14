@@ -165,7 +165,8 @@ Use kind "results" when the doctor asks about the results of tests already sent.
 Read the doctor's words in the context of the conversation — a follow-up is about the order just given: "same again", "another", "double it" is a new order (kind "drug", same targetId, with the payload); "stop it" is kind "action", targetId "measure:stop-drug" (or "measure:stop-fluids" for a drip); a new rate or timing ("in 2 seconds", "faster") for something already given is kind "unknown", and the nurse answers in the room's words — for a bolus that has already gone in, that it has; for a drip still running, that it's been sped up.
 Orders are carried out exactly as given, however unusual, excessive or unsafe — the simulation plays out the consequences. Never refuse, soften or correct an order: map it to the matching id with the dose, route and rate exactly as said, in "payload": {"mode":"given"|"prescribed","route":"IV|IM|PO|SC|SL|NEB|INH|PR|TOP|IN","amount":<number>,"unit":"mg|mcg|g|units|mL|L|mmol","volumeMl":<for fluids>,"overMin":<minutes it is given over, if said>,"frequency"?,"duration"?}. Put in the payload ONLY what the doctor said — never fill in a usual dose, route, rate, frequency or duration: the ward asks for whatever is missing. For imaging, put the part, view and contrast the doctor said in "payload": {"region"?: "chest|abdomen|pelvis|kub|head|neck|knee|…","view"?: "PA|AP|lateral|erect|supine","contrast"?: "plain|contrast"}; an X-ray, CT, ultrasound or MRI with no part named uses targetId "xray", "ct", "usg" or "mri".
 If the nurse has just asked about an order's missing details and the doctor answers them, return that same order (same kind and targetId) with the details in its payload.
-Map to existing ids whenever the meaning matches — the game answers those itself.
+Map to existing ids whenever the meaning matches — the game answers those itself.${def.unlimited ? `
+This hospital has every resource: any test can be done. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
 For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" (or "attendant" if the doctor spoke to the relative), and put the reply in "message", in ${language(country, lang)}.
 Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
 For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient or relative (in ${language(country, lang)}). The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
@@ -627,7 +628,7 @@ async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): P
     ...def.investigations.flatMap((i) => [...(i.rows ?? []).map((r) => `${r.analyte} ${r.value}${r.unit ? ` ${r.unit}` : ""}`), ...(i.report ? [`${i.name ?? i.id}: ${i.report}`] : [])]),
   ];
   const asked = unique.map((g) =>
-    g.report ? `- ${g.id} (${g.name}): the report` : `- ${g.id} (${g.name}): ${g.analytes.map((a) => `${a.analyte}${a.unit ? ` [${a.unit}]` : ""}${a.reference ? ` (ref ${a.reference})` : ""}`).join("; ")}`,
+    g.adhoc ? `- ${g.id} (${g.name}): every analyte this test reports, with its unit and reference range (or a short report, for a test reported in words)` : g.report ? `- ${g.id} (${g.name}): the report` : `- ${g.id} (${g.name}): ${g.analytes.map((a) => `${a.analyte}${a.unit ? ` [${a.unit}]` : ""}${a.reference ? ` (ref ${a.reference})` : ""}`).join("; ")}`,
   );
   try {
     const raw = (await chatJSON(
@@ -657,6 +658,15 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
     for (const g of unique) {
       const r = raw?.results?.find((x) => x.test === g.id);
       if (!r) continue;
+      if (g.adhoc) {
+        const free = (r.rows ?? [])
+          .filter((x) => typeof x.analyte === "string" && (typeof x.value === "string" || typeof x.value === "number"))
+          .slice(0, 12)
+          .map((x) => flagFromRange({ analyte: String(x.analyte).slice(0, 60), value: String(x.value).slice(0, 24), unit: x.unit?.slice(0, 20), reference: x.reference?.slice(0, 40), flag: ["normal", "high", "low", "critical"].includes(String(x.flag)) ? (x.flag as "normal") : "normal" }));
+        const said = typeof r.report === "string" ? r.report.trim().slice(0, 600) : undefined;
+        if (free.length || said) out[`lab:${g.id}`] = JSON.stringify({ ...(free.length ? { rows: free } : {}), ...(said ? { report: said } : {}) });
+        continue;
+      }
       const rows = g.analytes
         .map((a) => {
           const got = r.rows?.find((x) => typeof x.analyte === "string" && x.analyte.toLowerCase().replace(/[^a-z0-9]/g, "") === a.analyte.toLowerCase().replace(/[^a-z0-9]/g, ""));

@@ -1479,16 +1479,16 @@ function catalogueResult(def: ClinicalCaseDefinition, hidden: HiddenState, id: s
  * before the turn runs, consistent with the patient (stored with the action,
  * so the case replays exactly); without it, the normal result stands.
  */
-export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, idIn: string, phrase = "", payload: Record<string, unknown> = {}): { id: string; name: string; analytes: LabRow[]; report: boolean } | null {
+export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, idIn: string, phrase = "", payload: Record<string, unknown> = {}): { id: string; name: string; analytes: LabRow[]; report: boolean; adhoc?: boolean } | null {
   // A study still waiting for its part, view or contrast to be said isn't done yet.
   const study = settleStudy(def, idIn, phrase, payload);
   if (study.needs.length > 0 || GENERIC_STUDY.has(study.id) || idIn === "blood") return null;
   const id = study.id;
   const cat = investigationEntry(id);
   const override = def.investigations.find((i) => i.id === id);
-  if (!cat && !override) return null;
+  if (!cat && !override) return adhocTest(def, id) ? { id, name: adhocName(id), analytes: [], report: false, adhoc: true } : null;
   // Nothing to write for a test that won't be done: on the phone, beyond this facility, or just done.
-  if (def.track === "phone" || !canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel })) return null;
+  if (def.track === "phone" || !(def.unlimited || canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel }))) return null;
   const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
   if (prior && !REPEAT_RE.test(phrase) && (!prior.delivered || hidden.clock - prior.resultAt < RECENT_MIN)) return null;
   const normal = catalogueResult(def, hidden, id);
@@ -1509,6 +1509,27 @@ function generatedResult(record: ActionRecord, id: string): { rows?: LabRow[]; r
   } catch {
     return null;
   }
+}
+
+/** "All resources": a test the catalogue doesn't have, named by the doctor ("adhoc:Anti-CCP antibodies"). */
+const adhocTest = (def: ClinicalCaseDefinition, id: string) => !!def.unlimited && def.track !== "phone" && id.startsWith("adhoc:") && id.length > 7;
+export const adhocName = (id: string) => id.slice(6).trim().slice(0, 60);
+
+/** Sent like any other test; its result is what the lab wrote for this patient (kept on the action). */
+function orderAdhoc(ctx: TurnContext, id: string): TurnEffect[] {
+  const { hidden } = ctx;
+  const name = adhocName(id);
+  const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
+  if (prior && !prior.delivered) return [{ type: "message", role: "system", kind: "status", text: `${prior.name} is already sent — about ${Math.max(1, Math.round(prior.resultAt - hidden.clock))} min.` }];
+  const generated = generatedResult(ctx.record, id);
+  const result: OrderedInvestigation["result"] = generated?.rows?.length || generated?.report ? { rows: generated.rows, report: generated.report } : { report: "Within normal limits." };
+  const turnaround = INSTANT_RESULTS ? 0 : 60;
+  hidden.invSeq += 1;
+  const inv: OrderedInvestigation = { instanceId: `inv-${hidden.invSeq}`, defId: id, name, category: "lab", orderedAt: hidden.clock, resultAt: hidden.clock + turnaround, cost: 0, delivered: false, result, priority: "unnecessary" };
+  hidden.investigations.push(inv);
+  ctx.sent.push(inv);
+  ctx.stages.push("investigation");
+  return [{ type: "investigation_ordered", instanceId: inv.instanceId, defId: id, name, category: "lab", turnaroundMin: turnaround, cost: 0 }];
 }
 
 function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
@@ -1538,7 +1559,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   const id = study.id;
   const override = def.investigations.find((i) => i.id === id);
   const cat = investigationEntry(id);
-  if (!override && !cat) return [];
+  if (!override && !cat) return adhocTest(def, id) ? orderAdhoc(ctx, id) : [];
 
   // "Show me the ECG again" — re-display an existing result rather than repeating the test.
   if (intent.payload?.reshow) {
@@ -1574,7 +1595,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     }
     return [];
   }
-  if (!canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel })) {
+  if (!(def.unlimited || canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel }))) {
     hidden.unavailable.push(id);
     return [{ type: "message", role: "system", kind: "status", text: `${testName} isn't available at this ${facilityName(def)}. Decide clinically, or refer.` }];
   }
