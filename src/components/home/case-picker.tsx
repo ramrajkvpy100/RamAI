@@ -167,6 +167,28 @@ export function CasePicker({
           </div>
         </Group>
 
+        <Group label="Play with someone (optional)">
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              ["invite", "👥", "Invite a friend"],
+              ["find", "🔎", "Find an opponent"],
+              ["computer", "🤖", "Play the computer"],
+            ] as const).map(([id, icon, label]) => (
+              <button
+                key={id}
+                type="button"
+                disabled={starting}
+                onClick={() => onStart({ track, level, specialty: specialty ?? "any", duel: id, ...(unlimited ? { unlimited: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })}
+                className="flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-line bg-surface px-2 py-2 text-center text-[12.5px] font-medium text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-60"
+              >
+                <span className="text-[20px]" aria-hidden>{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11.5px] text-fg-3">Same patient, two doctors — the higher score wins.</p>
+        </Group>
+
         <Group label="Resources">
           <button
             type="button"

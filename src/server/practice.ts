@@ -105,6 +105,7 @@ export async function round(modality: Modality, mode: PracticeMode): Promise<{ i
       options: options.map((o) => o.label),
       answer: options.indexOf(item),
       key: item.key,
+      keys: options.map((o) => o.key),
       credit: row?.credit ? (JSON.parse(row.credit) as Credit) : null,
       source: row ? row.source : "drawn",
     };

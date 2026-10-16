@@ -243,6 +243,12 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
         <div className="panel animate-enter p-4">
           <div className={cn("text-[14px] font-semibold", picked === item.answer ? "text-success" : "text-danger")}>{picked === item.answer ? "Correct" : `It's ${item.options[item.answer]}`}</div>
           <p className="mt-1 text-[14px] leading-6">{item.key}</p>
+          {picked !== item.answer && item.keys?.[picked] && (
+            <div className="mt-3 rounded-xl border border-amber-300/50 bg-amber-50 px-3.5 py-2.5 dark:border-amber-400/30 dark:bg-amber-400/10">
+              <div className="text-[11px] font-bold tracking-[0.08em] text-amber-800 uppercase dark:text-amber-200">Why not {item.options[picked]}?</div>
+              <p className="mt-1 text-[13.5px] leading-6 text-amber-900 dark:text-amber-100">{item.options[picked]} would show {item.keys[picked]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())} — not what this picture shows.</p>
+            </div>
+          )}
           {item.credit && (
             <a href={item.credit.source} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[12px] text-fg-3 underline">
               Image source

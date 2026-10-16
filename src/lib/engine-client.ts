@@ -79,6 +79,8 @@ export interface CaseChoice {
   unlimited?: boolean;
   /** A disease to practise. */
   disease?: string;
+  /** Two-player: "invite", "find", "computer", or a duel id to join. */
+  duel?: string;
 }
 
 export const simulateCase = (choice: CaseChoice) => call<CaseSession>("/api/cases", choice);

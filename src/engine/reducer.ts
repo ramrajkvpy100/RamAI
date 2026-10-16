@@ -21,6 +21,7 @@ export function createInitialState(init: {
   specialty?: Specialty;
   guided?: boolean;
   unlimited?: boolean;
+  duel?: string;
 }): CaseState {
   return {
     sessionId: init.sessionId,
@@ -49,6 +50,7 @@ export function createInitialState(init: {
     statusHistory: [{ at: 0, status: "stable" }],
     ...(init.guided ? { guided: true } : {}),
     ...(init.unlimited ? { unlimited: true } : {}),
+    ...(init.duel ? { duel: init.duel } : {}),
     seq: 0,
   };
 }

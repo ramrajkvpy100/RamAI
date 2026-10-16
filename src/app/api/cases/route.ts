@@ -1,10 +1,12 @@
 import { after } from "next/server";
 
+import type { CaseSource } from "@/engine/providers/types";
 import { withUsage, type UsageScope } from "@/engine/providers/usage";
 import { learnFor, sessionInfo, simulateCase, teachingFor } from "@/engine/engine";
 import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
+import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { takeReady, type PoolChoice } from "@/server/case-pool";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
@@ -58,7 +60,25 @@ export async function POST(req: Request) {
     const specialty = body.specialty === "any" ? undefined : ((body.specialty as Specialty | undefined) ?? own);
     // A patient invented ahead of time for exactly this choice starts at once.
     const choice: PoolChoice = { specialty, track: body.track as CaseTrack | undefined, level: body.level as CareLevel | undefined, easy, country: user.country, lang: user.patientLang };
-    const ready = tutorial || daily || body.disease ? null : await takeReady(user.id, choice).catch(() => null);
+    // Two doctors, one patient: joining plays the other doctor's case; starting one shares yours.
+    let duelId: string | undefined;
+    let shared: CaseSource | null = null;
+    let host: DuelMode | null = null;
+    if (body.duel && !tutorial && !daily) {
+      const me = { id: user.id, name: user.name || user.username || "Doctor" };
+      if (body.duel === "find") {
+        const open = await findOpenDuel(me);
+        if (open) ({ id: duelId, src: shared } = open);
+        else host = "find";
+      } else if (body.duel === "invite" || body.duel === "computer") host = body.duel;
+      else {
+        shared = await joinDuel(body.duel, me);
+        if (!shared) return apiError(409, "BAD_REQUEST", "That game has already been taken — start one of your own.");
+        duelId = body.duel;
+      }
+      if (host) duelId = newDuelId();
+    }
+    const ready = shared ?? (tutorial || daily || body.disease ? null : await takeReady(user.id, choice).catch(() => null));
     const usage: UsageScope = { kind: "case-start" };
     const session = await withUsage(usage, async () => simulateCase({
       ready,
@@ -76,8 +96,10 @@ export async function POST(req: Request) {
       daily,
       unlimited: body.unlimited,
       disease: body.disease,
+      duel: duelId,
     }));
     usage.sessionId = session.state.sessionId;
+    if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);
     // An invented patient: its debrief teaching, pearls and exam questions are written now, in the background, ready for when the case ends.
     if (sessionInfo(session.token).generated) {

@@ -96,6 +96,7 @@ function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
     specialty: payload.sp,
     guided: def.guided,
     ...(def.unlimited ? { unlimited: true } : {}),
+    ...(payload.du ? { duel: payload.du } : {}),
   });
   state = applyEffects(state, openingEffects(def, hidden));
   for (const record of payload.a) state = applyEffects(state, runTurn(def, hidden, record));
@@ -205,6 +206,8 @@ export interface StartCaseOptions {
   unlimited?: boolean;
   /** A disease the doctor chose to practise. */
   disease?: string;
+  /** The duel this case is played in. */
+  duel?: string;
 }
 
 export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession> {
@@ -221,7 +224,7 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
     throw err;
   }
   const country = opts.country ?? "IN";
-  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }), ...(opts.daily && { d: opts.daily }), ...(opts.unlimited && !opts.tutorial && { f: 1 as const }) };
+  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }), ...(opts.daily && { d: opts.daily }), ...(opts.unlimited && !opts.tutorial && { f: 1 as const }), ...(opts.duel && { du: opts.duel }) };
   const { def, state } = rebuild(payload, provider);
   return { token: seal(payload), state: render(state, def, country, opts.lang ?? "en") };
 }
@@ -231,9 +234,9 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
  * `learnKey`: where its pearls and questions are kept — an invented case's
  * with the session; a written case's once per country, for everyone.
  */
-export function sessionInfo(token: string): { sessionId: string; userId: string; daily?: string; generated: boolean; learnKey: string } {
+export function sessionInfo(token: string): { sessionId: string; userId: string; daily?: string; duel?: string; src: CaseSource; generated: boolean; learnKey: string } {
   const p = unseal(token);
-  return { sessionId: p.sid, userId: p.u, daily: p.d, generated: p.src.kind === "generated", learnKey: p.src.kind === "generated" ? p.sid : `library:${p.src.id}:${p.c ?? "IN"}` };
+  return { sessionId: p.sid, userId: p.u, daily: p.d, duel: p.du, src: p.src, generated: p.src.kind === "generated", learnKey: p.src.kind === "generated" ? p.sid : `library:${p.src.id}:${p.c ?? "IN"}` };
 }
 
 /**
@@ -286,11 +289,19 @@ export async function teachingFor(token: string, userId: string): Promise<Teachi
  * What an AI picture should show — only once the case has reached it (the
  * finding examined, the test resulted), so nothing can be seen early.
  */
-export async function pictureFor(token: string, userId: string, ref: string): Promise<(NonNullable<ClinicalCaseDefinition["pictures"]>[string] & { topic: string }) | null> {
+export async function pictureFor(token: string, userId: string, ref: string): Promise<(NonNullable<ClinicalCaseDefinition["pictures"]>[string] & { topic: string; aiOnly?: boolean }) | null> {
   const payload = open(token, userId);
-  const { def, hidden, state } = rebuild(payload, await getProvider());
+  const { def, hidden, state, country } = rebuild(payload, await getProvider());
   // The diagnosis stays on the server: it only helps find a real image when a drawn one isn't good enough.
   const topic = def.truth.diagnosis;
+  // The patient as they walk in: a realistic portrait from what anyone could see — never a hidden finding.
+  if (ref === "portrait") {
+    const p = def.patient;
+    const look = [def.briefing, ...def.opening.filter((o) => o.role === "system" || o.kind === "action").map((o) => o.text)].join(" ").slice(0, 300);
+    const people = country === "IN" ? "Indian" : country === "UK" ? "British" : "American";
+    const who = p.age < 2 ? `${people} baby, held by a parent` : p.age < 13 ? `${p.age}-year-old ${people} ${p.sex === "Female" ? "girl" : "boy"}` : `${p.age}-year-old ${people} ${p.sex === "Female" ? "woman" : "man"}${p.occupation ? `, a ${p.occupation.toLowerCase()}` : ""}`;
+    return { type: "photo", view: "Patient portrait", describe: `A realistic, respectful photograph of a ${who}, waist up, plain warm light-grey background, soft natural light, looking unwell the way this scene describes: ${look} Everyday clothes. Natural skin, no makeup, no text.`, topic: "", aiOnly: true };
+  }
   // Every scan, drawn from its own result; a written case's skin photograph, from its examination.
   if (ref.startsWith("i-")) {
     const inv = hidden.investigations.find((i) => i.delivered && `i-${i.instanceId}` === ref);

@@ -7,6 +7,7 @@ import { CaseTopBar } from "@/components/case/case-top-bar";
 import { Timeline } from "@/components/case/timeline";
 import { ShareSheet } from "@/components/share/share-sheet";
 import { Disclosure } from "@/components/ui/disclosure";
+import { DuelCard } from "@/components/duel/duel-card";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Badge, Label } from "@/components/ui/primitives";
 import type { CaseDebrief, PlayerProgress } from "@/engine/types";
@@ -203,6 +204,7 @@ export function DebriefView({
     <div className="min-h-dvh animate-fade">
       <CaseTopBar state={state} complete />
       <main className="mx-auto w-full max-w-5xl px-4 pt-10 pb-32 sm:px-6 sm:pt-14">
+        {state.duel && <DuelCard id={state.duel} className="mb-6" />}
         {/* Header ------------------------------------------------------- */}
         <section className="animate-rise">
           <Label>Case complete</Label>

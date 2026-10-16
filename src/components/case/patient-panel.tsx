@@ -1,7 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+import { DuelCard } from "@/components/duel/duel-card";
 import { PatientFigure } from "@/components/game/caricature";
+import { fetchPicture } from "@/components/media/ai-picture";
 import { MediaFigure } from "@/components/media/media-figure";
+import { caseSnapshot } from "@/lib/case-store";
 import { Label } from "@/components/ui/primitives";
 import type { CaseState, FactGroup, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
@@ -41,7 +46,9 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
   return (
     <div className={cn("flex flex-col gap-6", className)}>
       <section aria-labelledby="pp-patient" className="flex items-center gap-3.5">
-        <PatientFigure patient={patient} status={state.patientStatus} seed={figureSeed(state)} size={64} {...figureCues(state)} />
+        <PatientPortrait state={state}>
+          <PatientFigure patient={patient} status={state.patientStatus} seed={figureSeed(state)} size={64} {...figureCues(state)} />
+        </PatientPortrait>
         <div className="min-w-0 flex-1">
           <h2 id="pp-patient" className="flex items-baseline gap-2">
             <span className="text-[26px] leading-none font-semibold tracking-[-0.03em] tabular">{patient.age}</span>
@@ -53,6 +60,8 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
           <LangToggle value={state.lang} country={state.country} className="mt-2" />
         </div>
       </section>
+
+      {state.duel && <DuelCard id={state.duel} />}
 
       <ConditionTrend state={state} />
 
@@ -112,6 +121,37 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
         </section>
       )}
     </div>
+  );
+}
+
+/** The patient's realistic portrait, once drawn (kept with the case); the drawn figure until then. Tap to enlarge. */
+function PatientPortrait({ state, children }: { state: CaseState; children: React.ReactNode }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [big, setBig] = useState(false);
+  useEffect(() => {
+    if (state.guided) return;
+    const session = caseSnapshot().session;
+    if (!session) return;
+    let live = true;
+    fetchPicture(`${state.sessionId}:portrait`, session.token, "portrait").then((p) => live && setUrl(p.url)).catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [state.sessionId, state.guided]);
+  if (!url) return <>{children}</>;
+  return (
+    <>
+      <button type="button" onClick={() => setBig(true)} aria-label="See the patient" className="h-16 w-16 shrink-0 overflow-hidden rounded-full ring-2 ring-line">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="The patient" className="h-full w-full object-cover" />
+      </button>
+      {big && (
+        <button type="button" onClick={() => setBig(false)} aria-label="Close" className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="The patient" className="max-h-[80dvh] max-w-full rounded-2xl shadow-2xl" />
+        </button>
+      )}
+    </>
   );
 }
 

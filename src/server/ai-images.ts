@@ -38,6 +38,8 @@ export interface PictureBrief {
   topic?: string;
   /** How the picture should look, when the type's usual style doesn't fit (a blood smear isn't H&E). */
   style?: string;
+  /** Drawn, never searched for: a portrait of an invented person must not be a real one. */
+  aiOnly?: boolean;
 }
 
 export async function drawPicture(p: PictureBrief, timeoutMs = 55_000): Promise<{ mime: string; base64: string }> {
@@ -127,7 +129,7 @@ export async function makePicture(p: PictureBrief, budgetMs = PICTURE_BUDGET_MS)
   const left = () => deadline - Date.now();
   const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = KIND[p.type];
-  const real = await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`], accept, 10_000);
+  const real = p.aiOnly ? null : await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`], accept, 10_000);
   if (real) return { ...real, checked: true };
   const drawn = await drawPicture(p, Math.max(15_000, left() - 2_000));
   // Checked, and drawn again, only while there's time for it: a picture shown beats a better one cut off.

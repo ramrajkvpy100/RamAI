@@ -532,6 +532,8 @@ export interface CaseState {
   guided?: boolean;
   /** "All resources": every test and treatment available. */
   unlimited?: boolean;
+  /** The duel this case is played in (two doctors, one patient). */
+  duel?: string;
   /** Where the case is set: units, money and names on screen follow it. */
   country?: Country;
   /** The daily case's day (IST) — the same patient for everyone that day. */

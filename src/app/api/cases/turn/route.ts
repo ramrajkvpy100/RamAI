@@ -3,6 +3,7 @@ import { sessionInfo, submitDoctorAction } from "@/engine/engine";
 import type { TeachingPack } from "@/engine/providers/types";
 import { getCaseAI } from "@/server/case-ai";
 import { requireUser } from "@/server/auth";
+import { recordDuelScore } from "@/server/duels";
 import { recordCase } from "@/server/results";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { TurnSchema } from "@/lib/server/schemas";
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
     if (res.debrief) {
       const info = sessionInfo(body.token);
       res.rewards = await recordCase(user, info.sessionId, res.debrief, { daily: info.daily, state: res.state });
+      if (info.duel) await recordDuelScore(info.duel, user.id, res.debrief.score.total).catch(() => undefined);
     }
     return ok(res);
   } catch (err) {

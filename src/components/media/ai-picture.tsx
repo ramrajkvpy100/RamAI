@@ -33,7 +33,7 @@ interface Fetched {
 /** Pictures already fetched this visit, by session and reference (each asked for once). */
 const pictures = new Map<string, Promise<Fetched>>();
 
-function fetchPicture(key: string, token: string, ref: string): Promise<Fetched> {
+export function fetchPicture(key: string, token: string, ref: string): Promise<Fetched> {
   let p = pictures.get(key);
   if (!p) {
     p = fetch("/api/cases/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, ref }) }).then(async (res) => {

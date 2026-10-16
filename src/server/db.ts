@@ -241,6 +241,21 @@ CREATE TABLE IF NOT EXISTS case_pool (
 );
 CREATE INDEX IF NOT EXISTS case_pool_user ON case_pool(user_id, pool_key, created_at);
 
+-- Two doctors, one patient: the case is shared, the scores compared.
+CREATE TABLE IF NOT EXISTS duels (
+  id TEXT PRIMARY KEY,
+  src TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  host_id TEXT NOT NULL,
+  host_name TEXT NOT NULL,
+  host_score INTEGER,
+  guest_id TEXT,
+  guest_name TEXT,
+  guest_score INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS duels_open ON duels(mode, guest_id, created_at);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -551,7 +566,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 21;
+const SCHEMA_VERSION = 22;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

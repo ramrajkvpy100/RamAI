@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /** p1…: an invented case's own pictures · i-inv-N: a scan, drawn from its result · e-<exam>: a written case's skin photograph · o-N: its opening photograph. */
-const ImageSchema = z.object({ token: z.string().min(20).max(400_000), ref: z.string().regex(/^(p\d{1,2}|i-inv-\d{1,3}|e-[a-z0-9-]{1,40}|o-\d{1,2})$/) });
+const ImageSchema = z.object({ token: z.string().min(20).max(400_000), ref: z.string().regex(/^(p\d{1,2}|i-inv-\d{1,3}|e-[a-z0-9-]{1,40}|o-\d{1,2}|portrait)$/) });
 /** No case needs more than this many pictures; a ceiling on spending. */
 const MAX_PICTURES = 8;
 

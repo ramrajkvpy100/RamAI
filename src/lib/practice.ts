@@ -157,6 +157,8 @@ export interface DrillItem {
   options: string[];
   answer: number;
   key: string;
+  /** Each option's own classic features, in order — "why not" the wrong pick. */
+  keys?: string[];
   credit: { author: string; license: string; source: string } | null;
   source: "commons" | "ai" | "drawn";
 }
