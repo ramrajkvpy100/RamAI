@@ -125,9 +125,9 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
 }
 
 /** The patient's realistic portrait, once drawn (kept with the case); the drawn figure until then. Tap to enlarge. */
-function PatientPortrait({ state, children }: { state: CaseState; children: React.ReactNode }) {
+/** The patient's portrait, once drawn — fetched once per case and shared by everything that shows it. */
+export function usePortrait(state: CaseState): string | null {
   const [url, setUrl] = useState<string | null>(null);
-  const [big, setBig] = useState(false);
   useEffect(() => {
     if (state.guided) return;
     const session = caseSnapshot().session;
@@ -138,6 +138,12 @@ function PatientPortrait({ state, children }: { state: CaseState; children: Reac
       live = false;
     };
   }, [state.sessionId, state.guided]);
+  return url;
+}
+
+export function PatientPortrait({ state, children }: { state: CaseState; children: React.ReactNode }) {
+  const url = usePortrait(state);
+  const [big, setBig] = useState(false);
   if (!url) return <>{children}</>;
   return (
     <>

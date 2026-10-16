@@ -124,12 +124,12 @@ const speechIn = (country: Country, lang: PatientLang): PatientLang => (country 
 /** What the player sees: the patient's language, then the country's units, money and names. */
 function render(state: CaseState, def: ClinicalCaseDefinition, country: Country, lang: PatientLang): CaseState {
   const shown = withoutSoundParams(presentState(localizeState(state, def.id, speechIn(country, lang)), country));
-  return def.unlimited ? { ...shown, messages: shown.messages.map((m) => (isSpeech(m) ? { ...m, text: withEmoji(m.text) } : m)) } : shown;
+  return def.guided ? shown : { ...shown, messages: shown.messages.map((m) => (isSpeech(m) ? { ...m, text: withEmoji(m.text) } : m)) };
 }
 
 const isSpeech = (m: { role: string; kind: string }) => (m.role === "patient" || m.role === "attendant") && m.kind === "speech";
 
-/** "All resources" cases: patients add one fitting emoji to what they say. */
+/** Patients add one fitting emoji to what they say — often, not always (about six replies in ten). */
 const EMOJI: [RegExp, string][] = [
   [/\b(worse|not (?:getting )?better|hasn'?t helped|scared|afraid|worried)\b/i, "😟"],
   [/\b(better|eased|settled|relief|cooler|easier)\b/i, "🙂"],
@@ -144,6 +144,9 @@ const EMOJI: [RegExp, string][] = [
 ];
 function withEmoji(text: string): string {
   if (/\p{Extended_Pictographic}/u.test(text)) return text;
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+  if (h % 10 >= 6) return text;
   const hit = EMOJI.find(([re]) => re.test(text));
   return hit ? `${text} ${hit[1]}` : text;
 }
@@ -397,7 +400,7 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   return {
     token: seal(payload),
     state: render(next, def, country, lang),
-    effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country), def.unlimited),
+    effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country), !def.guided),
     debrief,
   };
 }
@@ -422,7 +425,7 @@ export async function advanceRealTime(token: string, userId: string, lang: Patie
   const next = applyEffects(state, effects);
   payload.a.push(record);
   const shown = speechIn(country, lang);
-  return { token: seal(payload), state: render(next, def, country, lang), effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country), def.unlimited) };
+  return { token: seal(payload), state: render(next, def, country, lang), effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country), !def.guided) };
 }
 
 /* Convenience wrappers — every action is natural language underneath. */

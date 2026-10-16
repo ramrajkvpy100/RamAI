@@ -199,7 +199,7 @@ export function CasePicker({
             <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[12px]", unlimited ? "border-accent bg-accent text-white" : "border-line")}>{unlimited ? "✓" : ""}</span>
             <span className="min-w-0">
               <span className="block text-[13.5px] font-semibold">All resources 🏥</span>
-              <span className="block text-[11.5px] text-fg-2">Order any test, do anything — whatever the level. Patients reply with emojis.</span>
+              <span className="block text-[11.5px] text-fg-2">Order any test, do anything — whatever the level.</span>
             </span>
           </button>
         </Group>

@@ -12,6 +12,7 @@ import { clockAt } from "@/lib/format";
 import { send } from "@/lib/case-store";
 
 import { useComposer } from "./composer-context";
+import { usePortrait } from "./patient-panel";
 import { HiddenReport, ResultCard } from "./result-card";
 import { StethoscopePlayer } from "./stethoscope-player";
 import { figureSeed, statusAt } from "./scene/figures";
@@ -41,8 +42,30 @@ function toBlocks(messages: EncounterMessage[], arrival: number): Block[] {
 }
 
 /** The speaker's caricature, as they looked at that moment. */
+/** The patient as they came in: their photograph, large, at the top of the encounter. */
+function PatientIntro({ state }: { state: CaseState }) {
+  const url = usePortrait(state);
+  if (!url) return null;
+  const sex = state.patient.sex === "Male" ? "Male" : state.patient.sex === "Female" ? "Female" : "";
+  return (
+    <figure className="mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-line bg-surface shadow-sm animate-enter">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="The patient" className="aspect-[4/5] w-full object-cover" />
+      <figcaption className="px-4 py-3 text-center text-[13px] text-fg-2">
+        <span className="font-semibold text-fg">{state.patient.age} · {sex}</span>
+        {state.patient.occupation ? ` · ${state.patient.occupation}` : ""}
+      </figcaption>
+    </figure>
+  );
+}
+
 function SpeakerFigure({ state, role, at }: { state: CaseState; role: "patient" | "attendant"; at: number }) {
   const status = statusAt(state, at);
+  const portrait = usePortrait(state);
+  if (role === "patient" && portrait) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={portrait} alt="" className="h-[34px] w-[34px] rounded-full object-cover ring-1 ring-line" />;
+  }
   return role === "patient" ? (
     <PatientFigure patient={state.patient} status={status} seed={figureSeed(state)} size={34} className="ring-1 ring-line rounded-full" />
   ) : (
@@ -288,6 +311,7 @@ export function Conversation({
     <div className="relative min-h-0 flex-1">
       <div ref={scroller} className="scroll-area h-full">
         <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Encounter transcript" className="mx-auto flex w-full max-w-[760px] flex-col gap-4 px-4 pt-6 pb-10 sm:px-6">
+          <PatientIntro state={state} />
           {blocks.map((block) => {
             const sep = block.day !== lastDay;
             lastDay = block.day;
