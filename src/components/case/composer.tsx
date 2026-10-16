@@ -185,6 +185,23 @@ export function Composer({
                 {a.label}
               </button>
             ))}
+            <button
+              type="button"
+              disabled={disabled || sending}
+              onClick={() => void onSend("Consult")}
+              className="h-8 shrink-0 rounded-full border border-line px-3 text-[13px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg disabled:opacity-50"
+            >
+              🩺 Consult
+            </button>
+            {/* Stuck? A nudge to the next step — only when asked for, and counted in the debrief. */}
+            <button
+              type="button"
+              disabled={disabled || sending}
+              onClick={() => void onSend("Hint")}
+              className="h-8 shrink-0 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-[13px] font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+            >
+              💡 Hint
+            </button>
           </div>
           <span className="hidden items-center gap-1 text-[11px] text-fg-3 xl:flex">
             <Kbd>↵</Kbd> send <span className="mx-0.5">·</span> <Kbd>⇧</Kbd>

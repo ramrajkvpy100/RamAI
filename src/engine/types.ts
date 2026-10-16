@@ -560,6 +560,10 @@ export type IntentKind =
   | "close"
   /** "Result of the test?" — what's back and what's still pending. */
   | "results"
+  /** The doctor asked for a hint (they're stuck). */
+  | "hint"
+  /** An opinion from another department ("call cardiology"). */
+  | "consult"
   | "unknown";
 
 export interface ResolvedIntent {

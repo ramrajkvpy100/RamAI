@@ -23,6 +23,8 @@ export const StartSchema = z.object({
   level: z.enum(CARE_LEVELS as unknown as [string, ...string[]]).optional(),
   /** "All resources": every test and treatment available. */
   unlimited: z.boolean().optional(),
+  /** A disease to practise. */
+  disease: z.string().trim().min(2).max(80).regex(/^[\p{L}\p{N} ,.'()\/-]+$/u).optional(),
 });
 
 export const SignupSchema = z.object({

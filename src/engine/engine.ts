@@ -203,6 +203,8 @@ export interface StartCaseOptions {
   ready?: CaseSource | null;
   /** "All resources": every test and treatment available, whatever the level. */
   unlimited?: boolean;
+  /** A disease the doctor chose to practise. */
+  disease?: string;
 }
 
 export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession> {

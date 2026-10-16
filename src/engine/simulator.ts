@@ -2229,6 +2229,78 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
   return fx;
 }
 
+/**
+ * A nudge towards the next thing an expert would do — the area, never the answer. Each is counted
+ * and shown in the debrief.
+ */
+function handleHint(ctx: TurnContext): TurnEffect[] {
+  const { def, hidden } = ctx;
+  record(hidden, "hint");
+  const n = hidden.actions.hint!.length;
+  const history = def.history.find((h) => h.importance === "essential" && hidden.history[h.id] === undefined);
+  const exam = def.exam.find((e) => e.importance === "essential" && hidden.exams[e.id] === undefined);
+  const test = def.investigations.find((i) => i.priority === "essential" && !hidden.investigations.some((x) => x.defId === i.id));
+  const treated = def.rubric.idealTreatment.every((step) => step.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
+  const text = history
+    ? `Ask more about the history — ${history.label.toLowerCase()} matters here.`
+    : exam
+      ? `Examine further — look at ${exam.label.toLowerCase()}.`
+      : test
+        ? `An investigation would help now: consider ${(test.short ?? test.name ?? test.id).toString()}.`
+        : !hidden.diagnosis
+          ? "You have enough to commit: record a working diagnosis and your differentials."
+          : !treated
+            ? "Think about treatment — what does this patient need right now?"
+            : "You're on track: reassess the patient, then plan follow-up and close the case.";
+  return [{ type: "message", role: "system", kind: "status", text: `💡 Hint ${n}: ${text}` }];
+}
+
+const CONSULT_DEPARTMENTS = ["Internal Medicine", "General Surgery", "Cardiology", "Neurology", "Paediatrics", "Obstetrics & Gynaecology", "Orthopaedics", "Pulmonology", "Nephrology", "Anaesthesia & ICU"];
+
+/** Which departments this case belongs to — whose opinion is worth having. */
+function relevantDepartments(def: ClinicalCaseDefinition): string[] {
+  const map: Partial<Record<string, string[]>> = {
+    Medicine: ["Internal Medicine"], Surgery: ["General Surgery"], Pediatrics: ["Paediatrics"], OBGYN: ["Obstetrics & Gynaecology"], Cardiology: ["Cardiology", "Internal Medicine"],
+    Neurology: ["Neurology", "Internal Medicine"], Respiratory: ["Pulmonology", "Internal Medicine"], Gastroenterology: ["Gastroenterology", "Internal Medicine"], Nephrology: ["Nephrology", "Internal Medicine"],
+    Endocrinology: ["Endocrinology", "Internal Medicine"], Dermatology: ["Dermatology"], Psychiatry: ["Psychiatry"], ENT: ["ENT"], Ophthalmology: ["Ophthalmology"], Orthopedics: ["Orthopaedics"],
+    Urology: ["Urology", "General Surgery"], "Infectious Disease": ["Infectious Disease", "Internal Medicine"], Emergency: ["Internal Medicine", "Anaesthesia & ICU"],
+  };
+  const named = def.therapeutics.filter((r) => r.kind === "referral").map((r) => r.label);
+  return [...(map[def.specialty] ?? []), ...CONSULT_DEPARTMENTS.filter((d) => named.some((n) => n.toLowerCase().includes(d.split(" ")[0]!.toLowerCase().slice(0, 5))))];
+}
+
+/**
+ * Another department's opinion: they see the patient and say what they'd look at and do next —
+ * their view, not the answer. A department with nothing to add says so.
+ */
+function handleConsult(ctx: TurnContext, department: string | undefined): TurnEffect[] {
+  const { def, hidden } = ctx;
+  if (!department) {
+    return [{ type: "message", role: "nurse", kind: "speech", text: "Which department should I call, doctor?", replies: CONSULT_DEPARTMENTS.map((d) => ({ text: `${d} consult`, send: true })) }];
+  }
+  record(hidden, `consult:${department}`);
+  const minutes = def.track === "emergency" ? 15 : 30;
+  const fx: TurnEffect[] = [...handleWait(ctx, { kind: "wait", phrase: "", matched: true, payload: { minutes, silent: true } })];
+  fx.push({ type: "timeline", label: `${department} consult`, category: "treatment" });
+  const relevant = relevantDepartments(def).includes(department);
+  if (!relevant) {
+    fx.push({ type: "message", role: "system", kind: "finding", text: `${department} — seen the patient. No active ${department.toLowerCase()} issue at present; continue primary management and call again if things change.` });
+    return fx;
+  }
+  const signs = def.exam.filter((e) => e.abnormal && e.importance !== "minor").slice(0, 2).map((e) => e.label.toLowerCase());
+  const tests = def.investigations.filter((i) => i.priority === "essential" && !hidden.investigations.some((x) => x.defId === i.id)).slice(0, 3).map((i) => (i.short ?? i.name ?? i.id).toString());
+  const treated = def.rubric.idealTreatment.every((step) => step.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
+  const lines = [
+    `${department} — seen the patient.`,
+    signs.length ? `• Agree the key findings are in the ${signs.join(" and ")}.` : "• Findings reviewed.",
+    tests.length ? `• Suggest: ${tests.join(", ")}.` : "• Work-up so far is adequate.",
+    treated ? "• Agree with the management so far; reassess and monitor." : "• Needs definitive management now — please start treatment for your working diagnosis.",
+    "• Happy to review again.",
+  ];
+  fx.push({ type: "message", role: "system", kind: "finding", text: lines.join("\n") });
+  return fx;
+}
+
 function handleWait(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   let minutes = typeof intent.payload?.minutes === "number" ? intent.payload.minutes : 15;
@@ -2355,6 +2427,12 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
         ctx.stages.push("diagnosis");
         break;
       }
+      case "hint":
+        fx.push(...handleHint(ctx));
+        break;
+      case "consult":
+        fx.push(...handleConsult(ctx, intent.targetId));
+        break;
       case "close":
         hidden.closed = true;
         hidden.closedAt = hidden.clock;

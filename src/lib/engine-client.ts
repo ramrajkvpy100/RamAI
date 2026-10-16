@@ -77,6 +77,8 @@ export interface CaseChoice {
   level?: CareLevel;
   /** "All resources": every test and treatment available. */
   unlimited?: boolean;
+  /** A disease to practise. */
+  disease?: string;
 }
 
 export const simulateCase = (choice: CaseChoice) => call<CaseSession>("/api/cases", choice);

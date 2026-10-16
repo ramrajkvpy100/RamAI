@@ -544,7 +544,31 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
 }
 
 /** Resolves a full player message into an ordered list of intents. */
+const DEPARTMENTS: [RegExp, string][] = [
+  [/cardio/, "Cardiology"], [/neuro\s*surg/, "Neurosurgery"], [/neuro/, "Neurology"], [/ortho/, "Orthopaedics"], [/gyn|obs|obgyn|ob\/gyn/, "Obstetrics & Gynaecology"],
+  [/paed|pedia|ped\b/, "Paediatrics"], [/derm|skin/, "Dermatology"], [/\bent\b|otolaryn/, "ENT"], [/ophthal|eye/, "Ophthalmology"], [/psych/, "Psychiatry"],
+  [/nephro|renal|kidney/, "Nephrology"], [/gastro|\bgi\b|hepato/, "Gastroenterology"], [/pulmo|chest|respir/, "Pulmonology"], [/uro/, "Urology"],
+  [/anaesth|anesth|icu|intensiv|critical care/, "Anaesthesia & ICU"], [/endo(crin)?/, "Endocrinology"], [/surg/, "General Surgery"], [/medicine|physician/, "Internal Medicine"],
+  [/infectious|\bid\b/, "Infectious Disease"], [/haemat|hemat/, "Haematology"], [/onco/, "Oncology"],
+];
+
+/** The department asked for a consult ("" when none named yet), or null when it isn't a consult. */
+export function consultDepartment(raw: string): string | null {
+  const t = raw.toLowerCase().trim();
+  if (/^(?:get |call |ask for )?(?:a |an )?(?:consult(?:ation)?|opinion|specialist)(?: please)?$/.test(t)) return "";
+  const hit = DEPARTMENTS.find(([re]) => re.test(t));
+  if (!hit) return null;
+  // "cardiology consult", "opinion from surgery", "call ortho", "call the paediatrician".
+  if (/\b(consult(?:ation)?|opinion|review)\b/.test(t) || /^(?:please\s+)?(?:call|page|get)\s+(?:the\s+|a\s+|an\s+)?\S+\s*(?:team|doctor|resident|registrar|specialist|on call)?\s*$/.test(t)) return hit[1];
+  return null;
+}
+
 export function resolveIntents(raw: string, ctx: IntentContext): ResolvedIntent[] {
+  // "Hint", "give me a hint", "I'm stuck": a nudge, only when asked for.
+  if (/^\s*(?:please\s+)?(?:give me |show me |i need |any )?(?:a |another )?(?:hint|clue)s?\b|\bi'?m stuck\b|\bwhat (?:should|do) i do next\b/i.test(raw)) return [{ kind: "hint", phrase: raw, matched: true }];
+  // "Call cardiology", "surgery consult", "ortho opinion": another department's view.
+  const consult = consultDepartment(raw);
+  if (consult !== null) return [{ kind: "consult", targetId: consult || undefined, phrase: raw, matched: true }];
   const clauses = splitClauses(raw);
   const out: ResolvedIntent[] = [];
   for (const clause of clauses) out.push(...resolveClause(clause, ctx));

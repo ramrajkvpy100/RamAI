@@ -24,6 +24,8 @@ export interface StartOptions {
   exclude?: readonly string[];
   /** Where the player practises: who the patients are, the units, the money. */
   country?: Country;
+  /** A disease the doctor chose to practise ("Dengue fever"). */
+  disease?: string;
 }
 
 export interface InterpretContext {

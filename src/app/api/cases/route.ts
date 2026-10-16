@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     const specialty = body.specialty === "any" ? undefined : ((body.specialty as Specialty | undefined) ?? own);
     // A patient invented ahead of time for exactly this choice starts at once.
     const choice: PoolChoice = { specialty, track: body.track as CaseTrack | undefined, level: body.level as CareLevel | undefined, easy, country: user.country, lang: user.patientLang };
-    const ready = tutorial || daily ? null : await takeReady(user.id, choice).catch(() => null);
+    const ready = tutorial || daily || body.disease ? null : await takeReady(user.id, choice).catch(() => null);
     const usage: UsageScope = { kind: "case-start" };
     const session = await withUsage(usage, async () => simulateCase({
       ready,
@@ -75,6 +75,7 @@ export async function POST(req: Request) {
       country: user.country,
       daily,
       unlimited: body.unlimited,
+      disease: body.disease,
     }));
     usage.sessionId = session.state.sessionId;
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);

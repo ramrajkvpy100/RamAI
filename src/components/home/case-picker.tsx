@@ -17,6 +17,9 @@ import { useMe } from "@/lib/me-store";
 import { useStartingMessage } from "@/lib/use-starting-message";
 import type { Plan } from "@/lib/plans";
 
+/** Conditions doctors see every week — one tap to practise. */
+const COMMON_DISEASES = ["Dengue fever", "Typhoid", "Malaria", "Community-acquired pneumonia", "Acute gastroenteritis", "Urinary tract infection", "Type 2 diabetes", "Hypertension", "Asthma exacerbation", "COPD exacerbation", "Acute coronary syndrome", "Heart failure", "Stroke", "Snakebite", "Organophosphate poisoning", "Appendicitis", "Tuberculosis", "Anaemia", "Hypothyroidism", "Pre-eclampsia"];
+
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <fieldset className="flex flex-col gap-2.5">
@@ -51,6 +54,7 @@ export function CasePicker({
   const [track, setTrack] = useState<CaseTrack | undefined>();
   const [level, setLevel] = useState<CareLevel | undefined>();
   const [unlimited, setUnlimited] = useState(false);
+  const [disease, setDisease] = useState("");
   // Starts at the doctor's own specialty; "Any specialty" means every one this time.
   const own = useMe()?.user.specialty;
   const [specialty, setSpecialty] = useState<Specialty | undefined>(own && own !== "mixed" ? own : undefined);
@@ -65,7 +69,7 @@ export function CasePicker({
       footer={
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
-          <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
+          <button type="button" onClick={() => onStart({ track, level, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
             {starting ? startingLabel : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
             {/* How far along the new patient is: a bar filling along the bottom of the button. */}
@@ -137,6 +141,29 @@ export function CasePicker({
                 </button>
               );
             })}
+          </div>
+        </Group>
+
+        <Group label="Practise a disease (optional)">
+          <input
+            value={disease}
+            onChange={(e) => setDisease(e.target.value.slice(0, 80))}
+            placeholder="Any — or type one, e.g. Dengue fever"
+            className="h-11 w-full rounded-xl border border-line bg-surface px-3.5 text-[14px] outline-none focus:border-accent-line"
+            aria-label="Disease to practise"
+          />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {COMMON_DISEASES.map((d) => (
+              <button
+                key={d}
+                type="button"
+                aria-pressed={disease === d}
+                onClick={() => setDisease(disease === d ? "" : d)}
+                className={cn("rounded-full border px-3 py-1 text-[12.5px] transition-colors", disease === d ? "border-accent-line bg-accent-soft text-fg" : "border-line bg-surface text-fg-2 hover:bg-surface-2")}
+              >
+                {d}
+              </button>
+            ))}
           </div>
         </Group>
 

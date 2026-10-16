@@ -95,14 +95,14 @@ describe("OpenAI in the simulation — the model words it, the backend decides i
 
   it("words the rules can't place get the model's answer, in the demo too — kept, never asked twice", async () => {
     const reply = "[ai] The anaesthetist is in theatre, doctor.";
-    const calls = fakeOpenAI({ understood: { type: "patient_response", speaker: "nurse", message: reply, intents: [{ kind: "unknown", phrase: "Call the anaesthetist" }] } });
+    const calls = fakeOpenAI({ understood: { type: "patient_response", speaker: "nurse", message: reply, intents: [{ kind: "unknown", phrase: "Call the hospital chaplain" }] } });
     const start = await simulateCase({ userId: "ai-5", caseNumber: 1, daily: DAY });
-    const turn = await submitDoctorAction(start.token, "Call the anaesthetist", "ai-5");
+    const turn = await submitDoctorAction(start.token, "Call the hospital chaplain", "ai-5");
     expect(turn.state.messages.at(-1)).toMatchObject({ kind: "speech", text: reply });
     expect(calls).toHaveLength(1);
 
     const demo = await simulateCase({ userId: "ai-6", caseNumber: 1, tutorial: true });
-    const said = await submitDoctorAction(demo.token, "Call the anaesthetist", "ai-6");
+    const said = await submitDoctorAction(demo.token, "Call the hospital chaplain", "ai-6");
     expect(said.state.messages.at(-1)).toMatchObject({ role: "nurse", kind: "speech", text: reply });
     expect(calls).toHaveLength(2);
     const again = await resumeCase(said.token, "ai-6");
@@ -122,7 +122,7 @@ describe("OpenAI in the simulation — the model words it, the backend decides i
   it("if the model can't be reached, someone in the room still answers — never 'Instruction not recognised'", async () => {
     fakeOpenAI({ fail: true });
     const start = await simulateCase({ userId: "ai-8", caseNumber: 1, tutorial: true });
-    const turn = await submitDoctorAction(start.token, "Call the anaesthetist", "ai-8");
+    const turn = await submitDoctorAction(start.token, "Call the hospital chaplain", "ai-8");
     expect(turn.state.messages.at(-1)).toMatchObject({ role: "nurse", kind: "speech" });
     expect(turn.state.messages.some((m) => /not recognised/i.test(m.text))).toBe(false);
   });
