@@ -28,7 +28,7 @@ function FlagGlyph({ flag }: { flag: Flag }) {
 const opened = new Set<string>();
 
 /** A picture's report waits until the doctor asks for it: read the image yourself first. */
-function HiddenReport({ id, report }: { id: string; report: string }) {
+export function HiddenReport({ id, report, label = "Show report" }: { id: string; report: string; label?: string }) {
   const [open, setOpen] = useState(() => opened.has(id));
   if (open) return <p className="px-4 pb-3.5 text-ui leading-relaxed text-fg-2">{report}</p>;
   return (
@@ -41,7 +41,7 @@ function HiddenReport({ id, report }: { id: string; report: string }) {
         }}
         className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-2 text-[12.5px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
       >
-        <Icon name="file" size={13} /> Show report
+        <Icon name="file" size={13} /> {label}
       </button>
     </div>
   );

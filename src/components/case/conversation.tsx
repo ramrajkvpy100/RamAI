@@ -12,7 +12,7 @@ import { clockAt } from "@/lib/format";
 import { send } from "@/lib/case-store";
 
 import { useComposer } from "./composer-context";
-import { ResultCard } from "./result-card";
+import { HiddenReport, ResultCard } from "./result-card";
 import { StethoscopePlayer } from "./stethoscope-player";
 import { figureSeed, statusAt } from "./scene/figures";
 
@@ -110,9 +110,11 @@ function NurseLine({ m, isNew }: { m: EncounterMessage; isNew: boolean }) {
 
 function Finding({ m, state, isNew, highlightIds }: { m: EncounterMessage; state: CaseState; isNew: boolean; highlightIds: Set<string> }) {
   const results = (m.attachmentIds ?? []).map((id) => state.investigations.find((i) => i.id === id)).filter((x): x is NonNullable<typeof x> => !!x);
-  const [head, ...rest] = m.text.split(" — ");
+  // What changed after a treatment ("10 min after the …:") is an observation, however it's worded.
+  const afterTreatment = /^\S+(?: \S+)? after the /.test(m.text);
+  const [head, ...rest] = afterTreatment ? [m.text] : m.text.split(" — ");
   const isExam = rest.length > 0 && !results.length;
-  const isObservation = !results.length && !isExam && /\s·\s|mmHg|\/min|mg\/dL|mmol\/L|°F|°C|%/.test(m.text) && m.text.length < 160;
+  const isObservation = !results.length && !isExam && (afterTreatment || (/\s·\s|mmHg|\/min|mg\/dL|mmol\/L|°F|°C|%/.test(m.text) && m.text.length < 160));
 
   if (results.length > 0) {
     return (
@@ -139,12 +141,14 @@ function Finding({ m, state, isNew, highlightIds }: { m: EncounterMessage; state
         <span className="font-medium">{label}</span>
         {isExam && <span className="truncate text-fg">· {head}</span>}
       </div>
-      <p className={cn("px-3.5 py-2.5 text-[14.5px] leading-6", isObservation && "font-medium tabular")}>{isExam ? rest.join(" — ") : m.text}</p>
+      {/* With a picture, the doctor looks first: the written finding waits behind a button. */}
+      {!m.media && <p className={cn("px-3.5 py-2.5 text-[14.5px] leading-7 whitespace-pre-line", isObservation && "font-medium tabular")}>{isExam ? rest.join(" — ") : m.text}</p>}
       {m.media && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pt-3 pb-3">
           <MediaFigure media={m.media} viewerKey={m.id} title={isExam ? head : label} />
         </div>
       )}
+      {m.media && <HiddenReport id={m.id} report={isExam ? rest.join(" — ") : m.text} label="Show findings" />}
       {m.stethoscope && m.stethoscope.length > 0 && <StethoscopePlayer sessionId={state.sessionId} messageId={m.id} areas={m.stethoscope} />}
     </div>
   );

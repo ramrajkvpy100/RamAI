@@ -332,9 +332,16 @@ function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEff
     const meanwhile = other.length || (moving && !mineCourse)
       ? ` Meanwhile${other.length ? ` ${other.map(fmt).join(", ")}` : ""}${moving && !mineCourse ? `${other.length ? " —" : ""} ${he} looks ${better ? "better" : "worse"}` : ""}.`
       : "";
+    // One change to a line: easy to read at a glance.
+    const lines = [
+      ...own.map((k) => `• ${capitalise(fmt(k))}`),
+      ...(course ? [course.trim()] : []),
+      ...(says ? [says.trim()] : []),
+      ...(meanwhile ? [meanwhile.trim()] : []),
+    ];
     const text = own.length || course || says
-      ? `${span} after the ${w.label}:${own.length ? ` ${own.map(fmt).join(", ")}.` : ""}${course}${says}${meanwhile}`
-      : `${span} after the ${w.label} — no change from it so far.${meanwhile}`;
+      ? `${capitalise(span)} after the ${w.label}:\n${lines.join("\n")}`
+      : `${capitalise(span)} after the ${w.label}: no change from it so far.${meanwhile ? `\n${meanwhile.trim()}` : ""}`;
     if (changed.length) {
       for (const k of changed) if (!hidden.measured.includes(k)) hidden.measured.push(k);
       fx.push({ type: "vitals", readings: changed.map((k) => reading(hidden, k)) });
@@ -1794,7 +1801,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const k = kineticsFor(drug, route);
     const full = Math.max(k.peak, overMinOf(p) ?? 0);
     const rate = drug.fluid && overMin && !rateMlH ? ` over ${describeSpan(overMin)}` : "";
-    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. ${k.onset <= minutes ? "Starting to act" : `Starts to act in about ${describeSpan(k.onset)}`}, full effect by about ${describeSpan(full)} — what changes will be reported.` });
+    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. Full effect by about ${describeSpan(full)} — here's how things are then.` });
   } else {
     fx.push({ type: "message", role: "system", kind: "action", text: `Prescribed — ${prescriptionLine({ generic: drug.generic, dose, route, frequency, duration })}` });
   }
@@ -1871,7 +1878,12 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       authored: authored.length && !def.guided ? { keys: authored, from: hidden.clock + Math.min(k.onset, Math.max(1, overMin ?? 0, k.peak)) } : undefined,
       at: startedAt, checks, keys: [...acts, ...authored, ...lungs],
     });
-    if (startedAt + peak > hidden.clock) fx.push({ type: "watching", label: drug.generic, until: startedAt + peak });
+    // No waiting on it: the case moves on to its full effect at once, and what changed is reported now.
+    const until = startedAt + peak;
+    // (A long drip is left running, so it can still be stopped part-way.)
+    if (until > hidden.clock && until - startedAt <= 60 && !def.guided && def.track !== "phone") {
+      fx.push(...handleWait(ctx, { kind: "wait", phrase: "", matched: true, payload: { minutes: Math.min(180, until - hidden.clock) } }));
+    } else if (until > hidden.clock) fx.push({ type: "watching", label: drug.generic, until });
   }
   // A course prescribed: taken as if its time is up — and the patient says, in their own words, what it did.
   if (prescribed && !def.guided && def.track !== "phone") fx.push(...afterCourse(def, hidden, drug, duration, statusBefore));

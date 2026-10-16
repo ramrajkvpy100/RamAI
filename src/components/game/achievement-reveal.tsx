@@ -12,7 +12,7 @@ import { playSfx } from "@/lib/sfx";
 /** What is revealed: a badge, or a new rank. */
 export type Prize = { kind: "badge"; id: string; label: string; description: string } | { kind: "rank"; label: string; tier: number };
 
-const BURST = ["#fde047", "#f472b6", "#60a5fa", "#a78bfa", "#34d399", "#fb923c"];
+const BURST = ["#93c5fd", "#c4b5fd", "#f9a8d4", "#fcd34d", "#86efac", "#fdba74"];
 
 /** A line to share an achievement with, and where it points. */
 export function shareText(prize: Prize): string {
@@ -31,12 +31,12 @@ export function SharePrize({ prize, open, onClose }: { prize: Prize; open: boole
 function PrizeArt({ prize }: { prize: Prize }) {
   return prize.kind === "rank" ? (
     <span className="relative">
-      <DoctorFigure tier={prize.tier} size={150} className="rounded-full ring-4 ring-amber-300/80" />
+      <DoctorFigure tier={prize.tier} size={150} className="rounded-full ring-4 ring-sky-200" />
       <RankBadge tier={prize.tier} size={44} className="absolute -right-2 -bottom-1" />
     </span>
   ) : (
-    <span className="flex h-36 w-36 items-center justify-center rounded-full bg-[conic-gradient(from_200deg,#fde047,#f472b6,#a78bfa,#60a5fa,#34d399,#fde047)] p-1.5 shadow-[0_0_70px_rgb(253_224_71/0.6)]">
-      <span className="flex h-full w-full items-center justify-center rounded-full bg-[#1e1b4b] text-amber-300">
+    <span className="flex h-36 w-36 items-center justify-center rounded-full bg-[conic-gradient(from_200deg,#fde047,#f472b6,#a78bfa,#60a5fa,#34d399,#fde047)] p-1.5 shadow-[0_12px_50px_rgb(147_197_253/0.55)]">
+      <span className="flex h-full w-full items-center justify-center rounded-full bg-white text-amber-500">
         <Icon name="award" size={66} />
       </span>
     </span>
@@ -92,19 +92,23 @@ export function AchievementReveal({ prizes, storageKey, onDone }: { prizes: Priz
       role="dialog"
       aria-modal="true"
       aria-label={`${prize.kind === "rank" ? "Promoted" : "Badge unlocked"}: ${prize.label}`}
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,#5b21b6_0%,#1e1b4b_45%,#05030f_100%)] px-4"
+      className="fixed top-0 left-0 z-[100] flex h-[100dvh] w-screen max-w-[100vw] flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_40%,#ffffff_0%,#eef4ff_35%,#f3ecff_65%,#fff1ea_100%)] px-4"
       style={{ animation: "fade 220ms ease both" }}
       onKeyDown={(e) => e.key === "Escape" && close()}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-[42%] left-1/2 h-[180vmax] w-[180vmax] -translate-x-1/2 -translate-y-1/2 opacity-35"
-        style={{ background: "repeating-conic-gradient(from 0deg, rgb(253 224 71 / 0.55) 0deg 8deg, transparent 8deg 22deg)", animation: "mb-rays 16s linear infinite", maskImage: "radial-gradient(circle, black 0%, transparent 60%)" }}
-      />
-      {prizes.length > 1 && <div className="absolute top-6 text-[13px] font-semibold text-white/60 tabular">{`${index + 1} of ${prizes.length}`}</div>}
+        className="pointer-events-none absolute top-[42%] left-1/2 h-0 w-0"
+      >
+        <div
+          className="absolute h-[180vmax] w-[180vmax] opacity-50"
+          style={{ left: "-90vmax", top: "-90vmax", background: "repeating-conic-gradient(from 0deg, rgb(147 197 253 / 0.35) 0deg 8deg, transparent 8deg 22deg)", animation: "mb-rays 24s linear infinite", maskImage: "radial-gradient(circle, black 0%, transparent 55%)" }}
+        />
+      </div>
+      {prizes.length > 1 && <div className="absolute top-6 text-[13px] font-semibold text-slate-500 tabular">{`${index + 1} of ${prizes.length}`}</div>}
 
-      <div key={index} className="relative flex flex-col items-center text-center">
-        <span aria-hidden className="absolute top-16 h-40 w-40 rounded-full bg-amber-200" style={{ animation: "mb-burst 750ms ease-out both" }} />
+      <div key={index} className="relative flex w-full max-w-sm flex-col items-center text-center">
+        <span aria-hidden className="absolute top-16 h-40 w-40 rounded-full bg-sky-200" style={{ animation: "mb-burst 750ms ease-out both" }} />
         {BURST.flatMap((c, i) =>
           [0, 1, 2].map((j) => {
             const angle = ((i * 3 + j) / (BURST.length * 3)) * Math.PI * 2;
@@ -121,31 +125,31 @@ export function AchievementReveal({ prizes, storageKey, onDone }: { prizes: Priz
         <div style={{ animation: "mb-prize 750ms cubic-bezier(.2,1.5,.4,1) both" }} className="relative">
           <PrizeArt prize={prize} />
         </div>
-        <div className="mt-6 text-[12px] font-bold tracking-[0.22em] text-amber-300 uppercase" style={{ animation: "rise 400ms 350ms ease both" }}>
+        <div className="mt-6 text-[12px] font-bold tracking-[0.22em] text-sky-600 uppercase" style={{ animation: "rise 400ms 350ms ease both" }}>
           {prize.kind === "rank" ? "Promoted!" : "Achievement unlocked!"}
         </div>
-        <div className="mt-1.5 text-[30px] leading-tight font-extrabold tracking-[-0.02em] text-white" style={{ animation: "rise 400ms 420ms ease both" }}>
+        <div className="mt-1.5 text-[30px] leading-tight font-extrabold tracking-[-0.02em] text-slate-900" style={{ animation: "rise 400ms 420ms ease both" }}>
           {prize.label}
         </div>
-        <p className="mt-2 max-w-xs text-[14.5px] leading-6 text-white/75" style={{ animation: "rise 400ms 480ms ease both" }}>
+        <p className="mt-2 max-w-xs text-[14.5px] leading-6 text-slate-600" style={{ animation: "rise 400ms 480ms ease both" }}>
           {prize.kind === "badge" ? prize.description : "A new rank — earned on your average across recent cases."}
         </p>
       </div>
 
-      <div className="relative mt-8 flex flex-col items-center gap-3" style={{ animation: "rise 400ms 600ms ease both" }}>
-        <div className="flex gap-2">
+      <div className="relative mt-8 flex w-full max-w-sm flex-col items-center gap-3" style={{ animation: "rise 400ms 600ms ease both" }}>
+        <div className="flex flex-wrap justify-center gap-2">
           <button
             type="button"
             onClick={() => setSharing(true)}
-            className="flex h-12 items-center gap-2 rounded-full bg-amber-400 px-6 text-[15px] font-extrabold text-[#3b0764] shadow-[0_6px_0_#b45309] active:translate-y-1 active:shadow-[0_2px_0_#b45309]"
+            className="flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-6 text-[15px] font-bold text-white shadow-[0_8px_24px_rgb(99_102_241/0.35)] active:translate-y-px"
           >
             <Icon name="share-ios" size={16} /> Share card
           </button>
-          <button type="button" onClick={next} autoFocus className="h-12 rounded-full bg-white px-6 text-[15px] font-bold text-[#1e1b4b] shadow-[0_6px_0_rgb(255_255_255/0.35)] active:translate-y-1">
+          <button type="button" onClick={next} autoFocus className="h-12 rounded-full border border-slate-200 bg-white px-6 text-[15px] font-bold text-slate-800 shadow-sm active:translate-y-px">
             {index + 1 < prizes.length ? "Next" : "Collect"}
           </button>
         </div>
-        <p className="text-[12.5px] text-white/60">Share it as a card — for your Status, Story or feed.</p>
+        <p className="px-2 text-center text-[12.5px] text-slate-500">Share it as a card — for your Status, Story or feed.</p>
       </div>
       <SharePrize prize={prize} open={sharing} onClose={() => setSharing(false)} />
     </div>,

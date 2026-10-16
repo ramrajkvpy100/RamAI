@@ -27,9 +27,9 @@ describe("every drug acts, and takes time to act", () => {
     expect(timeCourse(k, 300)).toBe(0);
   });
 
-  it("IV paracetamol brings a fever down — not at once, but over the next half hour", () => {
-    const before = parseFloat(vital(play(surgAppendicitis, ["Give paracetamol 1 g IV", "Check temperature"]).state, "temp")!);
-    const after = parseFloat(vital(play(surgAppendicitis, ["Give paracetamol 1 g IV", "Wait 40 minutes", "Check temperature"]).state, "temp")!);
+  it("IV paracetamol brings a fever down — the case moves on to its effect at once", () => {
+    const before = parseFloat(vital(play(surgAppendicitis, ["Check temperature"]).state, "temp")!);
+    const after = parseFloat(vital(play(surgAppendicitis, ["Give paracetamol 1 g IV", "Check temperature"]).state, "temp")!);
     expect(before).toBeGreaterThan(100);
     expect(after).toBeLessThan(before - 0.5);
   });

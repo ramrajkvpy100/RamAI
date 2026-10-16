@@ -179,14 +179,11 @@ describe("response to treatment", () => {
     expect(state.vitals.rr!.history.length).toBeGreaterThan(0);
   });
 
-  it("what a treatment changed is reported unasked, once it has had time to act", () => {
-    const given = play(emAdhf, ["Give furosemide 40 mg IV"]);
-    expect(given.state.vitals.rr!.current.value).toBe("30");
-    expect(given.state.messages.at(-1)?.text ?? "").not.toMatch(/after the furosemide/);
-    const { state } = play(emAdhf, ["Give furosemide 40 mg IV", "Wait 40 minutes"]);
+  it("what a treatment changed is reported unasked, at once — no waiting for it to act", () => {
+    const { state } = play(emAdhf, ["Give furosemide 40 mg IV"]);
     expect(state.vitals.rr!.current.numeric!).toBeLessThan(30);
     const report = state.messages.find((m) => m.role === "system" && /after the furosemide/.test(m.text));
-    expect(report?.text).toMatch(/breathing 30 → \d+\/min/);
+    expect(report?.text).toMatch(/Breathing 30 → \d+\/min/);
   });
 
   it("calling an ambulance is not a treatment — the patient at home doesn't 'improve'", () => {

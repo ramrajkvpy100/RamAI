@@ -555,6 +555,24 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
     normal: () => ({ report: "No growth after 48 hours of incubation." }),
   },
   {
+    id: "csf", name: "Lumbar puncture — CSF analysis", short: "CSF", category: "lab", menu: "Microbiology",
+    turnaroundMin: 60, cost: 1500,
+    match: ["lumbar puncture", "lp", "csf", "csf analysis", "csf study", "cerebrospinal fluid", "spinal tap", "csf routine"],
+    normal: () => ({
+      rows: [
+        row("Opening pressure", "14", "cm H2O", "10–20"),
+        row("Appearance", "Clear"),
+        row("WBC", "2", "cells/µL", "0–5"),
+        row("Neutrophils", "0", "%", "0"),
+        row("RBC", "0", "cells/µL", "0"),
+        row("Protein", "32", "mg/dL", "15–45"),
+        row("Glucose", "62", "mg/dL", "45–80"),
+        row("CSF : blood glucose", "0.65", undefined, "> 0.6"),
+        row("Gram stain", "No organisms seen"),
+      ],
+    }),
+  },
+  {
     id: "urine-culture", name: "Urine culture & sensitivity", short: "Urine C/S", category: "micro", menu: "Microbiology",
     turnaroundMin: 2880, cost: 800,
     match: ["urine culture", "urine c s", "urine cs"],

@@ -467,6 +467,16 @@ export interface QuickReply {
 export function orderReplies(p: PendingOrder): QuickReply[] {
   if (p.kind === "confirm") return [{ text: "Yes, give it", send: true }, { text: "No, hold it", send: true }];
   if (p.kind === "oxygen") return ["Nasal prongs 2 L/min", "Face mask 6 L/min", "Non-rebreather mask 15 L/min"].map((text) => ({ text, send: true }));
+  if (p.kind === "investigation") {
+    // A scan's missing part, view or contrast — or which bloods.
+    const out: QuickReply[] = [];
+    const one = p.needs.length === 1;
+    if (p.needs.includes("region")) out.push(...["Chest", "Abdomen", "Head", "Pelvis", "Spine", "KUB"].map((text) => ({ text, send: one })));
+    if (p.needs.includes("view")) out.push(...["PA view", "AP view", "Lateral view"].map((text) => ({ text, send: one })));
+    if (p.needs.includes("contrast")) out.push({ text: "Plain (non-contrast)", send: one }, { text: "With contrast", send: one });
+    if (p.needs.includes("tests")) out.push(...["CBC", "RFT", "LFT", "Electrolytes", "RBS", "CRP"].map((text) => ({ text })));
+    return out;
+  }
   if (p.kind !== "drug") return [];
   const drug = formularyDrug(p.targetId);
   if (!drug) return [];

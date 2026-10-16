@@ -81,7 +81,8 @@ function withTeaching(def: ClinicalCaseDefinition, pack: TeachingPack | undefine
 function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
   const country = payload.c ?? "IN";
   const local = localizeCase(withTeaching(provider.resolveCase(payload.src), storedTeaching(payload)), country);
-  const def = payload.f ? { ...local, unlimited: true } : local;
+  const aged = withStoryAge(local);
+  const def = payload.f ? { ...aged, unlimited: true } : aged;
   const hidden = createHiddenState(def);
   let state = createInitialState({
     sessionId: payload.sid,
@@ -101,6 +102,19 @@ function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
   if (hidden.closed) state = { ...state, specialty: def.specialty };
   if (payload.d) state = { ...state, daily: payload.d };
   return { def, hidden, state, country };
+}
+
+/**
+ * A written-by-AI case can give an adult's age to a patient the story calls a baby
+ * ("he is a baby", "9-month-old", "toddler"): the story wins, so the child is a child throughout.
+ */
+export function withStoryAge(def: ClinicalCaseDefinition): ClinicalCaseDefinition {
+  if (def.patient.age < 16) return def;
+  const story = [def.briefing, ...def.opening.map((o) => o.text)].join(" ").toLowerCase();
+  const months = story.match(/\b(\d{1,2})[- ]?(?:month|mo)s?[- ]old\b/);
+  const years = story.match(/\b(\d{1,2})[- ]?(?:year|yr)s?[- ]old (?:boy|girl|child|son|daughter|baby|toddler|kid)\b/);
+  const age = months ? Math.max(1, Math.round(Number(months[1]) / 12)) : years && Number(years[1]) < 16 ? Number(years[1]) : /\b(newborn|neonate|infant|baby)\b/.test(story) ? 1 : /\btoddler\b/.test(story) ? 2 : null;
+  return age === null ? def : { ...def, patient: { ...def.patient, age, occupation: undefined } };
 }
 
 /** Hinglish is how patients speak in India; elsewhere they speak English. */

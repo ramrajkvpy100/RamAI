@@ -34,8 +34,8 @@ describe("IV fluid does what this patient needs — not what the bag says", () =
   });
 
   it("in a patient who is short of fluid, a bolus brings the pulse down — and says so", () => {
-    const { turns } = play(idDengue, ["Attach monitor", "Give NS 500 mL IV over 30 minutes", "Wait 30 minutes"]);
-    expect(turns.map(said).join(" ")).toMatch(/after the 0\.9% sodium chloride 500 mL IV over 30 min: pulse 108 → \d+/);
+    const { turns } = play(idDengue, ["Attach monitor", "Give NS 500 mL IV over 30 minutes"]);
+    expect(turns.map(said).join(" ")).toMatch(/after the 0\.9% sodium chloride 500 mL IV over 30 min:\s+• Pulse 108 → \d+/);
   });
 
   it("5% dextrose mostly goes into the cells: a litre over two hours doesn't flood anyone", () => {

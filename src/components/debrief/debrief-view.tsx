@@ -7,7 +7,7 @@ import { CaseTopBar } from "@/components/case/case-top-bar";
 import { Timeline } from "@/components/case/timeline";
 import { ShareSheet } from "@/components/share/share-sheet";
 import { Disclosure } from "@/components/ui/disclosure";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { Badge, Label } from "@/components/ui/primitives";
 import type { CaseDebrief, PlayerProgress } from "@/engine/types";
 import type { ActiveSession } from "@/lib/case-store";
@@ -49,23 +49,45 @@ function duration(min: number) {
   return h ? `${h} h ${m} min` : `${m} min`;
 }
 
+/** Each section's own icon and colour, so the list reads at a glance. */
+const SECTION_LOOK: Record<string, { icon: IconName; tone: string }> = {
+  Diagnosis: { icon: "target", tone: "from-sky-500 to-blue-600" },
+  "What you did well": { icon: "check", tone: "from-emerald-400 to-teal-600" },
+  "What you missed": { icon: "alert", tone: "from-amber-400 to-orange-500" },
+  Auscultation: { icon: "ear", tone: "from-cyan-400 to-sky-600" },
+  "Disease decision tree": { icon: "layers", tone: "from-violet-400 to-purple-600" },
+  "Severity comparison": { icon: "image", tone: "from-fuchsia-400 to-pink-600" },
+  Treatment: { icon: "heart", tone: "from-rose-400 to-red-500" },
+  Drugs: { icon: "pill", tone: "from-indigo-400 to-indigo-600" },
+  Investigations: { icon: "flask", tone: "from-teal-400 to-emerald-600" },
+  "Rescue opportunities": { icon: "siren", tone: "from-red-400 to-rose-600" },
+  "Follow-up": { icon: "calendar", tone: "from-blue-400 to-indigo-500" },
+  "Clinical pearl": { icon: "bulb", tone: "from-yellow-300 to-amber-500" },
+};
+
 function Section({ n, title, summary, children, defaultOpen = false }: { n: number; title: string; summary: string; children: ReactNode; defaultOpen?: boolean }) {
+  const look = SECTION_LOOK[title] ?? { icon: "book" as IconName, tone: "from-slate-400 to-slate-600" };
   return (
     <div className="card animate-rise" style={{ animationDelay: `${120 + n * 40}ms` }}>
       <Disclosure
         defaultOpen={defaultOpen}
         headerClassName="px-5 py-4 sm:px-6 rounded-[var(--radius-lg)] hover:bg-surface-2 transition-colors"
         summary={
-          <span className="flex items-baseline gap-4">
-            <span className="w-6 shrink-0 text-[12px] text-fg-3 tabular">{String(n).padStart(2, "0")}</span>
-            <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
-              <span className="text-[15px] font-medium tracking-[-0.005em]">{title}</span>
+          <span className="flex items-center gap-3.5">
+            <span aria-hidden className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${look.tone} text-white shadow-sm`}>
+              <Icon name={look.icon} size={18} />
+            </span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex items-baseline gap-2">
+                <span className="text-[16px] font-semibold tracking-[-0.01em]">{title}</span>
+                <span className="text-[11px] text-fg-3 tabular">{String(n).padStart(2, "0")}</span>
+              </span>
               <span className="truncate text-[12.5px] text-fg-2">{summary}</span>
             </span>
           </span>
         }
       >
-        <div className="border-t border-line-2 px-5 py-5 sm:px-6 sm:pl-[64px]">{children}</div>
+        <div className="border-t border-line-2 px-5 py-5 sm:px-6 sm:pl-[78px]">{children}</div>
       </Disclosure>
     </div>
   );
@@ -170,7 +192,7 @@ export function DebriefView({
     { title: "Disease decision tree", summary: `${d.severityBands.length} severity bands · treatment failure pathway`, body: <DecisionTreeSection d={d} /> },
     ...(hasImages ? [{ title: "Severity comparison", summary: "Clinical images by severity", body: <SeveritySection d={d} /> }] : []),
     { title: "Treatment", summary: d.routines.length ? `Plan and ${d.routines.length} practical routine${d.routines.length === 1 ? "" : "s"}` : "The plan for this patient", body: <TreatmentSection d={d} /> },
-    { title: "Drugs", summary: d.drugs.map((x) => x.generic.split(/[ (]/)[0]).join(" · "), body: <DrugsSection d={d} /> },
+    { title: "Drugs", summary: [...new Set(d.drugs.map((x) => x.generic.split(" (")[0]!.trim()))].join(" · ") || "—", body: <DrugsSection d={d} /> },
     { title: "Investigations", summary: `What to order, when, and what it costs`, body: <InvestigationsSection d={d} /> },
     { title: "Rescue opportunities", summary: d.rescue.occurred ? `${d.rescue.episodes.length} deterioration${d.rescue.episodes.length === 1 ? "" : "s"}` : "No deterioration", body: <RescueSection d={d} /> },
     { title: "Follow-up", summary: d.followUp.interval, body: <FollowUpSection d={d} /> },

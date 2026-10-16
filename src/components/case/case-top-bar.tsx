@@ -46,9 +46,13 @@ export function CaseTopBar({
           <LogoTile size={28} />
         </Link>
         <div className="flex min-w-0 flex-col leading-tight">
-          <span className="text-[13px] font-semibold tracking-[0.02em] tabular">{caseLabel(state.caseNumber)}</span>
-          <span className="truncate text-[11.5px] text-fg-2">
-            {trackLabel(state.track, state.country)} · {levelMeta(state.level, state.country).short}
+          <span className="truncate text-[13px] font-semibold tracking-[0.02em] tabular">
+            {caseLabel(state.caseNumber)}
+            {/* Who the patient is, always in view: age, sex and what they came with. */}
+            <span className="ml-1.5 font-medium text-fg-2">· {state.patient.age}{state.patient.sex === "Male" ? " M" : state.patient.sex === "Female" ? " F" : ""}</span>
+          </span>
+          <span className="truncate text-[11.5px] text-fg-2" title={complaintOf(state)}>
+            {complaintOf(state) || `${trackLabel(state.track, state.country)} · ${levelMeta(state.level, state.country).short}`}
           </span>
         </div>
 
@@ -141,4 +145,12 @@ function VoiceButton({ on, toggle }: { on: boolean; toggle: () => void }) {
       <span className="hidden sm:inline">{on ? "Voices on" : "Voices"}</span>
     </button>
   );
+}
+
+/** What the patient came with: the first thing they (or their family, or the caller) said, briefly. */
+function complaintOf(state: CaseState): string {
+  const clean = (t: string) => t.replace(/\s*\p{Extended_Pictographic}/gu, "").replace(/^(namaste|hello|good (morning|evening|afternoon))[,.!]?\s*(doctor)?[,.!]?\s*/i, "").trim();
+  const said = state.messages.filter((m) => (m.role === "patient" || m.role === "attendant") && m.kind === "speech").map((m) => clean(m.text));
+  const text = said.find((t) => t.length > 12) ?? "";
+  return text.length > 70 ? `${text.slice(0, 68).trimEnd()}…` : text;
 }
