@@ -157,7 +157,7 @@ export async function libraryPicture(p: PictureBrief): Promise<{ mime: string; b
     return { mime: kept.mime, base64: kept.data, credit: kept.credit ? (JSON.parse(kept.credit) as Credit) : undefined };
   }
   const { checked, ...made } = await makePicture(p);
-  if (checked) {
+  if (checked || p.aiOnly) {
     await db
       .run("INSERT OR IGNORE INTO picture_library (brief, mime, data, credit, source, uses, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)", brief, made.mime, made.base64, made.credit ? JSON.stringify(made.credit) : null, made.credit ? "commons" : "ai", Date.now())
       .catch(() => undefined);

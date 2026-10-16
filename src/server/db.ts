@@ -241,6 +241,25 @@ CREATE TABLE IF NOT EXISTS case_pool (
 );
 CREATE INDEX IF NOT EXISTS case_pool_user ON case_pool(user_id, pool_key, created_at);
 
+-- Every invented patient, kept to be met again by other doctors (inventing one costs the model).
+CREATE TABLE IF NOT EXISTS case_bank (
+  id TEXT PRIMARY KEY,
+  specialty TEXT,
+  track TEXT,
+  level TEXT,
+  easy INTEGER NOT NULL,
+  country TEXT NOT NULL,
+  lang TEXT NOT NULL,
+  src TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS case_bank_pick ON case_bank(country, lang, specialty, track, level);
+CREATE TABLE IF NOT EXISTS case_bank_seen (
+  user_id TEXT NOT NULL,
+  bank_id TEXT NOT NULL,
+  PRIMARY KEY (user_id, bank_id)
+);
+
 -- Two doctors, one patient: the case is shared, the scores compared.
 CREATE TABLE IF NOT EXISTS duels (
   id TEXT PRIMARY KEY,
@@ -566,7 +585,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 22;
+const SCHEMA_VERSION = 23;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

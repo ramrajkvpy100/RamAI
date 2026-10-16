@@ -296,12 +296,15 @@ export async function pictureFor(token: string, userId: string, ref: string): Pr
   const topic = def.truth.diagnosis;
   // The patient as they walk in: a realistic portrait from what anyone could see — never a hidden finding.
   if (ref === "portrait") {
+    // Kept by kind of person — an age band, sex, where they're from, how unwell — so one picture serves many patients.
     const p = def.patient;
-    const look = [def.briefing, ...def.opening.filter((o) => o.role === "system" || o.kind === "action").map((o) => o.text)].join(" ").slice(0, 300);
     const people = country === "IN" ? "Indian" : country === "UK" ? "British" : "American";
-    const who = p.age < 2 ? `${people} baby, held by a parent` : p.age < 13 ? `${p.age}-year-old ${people} ${p.sex === "Female" ? "girl" : "boy"}` : `${p.age}-year-old ${people} ${p.sex === "Female" ? "woman" : "man"}${p.occupation ? `, a ${p.occupation.toLowerCase()}` : ""}`;
-    return { type: "photo", view: "Patient portrait", describe: `A realistic, respectful photograph of a ${who}, waist up, plain warm light-grey background, soft natural light, looking unwell the way this scene describes: ${look} Everyday clothes. Natural skin, no makeup, no text.`, topic: "", aiOnly: true };
+    const band = p.age < 2 ? "baby" : p.age < 6 ? "small child" : p.age < 13 ? "child" : p.age < 20 ? "teenager" : p.age < 35 ? "young adult" : p.age < 55 ? "middle-aged adult" : p.age < 70 ? "older adult" : "elderly person";
+    const who = p.age < 2 ? `${people} baby, held by a parent` : `${people} ${band}, ${p.sex === "Female" ? "female" : "male"}`;
+    const mood = def.track === "emergency" ? "visibly unwell and in distress" : "tired and unwell, worried";
+    return { type: "photo", view: "Patient portrait", describe: `A realistic, respectful photograph of a ${who}, waist up, plain warm light-grey background, soft natural light, looking ${mood}. Everyday clothes. Natural skin, no makeup, no text.`, topic: "", aiOnly: true };
   }
+
   // Every scan, drawn from its own result; a written case's skin photograph, from its examination.
   if (ref.startsWith("i-")) {
     const inv = hidden.investigations.find((i) => i.delivered && `i-${i.instanceId}` === ref);

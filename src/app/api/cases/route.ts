@@ -7,7 +7,7 @@ import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
-import { takeReady, type PoolChoice } from "@/server/case-pool";
+import { bankCase, takeFromBank, takeReady, type PoolChoice } from "@/server/case-pool";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
@@ -78,7 +78,11 @@ export async function POST(req: Request) {
       }
       if (host) duelId = newDuelId();
     }
-    const ready = shared ?? (tutorial || daily || body.disease ? null : await takeReady(user.id, choice).catch(() => null));
+    // Free first: the other doctor's case, one written ahead for this doctor, or one from the bank they haven't met.
+    const fresh = tutorial || daily || body.disease || shared;
+    const pooled = fresh ? null : await takeReady(user.id, choice).catch(() => null);
+    const banked = fresh || pooled ? null : await takeFromBank(user.id, choice).catch(() => null);
+    const ready = shared ?? pooled ?? banked;
     const usage: UsageScope = { kind: "case-start" };
     const session = await withUsage(usage, async () => simulateCase({
       ready,
@@ -99,6 +103,10 @@ export async function POST(req: Request) {
       duel: duelId,
     }));
     usage.sessionId = session.state.sessionId;
+    // A patient invented just now is kept for other doctors.
+    if (!shared && !banked && !tutorial && !daily) {
+      await bankCase(user.id, sessionInfo(session.token).src, { specialty: specialty, track: session.state.track, level: session.state.level, easy, country: user.country, lang: user.patientLang }).catch(() => undefined);
+    }
     if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);
     // An invented patient: its debrief teaching, pearls and exam questions are written now, in the background, ready for when the case ends.

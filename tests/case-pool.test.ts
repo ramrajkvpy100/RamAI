@@ -31,3 +31,16 @@ describe("patients written ahead of time", () => {
     expect(await takeReady(asha.id, usual)).toBeNull();
   });
 });
+
+import { bankCase, bankHas, takeFromBank } from "@/server/case-pool";
+describe("the case bank: invented once, met by many", () => {
+  it("another doctor meets a banked patient once; its first doctor never meets it again", async () => {
+    const ravi = await createProfile({ email: "ravi2@example.com", username: "ravi2", name: "Ravi" });
+    const src = { kind: "generated", def: { id: "g1" } } as never;
+    await bankCase(asha.id, src, { specialty: "Medicine", track: "opd", level: "district", easy: false, country: "IN", lang: "en" });
+    expect(await takeFromBank(asha.id, usual)).toBeNull();
+    expect(await bankHas(ravi.id, usual)).toBe(true);
+    expect(await takeFromBank(ravi.id, usual)).toEqual(src);
+    expect(await takeFromBank(ravi.id, usual)).toBeNull();
+  });
+});
