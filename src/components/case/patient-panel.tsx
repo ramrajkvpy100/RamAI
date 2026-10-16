@@ -6,7 +6,7 @@ import { DuelCard } from "@/components/duel/duel-card";
 import { PatientFigure } from "@/components/game/caricature";
 import { fetchPicture } from "@/components/media/ai-picture";
 import { MediaFigure } from "@/components/media/media-figure";
-import { caseSnapshot } from "@/lib/case-store";
+import { caseSnapshot, useCase } from "@/lib/case-store";
 import { Label } from "@/components/ui/primitives";
 import type { CaseState, FactGroup, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
@@ -128,16 +128,27 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
 /** The patient's portrait, once drawn — fetched once per case and shared by everything that shows it. */
 export function usePortrait(state: CaseState): string | null {
   const [url, setUrl] = useState<string | null>(null);
+  // The case's token may arrive after the first paint (a reopened case is resumed): wait for it.
+  const token = useCase().session?.token ?? null;
+  const ready = !!token;
   useEffect(() => {
-    if (state.guided) return;
+    if (state.guided || !ready) return;
     const session = caseSnapshot().session;
     if (!session) return;
     let live = true;
-    fetchPicture(`${state.sessionId}:portrait`, session.token, "portrait").then((p) => live && setUrl(p.url)).catch(() => undefined);
+    let tries = 0;
+    const get = () =>
+      fetchPicture(`${state.sessionId}:portrait`, session.token, "portrait")
+        .then((p) => live && setUrl(p.url))
+        .catch(() => {
+          // A slow first drawing: one more try a little later.
+          if (live && tries++ < 2) window.setTimeout(get, 4000);
+        });
+    void get();
     return () => {
       live = false;
     };
-  }, [state.sessionId, state.guided]);
+  }, [state.sessionId, state.guided, ready]);
   return url;
 }
 

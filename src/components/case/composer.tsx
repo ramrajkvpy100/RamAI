@@ -104,8 +104,29 @@ export function Composer({
   const active = actions.find((a) => a.id === menu);
   const categories = active ? menusFor(country).filter((c) => active.categories.includes(c.id)) : [];
 
+  // Quiet for a minute and a half: a hint is offered (never given unasked).
+  const [idle, setIdle] = useState(false);
+  useEffect(() => {
+    setIdle(false);
+    if (disabled) return;
+    const t = window.setTimeout(() => setIdle(true), 90_000);
+    return () => window.clearTimeout(t);
+  }, [draft, sending, disabled]);
+
   return (
     <div className="relative" ref={menuRef}>
+      {idle && !draft && !sending && !disabled && (
+        <button
+          type="button"
+          onClick={() => {
+            setIdle(false);
+            void onSend("Hint");
+          }}
+          className="absolute -top-11 left-1/2 z-10 flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50 px-4 text-[13px] font-semibold text-amber-800 shadow-md animate-enter dark:border-amber-400/30 dark:bg-[#2a2210] dark:text-amber-200"
+        >
+          💡 Stuck? Get a hint
+        </button>
+      )}
       {active && (
         <div className="popover absolute right-0 bottom-full left-0 z-20 mb-2 animate-enter rounded-2xl p-3.5" role="dialog" aria-label={`${active.label} shortcuts`}>
           <div className="mb-2.5 flex items-center justify-between">
@@ -170,6 +191,23 @@ export function Composer({
                 <Icon name="chevron-right" size={13} strokeWidth={2.4} className="-ml-2" />
               </button>
             )}
+            {/* Stuck? A nudge to the next step — only when asked for, and counted in the debrief. */}
+            <button
+              type="button"
+              disabled={disabled || sending}
+              onClick={() => void onSend("Hint")}
+              className="h-8 shrink-0 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-[13px] font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+            >
+              💡 Hint
+            </button>
+            <button
+              type="button"
+              disabled={disabled || sending}
+              onClick={() => void onSend("Consult")}
+              className="h-8 shrink-0 rounded-full border border-line px-3 text-[13px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg disabled:opacity-50"
+            >
+              🩺 Consult
+            </button>
             {actions.map((a) => (
               <button
                 key={a.id}
@@ -185,23 +223,7 @@ export function Composer({
                 {a.label}
               </button>
             ))}
-            <button
-              type="button"
-              disabled={disabled || sending}
-              onClick={() => void onSend("Consult")}
-              className="h-8 shrink-0 rounded-full border border-line px-3 text-[13px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg disabled:opacity-50"
-            >
-              🩺 Consult
-            </button>
-            {/* Stuck? A nudge to the next step — only when asked for, and counted in the debrief. */}
-            <button
-              type="button"
-              disabled={disabled || sending}
-              onClick={() => void onSend("Hint")}
-              className="h-8 shrink-0 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-[13px] font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
-            >
-              💡 Hint
-            </button>
+
           </div>
           <span className="hidden items-center gap-1 text-[11px] text-fg-3 xl:flex">
             <Kbd>↵</Kbd> send <span className="mx-0.5">·</span> <Kbd>⇧</Kbd>
