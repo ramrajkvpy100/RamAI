@@ -76,7 +76,7 @@ export function RadiologyReporting() {
       </div>
 
       {items === null && <div className="card h-80 animate-pulse" aria-busy="true" />}
-      {items && items.length === 0 && <p className="card p-6 text-[14px] text-fg-2">Real studies for this section are still being collected — try another tab, or come back soon.</p>}
+      {items && items.length === 0 && <p className="card p-6 text-[14px] text-fg-2">Real studies for this section are being collected right now — try again in a minute, or open another tab.</p>}
       {items && items.length > 0 && !item && (
         <div className="card flex flex-col items-center gap-3 p-8 text-center">
           <div className="text-[44px] font-bold tabular">{score}/{items.length}</div>

@@ -1,6 +1,9 @@
+import { after } from "next/server";
 import { z } from "zod";
 
-import { round } from "@/server/practice";
+import { withUsage } from "@/engine/providers/usage";
+
+import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { RADIOLOGY_BRIEFS, RADIOLOGY_MODALITIES } from "@/lib/radiology";
 import type { Modality } from "@/lib/practice";
@@ -22,7 +25,15 @@ export async function POST(req: Request) {
   try {
     const r = await round(body.modality, "spot");
     const items = r.items.filter((i) => i.image && RADIOLOGY_BRIEFS[i.item]).map((i) => ({ ...i, brief: RADIOLOGY_BRIEFS[i.item]! }));
-    return ok({ items });
+    // The bank fills in the background: a few more real studies (from Wikimedia Commons, checked) for next time.
+    if (picturesAvailable() && items.length < 12) {
+      after(() =>
+        withUsage({ kind: "practice" }, async () => {
+          for (const id of (await missingPictures(body.modality, 3)).filter((x) => RADIOLOGY_BRIEFS[x])) await addPicture(body.modality, id).catch(() => false);
+        }).catch(() => undefined),
+      );
+    }
+    return ok({ items, filling: items.length < 12 });
   } catch (err) {
     return handleError(err);
   }
