@@ -21,7 +21,6 @@ const WORDS: Record<Country, Words> = {
 
 export interface DemoScript {
   talk: string;
-  history: string;
   check: string;
   bolus: string;
   recheck: string;
@@ -29,13 +28,14 @@ export interface DemoScript {
   listen: string;
   plan: string;
   diagnosis: string;
+  hint: string;
+  opinion: string;
 }
 
 export function demoScript(country: Country = "IN"): DemoScript {
   const w = WORDS[country];
   return {
-    talk: "What happened?",
-    history: "Ask about diabetes, medicines, meals and allergies",
+    talk: "What happened? Ask about diabetes, medicines, meals and allergies",
     check: `${w.check} and ECG`,
     bolus: w.bolus,
     recheck: w.recheck,
@@ -43,6 +43,8 @@ export function demoScript(country: Country = "IN"): DemoScript {
     listen: "Listen to the heart",
     plan: `${w.drip}, stop glimepiride and admit`,
     diagnosis: `Diagnosis: ${w.low} from glimepiride`,
+    hint: "Hint",
+    opinion: "Internal Medicine opinion",
   };
 }
 

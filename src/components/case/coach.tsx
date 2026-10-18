@@ -31,6 +31,8 @@ const examinedNeuro = (s: CaseState) => s.facts.some((f) => f.group === "systemi
 const listened = (s: CaseState) => s.messages.some((m) => m.stethoscope);
 const gaveDrip = (s: CaseState) => s.drugs.some((d) => /10%|d10/i.test(`${d.generic} ${d.brand ?? ""}`));
 const named = (s: CaseState) => !!s.workingDiagnosis;
+const hinted = (s: CaseState) => s.messages.some((m) => m.text.startsWith("💡 Hint"));
+const opined = (s: CaseState) => s.messages.some((m) => m.role === "system" && /— seen the patient/.test(m.text));
 
 /** Something to try: tap it and it's done, exactly as if typed. */
 const TryContext = createContext<{ onTry?: (text: string) => void; busy?: boolean }>({});
@@ -59,25 +61,14 @@ function Q({ children, done }: { children: string; done?: boolean }) {
 
 const INTRO_KEY = "ramai.coach.intro";
 
-/** Eight short steps — every part of a case, one tap each. Follow them and he walks out well. */
+/** Eight short steps — every part of a case and every helper, one tap each. Follow them and he walks out well. */
 const STEPS: Step[] = [
   {
     id: "talk",
     title: "Talk to the family",
     body: (t) => (
       <>
-        His wife brought him in. Ask what happened — tap <Q>{t.talk}</Q> or type it in your own words.
-      </>
-    ),
-    target: "composer",
-    done: (s) => historyFacts(s) >= 1,
-  },
-  {
-    id: "history",
-    title: "Find the cause",
-    body: (t) => (
-      <>
-        You can ask several things at once: <Q>{t.history}</Q> More questions are under <b>Ask</b>.
+        His wife brought him in. One tap asks several things at once: <Q>{t.talk}</Q> Or type in your own words — more questions are under <b>Ask</b>.
       </>
     ),
     target: "composer",
@@ -127,6 +118,17 @@ const STEPS: Step[] = [
     ),
     target: "composer",
     done: (s) => examinedNeuro(s) && listened(s),
+  },
+  {
+    id: "helpers",
+    title: "Two helpers",
+    body: (t, s) => (
+      <>
+        Stuck in a real case? <Q done={hinted(s)}>{t.hint}</Q> points to the next step. Want a specialist&apos;s view? <Q done={opined(s)}>{t.opinion}</Q> Both are always beside <b>Ask</b>.
+      </>
+    ),
+    target: "composer",
+    done: (s) => hinted(s) && opined(s),
   },
   {
     id: "plan",

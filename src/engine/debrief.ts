@@ -50,7 +50,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   /* Misses -------------------------------------------------------------- */
   const missed: DebriefMiss[] = [];
   const hints = hidden.actions.hint?.length ?? 0;
-  if (hints) missed.push({ what: `Used ${hints} hint${hints === 1 ? "" : "s"}.`, why: "Hints point to the next step an expert would take.", better: "Next time, try working through history, examination and investigations before asking.", severity: "minor" });
+  if (hints && !def.guided) missed.push({ what: `Used ${hints} hint${hints === 1 ? "" : "s"}.`, why: "Hints point to the next step an expert would take.", better: "Next time, try working through history, examination and investigations before asking.", severity: "minor" });
   const misses = def.rubric.misses;
   for (const h of def.history) {
     if (h.importance === "essential" && hidden.history[h.id] === undefined) {
