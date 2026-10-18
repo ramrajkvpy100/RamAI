@@ -117,12 +117,20 @@ let manifest = [];
 try {
   manifest = JSON.parse((await import("node:fs")).readFileSync("src/lib/radiology-stacks.json", "utf8")).filter((m) => only.length && !only.includes(m.id));
 } catch {}
-for (const st of STACKS.filter((x) => !only.length || only.includes(x.id))) {
+const wanted = only.length
+  ? only.map((id) => {
+      const base = STACKS.find((x) => x.id === id) ?? STACKS.find((x) => x.id === id.replace(/-\d+$/, ""));
+      return base ? { ...base, id } : null;
+    }).filter(Boolean)
+  : STACKS;
+for (const st of wanted) {
   try {
     const series = (await getJson(`${NBIA}/getSeries?Collection=${encodeURIComponent(st.collection)}&Modality=${st.modality}`))
       // Original axial slices only — no reformats, MIPs or scout views.
       .filter((s) => s.ImageCount >= 30 && s.ImageCount <= 400 && st.match.test(s.SeriesDescription ?? "") && !/MPR|MIP|sag|cor|scout|localizer|topogram|reformat/i.test(s.SeriesDescription ?? ""))
-      .sort((a, b) => Math.abs(a.ImageCount - 120) - Math.abs(b.ImageCount - 120));
+      .sort((a, b) => Math.abs(a.ImageCount - 120) - Math.abs(b.ImageCount - 120))
+      // Another patient each time: never a second series of someone already shown for this diagnosis.
+      .filter((s) => !manifest.some((m) => m.patient && m.patient === s.PatientID));
     let done = false;
     for (const s of series.slice(skip[st.id] ?? 0, (skip[st.id] ?? 0) + 6)) {
       const zip = new Uint8Array(await (await fetch(`${NBIA}/getImage?SeriesInstanceUID=${s.SeriesInstanceUID}`)).arrayBuffer());
@@ -138,7 +146,7 @@ for (const st of STACKS.filter((x) => !only.length || only.includes(x.id))) {
       mkdirSync(dir, { recursive: true });
       kept.forEach((sl, i) => writeFileSync(path.join(dir, `${String(i).padStart(3, "0")}.jpg`), toJpeg(sl, st.window)));
       const { match: _m, window: _w, ...meta } = st;
-      manifest.push({ ...meta, slices: kept.length, series: s.SeriesDescription ?? "", credit: `Data from The Cancer Imaging Archive, ${st.collection} collection (${st.license}), doi:${st.doi}` });
+      manifest.push({ ...meta, patient: s.PatientID, slices: kept.length, series: s.SeriesDescription ?? "", credit: `Data from The Cancer Imaging Archive, ${st.collection} collection (${st.license}), doi:${st.doi}` });
       console.log(`✓ ${st.id}: ${kept.length} slices from "${s.SeriesDescription}"`);
       done = true;
       break;

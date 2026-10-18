@@ -15,6 +15,7 @@
       "Brain metastasis",
       "Meningioma"
     ],
+    "patient": "UPENN-GBM-00283",
     "slices": 60,
     "series": "AXIAL 3D GAD: Processed_CaPTk",
     "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
@@ -35,6 +36,7 @@
       "Simple hepatic cyst",
       "Fatty liver"
     ],
+    "patient": "TCGA-DD-A3A4",
     "slices": 60,
     "series": "AXIAL",
     "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ"
@@ -55,29 +57,10 @@
       "Pulmonary oedema",
       "Miliary tuberculosis"
     ],
+    "patient": "COVID-19-AR-16445144",
     "slices": 60,
     "series": "3MM",
     "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
-  },
-  {
-    "id": "vs-mri",
-    "collection": "Vestibular-Schwannoma-MC-RC",
-    "license": "CC BY 4.0",
-    "doi": "10.7937/HRZH-2N82",
-    "modality": "MR",
-    "diagnosis": "Vestibular schwannoma",
-    "history": "48-year-old woman with gradual hearing loss and tinnitus in one ear, and unsteadiness.",
-    "question": "MRI internal auditory meati (high-resolution T2): findings?",
-    "key": "A well-defined mass in the internal auditory canal extending into the cerebellopontine angle ('ice-cream cone') — vestibular schwannoma.",
-    "options": [
-      "Vestibular schwannoma",
-      "Meningioma",
-      "Glioblastoma",
-      "Normal MRI"
-    ],
-    "slices": 58,
-    "series": "_T2_Ax 3D FIESTA-C",
-    "credit": "Data from The Cancer Imaging Archive, Vestibular-Schwannoma-MC-RC collection (CC BY 4.0), doi:10.7937/HRZH-2N82"
   },
   {
     "id": "normal-abdo-ct",
@@ -95,7 +78,176 @@
       "Liver metastases",
       "Renal cell carcinoma"
     ],
+    "patient": "PANCREAS_0080",
     "slices": 61,
+    "series": "Pancreas",
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
+  },
+  {
+    "id": "gbm-mri-2",
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect — typical of glioblastoma.",
+    "options": [
+      "Glioblastoma",
+      "Cerebral abscess",
+      "Brain metastasis",
+      "Meningioma"
+    ],
+    "patient": "UPENN-GBM-00005",
+    "slices": 64,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
+  },
+  {
+    "id": "gbm-mri-3",
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect — typical of glioblastoma.",
+    "options": [
+      "Glioblastoma",
+      "Cerebral abscess",
+      "Brain metastasis",
+      "Meningioma"
+    ],
+    "patient": "UPENN-GBM-00068",
+    "slices": 64,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
+  },
+  {
+    "id": "hcc-ct-3",
+    "collection": "TCGA-LIHC",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.IMMQW8UQ",
+    "modality": "CT",
+    "diagnosis": "Hepatocellular carcinoma",
+    "history": "63-year-old man with hepatitis B cirrhosis, rising alpha-fetoprotein and weight loss.",
+    "question": "CT abdomen (liver protocol): findings?",
+    "key": "A focal liver mass in a cirrhotic liver, enhancing in the arterial phase with washout later — hepatocellular carcinoma.",
+    "options": [
+      "Hepatocellular carcinoma",
+      "Liver abscess",
+      "Simple hepatic cyst",
+      "Fatty liver"
+    ],
+    "patient": "TCGA-G3-AAV4",
+    "slices": 58,
+    "series": "ARTERIAL LIVER",
+    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ"
+  },
+  {
+    "id": "covid-ct-2",
+    "collection": "COVID-19-AR",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/tcia.2020.py71-5978",
+    "modality": "CT",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO₂ 89% on air.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation — the typical pattern of COVID-19 pneumonia.",
+    "options": [
+      "COVID-19 pneumonia",
+      "Lobar pneumonia",
+      "Pulmonary oedema",
+      "Miliary tuberculosis"
+    ],
+    "patient": "COVID-19-AR-16424071",
+    "slices": 56,
+    "series": "",
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+  },
+  {
+    "id": "covid-ct-3",
+    "collection": "COVID-19-AR",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/tcia.2020.py71-5978",
+    "modality": "CT",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO₂ 89% on air.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation — the typical pattern of COVID-19 pneumonia.",
+    "options": [
+      "COVID-19 pneumonia",
+      "Lobar pneumonia",
+      "Pulmonary oedema",
+      "Miliary tuberculosis"
+    ],
+    "patient": "COVID-19-AR-16434363",
+    "slices": 49,
+    "series": "3MM",
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+  },
+  {
+    "id": "vs-mri-2",
+    "collection": "Vestibular-Schwannoma-MC-RC",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/HRZH-2N82",
+    "modality": "MR",
+    "diagnosis": "Vestibular schwannoma",
+    "history": "48-year-old woman with gradual hearing loss and tinnitus in one ear, and unsteadiness.",
+    "question": "MRI internal auditory meati (high-resolution T2): findings?",
+    "key": "A well-defined mass in the internal auditory canal extending into the cerebellopontine angle ('ice-cream cone') — vestibular schwannoma.",
+    "options": [
+      "Vestibular schwannoma",
+      "Meningioma",
+      "Glioblastoma",
+      "Normal MRI"
+    ],
+    "patient": "VS-MC-RC-010",
+    "slices": 48,
+    "series": "_T2_3D FIESTA Hi Res",
+    "credit": "Data from The Cancer Imaging Archive, Vestibular-Schwannoma-MC-RC collection (CC BY 4.0), doi:10.7937/HRZH-2N82"
+  },
+  {
+    "id": "normal-abdo-ct-2",
+    "collection": "Pancreas-CT",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.tNB1kqBU",
+    "modality": "CT",
+    "diagnosis": "Normal CT abdomen",
+    "history": "30-year-old kidney donor having a routine work-up scan. No symptoms.",
+    "question": "CT abdomen with contrast: any abnormality?",
+    "key": "Normal liver, pancreas, kidneys, spleen and bowel; no mass, collection or free fluid.",
+    "options": [
+      "Normal CT abdomen",
+      "Acute pancreatitis",
+      "Liver metastases",
+      "Renal cell carcinoma"
+    ],
+    "patient": "PANCREAS_0046",
+    "slices": 66,
+    "series": "Pancreas",
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
+  },
+  {
+    "id": "normal-abdo-ct-3",
+    "collection": "Pancreas-CT",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.tNB1kqBU",
+    "modality": "CT",
+    "diagnosis": "Normal CT abdomen",
+    "history": "30-year-old kidney donor having a routine work-up scan. No symptoms.",
+    "question": "CT abdomen with contrast: any abnormality?",
+    "key": "Normal liver, pancreas, kidneys, spleen and bowel; no mass, collection or free fluid.",
+    "options": [
+      "Normal CT abdomen",
+      "Acute pancreatitis",
+      "Liver metastases",
+      "Renal cell carcinoma"
+    ],
+    "patient": "PANCREAS_0007",
+    "slices": 67,
     "series": "Pancreas",
     "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
   }
