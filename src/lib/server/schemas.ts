@@ -25,6 +25,8 @@ export const StartSchema = z.object({
   unlimited: z.boolean().optional(),
   /** Two-player: invite a friend, find an opponent, play the computer — or a duel's id to join. */
   duel: z.union([z.enum(["invite", "find", "computer"]), z.string().regex(/^[a-f0-9]{12}$/)]).optional(),
+  /** The same patient again: the finished case's token. */
+  retry: z.string().min(20).max(400_000).optional(),
   /** A disease to practise. */
   disease: z.string().trim().min(2).max(80).regex(/^[\p{L}\p{N} ,.'()\/-]+$/u).optional(),
 });

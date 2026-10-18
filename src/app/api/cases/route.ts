@@ -64,7 +64,12 @@ export async function POST(req: Request) {
     let duelId: string | undefined;
     let shared: CaseSource | null = null;
     let host: DuelMode | null = null;
-    if (body.duel && !tutorial && !daily) {
+    // "Retry this case": the same patient again, for another approach.
+    if (body.retry && !tutorial && !daily) {
+      const was = sessionInfo(body.retry);
+      if (was.userId === user.id) shared = was.src;
+    }
+    if (body.duel && !tutorial && !daily && !shared) {
       const me = { id: user.id, name: user.name || user.username || "Doctor" };
       if (body.duel === "find") {
         const open = await findOpenDuel(me);

@@ -260,6 +260,19 @@ CREATE TABLE IF NOT EXISTS case_bank_seen (
   PRIMARY KEY (user_id, bank_id)
 );
 
+-- What players say about a case: an error reported, or thumbs up/down after the debrief. Reviewed weekly.
+CREATE TABLE IF NOT EXISTS case_feedback (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  case_ref TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  rating INTEGER,
+  reason TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS case_feedback_kind ON case_feedback(kind, created_at);
+
 -- Two doctors, one patient: the case is shared, the scores compared.
 CREATE TABLE IF NOT EXISTS duels (
   id TEXT PRIMARY KEY,
@@ -585,7 +598,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 23;
+const SCHEMA_VERSION = 24;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

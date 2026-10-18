@@ -7,6 +7,7 @@ import { CaseTopBar } from "@/components/case/case-top-bar";
 import { Timeline } from "@/components/case/timeline";
 import { ShareSheet } from "@/components/share/share-sheet";
 import { Disclosure } from "@/components/ui/disclosure";
+import { CaseFeedback, ReportCase } from "@/components/case/case-feedback";
 import { DuelCard } from "@/components/duel/duel-card";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Badge, Label } from "@/components/ui/primitives";
@@ -144,6 +145,7 @@ export function DebriefView({
   session,
   progress,
   onNext,
+  onRetry,
   onHome,
   guest = false,
   starting,
@@ -151,6 +153,8 @@ export function DebriefView({
   session: ActiveSession;
   progress: PlayerProgress;
   onNext: () => void;
+  /** The same patient again. */
+  onRetry?: () => void;
   onHome: () => void;
   /** Played the demo without an account: the next step is signing up. */
   guest?: boolean;
@@ -324,6 +328,13 @@ export function DebriefView({
                 </div>
               </Disclosure>
             </div>
+            {!state.guided && <CaseFeedback className="mt-4" />}
+            {!state.guided && onRetry && (
+              <button type="button" onClick={onRetry} disabled={starting} className="mt-4 h-11 self-center rounded-full border border-line bg-surface px-5 text-[14px] font-semibold hover:bg-surface-2 disabled:opacity-60">
+                ↻ Retry this patient — try another approach
+              </button>
+            )}
+            {!state.guided && <ReportCase className="mt-3 self-center" />}
           </div>
         </section>
       </main>
@@ -331,12 +342,12 @@ export function DebriefView({
       {/* Next case -------------------------------------------------------- */}
       <div className="material-bar fixed inset-x-0 bottom-0 z-20 border-t border-[var(--material-stroke)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6">
-          <Link href="/" onClick={onHome} className="text-[13.5px] font-medium text-fg-2 hover:text-fg">
-            Home
+          <Link href="/" onClick={onHome} aria-label="Home" className="flex shrink-0 items-center gap-1.5 text-[13.5px] font-medium text-fg-2 hover:text-fg">
+            <Icon name="home" size={16} /> <span className="hidden sm:inline">Home</span>
           </Link>
           {guest ? (
             <div className="flex items-center gap-3 sm:gap-4">
-              <Link href="/signup" title="Keep your cases, start a streak, join the league" className="text-[13.5px] font-semibold text-accent-text hover:underline">
+              <Link href="/signup" title="Keep your cases, start a streak, join the league" className="text-[13.5px] font-semibold whitespace-nowrap text-accent-text hover:underline">
                 Sign up free
               </Link>
               <button type="button" onClick={onNext} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-5 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70 sm:px-6">

@@ -79,6 +79,8 @@ export interface CaseChoice {
   unlimited?: boolean;
   /** A disease to practise. */
   disease?: string;
+  /** The same patient again: the finished case's token. */
+  retry?: string;
   /** Two-player: "invite", "find", "computer", or a duel id to join. */
   duel?: string;
 }

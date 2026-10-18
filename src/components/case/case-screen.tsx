@@ -363,7 +363,7 @@ export function CaseScreen({ me: initial }: { me: Me }) {
   } else if (!snap.session) {
     screen = <NoCase onStart={() => void launch({})} starting={starting} error={error} />;
   } else if (snap.session.debrief) {
-    screen = <DebriefView session={snap.session} progress={me.progress} onNext={next} onHome={abandonCase} starting={starting} guest={me.user.isGuest} />;
+    screen = <DebriefView session={snap.session} progress={me.progress} onNext={next} onRetry={() => snap.session && void launch({ retry: snap.session.token })} onHome={abandonCase} starting={starting} guest={me.user.isGuest} />;
   } else if (!snap.session.begun) {
     screen = <Briefing state={snap.session.state} onBegin={beginEncounter} />;
   } else {

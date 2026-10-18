@@ -23,6 +23,7 @@ import { cn } from "@/lib/cn";
 import { PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { DemoButton } from "./demo-button";
+import { Faq, Numbers, SampleDebrief, Trust, type SiteStats } from "./landing-proof";
 import { Tilt } from "./tilt";
 
 const CTA = "inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow transition-transform active:scale-[0.98]";
@@ -381,7 +382,7 @@ function Pricing({ country, onCountry }: { country: Country; onCountry: (country
  * guess), or the browser's language when that's unknown. One choice for the
  * whole page: hospital names, modes and prices in their currency all follow it.
  */
-export function Landing({ country: guessed }: { country?: Country }) {
+export function Landing({ country: guessed, stats }: { country?: Country; stats: SiteStats }) {
   const [country, setCountry] = useState<Country>(guessed ?? "IN");
   useEffect(() => {
     if (!guessed) setCountry(countryFromLocale(navigator.language));
@@ -392,11 +393,15 @@ export function Landing({ country: guessed }: { country?: Country }) {
       <LandingNav />
       <main className="flex-1">
         <Hero />
+        <Numbers stats={stats} />
         <HowItWorks />
+        <SampleDebrief />
         <Ladder country={country} onCountry={setCountry} />
         <Modes country={country} />
         <Habit />
+        <Trust />
         <Pricing country={country} onCountry={setCountry} />
+        <Faq />
       </main>
       <Footer />
     </div>
