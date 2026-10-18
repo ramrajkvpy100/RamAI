@@ -19,7 +19,7 @@ import type { User } from "./auth";
 import { db } from "./db";
 import { parseDetail, progressDetail } from "./progress-detail";
 
-const EXAM = { IN: "NEET PG and INI-CET", US: "USMLE Step 2 CK", UK: "UKMLA and PLAB" } as const;
+const EXAM = { IN: "NEET PG and INI-CET", US: "USMLE Step 2 CK", UK: "UKMLA and PLAB", WW: "international licensing exams" } as const;
 
 const text = (max: number) => z.preprocess((v) => (typeof v === "number" ? String(v) : v), z.string()).transform((t) => t.trim().slice(0, max));
 const list = <T extends z.ZodType>(item: T, max: number) =>

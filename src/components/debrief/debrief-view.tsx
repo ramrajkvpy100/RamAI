@@ -192,7 +192,7 @@ export function DebriefView({
   const sections: { title: string; summary: string; body: ReactNode; open?: boolean }[] = [
     { title: "Diagnosis", summary: "History → examination → investigation → diagnosis", body: <DiagnosisSection d={d} />, open: true },
     { title: "What you did well", summary: d.didWell.length ? `${d.didWell.length} strengths` : "—", body: d.didWell.length ? <Bullets items={d.didWell} marker="check" /> : <p className="text-[14px] text-fg-2">Little went to plan this time — the sections below show how to approach it next time.</p> },
-    { title: "What you missed", summary: d.missed.length ? `${d.missed.length} item${d.missed.length === 1 ? "" : "s"}${majors ? ` · ${majors} major` : ""}` : "Nothing significant", body: <MissesSection d={d} /> },
+    { title: "What you missed", summary: d.missed.length ? `${d.missed.length} item${d.missed.length === 1 ? "" : "s"}${majors ? ` · ${majors} major` : ""}` : "Nothing significant", body: <MissesSection d={d} />, open: d.missed.length > 0 },
     ...(d.auscultation?.length ? [{ title: "Auscultation", summary: `What the stethoscope picked up · ${d.auscultation.filter((a) => a.listened).length} of ${d.auscultation.length} listened to`, body: <AuscultationSection d={d} /> }] : []),
     { title: "Disease decision tree", summary: `${d.severityBands.length} severity bands · treatment failure pathway`, body: <DecisionTreeSection d={d} /> },
     ...(hasImages ? [{ title: "Severity comparison", summary: "Clinical images by severity", body: <SeveritySection d={d} /> }] : []),

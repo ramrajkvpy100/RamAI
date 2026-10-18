@@ -11,10 +11,10 @@ describe("Pro is priced in the country's own currency", () => {
   });
 
   it("a visitor sees their own country's prices; anywhere else, dollars", () => {
-    expect([countryFromIp("IN"), countryFromIp("GB"), countryFromIp("CA"), countryFromIp(null)]).toEqual(["IN", "UK", "US", "IN"]);
+    expect([countryFromIp("IN"), countryFromIp("GB"), countryFromIp("CA"), countryFromIp(null)]).toEqual(["IN", "UK", "WW", "IN"]);
   });
 
   it("the terms and refund policy list every country's price", () => {
-    expect(priceList("monthly")).toBe("₹299 (India), $4.99 (USA) or £3.99 (UK)");
+    expect(priceList("monthly")).toBe("₹299 (India), $4.99 (USA), £3.99 (UK) or $2.99 (rest of the world)");
   });
 });

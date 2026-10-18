@@ -31,6 +31,15 @@ type LevelNames = Pick<LevelMeta, "label" | "short" | "tagline">;
 
 /** What each level is called in each country — the same six steps of the hospital pathway. */
 const LEVEL_NAMES: Record<Exclude<Country, "IN">, Record<CareLevel, LevelNames>> = {
+  // Named by what they can do, so they fit anywhere in the world.
+  WW: {
+    phc: { label: "Primary Clinic", short: "Primary Clinic", tagline: "First contact, few tests" },
+    chc: { label: "Health Centre", short: "Health Centre", tagline: "Basic labs and X-ray" },
+    district: { label: "District Hospital", short: "District", tagline: "Secondary care" },
+    college: { label: "Tertiary Hospital", short: "Tertiary", tagline: "Full diagnostics, every department" },
+    apex: { label: "National Referral Centre", short: "National Referral", tagline: "The country's top referral centre" },
+    grandrounds: { label: "Global Centre of Excellence", short: "Global Excellence", tagline: "Rare & complex cases" },
+  },
   US: {
     phc: { label: "Primary Care Clinic", short: "Primary Care", tagline: "First contact" },
     chc: { label: "Community Hospital", short: "Community", tagline: "Local hospital care" },

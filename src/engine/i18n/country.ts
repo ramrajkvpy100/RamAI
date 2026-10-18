@@ -46,7 +46,7 @@ const localized = new WeakMap<ClinicalCaseDefinition, Partial<Record<Abroad, Cli
 
 /** The case as it happens in the player's country — same clinical truth, local people and places. */
 export function localizeCase(def: ClinicalCaseDefinition, country: Country): ClinicalCaseDefinition {
-  if (country === "IN") return def;
+  if (country === "IN" || country === "WW") return def;
   let byCountry = localized.get(def);
   if (!byCountry) localized.set(def, (byCountry = {}));
   return (byCountry[country] ??= buildCase(def, country));
@@ -340,7 +340,7 @@ function usWord(w: string): string {
 
 /** Any player-visible sentence in the country's units, money, names and spelling. */
 export function text(s: string, country: Country): string {
-  if (country === "IN" || !s) return s;
+  if (country === "IN" || country === "WW" || !s) return s;
   let t = money(proseUnits(s, country), country);
   for (const [re, rep] of NAMES[country]) t = t.replace(re, rep as string);
   t = t.replace(/\bNamaste\b/g, "Hello");
@@ -380,7 +380,7 @@ function presentDrug<T extends Pick<DrugAdministration, "generic" | "brand" | "d
 const fromPlayer = (role: string) => role === "doctor";
 
 export function presentState(state: CaseState, country: Country): CaseState {
-  if (country === "IN") return { ...state, country };
+  if (country === "IN" || country === "WW") return { ...state, country };
   const t = (s: string) => text(s, country);
   return {
     ...state,
@@ -405,7 +405,7 @@ export function presentState(state: CaseState, country: Country): CaseState {
 }
 
 export function presentEffects(effects: TurnEffect[], country: Country): TurnEffect[] {
-  if (country === "IN") return effects;
+  if (country === "IN" || country === "WW") return effects;
   const t = (s: string) => text(s, country);
   return effects.map((e): TurnEffect => {
     switch (e.type) {
@@ -437,7 +437,7 @@ export function presentEffects(effects: TurnEffect[], country: Country): TurnEff
 const DEBRIEF_FIXED = new Set(["caseRef", "specialty", "track", "level", "verdict", "finalStatus", "priority", "rescued", "category", "route", "severity", "stage", "id", "orderedInvestigationIds", "patientBand", "spec", "src", "userDiagnosis", "country", "coach"]);
 
 export function presentDebrief(debrief: CaseDebrief, country: Country): CaseDebrief {
-  if (country === "IN") return { ...debrief, country };
+  if (country === "IN" || country === "WW") return { ...debrief, country };
   const fix = (value: unknown): unknown => {
     if (typeof value === "string") return text(value, country);
     if (Array.isArray(value)) return value.map(fix);

@@ -205,7 +205,10 @@ export async function linkProfile(identity: AuthIdentity, opts: { guestId?: stri
            WHERE id = ? AND is_guest = 1`,
           identity.id, identity.email, username, d.name, d.country, NO_PASSWORD, now, now, d.termsAcceptedAt ?? now, d.termsVersion, opts.guestId,
         );
-        if (claimed.changes === 1) return findUserById(opts.guestId);
+        if (claimed.changes === 1) {
+          await creditReferralFromCookie(opts.guestId);
+          return findUserById(opts.guestId);
+        }
       }
       const id = randomUUID();
       await db.run(
@@ -213,6 +216,7 @@ export async function linkProfile(identity: AuthIdentity, opts: { guestId?: stri
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         id, identity.id, identity.email, username, d.name, NO_PASSWORD, now, d.country ?? "IN", now, d.termsAcceptedAt ?? now, d.termsVersion,
       );
+      await creditReferralFromCookie(id);
       return findUserById(id);
     } catch (err) {
       if (!isUniqueViolation(err)) throw err;
@@ -222,6 +226,17 @@ export async function linkProfile(identity: AuthIdentity, opts: { guestId?: stri
     }
   }
   throw new Error("Couldn't create the profile.");
+}
+
+/** A new account that came from a friend's invite link (the "ramai_ref" cookie): both get free Pro cases. Never blocks sign-up. */
+async function creditReferralFromCookie(userId: string): Promise<void> {
+  try {
+    const { cookies } = await import("next/headers");
+    const ref = (await cookies()).get("ramai_ref")?.value;
+    if (ref && /^[a-z0-9_.-]{2,40}$/i.test(ref)) await (await import("./credits")).creditReferral(userId, ref);
+  } catch {
+    // Outside a request (tests), or the cookie store isn't available: no referral.
+  }
 }
 
 /** A profile without Supabase — tests, and fixtures. */

@@ -41,3 +41,18 @@ describe("duels: two doctors, one patient", () => {
     expect(s).toBeLessThanOrEqual(92);
   });
 });
+
+import { creditReferral, creditsLeft, useCredit } from "@/server/credits";
+describe("free Pro cases", () => {
+  it("every account has a 5-case trial; a friend's link gives you both 5 more, once", async () => {
+    const neha = await createProfile({ email: "neha@example.com", username: "neha", name: "Neha" });
+    expect(await creditsLeft(neha.id)).toBe(5);
+    expect(await useCredit(neha.id)).toBe(true);
+    await creditReferral(neha.id, "asha");
+    await creditReferral(neha.id, "asha");
+    expect(await creditsLeft(neha.id)).toBe(9);
+    expect(await creditsLeft(asha.id)).toBe(10);
+    await creditReferral(asha.id, "asha");
+    expect(await creditsLeft(asha.id)).toBe(10);
+  });
+});

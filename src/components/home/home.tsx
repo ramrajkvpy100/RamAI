@@ -45,6 +45,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
   const me = useMe(initial) ?? initial;
   const snap = useCase();
   const { launch, starting, gate, setGate, closeGate, error } = useLauncher();
+  const [showMore, setShowMore] = useState(false);
   const startingLabel = useStartingMessage(starting);
   const [picker, setPicker] = useState(false);
   const [hello, setHello] = useState("Welcome");
@@ -212,8 +213,19 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
 
         {!showGuide && <AppCard guest={me.user.isGuest} played={p.history.length > 0} />}
 
+        {/* Kept simple: the path of levels and the league are one tap away, not in the way. */}
         <div data-tour="levels">
-          <LevelPath progress={p} plan={plan} library={library} starting={starting} onStart={(level) => void start({ level })} onLocked={locked} />
+          {showMore ? (
+            <LevelPath progress={p} plan={plan} library={library} starting={starting} onStart={(level) => void start({ level })} onLocked={locked} />
+          ) : (
+            <button type="button" onClick={() => setShowMore(true)} className="panel flex w-full items-center justify-between gap-3 p-4 text-left hover:bg-surface-2">
+              <span>
+                <span className="block text-[15px] font-semibold">Your path & weekly league</span>
+                <span className="block text-[12.5px] text-fg-2">Six hospital levels, from PHC to rare & complex cases</span>
+              </span>
+              <Icon name="chevron-down" size={16} className="text-fg-3" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -283,9 +295,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           )}
         </section>
 
-        <div data-tour="league">
-          <LeagueCard meId={me.user.id} />
-        </div>
+        <div data-tour="league">{showMore && <LeagueCard meId={me.user.id} />}</div>
       </div>
 
       <CasePicker

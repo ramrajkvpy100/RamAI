@@ -1,3 +1,4 @@
+import { RefCapture } from "@/components/app/ref-capture";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
@@ -48,6 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-dvh bg-bg text-fg antialiased">
         {children}
+        <RefCapture />
         <StartingOverlay />
         <ServiceWorker />
         <QuickSuggest />

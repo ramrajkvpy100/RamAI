@@ -103,8 +103,8 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
 /* Prompts — what never changes first, so OpenAI's prompt caching can reuse it */
 /* -------------------------------------------------------------------------- */
 
-const IDIOM: Record<Country, string> = { IN: "Indian English", US: "American English", UK: "British English" };
-const WHERE: Record<Country, string> = { IN: "India", US: "the USA", UK: "the UK" };
+const IDIOM: Record<Country, string> = { IN: "Indian English", US: "American English", UK: "British English", WW: "plain international English" };
+const WHERE: Record<Country, string> = { IN: "India", US: "the USA", UK: "the UK", WW: "a low- or middle-income country (choose a realistic one — in Africa, South or Southeast Asia, the Middle East or Latin America), following WHO guidance" };
 const language = (country: Country = "IN", lang: PatientLang = "en") =>
   lang === "hinglish" ? "Hinglish — everyday Hindi written in Roman letters, mixed with common English words, as people speak in North India" : `natural ${IDIOM[country]}`;
 
@@ -495,6 +495,12 @@ const EXAM: Record<Country, { name: string; board: string; options: number; styl
     board: "the National Board of Examinations and AIIMS",
     options: 4,
     style: "NEET PG / INI-CET single best answer: a one-to-three-line stem — a short clinical vignette or a direct question — and FOUR options. High-yield, as Indian postgraduate entrance exams test: drug of choice, investigation of choice, most common cause, characteristic sign, next best step, per standard Indian textbooks and national guidelines",
+  },
+  WW: {
+    name: "International licensing exams (FMGE, PLAB, USMLE, AMC)",
+    board: "international medical licensing boards",
+    options: 4,
+    style: "Single best answer: a short clinical vignette and FOUR options, high-yield and guideline-based (WHO where it applies): diagnosis, next best step, drug of choice, investigation of choice",
   },
   US: {
     name: "USMLE Step 2 CK",

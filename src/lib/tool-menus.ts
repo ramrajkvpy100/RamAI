@@ -147,6 +147,7 @@ export function applyInsert(draftText: string, item: ToolItem): string {
 
 /** The same shortcuts in the words used where the case is set: BMP in the USA, U&E in the UK. */
 const LOCAL_WORDS: Record<Exclude<Country, "IN">, [RegExp, string][]> = {
+  WW: [[/\bRBS\b/g, "glucose"], [/^glucose$/, "Glucose"], [/\bUSG\b/g, "Ultrasound"]],
   US: [
     [/\bRBS\b/g, "glucose"], [/^glucose$/, "Glucose"], [/\bRFT\b/g, "BMP"], [/\bFBS\b/g, "Fasting glucose"], [/\bUSG\b/g, "Ultrasound"],
     [/\bCECT\b/g, "CT"], [/\bNCCT head\b/g, "CT head"], [/\bUrine routine\b/g, "Urinalysis"], [/\bStool routine\b/g, "Stool microscopy"],

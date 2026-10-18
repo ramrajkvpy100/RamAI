@@ -13,6 +13,32 @@ import { useSpeech } from "@/lib/use-speech";
 import { useComposer } from "./composer-context";
 import { ToolMenu } from "./tool-menu";
 
+/** Beginner (suggestions and timed hints) or Expert (nothing offered) — the doctor's choice, remembered on this device. */
+const EXPERT_KEY = "ramai.expert";
+const expertListeners = new Set<() => void>();
+export function useExpert(): { on: boolean; toggle: () => void } {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const read = () => {
+      try {
+        setOn(localStorage.getItem(EXPERT_KEY) === "1");
+      } catch {}
+    };
+    read();
+    expertListeners.add(read);
+    return () => void expertListeners.delete(read);
+  }, []);
+  return {
+    on,
+    toggle: () => {
+      try {
+        localStorage.setItem(EXPERT_KEY, on ? "0" : "1");
+      } catch {}
+      expertListeners.forEach((f) => f());
+    },
+  };
+}
+
 export function Composer({
   onSend,
   disabled,
@@ -40,7 +66,9 @@ export function Composer({
   const menuRef = useRef<HTMLDivElement>(null);
   const base = useRef("");
   const speech = useSpeech((text) => setDraft(base.current ? `${base.current} ${text}` : text));
-  const actions = QUICK_ACTIONS.filter((a) => !phone || a.id === "history" || a.id === "treatment");
+  const actions = QUICK_ACTIONS.filter((a) => a.id !== "monitoring" && (!phone || a.id === "history" || a.id === "treatment"));
+  const monitorAction = phone ? undefined : QUICK_ACTIONS.find((a) => a.id === "monitoring");
+  const expert = useExpert();
 
   // Grow with content, up to ~6 lines.
   useEffect(() => {
@@ -101,7 +129,7 @@ export function Composer({
     inputRef.current?.focus();
   };
 
-  const active = actions.find((a) => a.id === menu);
+  const active = QUICK_ACTIONS.find((a) => a.id === menu && (a.id !== "monitoring" || !!monitorAction));
   const categories = active ? menusFor(country).filter((c) => active.categories.includes(c.id)) : [];
 
   // Quiet for a minute and a half: a hint is offered (never given unasked).
@@ -115,7 +143,23 @@ export function Composer({
 
   return (
     <div className="relative" ref={menuRef}>
-      {idle && !draft && !sending && !disabled && (
+      {menu === "more" && (
+        <div className="popover absolute right-0 bottom-full left-0 z-20 mb-2 animate-enter rounded-2xl p-3" role="dialog" aria-label="More">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {monitorAction && (
+              <button type="button" onClick={() => setMenu(monitorAction.id)} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2">📈 Monitor</button>
+            )}
+            <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Opinion"); }} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2 disabled:opacity-50">🩺 Opinion</button>
+            {!expert.on && (
+              <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Hint"); }} className="h-11 rounded-xl border border-amber-300/60 bg-amber-50 text-[13.5px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">💡 Hint</button>
+            )}
+            <button type="button" onClick={() => expert.toggle()} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2" title="Beginner shows suggestions and timed hints; Expert shows nothing">
+              {expert.on ? "🎓 Expert mode ✓" : "🌱 Beginner mode ✓"}
+            </button>
+          </div>
+        </div>
+      )}
+      {idle && !expert.on && !draft && !sending && !disabled && (
         <button
           type="button"
           onClick={() => {
@@ -191,23 +235,6 @@ export function Composer({
                 <Icon name="chevron-right" size={13} strokeWidth={2.4} className="-ml-2" />
               </button>
             )}
-            <button
-              type="button"
-              disabled={disabled || sending}
-              onClick={() => void onSend("Opinion")}
-              className="h-8 shrink-0 rounded-full border border-line px-3 text-[13px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg disabled:opacity-50"
-            >
-              🩺 Opinion
-            </button>
-            {/* Stuck? A nudge to the next step — only when asked for, and counted in the debrief. */}
-            <button
-              type="button"
-              disabled={disabled || sending}
-              onClick={() => void onSend("Hint")}
-              className="h-8 shrink-0 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-[13px] font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
-            >
-              💡 Hint
-            </button>
             {actions.map((a) => (
               <button
                 key={a.id}
@@ -223,6 +250,15 @@ export function Composer({
                 {a.label}
               </button>
             ))}
+            {/* The rest, one tap away: kept out of the row so it stays short. */}
+            <button
+              type="button"
+              aria-expanded={menu === "more"}
+              onClick={() => setMenu((m) => (m === "more" ? null : "more"))}
+              className={cn("h-8 shrink-0 rounded-full border px-3 text-[13px] font-medium transition-colors", menu === "more" ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:bg-surface-3 hover:text-fg")}
+            >
+              More ▾
+            </button>
 
           </div>
           <span className="hidden items-center gap-1 text-[11px] text-fg-3 xl:flex">

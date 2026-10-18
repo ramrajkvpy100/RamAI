@@ -5,8 +5,9 @@
  * Isomorphic: the client formats with it, the server localises with it.
  */
 
-export type Country = "IN" | "US" | "UK";
-export const COUNTRIES: readonly Country[] = ["IN", "US", "UK"];
+/** "WW": the rest of the world — WHO guidelines, SI units, generic drugs, typical low- and middle-income prices in dollars. */
+export type Country = "IN" | "US" | "UK" | "WW";
+export const COUNTRIES: readonly Country[] = ["IN", "US", "UK", "WW"];
 
 export interface CountryInfo {
   id: Country;
@@ -33,10 +34,11 @@ export interface CountryInfo {
 export const COUNTRY: Record<Country, CountryInfo> = {
   IN: { id: "IN", name: "India", short: "India", flag: "🇮🇳", emergency: "108", currency: { symbol: "₹", code: "INR", rate: 1, step: 1, locale: "en-IN" }, si: false, glucoseLabel: "RBS" },
   US: { id: "US", name: "United States", short: "USA", flag: "🇺🇸", emergency: "911", currency: { symbol: "$", code: "USD", rate: 0.3, step: 5, locale: "en-US" }, si: false, glucoseLabel: "Glucose" },
+  WW: { id: "WW", name: "Global (WHO)", short: "Global", flag: "🌍", emergency: "112", currency: { symbol: "$", code: "USD", rate: 0.12, step: 1, locale: "en" }, si: true, glucoseLabel: "Glucose" },
   UK: { id: "UK", name: "United Kingdom", short: "UK", flag: "🇬🇧", emergency: "999", currency: { symbol: "£", code: "GBP", rate: 0.05, step: 1, locale: "en-GB" }, si: true, glucoseLabel: "CBG" },
 };
 
-export const isCountry = (x: unknown): x is Country => x === "IN" || x === "US" || x === "UK";
+export const isCountry = (x: unknown): x is Country => x === "IN" || x === "US" || x === "UK" || x === "WW";
 
 /** A rupee price as a typical local price, rounded to a sensible step. */
 export function localPrice(inr: number, country: Country): number {
@@ -59,5 +61,6 @@ export function countryFromLocale(locale: string | undefined): Country {
   const l = (locale ?? "").toLowerCase();
   if (/-us$/.test(l)) return "US";
   if (/-(gb|uk)$/.test(l)) return "UK";
-  return "IN";
+  if (/-in$/.test(l) || l === "hi" || l.startsWith("hi-")) return "IN";
+  return l ? "WW" : "IN";
 }

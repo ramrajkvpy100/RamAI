@@ -60,6 +60,7 @@ export const PRICE_BOOK: Record<Country, { currency: "INR" | "USD" | "GBP"; loca
   IN: { currency: "INR", locale: "en-IN", monthly: 299 },
   US: { currency: "USD", locale: "en-US", monthly: 4.99 },
   UK: { currency: "GBP", locale: "en-GB", monthly: 3.99 },
+  WW: { currency: "USD", locale: "en", monthly: 2.99 },
 };
 
 /** Pro is bought a month at a time. */
@@ -105,10 +106,10 @@ export function priceFor(country: Country, period: BillingPeriod): Price {
 
 /** Every country's price for a period, for the terms and policies: "₹299 (India), $4.99 (USA) or £3.99 (UK)". */
 export function priceList(period: BillingPeriod): string {
-  const where: Record<Country, string> = { IN: "India", US: "USA", UK: "UK" };
+  const where: Record<Country, string> = { IN: "India", US: "USA", UK: "UK", WW: "rest of the world" };
   const parts = (Object.keys(PRICE_BOOK) as Country[]).map((c) => `${priceFor(c, period).label} (${where[c]})`);
   return `${parts.slice(0, -1).join(", ")} or ${parts.at(-1)}`;
 }
 
 /** Where a visitor without an account is browsing from (Vercel's country header): India, the UK, or else US dollars. */
-export const countryFromIp = (code: string | null | undefined): Country => (code === "IN" ? "IN" : code === "GB" ? "UK" : code ? "US" : "IN");
+export const countryFromIp = (code: string | null | undefined): Country => (code === "IN" ? "IN" : code === "GB" ? "UK" : code === "US" ? "US" : code ? "WW" : "IN");

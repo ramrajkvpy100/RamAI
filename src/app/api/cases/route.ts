@@ -6,6 +6,7 @@ import { learnFor, sessionInfo, simulateCase, teachingFor } from "@/engine/engin
 import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
+import { TRIAL, useCredit } from "@/server/credits";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { bankCase, takeFromBank, takeReady, type PoolChoice } from "@/server/case-pool";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
@@ -44,13 +45,17 @@ export async function POST(req: Request) {
       return apiError(409, "DAILY_DONE", "You've played today's case. A new one unlocks at midnight IST.");
     }
     // The daily case is free for everyone, whatever its level, and doesn't use up the day's cases.
-    if (!tutorial && !daily && body.level && !plan.levels.includes(body.level as CareLevel)) {
+    const lockedLevel = !tutorial && !daily && !!body.level && !plan.levels.includes(body.level as CareLevel);
+    const overLimit = !tutorial && !daily && limit !== null && today >= limit;
+    // A free Pro case (the trial, or a friend's referral) opens either gate — for accounts, not guests.
+    if ((lockedLevel || overLimit) && !user.isGuest && (await useCredit(user.id))) {
+      // allowed: one free Pro case used
+    } else if (lockedLevel) {
       return apiError(402, "PRO_REQUIRED", "This level is part of RamAI Pro.");
-    }
-    // Guests get a few real cases a day; free accounts a few more; Pro is unlimited (and open to every account for now).
-    if (!tutorial && !daily && limit !== null && today >= limit) {
-      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's your ${limit} free cases for today. Log in and go Pro for unlimited cases — or come back after midnight.`);
-      return apiError(402, "DAILY_LIMIT", "Go Pro for unlimited cases at every level.");
+    } else if (overLimit) {
+      // Guests get a few real cases a day; accounts a free Pro trial; Pro is unlimited.
+      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's your ${limit} free cases for today. Sign up free for ${TRIAL} Pro cases — or come back after midnight.`);
+      return apiError(402, "DAILY_LIMIT", "Your free Pro cases are used up. Go Pro for unlimited cases at every level — or invite a friend for 5 more each.");
     }
     // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
     const picked = !!(body.specialty || body.track || body.level);

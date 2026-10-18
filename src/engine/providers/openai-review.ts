@@ -20,6 +20,7 @@ export const GUIDELINES: Record<Country, string> = {
   IN: "current Indian practice — the Standard Treatment Guidelines (ICMR/MoHFW), national programme guidelines (NTEP, NVBDCP, NACO, NHM), API, IAP, FOGSI and CSI guidance, and the National List of Essential Medicines",
   US: "current US practice — AHA/ACC, IDSA, ATS, ACOG, AAP, ADA Standards of Care, GOLD, GINA, Surviving Sepsis Campaign and USPSTF guidance",
   UK: "current UK practice — NICE guidelines and CKS, the BNF and BNFC for doses, SIGN, BTS, RCOG and Resuscitation Council UK guidance",
+  WW: "current WHO guidance — WHO guidelines and the WHO Model List of Essential Medicines, IMCI/IMNCI, the WHO malaria, TB, HIV and dengue guidelines, Surviving Sepsis Campaign and ILCOR resuscitation guidance",
 };
 
 const consultant = (concept: Concept, country: Country): ChatMessage => ({

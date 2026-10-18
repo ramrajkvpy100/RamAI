@@ -58,7 +58,7 @@ export function useVoicesEnabled(): boolean {
 /* Choosing a voice                                                            */
 /* -------------------------------------------------------------------------- */
 
-const ACCENT: Record<Country, string> = { IN: "en-in", US: "en-us", UK: "en-gb" };
+const ACCENT: Record<Country, string> = { IN: "en-in", US: "en-us", UK: "en-gb", WW: "en" };
 const FEMALE = /female|woman|samantha|victoria|karen|moira|tessa|fiona|veena|lekha|kate\b|serena|susan|zira|hazel|heera|neerja|aria\b|jenny|sonia|libby|ava\b|allison|nicky|zoe\b|joelle|kathy|isha\b|kajal|swara|aditi|raveena|emma\b|amy\b|joanna|salli|kimberly|ivy\b|martha|stephanie|flo\b|sandy|shelley|grandma/i;
 const MALE = /\bmale\b|daniel|alex\b|fred\b|rishi|ravi\b|arthur|oliver|aaron|\btom\b|guy\b|ryan|thomas|david|mark\b|george|prabhat|hemant|madhur|brian|matthew|justin|joey|russell|eddy|reed\b|rocko|ralph|grandpa/i;
 /** Voices made for fun (robots, bubbles, singing) — never for a patient. */

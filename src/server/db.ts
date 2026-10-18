@@ -273,6 +273,14 @@ CREATE TABLE IF NOT EXISTS case_feedback (
 );
 CREATE INDEX IF NOT EXISTS case_feedback_kind ON case_feedback(kind, created_at);
 
+-- Free Pro cases: a trial for every account, and more for inviting a friend (and for the friend).
+CREATE TABLE IF NOT EXISTS case_credits (
+  user_id TEXT PRIMARY KEY,
+  credits INTEGER NOT NULL,
+  referred_by TEXT,
+  created_at INTEGER NOT NULL
+);
+
 -- Two doctors, one patient: the case is shared, the scores compared.
 CREATE TABLE IF NOT EXISTS duels (
   id TEXT PRIMARY KEY,
@@ -598,7 +606,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 24;
+const SCHEMA_VERSION = 25;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
