@@ -79,7 +79,7 @@ const STEPS: Step[] = [
     title: "Check his sugar",
     body: (t) => (
       <>
-        Confused and sweaty in a diabetic: check the sugar first. <Q>{t.check}</Q> All tests are under <b>Tests</b>.
+        Confused and sweaty in a diabetic: check the sugar first — and see how tests, the ECG and an X-ray come back. <Q>{t.check}</Q> All tests are under <b>Tests</b>; tap a picture to enlarge it.
       </>
     ),
     target: "composer",

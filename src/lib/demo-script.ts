@@ -37,7 +37,7 @@ export function demoScript(country: Country = "IN"): DemoScript {
   const w = WORDS[country];
   return {
     talk: "What happened? Ask about diabetes, medicines, meals and allergies",
-    check: `${w.check} and ECG`,
+    check: `${w.check}, ECG and chest X-ray`,
     bolus: w.bolus,
     recheck: w.recheck,
     examine: "Examine him and check neuro",

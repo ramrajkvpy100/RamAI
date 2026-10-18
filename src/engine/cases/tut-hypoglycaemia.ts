@@ -93,6 +93,9 @@ export const tutHypoglycaemia: ClinicalCaseDefinition = {
   ],
 
   investigations: [
+    { id: "cxr", priority: "useful",
+      report: "PA chest film: clear lung fields, no consolidation or aspiration. Heart size normal. Costophrenic angles sharp.",
+      teaching: { whenToOrder: "A confused patient who may have vomited or aspirated — and to show the X-ray viewer in this demo.", whatItTellsYou: "Normal: no aspiration pneumonia." } },
     { id: "ecg", priority: "useful",
       media: ecg({ rate: 112, rhythm: "sinus" }, "Twelve-lead ECG at about 110 per minute."),
       report: "Sinus tachycardia, 112/min. Normal axis. No ST-segment or T-wave changes.",

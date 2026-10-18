@@ -132,7 +132,7 @@ export function usePortrait(state: CaseState): string | null {
   const token = useCase().session?.token ?? null;
   const ready = !!token;
   useEffect(() => {
-    if (state.guided || !ready) return;
+    if (!ready) return;
     const session = caseSnapshot().session;
     if (!session) return;
     let live = true;
@@ -148,7 +148,7 @@ export function usePortrait(state: CaseState): string | null {
     return () => {
       live = false;
     };
-  }, [state.sessionId, state.guided, ready]);
+  }, [state.sessionId, ready]);
   return url;
 }
 
