@@ -58,3 +58,42 @@ export const RADIOLOGY_BRIEFS: Record<string, RadiologyBrief> = {
 
 /** The modalities radiologists report (not ECGs or blood smears). */
 export const RADIOLOGY_MODALITIES: Modality[] = ["xray", "ct", "usg"];
+
+/** Modalities beyond the practice bank: their cases live here, their images in radiology-singles.json. */
+export type ExtraModality = "mammo" | "mri" | "fluoro" | "nuclear";
+
+export interface ExtraItem {
+  id: string;
+  modality: ExtraModality;
+  label: string;
+  /** The model report: key findings. */
+  key: string;
+  history: string;
+  question: string;
+  /** Searches for real, freely licensed images (Wikimedia Commons). */
+  search: string[];
+}
+
+export const EXTRA_ITEMS: ExtraItem[] = [
+  // Mammography (CBIS-DDSM, TCIA)
+  { id: "mammo-mass", modality: "mammo", label: "Breast mass", key: "A focal mass with irregular or spiculated margins — suspicious for carcinoma; needs targeted ultrasound and biopsy (BI-RADS 4–5).", history: "54-year-old woman recalled from screening; no symptoms.", question: "Screening mammogram: findings?", search: [] },
+  { id: "mammo-calc", modality: "mammo", label: "Suspicious microcalcifications", key: "Clustered, fine pleomorphic or linear branching calcifications — suspicious for ductal carcinoma in situ; stereotactic biopsy (BI-RADS 4).", history: "51-year-old woman recalled from screening; no lump felt.", question: "Screening mammogram: findings?", search: [] },
+  // Mammography distractors (answer choices with their own findings, no pictures)
+  { id: "mammo-normal", modality: "mammo", label: "Normal mammogram", key: "Symmetric fibroglandular tissue with no mass, architectural distortion or suspicious calcification (BI-RADS 1).", history: "", question: "", search: [] },
+  { id: "mammo-distortion", modality: "mammo", label: "Architectural distortion", key: "Spiculation radiating from a point without a definite central mass.", history: "", question: "", search: [] },
+  // MRI
+  { id: "mri-disc", modality: "mri", label: "Lumbar disc herniation", key: "A disc extrusion or protrusion at a lumbar level, narrowing the canal or exit foramen and compressing a nerve root.", history: "38-year-old man with low back pain and shooting pain down the back of one leg after lifting; positive straight-leg raise.", question: "MRI lumbar spine (T2): findings?", search: ["lumbar disc herniation MRI", "disc prolapse MRI lumbar", "herniated disc sagittal T2"] },
+  { id: "mri-ms", modality: "mri", label: "Multiple sclerosis", key: "Multiple ovoid T2/FLAIR-bright white-matter lesions, periventricular and perpendicular to the ventricles (Dawson's fingers), juxtacortical or infratentorial.", history: "29-year-old woman with blurred vision in one eye last year, now tingling and weakness of both legs.", question: "MRI brain (FLAIR): findings?", search: ["multiple sclerosis MRI FLAIR", "multiple sclerosis lesions MRI brain", "Dawson fingers MRI"] },
+  { id: "mri-acl", modality: "mri", label: "ACL tear", key: "The anterior cruciate ligament is discontinuous or not seen, with bone bruising and a joint effusion.", history: "24-year-old footballer who twisted his knee, heard a pop and had immediate swelling; positive Lachman test.", question: "MRI knee: findings?", search: ["anterior cruciate ligament tear MRI", "ACL rupture MRI knee", "torn ACL MRI"] },
+  { id: "mri-pituitary", modality: "mri", label: "Pituitary macroadenoma", key: "A sellar mass larger than 10 mm extending upwards (a 'snowman' shape), which may compress the optic chiasm.", history: "45-year-old man with headaches and bumping into things on both sides; bitemporal hemianopia on confrontation.", question: "MRI pituitary (coronal T1 + contrast): findings?", search: ["pituitary macroadenoma MRI", "pituitary adenoma MRI coronal", "pituitary tumor MRI"] },
+  { id: "mri-meningioma", modality: "mri", label: "Meningioma", key: "A well-circumscribed, extra-axial, dural-based mass enhancing homogeneously, often with a dural tail.", history: "58-year-old woman with a year of headaches and a recent seizure.", question: "MRI brain with contrast: findings?", search: ["meningioma MRI", "meningioma contrast MRI dural tail", "convexity meningioma MRI"] },
+  // Contrast studies (fluoroscopy)
+  { id: "fluoro-achalasia", modality: "fluoro", label: "Achalasia", key: "A dilated oesophagus tapering smoothly to a narrow lower end — the 'bird's beak' — with retained barium.", history: "42-year-old woman with slowly worsening difficulty swallowing both solids and liquids, and regurgitation at night.", question: "Barium swallow: findings?", search: ["achalasia barium swallow", "bird's beak achalasia", "achalasia esophagogram"] },
+  { id: "fluoro-applecore", modality: "fluoro", label: "Colorectal carcinoma (apple-core lesion)", key: "A short, circumferential narrowing of the colon with shouldered, overhanging edges — the 'apple-core' sign of carcinoma.", history: "67-year-old man with change in bowel habit, rectal bleeding and iron-deficiency anaemia.", question: "Barium enema: findings?", search: ["apple core lesion barium enema", "colon cancer barium enema", "apple core sign colon"] },
+  { id: "fluoro-crohns", modality: "fluoro", label: "Crohn's disease (string sign)", key: "A long, narrowed segment of terminal ileum (the 'string sign'), with ulceration and separated loops.", history: "23-year-old man with months of right iliac fossa pain, diarrhoea and weight loss.", question: "Small bowel follow-through: findings?", search: ["Crohn's string sign", "Crohn disease small bowel follow through", "terminal ileum stricture barium"] },
+  { id: "fluoro-hiatus", modality: "fluoro", label: "Hiatus hernia", key: "Part of the stomach lies above the diaphragm, through the oesophageal hiatus.", history: "60-year-old woman with heartburn worse lying flat and after meals.", question: "Barium meal: findings?", search: ["hiatus hernia barium swallow", "hiatal hernia barium", "sliding hiatus hernia barium meal"] },
+  // Nuclear medicine
+  { id: "nm-bonemets", modality: "nuclear", label: "Bone metastases", key: "Multiple, randomly scattered foci of increased uptake in the axial skeleton (spine, ribs, pelvis) — metastases.", history: "70-year-old man with prostate cancer, PSA 85, and new back and hip pain.", question: "Whole-body bone scan (Tc-99m MDP): findings?", search: ["bone scan metastases", "bone scintigraphy metastases prostate", "technetium bone scan metastatic"] },
+  { id: "nm-graves", modality: "nuclear", label: "Graves' disease", key: "Diffusely increased, uniform tracer uptake throughout an enlarged thyroid.", history: "32-year-old woman with weight loss, palpitations, tremor, a diffuse goitre and protruding eyes; TSH suppressed.", question: "Thyroid scintigraphy (Tc-99m pertechnetate): findings?", search: ["Graves disease thyroid scintigraphy", "thyroid scan diffuse uptake Graves", "Graves thyroid scan"] },
+  { id: "nm-toxic-adenoma", modality: "nuclear", label: "Toxic adenoma", key: "A single 'hot' nodule taking up tracer, with the rest of the gland suppressed.", history: "55-year-old woman with hyperthyroid symptoms and a single palpable thyroid nodule; TSH suppressed.", question: "Thyroid scintigraphy: findings?", search: ["toxic adenoma thyroid scan", "hot thyroid nodule scintigraphy", "autonomous thyroid nodule scintigraphy"] },
+];

@@ -246,5 +246,117 @@
     "author": "Glitzy queen00 at English Wikipedia",
     "license": "Public domain",
     "source": "https://commons.wikimedia.org/wiki/File:Intracerebral_hemorrage_(CT_scan).jpg"
+  },
+  {
+    "item": "mri-disc",
+    "modality": "mri",
+    "src": "/radiology/singles/mri-disc/c0.png",
+    "author": "Edave",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:L4-l5-disc-herniation.png"
+  },
+  {
+    "item": "fluoro-achalasia",
+    "modality": "fluoro",
+    "src": "/radiology/singles/fluoro-achalasia/c1.jpg",
+    "author": "Nevit Dilmen (talk)",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Radiology_0009_Nevit.jpg"
+  },
+  {
+    "item": "mammo-mass",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-mass/t0.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-mass",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-mass/t1.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-mass",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-mass/t2.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-mass",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-mass/t3.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-mass",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-mass/t4.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-mass",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-mass/t5.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-calc",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-calc/t0.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-calc",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-calc/t1.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-calc",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-calc/t2.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-calc",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-calc/t3.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-calc",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-calc/t4.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
+  },
+  {
+    "item": "mammo-calc",
+    "modality": "mammo",
+    "src": "/radiology/singles/mammo-calc/t5.jpg",
+    "author": "CBIS-DDSM (Lee RS et al.)",
+    "license": "CC BY 3.0",
+    "source": "https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY"
   }
 ]

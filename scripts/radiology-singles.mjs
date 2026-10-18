@@ -23,12 +23,22 @@ const MODALITY = {
   ct: { words: ["CT", "CT scan"], must: /\bct\b|computed tomograph|\bcect\b|\bncct\b|ctpa|angiogra/i },
   usg: { words: ["ultrasound", "sonography"], must: /ultrasound|ultrason|sonograph|\busg\b|\bus\b|doppler|echograph|fast exam/i },
 };
-const items = ids.map((id) => {
+let items = ids.map((id) => {
   const line = practice.split("\n").find((l) => l.includes(`id: "${id}"`)) ?? "";
   const label = line.match(/label: "([^"]+)"/)?.[1] ?? id;
   const search = [...(line.match(/search: \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
   return { id, label, search, modality: modalityOf(id) };
 });
+// The extra modalities' cases (MRI, contrast studies, nuclear medicine), read from their own list.
+const EXTRA_MODALITY = {
+  mri: { words: ["MRI"], must: /\bmri\b|magnetic resonance|\bt1\b|\bt2\b|flair|\bmr\b/i },
+  fluoro: { words: ["barium", "fluoroscopy"], must: /barium|swallow|enema|fluoroscop|esophagogra|oesophagogra|follow[- ]through|meal|contrast study/i },
+  nuclear: { words: ["scintigraphy", "scan"], must: /scintigra|bone scan|technetium|pertechnetate|\bspect\b|nuclear|\bmdp\b|isotope|radionuclide/i },
+};
+for (const m of briefs.matchAll(/\{ id: "([a-z-]+)", modality: "(mri|fluoro|nuclear)", label: "([^"]+)"[^\n]*search: \[([^\]]*)\] \}/g)) {
+  items.push({ id: m[1], label: m[3], search: [...m[4].matchAll(/"([^"]+)"/g)].map((x) => x[1]), modality: m[2] });
+}
+Object.assign(MODALITY, EXTRA_MODALITY);
 const only = process.argv.slice(2);
 const plain = (h) => String(h ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 

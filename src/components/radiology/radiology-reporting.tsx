@@ -10,15 +10,15 @@ import STACKS from "@/lib/radiology-stacks.json";
 import { StackViewer } from "./stack-viewer";
 
 type Item = DrillItem & { brief: RadiologyBrief; stack?: { id: string; slices: number; credit: string } };
-type Tab = Modality | "stack";
+type Tab = Modality | "mammo" | "mri" | "stack";
 
-const TABS: [Tab, string][] = [["xray", "X-ray"], ["ct", "CT"], ["usg", "Ultrasound"], ["stack", "CT/MRI scroll"]];
+const TABS: [Tab, string][] = [["xray", "X-ray"], ["ct", "CT"], ["usg", "Ultrasound"], ["mammo", "Mammography"], ["mri", "MRI"], ["stack", "CT/MRI scroll"]];
 
 const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 
 /** The scroll-through series (real TCIA studies), as reporting cases. */
-function stackItems(): Item[] {
-  return shuffle(STACKS).map((s) => {
+function stackItems(only?: "MR"): Item[] {
+  return shuffle(STACKS.filter((s) => !only || s.modality === only)).map((s) => {
     const options = shuffle(s.options);
     return { item: s.id, image: null, ecg: null, options, answer: options.indexOf(s.diagnosis), key: s.key, credit: null, source: "commons" as const, brief: { history: s.history, question: s.question }, stack: { id: s.id, slices: s.slices, credit: s.credit } };
   });
@@ -47,9 +47,11 @@ export function RadiologyReporting() {
       setItems(stackItems());
       return;
     }
+    // MRI: the MRI series to scroll through, with the single MRI images.
+    const extra = m === "mri" ? stackItems("MR") : [];
     const res = await fetch("/api/radiology/round", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modality: m }) }).catch(() => null);
     const json = res?.ok ? ((await res.json()) as { items: Item[] }) : { items: [] };
-    setItems(json.items);
+    setItems(shuffle([...json.items, ...extra]));
   }, []);
   useEffect(() => void load(modality), [modality, load]);
 
@@ -67,7 +69,7 @@ export function RadiologyReporting() {
         <h1 className="mt-2 text-[28px] font-semibold tracking-[-0.03em]">Report the study</h1>
         <p className="mt-1 text-[14.5px] text-fg-2">Real images, a real request form — from the history to the diagnosis. Write your findings, then commit.</p>
       </header>
-      <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-surface-3 p-1 sm:grid-cols-6">
         {TABS.map(([id, label]) => (
           <button key={id} type="button" aria-pressed={modality === id} onClick={() => setModality(id)} className={cn("h-10 rounded-lg text-[13.5px] font-medium", modality === id ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
             {label}
