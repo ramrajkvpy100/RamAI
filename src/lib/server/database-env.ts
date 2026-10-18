@@ -14,7 +14,14 @@ export interface RemoteDatabase {
  * and TURSO_AUTH_TOKEN; other names (a custom prefix, LIBSQL_URL…) are found
  * by their libsql:// address.
  */
+/**
+ * The main production database (its address isn't secret; its token is). Used when the Vercel–Turso
+ * connection is removed — that connection made an empty branch per deployment, until it hit Turso's limit.
+ */
+const MAIN_DATABASE_URL = "libsql://database-byzantine-blanket-vercel-icfg-iy7zndploowyv07lupo4atm6.aws-ap-south-1.turso.io";
+
 export function remoteDatabase(env: Record<string, string | undefined> = process.env): RemoteDatabase | null {
+  if (!env.TURSO_DATABASE_URL && !env.LIBSQL_URL && !env.RAMAI_DB_URL && env.RAMAI_MAIN_DB_TOKEN) return { url: MAIN_DATABASE_URL, authToken: env.RAMAI_MAIN_DB_TOKEN };
   const url = env.TURSO_DATABASE_URL || env.LIBSQL_URL || env.RAMAI_DB_URL;
   if (url) return { url, authToken: env.TURSO_AUTH_TOKEN || env.LIBSQL_AUTH_TOKEN || env.RAMAI_DB_TOKEN };
   for (const [key, value] of Object.entries(env)) {
