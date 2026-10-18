@@ -281,6 +281,27 @@ CREATE TABLE IF NOT EXISTS case_credits (
   created_at INTEGER NOT NULL
 );
 
+-- Where the doctor is in their career: shapes how hard their cases are.
+CREATE TABLE IF NOT EXISTS user_prefs (
+  user_id TEXT PRIMARY KEY,
+  stage TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Private leaderboards: a college, hospital or coaching class, joined by code.
+CREATE TABLE IF NOT EXISTS study_groups (
+  code TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  owner_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS study_group_members (
+  code TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  joined_at INTEGER NOT NULL,
+  PRIMARY KEY (code, user_id)
+);
+
 -- Two doctors, one patient: the case is shared, the scores compared.
 CREATE TABLE IF NOT EXISTS duels (
   id TEXT PRIMARY KEY,
@@ -606,7 +627,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 25;
+const SCHEMA_VERSION = 27;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

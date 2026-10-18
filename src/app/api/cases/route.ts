@@ -7,6 +7,7 @@ import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { requireUser } from "@/server/auth";
 import { TRIAL, useCredit } from "@/server/credits";
+import { db } from "@/server/db";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { bankCase, takeFromBank, takeReady, type PoolChoice } from "@/server/case-pool";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
@@ -59,7 +60,9 @@ export async function POST(req: Request) {
     }
     // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
     const picked = !!(body.specialty || body.track || body.level);
-    const easy = !tutorial && !daily && !picked && (user.isGuest || total <= 3);
+    // Students get classic presentations; everyone else after their first few cases gets the full range.
+    const stage = (await db.get<{ stage: string }>("SELECT stage FROM user_prefs WHERE user_id = ?", user.id).catch(() => undefined))?.stage;
+    const easy = !tutorial && !daily && !picked && (user.isGuest || total <= 3 || stage === "student");
     // Their own specialty, unless they chose one (or "any") for this case. "mixed" (or not said): every specialty.
     const own = user.specialty && user.specialty !== "mixed" ? user.specialty : undefined;
     const specialty = body.specialty === "any" ? undefined : ((body.specialty as Specialty | undefined) ?? own);

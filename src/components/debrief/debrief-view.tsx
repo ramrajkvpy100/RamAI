@@ -51,6 +51,15 @@ function duration(min: number) {
   return h ? `${h} h ${m} min` : `${m} min`;
 }
 
+/** Where the case's subject is practised as exam questions: the country's own exam. */
+const EXAM_FOR: Record<string, string> = { IN: "neet-pg", US: "usmle", UK: "ukmla", WW: "usmle" };
+const EXAM_LABEL: Record<string, string> = { IN: "NEET PG", US: "USMLE", UK: "UKMLA", WW: "USMLE" };
+const SUBJECT_FOR: Record<string, string> = {
+  Medicine: "Medicine", Surgery: "Surgery", Pediatrics: "Paediatrics", OBGYN: "Obstetrics & Gynaecology", Emergency: "Medicine", Cardiology: "Medicine", Neurology: "Medicine",
+  Respiratory: "Medicine", Gastroenterology: "Medicine", Nephrology: "Medicine", Endocrinology: "Medicine", Psychiatry: "Psychiatry", ENT: "ENT", Ophthalmology: "Ophthalmology",
+  Orthopedics: "Orthopaedics", Urology: "Surgery", "Infectious Disease": "Medicine", Dermatology: "Dermatology",
+};
+
 /** Each section's own icon and colour, so the list reads at a glance. */
 const SECTION_LOOK: Record<string, { icon: IconName; tone: string }> = {
   Diagnosis: { icon: "target", tone: "from-sky-500 to-blue-600" },
@@ -328,6 +337,15 @@ export function DebriefView({
                 </div>
               </Disclosure>
             </div>
+            {!state.guided && (
+              <Link href={`/exams/${EXAM_FOR[state.country ?? "IN"]}?subject=${encodeURIComponent(SUBJECT_FOR[d.specialty] ?? "Medicine")}`} className="card mt-4 flex items-center justify-between gap-3 p-4 hover:bg-surface-2">
+                <span>
+                  <span className="block text-[14.5px] font-semibold">📝 Exam questions on this topic</span>
+                  <span className="block text-[12.5px] text-fg-2">{EXAM_LABEL[state.country ?? "IN"]}-style MCQs in {SUBJECT_FOR[d.specialty] ?? "Medicine"}</span>
+                </span>
+                <Icon name="arrow-right" size={16} className="text-fg-3" />
+              </Link>
+            )}
             {!state.guided && <CaseFeedback className="mt-4" />}
             {!state.guided && onRetry && (
               <button type="button" onClick={onRetry} disabled={starting} className="mt-4 h-11 self-center rounded-full border border-line bg-surface px-5 text-[14px] font-semibold hover:bg-surface-2 disabled:opacity-60">

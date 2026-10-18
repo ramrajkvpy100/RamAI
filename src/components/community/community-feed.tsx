@@ -115,6 +115,19 @@ export function CommunityFeed({ initial, more: initialMore, guest, signedIn, dra
         </button>
       </section>
 
+      <details className="panel group p-0">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 text-[13.5px] font-semibold">
+          Community rules
+          <span className="text-fg-3 transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <ul className="list-disc px-9 pb-4 text-[13px] leading-6 text-fg-2">
+          <li>No real patient details — no names, photos, records or anything that could identify someone.</li>
+          <li>Be kind and professional; disagree with ideas, not people.</li>
+          <li>No medical advice for real patients, no spam or self-promotion.</li>
+          <li>Use ⚑ Report on anything that breaks these — reported posts are hidden and reviewed.</li>
+        </ul>
+      </details>
+
       <div role="tablist" aria-label="Topics" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
         {([null, ...TOPIC_IDS] as (Topic | null)[]).map((t) => (
           <button key={t ?? "all"} type="button" role="tab" aria-selected={topic === t} onClick={() => setTopic(t)} className={cn("h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors", topic === t ? "bg-fg text-bg" : "bg-surface-2 text-fg-2 hover:text-fg")}>

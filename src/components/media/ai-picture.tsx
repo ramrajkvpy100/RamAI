@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import type { MediaAsset, PictureType } from "@/engine/types";
 import { caseSnapshot } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
+import { isLowData } from "@/lib/low-data";
 
 /**
  * A picture the AI draws the moment the case reaches it. The page only knows
@@ -83,8 +84,12 @@ export function AiPicture({ media, className, large = false, fallback }: { media
   /** No image model here at all (a local copy): the drawn stand-in, if there is one. */
   const [off, setOff] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  /** Low-data mode: nothing is fetched until the doctor asks for it. */
+  const [held, setHeld] = useState(false);
+  useEffect(() => setHeld(isLowData()), []);
 
   useEffect(() => {
+    if (held) return;
     const session = caseSnapshot().session;
     if (!session) return;
     let live = true;
@@ -104,7 +109,7 @@ export function AiPicture({ media, className, large = false, fallback }: { media
     return () => {
       live = false;
     };
-  }, [ai.ref, attempt]);
+  }, [ai.ref, attempt, held]);
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
 
   if (got) {
@@ -117,6 +122,12 @@ export function AiPicture({ media, className, large = false, fallback }: { media
     );
   }
   if (off && fallback) return <>{fallback}</>;
+  if (held)
+    return (
+      <button type="button" onClick={(e) => { e.stopPropagation(); setHeld(false); }} className={cn("flex aspect-square w-full flex-col items-center justify-center gap-2 bg-[#0b0d12] text-[13px] font-medium text-white/80", className)}>
+        <Icon name="image" size={20} className="text-white/60" /> Tap to load the picture
+      </button>
+    );
   return (
     <div className={cn("relative flex aspect-square w-full flex-col items-center justify-center gap-2 overflow-hidden bg-[#0b0d12] text-center text-white/80", large && "w-[min(78dvh,92vw)] rounded-md", className)} role="status" aria-live="polite">
       {!failed && (

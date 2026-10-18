@@ -2242,8 +2242,12 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
  * A nudge towards the next thing an expert would do — the area, never the answer. Each is counted
  * and shown in the debrief.
  */
+const HINT_LIMIT = 3;
+
 function handleHint(ctx: TurnContext): TurnEffect[] {
   const { def, hidden } = ctx;
+  // Like asking your senior: a few nudges a case, not a walkthrough.
+  if ((hidden.actions.hint?.length ?? 0) >= HINT_LIMIT) return [{ type: "message", role: "system", kind: "status", text: `Your senior has given you ${HINT_LIMIT} hints this case — work the rest out yourself. You can do it.` }];
   record(hidden, "hint");
   const n = hidden.actions.hint!.length;
   const history = def.history.find((h) => h.importance === "essential" && hidden.history[h.id] === undefined);

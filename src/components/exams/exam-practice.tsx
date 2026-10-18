@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
@@ -18,7 +18,12 @@ const pct = (c: number, n: number) => (n ? Math.round((c / n) * 100) : 0);
 /** One exam: pick a subject (or a mix), answer a set of ten, see why after each — and how you're doing, by subject. */
 export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stats: ExamStats | null }) {
   const info = EXAMS[exam];
+  // A subject named in the link (?subject=Medicine, from a debrief) is picked to start with.
   const [subject, setSubject] = useState<string>(MIXED);
+  useEffect(() => {
+    const asked = new URLSearchParams(window.location.search).get("subject");
+    if (asked && info.subjects.includes(asked)) setSubject(asked);
+  }, [info.subjects]);
   const [style, setStyle] = useState<ExamStyle>("pyq");
   const [set, setSet] = useState<ExamSet | null>(null);
   const [loading, setLoading] = useState(false);

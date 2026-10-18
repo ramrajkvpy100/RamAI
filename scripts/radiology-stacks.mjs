@@ -17,6 +17,10 @@ const SIZE = 384;
 const MAX_SLICES = 72;
 
 /** The stacks: which collection, which series, how to window it, and the case around it. */
+/**
+ * Each stack is kept only after its slices were looked at and the finding is plainly visible
+ * (rcc, crlm and lung-nodule series were tried and left out: their lesions weren't clear enough).
+ */
 const STACKS = [
   { id: "gbm-mri", collection: "UPENN-GBM", license: "CC BY 4.0", doi: "10.7937/TCIA.709X-DN49", modality: "MR", match: /3D GAD|T1.*GD|POST/i, window: "auto",
     diagnosis: "Glioblastoma", history: "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.", question: "MRI brain with contrast (axial T1 post-gadolinium): findings?",
@@ -82,9 +86,11 @@ function readSlice(bytes) {
 function toJpeg(s, win) {
   let lo, hi;
   if (win === "auto") {
-    const sorted = Float32Array.from(s.px).sort();
-    lo = sorted[Math.floor(sorted.length * 0.01)];
-    hi = sorted[Math.floor(sorted.length * 0.995)];
+    // MRI: the window from the tissue itself, not the black background around it.
+    const tissue = Float32Array.from(s.px.filter((v) => v > 0)).sort();
+    const sorted = tissue.length > 1000 ? tissue : Float32Array.from(s.px).sort();
+    lo = sorted[Math.floor(sorted.length * 0.02)];
+    hi = sorted[Math.floor(sorted.length * 0.99)];
   } else {
     lo = win[0] - win[1] / 2;
     hi = win[0] + win[1] / 2;
@@ -104,7 +110,9 @@ function toJpeg(s, win) {
 }
 
 // Only the ids named on the command line (the rest of the manifest is kept); all when none are named.
-const only = process.argv.slice(2);
+const args = process.argv.slice(2);
+const only = args.map((a) => a.split("@")[0]);
+const skip = Object.fromEntries(args.map((a) => [a.split("@")[0], Number(a.split("@")[1] ?? 0)]));
 let manifest = [];
 try {
   manifest = JSON.parse((await import("node:fs")).readFileSync("src/lib/radiology-stacks.json", "utf8")).filter((m) => only.length && !only.includes(m.id));
@@ -116,12 +124,13 @@ for (const st of STACKS.filter((x) => !only.length || only.includes(x.id))) {
       .filter((s) => s.ImageCount >= 30 && s.ImageCount <= 400 && st.match.test(s.SeriesDescription ?? "") && !/MPR|MIP|sag|cor|scout|localizer|topogram|reformat/i.test(s.SeriesDescription ?? ""))
       .sort((a, b) => Math.abs(a.ImageCount - 120) - Math.abs(b.ImageCount - 120));
     let done = false;
-    for (const s of series.slice(0, 6)) {
+    for (const s of series.slice(skip[st.id] ?? 0, (skip[st.id] ?? 0) + 6)) {
       const zip = new Uint8Array(await (await fetch(`${NBIA}/getImage?SeriesInstanceUID=${s.SeriesInstanceUID}`)).arrayBuffer());
       const files = unzipSync(zip);
       const slices = Object.entries(files).filter(([n]) => n.endsWith(".dcm")).map(([, b]) => { try { return readSlice(b); } catch { return null; } }).filter(Boolean);
       if (slices.length < 20) continue;
-      slices.sort((a, b) => a.z - b.z || a.inst - b.inst);
+      // Head to feet, as radiologists read: DICOM z increases towards the head.
+      slices.sort((a, b) => b.z - a.z || a.inst - b.inst);
       const step = Math.max(1, Math.ceil(slices.length / MAX_SLICES));
       const kept = slices.filter((_, i) => i % step === 0);
       const dir = path.join(OUT, st.id);

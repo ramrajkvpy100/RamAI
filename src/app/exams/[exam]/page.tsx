@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ExamPractice } from "@/components/exams/exam-practice";
 import { PublicPage } from "@/components/shell/public-page";
-import { EXAMS, isExamId } from "@/lib/exams";
+import { EXAMS, examsFor, isExamId } from "@/lib/exams";
 import { countryFromIp } from "@/lib/plans";
 import { getCurrentUser } from "@/server/auth";
 import { examStats } from "@/server/exam-practice";
@@ -22,7 +22,7 @@ export default async function ExamPage({ params }: { params: Promise<{ exam: str
   if (!isExamId(exam)) notFound();
   const user = await getCurrentUser().catch(() => null);
   const country = user?.country ?? countryFromIp((await headers()).get("x-vercel-ip-country"));
-  if (EXAMS[exam].country !== country) redirect("/exams");
+  if (!examsFor(country).some((e) => e.id === exam)) redirect("/exams");
   const stats = user ? await examStats(user.id, exam) : null;
   return (
     <PublicPage>

@@ -17,6 +17,9 @@ import { useMe } from "@/lib/me-store";
 import { useStartingMessage } from "@/lib/use-starting-message";
 import type { Plan } from "@/lib/plans";
 
+/** The dangerous diagnoses every doctor must catch. */
+const CANT_MISS = ["Aortic dissection", "Ectopic pregnancy", "Bacterial meningitis", "Septic shock", "Pulmonary embolism", "Subarachnoid haemorrhage", "Tension pneumothorax", "Diabetic ketoacidosis", "Testicular torsion", "Cauda equina syndrome"];
+
 /** Conditions doctors see every week — one tap to practise. */
 const COMMON_DISEASES = ["Dengue fever", "Typhoid", "Malaria", "Community-acquired pneumonia", "Acute gastroenteritis", "Urinary tract infection", "Type 2 diabetes", "Hypertension", "Asthma exacerbation", "COPD exacerbation", "Acute coronary syndrome", "Heart failure", "Stroke", "Snakebite", "Organophosphate poisoning", "Appendicitis", "Tuberculosis", "Anaemia", "Hypothyroidism", "Pre-eclampsia"];
 
@@ -152,7 +155,16 @@ export function CasePicker({
             className="h-11 w-full rounded-xl border border-line bg-surface px-3.5 text-[14px] outline-none focus:border-accent-line"
             aria-label="Disease to practise"
           />
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-3 text-[11.5px] font-bold tracking-[0.08em] text-danger uppercase">Can't miss</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {CANT_MISS.map((d) => (
+              <button key={d} type="button" aria-pressed={disease === d} onClick={() => setDisease(disease === d ? "" : d)} className={cn("rounded-full border px-3 py-1 text-[12.5px] transition-colors", disease === d ? "border-danger bg-danger-soft text-fg" : "border-danger/40 bg-surface text-fg-2 hover:bg-surface-2")}>
+                {d}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 text-[11.5px] font-bold tracking-[0.08em] text-fg-3 uppercase">Common</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
             {COMMON_DISEASES.map((d) => (
               <button
                 key={d}

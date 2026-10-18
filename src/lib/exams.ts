@@ -5,7 +5,7 @@
  */
 import type { Country } from "@/engine/countries";
 
-export type ExamId = "neet-pg" | "ini-cet" | "neet-ss" | "ini-ss" | "usmle" | "ukmla" | "plab";
+export type ExamId = "neet-pg" | "ini-cet" | "fmge" | "neet-ss" | "ini-ss" | "usmle" | "ukmla" | "plab";
 
 export interface ExamInfo {
   id: ExamId;
@@ -55,6 +55,15 @@ export const EXAMS: Record<ExamId, ExamInfo> = {
     country: "IN",
     options: 4,
     style: "INI-CET single best answer: conceptual and image-free, a little harder than NEET PG — two-step reasoning, recent advances and AIIMS-style clinical vignettes — with FOUR options, per standard Indian textbooks and national guidelines",
+    subjects: NEET_SUBJECTS,
+  },
+  fmge: {
+    id: "fmge",
+    label: "FMGE",
+    board: "the National Board of Examinations (Foreign Medical Graduates Examination)",
+    country: "IN",
+    options: 4,
+    style: "FMGE single best answer: short, direct one-line questions and brief clinical vignettes with FOUR options — core MBBS knowledge as tested for foreign medical graduates: definitions, most common causes, drugs of choice, normal values and national programme facts, per standard Indian textbooks",
     subjects: NEET_SUBJECTS,
   },
   "neet-ss": {
@@ -108,7 +117,9 @@ export const EXAM_IDS = Object.keys(EXAMS) as ExamId[];
 export const isExamId = (x: unknown): x is ExamId => typeof x === "string" && x in EXAMS;
 
 /** Only the exams of the country the doctor practises in. */
-export const examsFor = (country: Country): ExamInfo[] => EXAM_IDS.map((id) => EXAMS[id]).filter((e) => e.country === country);
+/** A country's own exams; the rest of the world sits the international ones (USMLE, PLAB, FMGE). */
+export const examsFor = (country: Country): ExamInfo[] =>
+  country === "WW" ? (["usmle", "plab", "fmge"] as ExamId[]).map((id) => EXAMS[id]) : EXAM_IDS.map((id) => EXAMS[id]).filter((e) => e.country === country);
 
 /** "Mixed" draws from every subject. */
 export const MIXED = "Mixed";

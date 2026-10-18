@@ -27,6 +27,7 @@ import { useMediaQuery } from "@/lib/use-media-query";
 import { Briefing } from "./briefing";
 import { CaseTopBar } from "./case-top-bar";
 import { Coach } from "./coach";
+import { UndoBar } from "./undo-bar";
 import { Composer } from "./composer";
 import { ComposerProvider } from "./composer-context";
 import { Conversation } from "./conversation";
@@ -274,6 +275,7 @@ function Workspace() {
                       </button>
                     </div>
                     <Coach state={state} onTry={onSend} busy={!!snap.sending} />
+                  <UndoBar />
                   <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} country={state.country} watch={state.watching && state.watching.until > state.clock ? { label: state.watching.label, minutes: Math.ceil(state.watching.until - state.clock) } : null} />
                   </div>
                 </div>

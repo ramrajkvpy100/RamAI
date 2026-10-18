@@ -6,6 +6,7 @@ import { IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
+import { isLowData, setLowDataPref } from "@/lib/low-data";
 import type { Country } from "@/engine/countries";
 import { menusFor, QUICK_ACTIONS } from "@/lib/tool-menus";
 import { useSpeech } from "@/lib/use-speech";
@@ -69,6 +70,12 @@ export function Composer({
   const actions = QUICK_ACTIONS.filter((a) => a.id !== "monitoring" && (!phone || a.id === "history" || a.id === "treatment"));
   const monitorAction = phone ? undefined : QUICK_ACTIONS.find((a) => a.id === "monitoring");
   const expert = useExpert();
+  const [lowData, setLowData] = useState(false);
+  useEffect(() => setLowData(isLowData()), []);
+  const toggleLowData = () => {
+    setLowDataPref(!lowData);
+    setLowData(!lowData);
+  };
 
   // Grow with content, up to ~6 lines.
   useEffect(() => {
@@ -153,6 +160,12 @@ export function Composer({
             {!expert.on && (
               <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Hint"); }} className="h-11 rounded-xl border border-amber-300/60 bg-amber-50 text-[13.5px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">💡 Hint</button>
             )}
+            {!phone && (
+              <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Order CBC, RFT, LFT, electrolytes and ECG"); }} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2 disabled:opacity-50" title="CBC, RFT, LFT, electrolytes and ECG in one tap">🧪 Basic panel</button>
+            )}
+            <button type="button" onClick={() => toggleLowData()} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2" title="Pictures load only when you tap them">
+              {lowData ? "📶 Low data ✓" : "📶 Low data"}
+            </button>
             <button type="button" onClick={() => expert.toggle()} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2" title="Beginner shows suggestions and timed hints; Expert shows nothing">
               {expert.on ? "🎓 Expert mode ✓" : "🌱 Beginner mode ✓"}
             </button>

@@ -315,6 +315,8 @@ export interface ClinicalCaseDefinition {
   pictures?: Record<string, { type: import("./types").PictureType; view: string; describe: string }>;
   /** The guided demo case: on-screen tips are allowed, and it's never picked at random. */
   guided?: boolean;
+  /** A difficult patient — anxious, reluctant or with low health literacy — whose replies show it; communication is part of the feedback. */
+  persona?: string;
   /** "All resources": every test and treatment can be done here, whatever the level. Set per session, not by the case. */
   unlimited?: boolean;
   /** Countries the case is set in. Omitted: every country (localised for each). */

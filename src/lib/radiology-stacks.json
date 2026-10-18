@@ -20,26 +20,6 @@
     "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
   },
   {
-    "id": "lung-nodule-ct",
-    "collection": "LIDC-IDRI",
-    "license": "CC BY 3.0",
-    "doi": "10.7937/K9/TCIA.2015.LO9QL9SX",
-    "modality": "CT",
-    "diagnosis": "Pulmonary nodule",
-    "history": "64-year-old man, 40 pack-years, having lung cancer screening. No symptoms.",
-    "question": "Low-dose CT chest (lung windows): findings?",
-    "key": "One or more well-defined soft-tissue nodules in the lung parenchyma — a pulmonary nodule to characterise by size, density and margin (Fleischner / Lung-RADS follow-up).",
-    "options": [
-      "Pulmonary nodule",
-      "Pneumothorax",
-      "Pleural effusion",
-      "Normal CT chest"
-    ],
-    "slices": 60,
-    "series": "",
-    "credit": "Data from The Cancer Imaging Archive, LIDC-IDRI collection (CC BY 3.0), doi:10.7937/K9/TCIA.2015.LO9QL9SX"
-  },
-  {
     "id": "hcc-ct",
     "collection": "TCGA-LIHC",
     "license": "CC BY 3.0",
@@ -60,24 +40,24 @@
     "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ"
   },
   {
-    "id": "crlm-ct",
-    "collection": "Colorectal-Liver-Metastases",
+    "id": "covid-ct",
+    "collection": "COVID-19-AR",
     "license": "CC BY 4.0",
-    "doi": "10.7937/QXK2-QG03",
+    "doi": "10.7937/tcia.2020.py71-5978",
     "modality": "CT",
-    "diagnosis": "Liver metastases",
-    "history": "66-year-old woman, a year after surgery for colon cancer, with a rising CEA.",
-    "question": "CT abdomen, portal venous phase: findings?",
-    "key": "Multiple hypodense lesions in the liver, some with a faint enhancing rim — liver metastases.",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO₂ 89% on air.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation — the typical pattern of COVID-19 pneumonia.",
     "options": [
-      "Liver metastases",
-      "Hepatocellular carcinoma",
-      "Liver abscess",
-      "Normal liver"
+      "COVID-19 pneumonia",
+      "Lobar pneumonia",
+      "Pulmonary oedema",
+      "Miliary tuberculosis"
     ],
     "slices": 60,
-    "series": "",
-    "credit": "Data from The Cancer Imaging Archive, Colorectal-Liver-Metastases collection (CC BY 4.0), doi:10.7937/QXK2-QG03"
+    "series": "3MM",
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
   },
   {
     "id": "vs-mri",
@@ -96,7 +76,7 @@
       "Normal MRI"
     ],
     "slices": 58,
-    "series": "_T2_3D FIESTA HIGH RESOLUTION",
+    "series": "_T2_Ax 3D FIESTA-C",
     "credit": "Data from The Cancer Imaging Archive, Vestibular-Schwannoma-MC-RC collection (CC BY 4.0), doi:10.7937/HRZH-2N82"
   },
   {
@@ -118,45 +98,5 @@
     "slices": 61,
     "series": "Pancreas",
     "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
-  },
-  {
-    "id": "rcc-ct",
-    "collection": "TCGA-KIRC",
-    "license": "CC BY 3.0",
-    "doi": "10.7937/K9/TCIA.2016.V6PBVTDR",
-    "modality": "CT",
-    "diagnosis": "Renal cell carcinoma",
-    "history": "57-year-old man with painless visible haematuria and weight loss.",
-    "question": "CT abdomen with contrast: findings?",
-    "key": "A solid, heterogeneously enhancing mass arising from the kidney, distorting its contour — typical of clear-cell renal cell carcinoma.",
-    "options": [
-      "Renal cell carcinoma",
-      "Simple renal cyst",
-      "Hydronephrosis",
-      "Renal calculus"
-    ],
-    "slices": 60,
-    "series": "POST CONTRAST",
-    "credit": "Data from The Cancer Imaging Archive, TCGA-KIRC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.V6PBVTDR"
-  },
-  {
-    "id": "covid-ct",
-    "collection": "COVID-19-AR",
-    "license": "CC BY 4.0",
-    "doi": "10.7937/tcia.2020.py71-5978",
-    "modality": "CT",
-    "diagnosis": "COVID-19 pneumonia",
-    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO₂ 89% on air.",
-    "question": "CT chest (lung windows): findings?",
-    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation — the typical pattern of COVID-19 pneumonia.",
-    "options": [
-      "COVID-19 pneumonia",
-      "Lobar pneumonia",
-      "Pulmonary oedema",
-      "Miliary tuberculosis"
-    ],
-    "slices": 60,
-    "series": "3MM",
-    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
   }
 ]

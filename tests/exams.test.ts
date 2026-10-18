@@ -44,7 +44,7 @@ afterEach(() => {
 
 describe("exam practice", () => {
   it("offers only the exams of the doctor's country", () => {
-    expect(examsFor("IN").map((e) => e.id)).toEqual(["neet-pg", "ini-cet", "neet-ss", "ini-ss"]);
+    expect(examsFor("IN").map((e) => e.id)).toEqual(["neet-pg", "ini-cet", "fmge", "neet-ss", "ini-ss"]);
     expect(examsFor("US").map((e) => e.id)).toEqual(["usmle"]);
     expect(examsFor("UK").map((e) => e.id)).toEqual(["ukmla", "plab"]);
   });

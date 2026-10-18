@@ -13,9 +13,16 @@ import { specialtyLabel, type PreferredSpecialty } from "@/lib/specialty";
 /** Asked once, at the start (and changeable from the menu): the doctor's own specialty. Skipping it means mixed cases. */
 export const SPECIALTY_EVENT = "ramai:specialty";
 
+const STAGE_LABELS: [string, string][] = [["student", "🎓 Student"], ["intern", "🩺 Intern"], ["resident", "🏥 Resident"], ["specialist", "⭐ Specialist"], ["radiologist", "🩻 Radiologist"]];
+
 export function SpecialtySheet({ open, current, onClose }: { open: boolean; current: PreferredSpecialty | null; onClose: () => void }) {
   const [saving, setSaving] = useState<PreferredSpecialty | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stage, setStage] = useState<string | null>(null);
+  const pickStage = async (id: string) => {
+    setStage(id);
+    await fetch("/api/me/stage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage: id }) }).catch(() => undefined);
+  };
 
   const choose = async (specialty: PreferredSpecialty) => {
     if (saving) return;
@@ -46,6 +53,19 @@ export function SpecialtySheet({ open, current, onClose }: { open: boolean; curr
       }
     >
       <div className="flex flex-col gap-3">
+        <div>
+          <div className="mb-1.5 text-[12.5px] font-semibold text-fg-2">Where are you in your career?</div>
+          <div className="flex flex-wrap gap-1.5">
+            {STAGE_LABELS.map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={stage === id} onClick={() => void pickStage(id)} className={cn("rounded-full border px-3 py-1.5 text-[13px]", stage === id ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {stage === "radiologist" && (
+            <a href="/radiology" className="mt-2 inline-block text-[13px] font-semibold text-accent-text underline">Go to Radiology reporting →</a>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => void choose("mixed")}

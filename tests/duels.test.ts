@@ -56,3 +56,15 @@ describe("free Pro cases", () => {
     expect(await creditsLeft(asha.id)).toBe(10);
   });
 });
+
+import { createGroup, joinGroup, myGroups } from "@/server/groups";
+describe("private groups", () => {
+  it("a class joins by code and sees itself ranked", async () => {
+    const code = await createGroup(asha.id, "AIIMS batch 2026");
+    expect(await joinGroup(ravi.id, code.toLowerCase())).toBe(true);
+    expect(await joinGroup(ravi.id, "ZZZZZZ")).toBe(false);
+    const [g] = await myGroups(ravi.id);
+    expect(g?.name).toBe("AIIMS batch 2026");
+    expect(g?.members.map((m) => m.name).sort()).toEqual(["Asha", "Ravi"]);
+  });
+});

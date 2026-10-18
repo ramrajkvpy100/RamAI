@@ -28,6 +28,7 @@ import { SPECIALTY_EVENT, SpecialtySheet } from "./specialty-sheet";
 import { UpgradeSheet } from "./upgrade-sheet";
 import { AppCard } from "./app-card";
 import { DailyCard } from "./daily-card";
+import { ReviewCard } from "./review-card";
 import { useLauncher } from "./use-launcher";
 import { LeagueCard } from "./week-board";
 
@@ -212,6 +213,8 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
         {showGuide && <GuidedCard onStart={() => void launch({ tutorial: true })} onSkip={skipGuide} starting={starting} />}
 
         {!showGuide && <AppCard guest={me.user.isGuest} played={p.history.length > 0} />}
+
+        <ReviewCard onPractise={(disease) => void start({ disease })} starting={starting} />
 
         {/* Kept simple: the path of levels and the league are one tap away, not in the way. */}
         <div data-tour="levels">

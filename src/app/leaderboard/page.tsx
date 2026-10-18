@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/app/app-shell";
+import { GroupsCard } from "@/components/leaderboard/groups-card";
 import { Leaderboard } from "@/components/leaderboard/leaderboard";
 import { getMe } from "@/server/me";
 
@@ -14,6 +15,11 @@ export default async function LeaderboardPage() {
   return (
     <AppShell me={me}>
       <Leaderboard me={me} />
+      {!me.user.isGuest && (
+        <div className="mx-auto mt-5 w-full max-w-3xl">
+          <GroupsCard />
+        </div>
+      )}
     </AppShell>
   );
 }

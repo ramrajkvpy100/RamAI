@@ -1,5 +1,6 @@
 "use client";
 
+import { SpecialtyBars } from "./specialty-bars";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -233,6 +234,8 @@ export function ProgressView({ detail, report }: { detail: ProgressDetail; repor
           <Icon name="share-ios" size={15} /> Share my progress
         </button>
       </section>
+
+      <SpecialtyBars />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile label="Average score" value={detail.average.recent !== null ? `${detail.average.recent}` : "—"} sub={delta !== null ? `${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)} on the ten before` : "last 10 cases"} tone={delta === null ? undefined : delta >= 0 ? "up" : "down"} />

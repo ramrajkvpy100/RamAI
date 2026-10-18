@@ -143,7 +143,7 @@ function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: Inter
     {
       role: "user",
       content: `CASE FILE (hidden)
-Patient: ${def.patient.age}-year-old ${def.patient.sex}, ${def.patient.city}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}.
+Patient: ${def.patient.age}-year-old ${def.patient.sex}, ${def.patient.city}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}.${def.persona ? ` The patient is ${def.persona} — their replies show it.` : ""}
 Diagnosis (never reveal): ${def.truth.diagnosis}.
 
 NOW: ${stateNote(ctx)}
@@ -205,7 +205,7 @@ Rules:
       role: "user",
       content: `Patient: ${p.age}-year-old ${p.sex}${p.occupation ? `, ${p.occupation}` : ""}, ${p.city}.
 Scene: ${def.briefing}
-How the patient is now: ${ctx.hidden.status}.
+How the patient is now: ${ctx.hidden.status}.${def.persona ? `\nThe patient is ${def.persona} — let it show.` : ""}
 ${recent ? `Recent conversation:\n${recent}\n` : ""}
 The doctor said: """${said}"""
 
@@ -231,13 +231,14 @@ Rules:
 - The score has already been decided by fixed marking rules. Never change it, re-score it, or contradict it.
 - Comment on their clinical reasoning: what they prioritised, the order of their steps, what they missed and why it matters for this patient.
 - Be specific to what they actually did. Plain language, no markdown, no headings.
+- When the patient was a difficult one (anxious, reluctant, low health literacy), say in the reasoning how well the doctor communicated: explaining simply, reassuring, checking understanding, showing empathy.
 - Output JSON only: {"summary":"two or three sentences on how it went","reasoning":"two or three sentences on their clinical reasoning","nextTime":["two to four short, concrete tips"]}`,
     },
     {
       role: "user",
       content: `The case: ${def.patient.age}-year-old ${def.patient.sex}. ${def.briefing}
 Diagnosis: ${def.truth.diagnosis}${def.truth.qualifier ? ` — ${def.truth.qualifier}` : ""}.
-Teaching point: ${def.teaching.pearl}
+Teaching point: ${def.teaching.pearl}${def.persona ? `\nThe patient was ${def.persona}.` : ""}
 
 What the doctor did:
 ${actions || "(nothing recorded)"}
@@ -292,9 +293,30 @@ function caseBrief(opts: StartOptions) {
   const specialty: Specialty = opts.specialty ?? (track === "emergency" ? pickOne(["Emergency", "Medicine", "Surgery", "Cardiology", "Pediatrics", "Infectious Disease"] as Specialty[]) : pickOne(common));
   const sex = specialty === "OBGYN" ? "Female" : pickOne(["Male", "Female"] as const);
   const age = specialty === "Pediatrics" ? pickOne(["an infant", "a toddler", "a school-age child", "an adolescent"]) : pickOne(["a young adult", "an adult in their 30s or 40s", "a middle-aged adult", "an older adult"]);
-  return { track, level, specialty, sex, age };
+  // About one patient in four is harder to talk to — never in a newcomer's easy case.
+  const persona = opts.easy || opts.disease ? undefined : Math.random() < 0.25 ? pickOne(PERSONAS) : undefined;
+  return { track, level, specialty, sex, age, persona };
 }
 type Brief = ReturnType<typeof caseBrief>;
+
+/** Difficult patients, as doctors meet them every day. */
+const PERSONAS = [
+  "anxious — frightened it is something serious, asks again and again what is wrong and needs calm reassurance",
+  "reluctant — doesn't want tests or admission, has stopped medicines before, and needs to be persuaded with reasons",
+  "low health literacy — uses everyday words, misunderstands medical terms and needs things explained simply",
+];
+
+/** What's in season where the case is set: the conditions doctors are seeing this month. */
+function seasonNote(country: Country, month = new Date().getMonth()): string {
+  if (country === "IN" || country === "WW") {
+    if (month >= 5 && month <= 9) return "It is the monsoon: dengue, malaria, leptospirosis, typhoid, scrub typhus, acute gastroenteritis and snakebite are common now.";
+    if (month >= 10 || month <= 1) return "It is winter: respiratory infections, asthma and COPD exacerbations, and heart attacks are common now.";
+    return "It is the hot season: heat stroke, dehydration, acute gastroenteritis, typhoid and hepatitis A/E are common now.";
+  }
+  if (month >= 10 || month <= 2) return "It is winter: influenza, RSV, pneumonia, COPD exacerbations and falls are common now.";
+  if (month >= 5 && month <= 7) return "It is summer: heat illness, Lyme disease (USA), injuries and gastroenteritis are common now.";
+  return "It is spring or autumn: allergies, asthma and viral infections are common now.";
+}
 
 const authoring = (country: Country) => {
   const c = COUNTRY[country];
@@ -310,7 +332,7 @@ function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
     { role: "system", content: authoring(country.id) },
     {
       role: "user",
-      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : "Choose a realistic condition that fits; vary it — not always the most common one."} patient.age must match the story exactly.
+      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : "Choose a realistic condition that fits; vary it — not always the most common one."} patient.age must match the story exactly.
 Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
     },
   ];
@@ -324,7 +346,7 @@ function dialoguePrompt(opts: StartOptions, concept: Concept, brief: Brief): Cha
     { role: "system", content: authoring(opts.country ?? "IN") },
     {
       role: "user",
-      content: `${partHead(concept, brief)}Write what the patient and family say, and the vital signs. Return JSON:
+      content: `${partHead(concept, brief)}${brief.persona ? `The patient is ${brief.persona}: every reply shows it, consistently. ` : ""}Write what the patient and family say, and the vital signs. Return JSON:
 { "opening": [{ "role": "patient"|"attendant"|"nurse"|"system", "kind": "speech"|"action"|"status", "text" }] (1–3 lines: how the patient arrives and their first words — no diagnosis),
   "baselineVitals": { "bp": "128/82", "hr": "88", "rr", "temp" (°F), "spo2", "rbs", "weight", "height", "gcs"?, "pain"? },
   "triageVitals": ["vitals already on the board on arrival"],
@@ -360,7 +382,7 @@ function managementPrompt(opts: StartOptions, concept: Concept, brief: Brief): C
     {
       role: "user",
       content: `${partHead(concept, brief)}Write the management and the marking key. Return JSON:
-{ "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why", "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
+{ "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why" (one line — and the guideline it follows, e.g. WHO, ICMR, NICE or AHA, where one applies), "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
   "reasoning": [{ "stage": "History", "text" }, { "stage": "Examination", "text" }, { "stage": "Investigation", "text" }, { "stage": "Diagnosis", "text" }],
   "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": [], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
   "followUp": [{ "when": "ideal"|"acceptable"|"harmful"|"untreated"|"any", "status": "recovered"|"improving"|"stable"|"guarded"|"deteriorating"|"critical", "lines": [{ "role", "kind", "text" }] }] }
@@ -425,6 +447,7 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     weight: 1,
     difficulty: (opts.easy ? 1 : concept.difficulty) as 1 | 2 | 3,
     ...(opts.country ? { countries: [opts.country] } : {}),
+    ...(brief.persona ? { persona: brief.persona } : {}),
     patient: { name: concept.patient.name, age: concept.patient.age, sex: concept.patient.sex, city: concept.patient.city, occupation: concept.patient.occupation, context: brief.track === "emergency" ? "Emergency" : brief.track === "phone" ? "Phone" : "OPD" } as ClinicalCaseDefinition["patient"],
     arrivalMinuteOfDay: 8 * 60 + Math.floor(Math.random() * 10 * 60),
     briefing: concept.briefing,
@@ -477,7 +500,7 @@ Items in the case (id, what, importance): ${items.join("; ")}
 
 Return JSON:
 { "teaching": { "patientBand": "the id of this patient's severity band", "severityBands": [{ "id", "label", "recognition": [], "investigation": [], "treatment": [], "followUp": [] }] (2–4 bands), "drugs": [{ "generic", "brand", "dose", "route": "PO"|"IV"|"IM"|"SC"|"SL"|"PR"|"TOP"|"INH"|"NEB"|"IN", "frequency", "duration", "indication", "mechanism", "whyItWorks", "avoidWhen": [], "adverseEffects": [], "monitoring": [] }] (1–4), "routines": [], "followUp": { "interval", "reassess": [], "redFlags": [], "whenToEscalate": [] }, "treatmentFailure": { "steps": [] }, "pearl": "one memorable teaching point" },
-  "misses": { "<id of an essential or useful item>": { "what": "what the doctor didn't do", "why": "why it matters here", "better": "the better approach", "severity": "minor"|"moderate"|"major" } },
+  "misses": { "<id of an essential or useful item>": { "what": "what the doctor didn't do", "why": "why it matters here, in one line — naming the guideline (WHO, ICMR, NICE, AHA…) where one applies", "better": "the better approach", "severity": "minor"|"moderate"|"major" } },
   "strengths": { "<id>": "what doing it well shows" } }
 misses and strengths: one for each essential item and the most useful ones; keys must be ids from the list.`,
     },

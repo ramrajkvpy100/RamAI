@@ -41,9 +41,13 @@ export interface CaseSnapshot {
   error: CaseError | null;
   lastEffects: TurnEffect[];
   turn: number;
+  /** An order just given can be taken back for a few seconds: the case as it was before it. */
+  undoable: { before: ActiveSession; label: string; until: number } | null;
 }
 
-let snapshot: CaseSnapshot = { hydrated: false, userId: null, session: null, starting: false, sending: null, error: null, lastEffects: [], turn: 0 };
+let snapshot: CaseSnapshot = { hydrated: false, userId: null, session: null, starting: false, sending: null, error: null, lastEffects: [], turn: 0, undoable: null };
+/** How long an order can be undone. */
+export const UNDO_MS = 6000;
 const listeners = new Set<() => void>();
 const key = () => (snapshot.userId ? `ramai.session.${snapshot.userId}` : null);
 
@@ -103,7 +107,15 @@ export async function send(input: string): Promise<boolean> {
   update({ sending: { input: text }, error: null });
   try {
     const res = await submitDoctorAction(session.token, text);
-    update({ session: { token: res.token, state: res.state, debrief: res.debrief, rewards: res.rewards, begun: true }, sending: null, lastEffects: res.effects, turn: snapshot.turn + 1 });
+    // A test or drug just ordered — and the case not over — can be undone for a few seconds.
+    const ordered = !res.debrief && res.effects.some((e) => e.type === "investigation_ordered" || e.type === "drug");
+    update({
+      session: { token: res.token, state: res.state, debrief: res.debrief, rewards: res.rewards, begun: true },
+      sending: null,
+      lastEffects: res.effects,
+      turn: snapshot.turn + 1,
+      undoable: ordered ? { before: session, label: text, until: Date.now() + UNDO_MS } : null,
+    });
     if (res.debrief) void refreshMe();
     return true;
   } catch (err) {
@@ -134,6 +146,16 @@ export async function tick(): Promise<void> {
     ticking = false;
   }
 }
+
+/** Takes back the order just given: the case returns to how it was (nothing was recorded yet). */
+export function undo(): boolean {
+  const u = snapshot.undoable;
+  if (!u || Date.now() > u.until || snapshot.sending) return false;
+  update({ session: u.before, undoable: null, lastEffects: [], turn: snapshot.turn + 1 });
+  return true;
+}
+
+export const clearUndo = () => snapshot.undoable && update({ undoable: null });
 
 export async function retry() {
   const action = snapshot.error?.action;

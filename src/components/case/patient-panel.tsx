@@ -7,6 +7,7 @@ import { PatientFigure } from "@/components/game/caricature";
 import { fetchPicture } from "@/components/media/ai-picture";
 import { MediaFigure } from "@/components/media/media-figure";
 import { caseSnapshot, useCase } from "@/lib/case-store";
+import { isLowData } from "@/lib/low-data";
 import { Label } from "@/components/ui/primitives";
 import type { CaseState, FactGroup, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
@@ -132,7 +133,7 @@ export function usePortrait(state: CaseState): string | null {
   const token = useCase().session?.token ?? null;
   const ready = !!token;
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || isLowData()) return;
     const session = caseSnapshot().session;
     if (!session) return;
     let live = true;
