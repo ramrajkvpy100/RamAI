@@ -10,6 +10,8 @@ import type { Modality } from "@/lib/practice";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Room for the background search for more studies. */
+export const maxDuration = 60;
 
 const Request = z.object({ modality: z.enum(RADIOLOGY_MODALITIES as [Modality, ...Modality[]]) });
 
@@ -29,7 +31,8 @@ export async function POST(req: Request) {
     if (picturesAvailable() && items.length < 12) {
       after(() =>
         withUsage({ kind: "practice" }, async () => {
-          for (const id of (await missingPictures(body.modality, 3)).filter((x) => RADIOLOGY_BRIEFS[x])) await addPicture(body.modality, id).catch(() => false);
+          const ids = (await missingPictures(body.modality, 4)).filter((x) => RADIOLOGY_BRIEFS[x]);
+          await Promise.all(ids.map((id) => addPicture(body.modality, id).catch(() => false)));
         }).catch(() => undefined),
       );
     }
