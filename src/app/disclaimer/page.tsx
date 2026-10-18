@@ -50,8 +50,8 @@ export default function DisclaimerPage() {
 
         <Section title="Names of institutions and brands">
           <p>
-            Care levels are described with familiar examples — such as AIIMS-level or Harvard-level — only to convey difficulty. RamAI is not
-            affiliated with, sponsored or endorsed by AIIMS, Harvard, the NHS or any other institution. Drug brand names belong to their owners;
+            Care levels are described with familiar examples — such as AIIMS-level — only to convey difficulty. RamAI is not
+            affiliated with, sponsored or endorsed by AIIMS, the NHS or any other institution. Drug brand names belong to their owners;
             mentioning them is not an endorsement.
           </p>
         </Section>

@@ -113,8 +113,60 @@ export function phoneDrugQuestion(drug: FormularyDrug, needs: OrderNeed[]): stri
 }
 
 /** The usual order, from the formulary, for whatever the doctor left to it ("give the usual dose"). */
-export function usualOrder(drug: FormularyDrug, p: Payload, mode: "given" | "prescribed"): Payload {
+/**
+ * Children's doses by weight (standard paediatric references): per kg, capped at the adult dose.
+ * `round`: to a practical amount.
+ */
+const PER_KG: Record<string, { perKg: number; unit: string; max: number; round: number }> = {
+  paracetamol: { perKg: 15, unit: "mg", max: 1000, round: 10 },
+  ibuprofen: { perKg: 10, unit: "mg", max: 400, round: 10 },
+  amoxicillin: { perKg: 25, unit: "mg", max: 1000, round: 25 },
+  "amoxicillin-clavulanate": { perKg: 25, unit: "mg", max: 875, round: 25 },
+  ceftriaxone: { perKg: 50, unit: "mg", max: 2000, round: 50 },
+  cefixime: { perKg: 4, unit: "mg", max: 200, round: 5 },
+  azithromycin: { perKg: 10, unit: "mg", max: 500, round: 10 },
+  ampicillin: { perKg: 50, unit: "mg", max: 2000, round: 50 },
+  gentamicin: { perKg: 5, unit: "mg", max: 400, round: 5 },
+  metronidazole: { perKg: 7.5, unit: "mg", max: 500, round: 5 },
+  ondansetron: { perKg: 0.15, unit: "mg", max: 4, round: 0.5 },
+  dexamethasone: { perKg: 0.15, unit: "mg", max: 8, round: 0.5 },
+  prednisolone: { perKg: 1, unit: "mg", max: 40, round: 5 },
+  adrenaline: { perKg: 0.01, unit: "mg", max: 0.5, round: 0.05 },
+  diazepam: { perKg: 0.3, unit: "mg", max: 10, round: 0.5 },
+  midazolam: { perKg: 0.2, unit: "mg", max: 10, round: 0.5 },
+  phenytoin: { perKg: 20, unit: "mg", max: 1000, round: 10 },
+  furosemide: { perKg: 1, unit: "mg", max: 40, round: 1 },
+  morphine: { perKg: 0.1, unit: "mg", max: 5, round: 0.1 },
+  artesunate: { perKg: 3, unit: "mg", max: 240, round: 5 },
+};
+
+/** A child's weight-based dose of this drug, if there's a standard one: { amount, unit, dose text }. */
+export function childDose(drugId: string, weightKg: number): { amount: number; unit: string; dose: string } | null {
+  const r = PER_KG[drugId];
+  if (!r || !(weightKg > 0)) return null;
+  const raw = Math.min(r.max, r.perKg * weightKg);
+  const amount = Math.max(r.round, Math.round(raw / r.round) * r.round);
+  const nice = Number(amount.toFixed(2));
+  return { amount: nice, unit: r.unit, dose: `${nice} ${r.unit} (${r.perKg} ${r.unit}/kg)` };
+}
+
+export function usualOrder(drug: FormularyDrug, p: Payload, mode: "given" | "prescribed", child?: { weightKg: number }): Payload {
   const out: Payload = { ...p };
+  if (drug.fluid && child) {
+    // A child's bolus: 20 mL/kg over 15–20 minutes.
+    if (!said(out, "volumeMl")) out.volumeMl = Math.round((20 * child.weightKg) / 10) * 10;
+    if (!said(out, "overMin")) out.overMin = 20;
+    out.dose = `${out.volumeMl} mL (20 mL/kg)`;
+    return out;
+  }
+  if (child && !said(out, "amount") && !said(out, "dose")) {
+    const c = childDose(drug.id, child.weightKg);
+    if (c) {
+      out.amount = c.amount;
+      out.unit = c.unit;
+      out.dose = c.dose;
+    }
+  }
   if (drug.fluid) {
     if (!said(out, "volumeMl")) out.volumeMl = drug.id === "prbc" ? 350 : 500;
     if (!said(out, "overMin")) out.overMin = drug.id === "prbc" ? 180 : 30;

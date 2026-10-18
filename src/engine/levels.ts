@@ -24,7 +24,7 @@ export const LEVELS: Record<CareLevel, LevelMeta> = {
   district: { id: "district", rank: 3, label: "District Hospital", short: "District", tagline: "Secondary care", description: "Ultrasound, wider labs, CT and specialists." },
   college: { id: "college", rank: 4, label: "Medical College", short: "Med College", tagline: "Teaching hospital", description: "Full diagnostics and every department — complex, multi-morbid patients." },
   apex: { id: "apex", rank: 5, label: "National Referral Centre", short: "National Referral", tagline: "AIIMS-level", description: "Atypical, multisystem, high-stakes cases — the toughest a country sees." },
-  grandrounds: { id: "grandrounds", rank: 6, label: "Global Centre of Excellence", short: "Global Excellence", tagline: "Harvard-level", description: "The hardest cases anywhere: rare diseases and diagnostic odysseys." },
+  grandrounds: { id: "grandrounds", rank: 6, label: "Global Centre of Excellence", short: "Global Excellence", tagline: "Rare & complex cases", description: "The hardest cases anywhere: rare diseases and diagnostic odysseys." },
 };
 
 type LevelNames = Pick<LevelMeta, "label" | "short" | "tagline">;
@@ -37,7 +37,7 @@ const LEVEL_NAMES: Record<Exclude<Country, "IN">, Record<CareLevel, LevelNames>>
     district: { label: "Regional Medical Center", short: "Regional", tagline: "Secondary care" },
     college: { label: "Academic Medical Center", short: "Academic", tagline: "Teaching hospital" },
     apex: { label: "National Referral Center", short: "National Referral", tagline: "Top referral center" },
-    grandrounds: { label: "Global Center of Excellence", short: "Global Excellence", tagline: "Harvard-level" },
+    grandrounds: { label: "Global Center of Excellence", short: "Global Excellence", tagline: "Rare & complex cases" },
   },
   UK: {
     phc: { label: "GP Surgery", short: "GP", tagline: "First contact" },
@@ -45,7 +45,7 @@ const LEVEL_NAMES: Record<Exclude<Country, "IN">, Record<CareLevel, LevelNames>>
     district: { label: "District General Hospital", short: "DGH", tagline: "Secondary care" },
     college: { label: "University Teaching Hospital", short: "Teaching", tagline: "Teaching hospital" },
     apex: { label: "Tertiary Referral Centre", short: "Tertiary", tagline: "Specialist referral centre" },
-    grandrounds: { label: "Global Centre of Excellence", short: "Global Excellence", tagline: "Harvard-level" },
+    grandrounds: { label: "Global Centre of Excellence", short: "Global Excellence", tagline: "Rare & complex cases" },
   },
 };
 

@@ -193,7 +193,8 @@ export function createHiddenState(def: ClinicalCaseDefinition): HiddenState {
     monitored: def.setting === "ICU",
     vitals,
     shown: {},
-    measured: [...(def.triageVitals ?? [])],
+    // A child is weighed at the door: every dose depends on it.
+    measured: [...(def.triageVitals ?? []), ...(def.patient.age < 13 && !(def.triageVitals ?? []).includes("weight") ? (["weight"] as const) : [])],
     history: {},
     exams: {},
     examOverrides: {},
@@ -364,6 +365,12 @@ export function openingEffects(def: ClinicalCaseDefinition, hidden: HiddenState)
   const fx: TurnEffect[] = [
     { type: "timeline", label: def.track === "phone" ? "Call connected" : def.setting === "ER" ? "Patient arrived in the emergency department" : "Patient arrived", category: "arrival" },
   ];
+  if (def.patient.age < 13 && !def.triageVitals?.includes("weight")) {
+    fx.push({ type: "vitals", readings: [reading(hidden, "weight")] });
+    fx.push(def.track === "phone"
+      ? { type: "message", role: "attendant", kind: "speech", text: `He's about ${hidden.vitals.weight.value} kg, doctor.`.replace(/^He's/, def.patient.sex === "Female" ? "She's" : "He's") }
+      : { type: "message", role: "nurse", kind: "speech", text: `Weight ${hidden.vitals.weight.value} kg, doctor.` });
+  }
   if (def.triageVitals?.length) {
     fx.push({ type: "vitals", readings: def.triageVitals.map((k) => reading(hidden, k)) });
     fx.push({ type: "timeline", label: "Triage vitals recorded", category: "monitor" });
@@ -1725,7 +1732,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   }
   // An order without what it takes to carry it out — the dose, the route, a drip's volume and rate, a
   // prescription's frequency and duration — is asked about, not guessed.
-  const p = intent.payload?.usual === true ? usualOrder(drug, intent.payload, mode) : intent.payload ?? {};
+  // A child's usual dose is by weight.
+  const child = def.patient.age < 13 ? { weightKg: parseFloat(hidden.vitals.weight.value) || 0 } : undefined;
+  const p = intent.payload?.usual === true ? usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined) : intent.payload ?? {};
   const needs = drugNeeds(drug, p, mode);
   if (needs.length > 0) {
     const question = def.track === "phone" ? phoneDrugQuestion(drug, needs) : drugQuestion(drug, needs, p, askerRole(ctx, mode) !== "system");
@@ -2276,12 +2285,12 @@ function relevantDepartments(def: ClinicalCaseDefinition): string[] {
 function handleConsult(ctx: TurnContext, department: string | undefined): TurnEffect[] {
   const { def, hidden } = ctx;
   if (!department) {
-    return [{ type: "message", role: "nurse", kind: "speech", text: "Which department should I call, doctor?", replies: CONSULT_DEPARTMENTS.map((d) => ({ text: `${d} consult`, send: true })) }];
+    return [{ type: "message", role: "nurse", kind: "speech", text: "Whose opinion would you like, doctor?", replies: CONSULT_DEPARTMENTS.map((d) => ({ text: `${d} opinion`, send: true })) }];
   }
   record(hidden, `consult:${department}`);
   const minutes = def.track === "emergency" ? 15 : 30;
   const fx: TurnEffect[] = [...handleWait(ctx, { kind: "wait", phrase: "", matched: true, payload: { minutes, silent: true } })];
-  fx.push({ type: "timeline", label: `${department} consult`, category: "treatment" });
+  fx.push({ type: "timeline", label: `${department} opinion`, category: "treatment" });
   const relevant = relevantDepartments(def).includes(department);
   if (!relevant) {
     fx.push({ type: "message", role: "system", kind: "finding", text: `${department} — seen the patient. No active ${department.toLowerCase()} issue at present; continue primary management and call again if things change.` });

@@ -184,3 +184,12 @@ describe("an order that could kill is queried once — then carried out if the d
     expect(turns.map(said).join(" ")).not.toMatch(/Do you still want it given/);
   });
 });
+
+import { childDose } from "@/engine/orders";
+describe("children's doses go by weight", () => {
+  it("15 mg/kg of paracetamol for a 12 kg child; never above the adult dose", () => {
+    expect(childDose("paracetamol", 12)?.amount).toBe(180);
+    expect(childDose("paracetamol", 90)?.amount).toBe(1000);
+    expect(childDose("adrenaline", 15)?.amount).toBe(0.15);
+  });
+});
