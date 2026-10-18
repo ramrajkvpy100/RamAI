@@ -1,0 +1,250 @@
+[
+  {
+    "item": "pneumoperitoneum",
+    "modality": "xray",
+    "src": "/radiology/singles/pneumoperitoneum/5.png",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Perforation_bei_Coloskopie_LSL.png"
+  },
+  {
+    "item": "pneumoperitoneum",
+    "modality": "xray",
+    "src": "/radiology/singles/pneumoperitoneum/1.jpg",
+    "author": "Bill Rhodes from Asheville",
+    "license": "CC BY 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Pneumoperitoneum_lateral_decubitus.jpg"
+  },
+  {
+    "item": "nof",
+    "modality": "xray",
+    "src": "/radiology/singles/nof/2.jpg",
+    "author": "The original uploader was Eucla at French Wikipedia.",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Fracture_du_col_du_f%C3%A9mur.jpg"
+  },
+  {
+    "item": "sdh",
+    "modality": "ct",
+    "src": "/radiology/singles/sdh/0.jpg",
+    "author": "Glitzy queen00 at English Wikipedia",
+    "license": "Public domain",
+    "source": "https://commons.wikimedia.org/wiki/File:Trauma_subdural.jpg"
+  },
+  {
+    "item": "miliary",
+    "modality": "xray",
+    "src": "/radiology/singles/miliary/2.jpg",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Floride_kavernisierende_Tuberkulose_27M_-_CR_pa_-_001.jpg"
+  },
+  {
+    "item": "miliary",
+    "modality": "xray",
+    "src": "/radiology/singles/miliary/1.png",
+    "author": "James Heilman, MD",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:PulmonaryTBCXR.png"
+  },
+  {
+    "item": "tension",
+    "modality": "xray",
+    "src": "/radiology/singles/tension/1.png",
+    "author": "James Heilman, MD",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Tpneumopneumomed.png"
+  },
+  {
+    "item": "pneumothorax",
+    "modality": "xray",
+    "src": "/radiology/singles/pneumothorax/5.jpg",
+    "author": "Mikael Häggström, M.D. Author info - Reusing images- Conflicts of interest: None",
+    "license": "CC0",
+    "source": "https://commons.wikimedia.org/wiki/File:Expired_X-ray_of_pneumothorax.jpg"
+  },
+  {
+    "item": "pneumothorax",
+    "modality": "xray",
+    "src": "/radiology/singles/pneumothorax/2.png",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:09-01-Pneumothorax.png"
+  },
+  {
+    "item": "pneumothorax",
+    "modality": "xray",
+    "src": "/radiology/singles/pneumothorax/3.png",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:09-01-Pneumothorax_Drainage.png"
+  },
+  {
+    "item": "oedema",
+    "modality": "xray",
+    "src": "/radiology/singles/oedema/4.png",
+    "author": "Maryrosegrant",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Chest_XR_of_HAPE.png"
+  },
+  {
+    "item": "sah",
+    "modality": "ct",
+    "src": "/radiology/singles/sah/0.jpg",
+    "author": "Lipothymia",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Subarachnoid_haemorrhage.jpg"
+  },
+  {
+    "item": "consolidation",
+    "modality": "xray",
+    "src": "/radiology/singles/consolidation/2.jpg",
+    "author": "Mikael Häggström, M.D. Author info - Reusing images- Conflicts of interest: None",
+    "license": "CC0",
+    "source": "https://commons.wikimedia.org/wiki/File:Chest_radiograph_in_influensa_and_H_influenzae,_posteroanterior.jpg"
+  },
+  {
+    "item": "normal-cxr",
+    "modality": "xray",
+    "src": "/radiology/singles/normal-cxr/4.jpg",
+    "author": "Doctoroftcm",
+    "license": "CC0",
+    "source": "https://commons.wikimedia.org/wiki/File:Chest_X-ray_2346.jpg"
+  },
+  {
+    "item": "normal-cxr",
+    "modality": "xray",
+    "src": "/radiology/singles/normal-cxr/5.jpg",
+    "author": "Yale Rosen from USA",
+    "license": "CC BY-SA 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Normal_PA_chest_x-ray_(5414485536).jpg"
+  },
+  {
+    "item": "normal-cxr",
+    "modality": "xray",
+    "src": "/radiology/singles/normal-cxr/1.jpg",
+    "author": "Mikael Häggström",
+    "license": "CC0",
+    "source": "https://commons.wikimedia.org/wiki/File:Normal_posteroanterior_(PA)_chest_radiograph_(X-ray).jpg"
+  },
+  {
+    "item": "liver-abscess",
+    "modality": "ct",
+    "src": "/radiology/singles/liver-abscess/c0.jpg",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Leberabszess_-_CT_axial_PV.jpg"
+  },
+  {
+    "item": "liver-abscess",
+    "modality": "ct",
+    "src": "/radiology/singles/liver-abscess/c2.jpg",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Leberabszess_-_CT_axial_PV_-_001.jpg"
+  },
+  {
+    "item": "liver-abscess",
+    "modality": "ct",
+    "src": "/radiology/singles/liver-abscess/c5.png",
+    "author": "James Heilman, MD",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:LiverAbscess.png"
+  },
+  {
+    "item": "cardiomegaly",
+    "modality": "xray",
+    "src": "/radiology/singles/cardiomegaly/c1.jpg",
+    "author": "Nevit Dilmen (talk)",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Rad_1300124.JPG"
+  },
+  {
+    "item": "cardiomegaly",
+    "modality": "xray",
+    "src": "/radiology/singles/cardiomegaly/c3.jpg",
+    "author": "SCiardullo",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Enfermedad_Mitral.JPG"
+  },
+  {
+    "item": "cardiomegaly",
+    "modality": "xray",
+    "src": "/radiology/singles/cardiomegaly/c4.jpg",
+    "author": "SCiardullo",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Cardiomegalia.JPG"
+  },
+  {
+    "item": "pancreatitis",
+    "modality": "ct",
+    "src": "/radiology/singles/pancreatitis/c0.jpg",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Akute_exsudative_Pankreatitis_-_CT_axial.jpg"
+  },
+  {
+    "item": "infarct",
+    "modality": "ct",
+    "src": "/radiology/singles/infarct/c2.jpg",
+    "author": "Cerevisae",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Right_MCA_and_PCA_territories_infarct.jpg"
+  },
+  {
+    "item": "hydronephrosis",
+    "modality": "usg",
+    "src": "/radiology/singles/hydronephrosis/c1.jpg",
+    "author": "Kristoffer Lindskov Hansen, Michael Bachmann Nielsen and Caroline Ewertsen",
+    "license": "CC BY 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Ultrasonography_of_hydronephrosis_with_dilated_anechoic_pelvis_and_calyces,_along_with_cortical_atrophy.jpg"
+  },
+  {
+    "item": "hydronephrosis",
+    "modality": "usg",
+    "src": "/radiology/singles/hydronephrosis/c0.jpg",
+    "author": "Kristoffer Lindskov Hansen, Michael Bachmann Nielsen and Caroline Ewertsen",
+    "license": "CC BY 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Ultrasonography_of_hydronephrosis_with_dilated_anechoic_pelvis_and_calyces,_along_with_cortical_atrophy_-_measurement.jpg"
+  },
+  {
+    "item": "effusion",
+    "modality": "xray",
+    "src": "/radiology/singles/effusion/c4.jpg",
+    "author": "Gensheng Zhang, Yang Yu, Shufang Zhang, Na Li, Hao Xu, Wei Cui",
+    "license": "CC BY 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Figure-1-Chest-radiograph-showing-a-whole-consolidation-and--or-pleural-effusion-of-the-right-lung.jpg"
+  },
+  {
+    "item": "renal-stone",
+    "modality": "ct",
+    "src": "/radiology/singles/renal-stone/c5.png",
+    "author": "Flaviolobo",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Calculo_renais.png"
+  },
+  {
+    "item": "fatty-liver",
+    "modality": "usg",
+    "src": "/radiology/singles/fatty-liver/c0.jpg",
+    "author": "Hellerhoff",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Steatosis_hepatis_-_Sonographie_001.jpg"
+  },
+  {
+    "item": "sbo",
+    "modality": "xray",
+    "src": "/radiology/singles/sbo/c1.jpg",
+    "author": "James Heilman, MD",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Upright_X-ray_demonstrating_small_bowel_obstruction.jpg"
+  },
+  {
+    "item": "ich",
+    "modality": "ct",
+    "src": "/radiology/singles/ich/c0.jpg",
+    "author": "Glitzy queen00 at English Wikipedia",
+    "license": "Public domain",
+    "source": "https://commons.wikimedia.org/wiki/File:Intracerebral_hemorrage_(CT_scan).jpg"
+  }
+]

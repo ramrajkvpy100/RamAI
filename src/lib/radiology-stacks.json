@@ -250,5 +250,89 @@
     "slices": 67,
     "series": "Pancreas",
     "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
+  },
+  {
+    "id": "hcc-tace-ct",
+    "collection": "HCC-TACE-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.5FNA-0924",
+    "modality": "CT",
+    "diagnosis": "Hepatocellular carcinoma",
+    "history": "66-year-old man with alcohol-related cirrhosis and a rising alpha-fetoprotein.",
+    "question": "Multiphase CT liver: findings?",
+    "key": "A focal mass in a cirrhotic liver with arterial enhancement and washout — hepatocellular carcinoma.",
+    "options": [
+      "Hepatocellular carcinoma",
+      "Liver abscess",
+      "Hepatic haemangioma",
+      "Liver metastases"
+    ],
+    "patient": "HCC_058",
+    "slices": 60,
+    "series": "Recon 3: LIVER 3 PHASE (AP)",
+    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924"
+  },
+  {
+    "id": "lung-ca-ct-3",
+    "collection": "CPTAC-LUAD",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/K9/TCIA.2018.PAT12TBS",
+    "modality": "CT",
+    "diagnosis": "Lung cancer",
+    "history": "67-year-old woman, ex-smoker, with persistent cough, weight loss and one episode of haemoptysis.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "A spiculated soft-tissue mass in the lung, sometimes with nodal enlargement or pleural involvement — primary lung cancer.",
+    "options": [
+      "Lung cancer",
+      "Lobar pneumonia",
+      "Tuberculous cavity",
+      "Pulmonary embolism"
+    ],
+    "patient": "C3N-00199",
+    "slices": 51,
+    "series": "ThoraxRoutine 3.0 B70f",
+    "credit": "Data from The Cancer Imaging Archive, CPTAC-LUAD collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.PAT12TBS"
+  },
+  {
+    "id": "breast-mri-2",
+    "collection": "TCGA-BRCA",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.AB2NAZRP",
+    "modality": "MR",
+    "diagnosis": "Breast cancer",
+    "history": "49-year-old woman with a palpable lump in one breast; mammogram was dense and inconclusive.",
+    "question": "Breast MRI (post-contrast): findings?",
+    "key": "An irregular, enhancing mass with spiculated margins in the breast — suspicious for breast carcinoma (BI-RADS 5).",
+    "options": [
+      "Breast cancer",
+      "Fibroadenoma",
+      "Simple breast cyst",
+      "Normal breast MRI"
+    ],
+    "patient": "TCGA-EW-A1IZ",
+    "slices": 56,
+    "series": "fl3d_dynamic_5 min_SUB",
+    "credit": "Data from The Cancer Imaging Archive, TCGA-BRCA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.AB2NAZRP"
+  },
+  {
+    "id": "breast-mri-3",
+    "collection": "TCGA-BRCA",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.AB2NAZRP",
+    "modality": "MR",
+    "diagnosis": "Breast cancer",
+    "history": "49-year-old woman with a palpable lump in one breast; mammogram was dense and inconclusive.",
+    "question": "Breast MRI (post-contrast): findings?",
+    "key": "An irregular, enhancing mass with spiculated margins in the breast — suspicious for breast carcinoma (BI-RADS 5).",
+    "options": [
+      "Breast cancer",
+      "Fibroadenoma",
+      "Simple breast cyst",
+      "Normal breast MRI"
+    ],
+    "patient": "TCGA-EW-A3E8",
+    "slices": 56,
+    "series": "SUB3 min",
+    "credit": "Data from The Cancer Imaging Archive, TCGA-BRCA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.AB2NAZRP"
   }
 ]

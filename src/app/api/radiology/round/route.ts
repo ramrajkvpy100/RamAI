@@ -6,12 +6,16 @@ import { withUsage } from "@/engine/providers/usage";
 import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { RADIOLOGY_BRIEFS, RADIOLOGY_MODALITIES } from "@/lib/radiology";
+import SINGLES from "@/lib/radiology-singles.json";
+import { MODALITIES, type DrillItem } from "@/lib/practice";
 import type { Modality } from "@/lib/practice";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 /** Room for the background search for more studies. */
 export const maxDuration = 60;
+
+const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 
 const Request = z.object({ modality: z.enum(RADIOLOGY_MODALITIES as [Modality, ...Modality[]]) });
 
@@ -26,7 +30,15 @@ export async function POST(req: Request) {
   if (body instanceof Response) return body;
   try {
     const r = await round(body.modality, "spot");
-    const items = r.items.filter((i) => i.image && RADIOLOGY_BRIEFS[i.item]).map((i) => ({ ...i, brief: RADIOLOGY_BRIEFS[i.item]! }));
+    const banked = r.items.filter((i) => i.image && RADIOLOGY_BRIEFS[i.item]).map((i) => ({ ...i, brief: RADIOLOGY_BRIEFS[i.item]! }));
+    // Studies kept with the site: real Commons images, each looked at by a person before it was kept.
+    const bank = MODALITIES[body.modality].items;
+    const kept = SINGLES.filter((s) => s.modality === body.modality && RADIOLOGY_BRIEFS[s.item]).map((s): DrillItem & { brief: (typeof RADIOLOGY_BRIEFS)[string] } => {
+      const item = bank.find((b) => b.id === s.item)!;
+      const options = shuffle([item, ...shuffle(bank.filter((b) => b.id !== item.id)).slice(0, 3)]);
+      return { item: item.id, image: s.src, ecg: null, options: options.map((o) => o.label), answer: options.indexOf(item), key: item.key, keys: options.map((o) => o.key), credit: { author: s.author, license: s.license, source: s.source }, source: "commons", brief: RADIOLOGY_BRIEFS[s.item]! };
+    });
+    const items = shuffle([...kept, ...banked]).slice(0, 15);
     // The bank fills in the background: a few more real studies (from Wikimedia Commons, checked) for next time.
     if (picturesAvailable() && items.length < 12) {
       after(() =>
