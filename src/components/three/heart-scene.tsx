@@ -51,6 +51,8 @@ export function HeartScene(props: { className?: string; density?: "hero" | "comp
 export function OrganScene({ organ = "heart", className, density = "hero", tone = "auto", bare = false }: { organ?: Organ; className?: string; density?: "hero" | "compact"; /** "dark" when drawn on an always-dark surface. */ tone?: "auto" | "dark"; /** The organ alone — no glow, shadow or dust (for capturing it as a picture). */ bare?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [fallback, setFallback] = useState(false);
+  /** Until the 3D organ is drawn, the soft glow holds its place. */
+  const [drawn, setDrawn] = useState(false);
 
   useEffect(() => {
     const el = host.current;
@@ -66,9 +68,21 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
         return;
       }
       // The organ (three.js and a model of a few hundred KB) waits until the page itself has loaded and gone quiet, so it never slows first paint.
+      // On phones and small machines it waits for the visitor to touch, scroll or type — a page only looked at never pays for it.
+      const phone = window.matchMedia("(pointer: coarse)").matches || Math.min(window.innerWidth, window.innerHeight) < 700 || (navigator.hardwareConcurrency ?? 8) <= 4;
       await new Promise<void>((resolve) => {
         const idle = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
         const go = () => (idle ? idle(() => resolve(), { timeout: 2000 }) : window.setTimeout(resolve, 300));
+        if (phone) {
+          const events = ["pointerdown", "touchstart", "scroll", "keydown", "wheel"] as const;
+          const once = () => {
+            events.forEach((e) => window.removeEventListener(e, once));
+            go();
+          };
+          events.forEach((e) => window.addEventListener(e, once, { once: true, passive: true }));
+          abort.signal.addEventListener("abort", () => events.forEach((e) => window.removeEventListener(e, once)));
+          return;
+        }
         if (document.readyState === "complete") go();
         else window.addEventListener("load", go, { once: true });
       });
@@ -84,7 +98,7 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
       const canvas = document.createElement("canvas");
       // Smooth edges everywhere: the outline of a glossy organ against a light page shows every jagged pixel.
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, phone ? 1.25 : 2));
       renderer.setClearColor(0x000000, 0);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       canvas.style.width = "100%";
@@ -318,11 +332,17 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
         resize();
         dustPts.visible = false;
       };
+      // Phones draw 30 frames a second — smooth for a heartbeat, half the work.
+      const minGap = phone ? 1000 / 30 - 2 : 0;
+      let drewAt = 0;
       const loop = (now: number) => {
         raf = 0;
         if (!visible || document.hidden) return;
-        render();
-        adapt(now);
+        if (now - drewAt >= minGap) {
+          drewAt = now;
+          render();
+          adapt(now);
+        }
         raf = requestAnimationFrame(loop);
       };
       const start = () => {
@@ -336,7 +356,10 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
 
       canvas.style.opacity = "0";
       canvas.style.transition = "opacity 1s ease";
-      requestAnimationFrame(() => (canvas.style.opacity = "1"));
+      requestAnimationFrame(() => {
+        canvas.style.opacity = "1";
+        setDrawn(true);
+      });
 
       cleanup = () => {
         cancelAnimationFrame(raf);
@@ -377,7 +400,7 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
   return (
     // Callers position the scene (usually `absolute …`); default to `relative` only when they don't.
     <div ref={host} aria-hidden className={className && /\b(absolute|fixed|relative|sticky)\b/.test(className) ? className : cn("relative", className)}>
-      {fallback && <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle_at_40%_35%,rgb(244_63_94/0.45),rgb(139_92_246/0.2)_45%,transparent_70%)] blur-2xl" />}
+      {(fallback || (!drawn && !bare)) && <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle_at_40%_35%,rgb(244_63_94/0.45),rgb(139_92_246/0.2)_45%,transparent_70%)] blur-2xl" />}
       {/* The brain and lungs are real anatomy (BodyParts3D, CC BY-SA 2.1 JP): credited where they're shown. Full credit on /about. */}
       {organ !== "heart" && !bare && <span className="absolute right-2 bottom-1 text-[8.5px] leading-none text-white/35">BodyParts3D © DBCLS · CC BY-SA</span>}
     </div>
