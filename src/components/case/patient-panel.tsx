@@ -1,5 +1,6 @@
 "use client";
 
+import { Portal } from "@/components/ui/portal";
 import { useEffect, useState } from "react";
 
 import { DuelCard } from "@/components/duel/duel-card";
@@ -176,10 +177,10 @@ export function PatientPortrait({ state, children }: { state: CaseState; childre
         <img src={url} alt="The patient" className="h-full w-full object-cover" />
       </button>
       {big && (
-        <button type="button" onClick={() => setBig(false)} aria-label="Close" className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-6">
+        <Portal><button type="button" onClick={() => setBig(false)} aria-label="Close" className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt="The patient" className="max-h-[80dvh] max-w-full rounded-2xl shadow-2xl" />
-        </button>
+        </button></Portal>
       )}
     </>
   );

@@ -8,8 +8,8 @@ export function AvatarFace({ style: a, size = 32, className }: { style: AvatarSt
     <svg viewBox="0 0 100 100" width={size} height={size} className={className} aria-hidden>
       <circle cx="50" cy="50" r="50" fill={BGS[a.bg]} />
       {/* Hair behind the head */}
-      {a.hair === "long" && <path d="M22 46 C20 22 80 22 78 46 L80 84 L20 84 Z" fill={hair} />}
-      {a.hair === "hijab" && <path d="M18 54 C16 18 84 18 82 54 L86 100 L14 100 Z" fill="#0f766e" />}
+      {a.hair === "long" && <path d="M18 48 C14 14 86 14 82 48 L86 90 C70 96 30 96 14 90 Z" fill={hair} />}
+      {a.hair === "hijab" && <path d="M16 56 C10 4 90 4 84 56 L88 100 L12 100 Z" fill="#0f766e" />}
       {/* Shoulders */}
       <path d="M18 100 C20 80 34 74 50 74 C66 74 80 80 82 100 Z" fill="#f8fafc" />
       <path d="M44 74 L50 86 L56 74" fill="#cbd5e1" />
@@ -19,17 +19,17 @@ export function AvatarFace({ style: a, size = 32, className }: { style: AvatarSt
       <ellipse cx="28.5" cy="50" rx="3.5" ry="5" fill={skin} />
       <ellipse cx="71.5" cy="50" rx="3.5" ry="5" fill={skin} />
       {/* Hair on top */}
-      {a.hair === "short" && <path d="M28 44 C26 22 74 22 72 44 C66 34 56 31 50 31 C42 31 34 34 28 44 Z" fill={hair} />}
-      {a.hair === "side" && <path d="M28 46 C24 20 76 20 72 42 C62 40 50 34 44 28 C40 36 34 40 28 46 Z" fill={hair} />}
-      {a.hair === "long" && <path d="M27 48 C24 22 76 22 73 48 C70 34 58 29 50 29 C42 29 30 34 27 48 Z" fill={hair} />}
+      {a.hair === "short" && <path d="M24 54 C16 8 84 8 76 54 L73 54 C72 44 69 39 64 37 C56 41 44 41 36 37 C31 39 28 44 27 54 Z" fill={hair} />}
+      {a.hair === "side" && <path d="M24 56 C14 6 86 6 77 52 L74 52 C72 43 66 39 60 38 C52 37 44 33 40 27 C36 35 31 41 28 56 Z" fill={hair} />}
+      {a.hair === "long" && <path d="M23 60 C14 6 86 6 77 60 C74 42 64 35 55 35 C50 39 42 39 36 37 C29 42 26 48 23 60 Z" fill={hair} />}
       {a.hair === "bun" && (
         <>
-          <circle cx="50" cy="20" r="9" fill={hair} />
-          <path d="M28 44 C26 24 74 24 72 44 C66 35 57 32 50 32 C43 32 34 35 28 44 Z" fill={hair} />
+          <circle cx="50" cy="12" r="12" fill={hair} />
+          <path d="M24 54 C16 10 84 10 76 54 L73 54 C71 43 64 38 50 37 C36 38 29 43 27 54 Z" fill={hair} />
         </>
       )}
-      {a.hair === "curly" && [30, 38, 46, 54, 62, 70, 34, 66].map((x, i) => <circle key={i} cx={x} cy={i < 6 ? 30 - Math.abs(x - 50) * 0.12 : 38} r="7.5" fill={hair} />)}
-      {a.hair === "hijab" && <path d="M27 50 C26 26 74 26 73 50 C72 36 62 30 50 30 C38 30 28 36 27 50 Z" fill="#14b8a6" />}
+      {a.hair === "curly" && [[26, 40], [32, 30], [41, 24], [50, 22], [59, 24], [68, 30], [74, 40], [27, 50], [73, 50], [36, 34], [64, 34], [50, 30]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="9" fill={hair} />)}
+      {a.hair === "hijab" && <path d="M22 62 C14 4 86 4 78 62 C76 40 64 32 50 32 C36 32 24 40 22 62 Z" fill="#14b8a6" />}
       {/* Eyes */}
       {a.eyes === "round" && (
         <>

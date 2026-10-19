@@ -74,20 +74,44 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
   const calculations = useCallback(() => calculationQuestions(level, specialty), [level, specialty]);
 
   if (!section) {
+    // Three kinds of drill, each its own group: what you see, what you hear, what you must know.
+    const groups: [string, string, Section[]][] = [
+      ["👁️ See it", "Name what's on the image", ["spot", "radiology"]],
+      ["👂 Hear it", "Name what's on the stethoscope", ["sounds"]],
+      ["🧠 Know it", "Quick-fire, high-yield", ["antidotes", "algorithms", "calculations"]],
+    ];
+    // The doctor's own drills lead within each group.
+    const rank = (id: Section) => order.indexOf(id);
     return (
-      <div className="flex flex-col gap-5 py-6">
+      <div className="flex flex-col gap-6 py-6">
         <header>
           <h1 className="text-[28px] font-semibold tracking-[-0.03em]">Skills Lab</h1>
-          <p className="mt-1 text-[14.5px] text-fg-2">{level === "basic" ? "Must-know drills for your level." : "Short drills. Pick one."}</p>
+          <p className="mt-1 text-[14.5px] text-fg-2">{level === "basic" ? "Must-know drills for your level — a few minutes each." : "Short drills — a few minutes each."}</p>
         </header>
-        <div className="flex flex-col gap-2">
-          {order.map((id) => (
-            <button key={id} type="button" onClick={() => setSection(id)} className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2">
-              <span className="text-[15.5px] font-semibold">{SECTIONS[id][0]}</span>
-              <span className="text-right text-[12.5px] text-fg-2">{SECTIONS[id][1]}</span>
-            </button>
-          ))}
-        </div>
+        {groups.map(([title, note, ids]) => (
+          <section key={title} className="flex flex-col gap-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-[16px] font-semibold">{title}</h2>
+              <span className="text-[12.5px] text-fg-3">{note}</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[...ids].sort((x, y) => rank(x) - rank(y)).map((id) => {
+                const [label, sub] = SECTIONS[id];
+                const [emoji, ...words] = label.split(" ");
+                return (
+                  <button key={id} type="button" onClick={() => setSection(id)} className="group flex min-h-[72px] items-center gap-3.5 rounded-2xl border border-line bg-surface px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:bg-surface-2 hover:shadow-md active:scale-[0.99]">
+                    <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-3 text-[22px]">{emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold">{words.join(" ")}</span>
+                      <span className="block text-[12.5px] leading-5 text-fg-2">{sub}</span>
+                    </span>
+                    <span aria-hidden className="text-fg-3 transition-transform group-hover:translate-x-0.5">›</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     );
   }

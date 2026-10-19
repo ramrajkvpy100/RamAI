@@ -71,7 +71,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Invite-only: a visitor with neither an invite pass nor a signed-in session sees the invite page.
-  if (inviteOnly() && !OPEN_PATHS.test(request.nextUrl.pathname) && !hasAuthCookie(request.cookies.getAll().map((c) => c.name)) && !(await validAccessCookie(request.cookies.get(ACCESS_COOKIE)?.value))) {
+  if (inviteOnly() && !OPEN_PATHS.test(request.nextUrl.pathname) && !(dev && request.nextUrl.pathname.startsWith("/dev/")) && !hasAuthCookie(request.cookies.getAll().map((c) => c.name)) && !(await validAccessCookie(request.cookies.get(ACCESS_COOKIE)?.value))) {
     const to = request.nextUrl.clone();
     to.pathname = "/invite";
     to.search = request.nextUrl.pathname === "/" ? "" : `?next=${encodeURIComponent(request.nextUrl.pathname)}`;

@@ -1,5 +1,6 @@
 "use client";
 
+import { Portal } from "@/components/ui/portal";
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
@@ -173,10 +174,10 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
         </article>
       )}
       {zoom && item?.image && (
-        <button type="button" onClick={() => setZoom(false)} aria-label="Close" className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-3">
+        <Portal><button type="button" onClick={() => setZoom(false)} aria-label="Close" className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.image!} alt="The study, full size" className="max-h-full max-w-full object-contain" />
-        </button>
+        </button></Portal>
       )}
     </div>
   );
