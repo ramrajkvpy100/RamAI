@@ -566,6 +566,8 @@ export type IntentKind =
   | "hint"
   /** An opinion from another department ("call cardiology"). */
   | "consult"
+  /** A simple instruction to the patient ("stand up", "lie down", "take a deep breath"). */
+  | "instruct"
   | "unknown";
 
 export interface ResolvedIntent {

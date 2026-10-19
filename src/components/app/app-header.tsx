@@ -28,6 +28,7 @@ export function AppHeader({ initial }: { initial: Me }) {
   const me = useMe(initial) ?? initial;
   const path = usePathname();
   return (
+    <>
     <header className="material-bar sticky top-0 z-40 border-b border-[var(--material-stroke)]">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Link href="/" aria-label="RamAI — home" className="rounded-lg">
@@ -55,6 +56,8 @@ export function AppHeader({ initial }: { initial: Me }) {
           <UserMenu me={me} />
         </div>
       </div>
+    </header>
+    {/* The tab bar sits outside the header: the header's blur would pin a fixed bar to itself. */}
       {/* Phones: a tab bar along the bottom, like an app. */}
       <nav className="material-bar fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--material-stroke)] pb-[env(safe-area-inset-bottom)] sm:hidden" aria-label="Main">
         {PHONE_NAV.map((n) => {
@@ -67,6 +70,6 @@ export function AppHeader({ initial }: { initial: Me }) {
           );
         })}
       </nav>
-    </header>
+    </>
   );
 }

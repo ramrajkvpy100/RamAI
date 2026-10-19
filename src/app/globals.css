@@ -547,3 +547,9 @@ html[data-coach="end-case"] [data-coach-target="end-case"] {
 @media (prefers-reduced-motion: reduce) {
   .ramai-organ-anim { animation: none !important; }
 }
+
+/* Nothing may make a page wider than the screen (rays, confetti, wide cards): on phones it slid the whole page — and its dialogs — sideways. */
+html,
+body {
+  overflow-x: clip;
+}

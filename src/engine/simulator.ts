@@ -2261,6 +2261,30 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
  */
 const HINT_LIMIT = 3;
 
+/** "Stand up", "lie down", "take a deep breath": the patient does it (if well enough), in a line. */
+function handleInstruct(ctx: TurnContext, phrase: string): TurnEffect[] {
+  const { def, hidden } = ctx;
+  if (def.track === "phone") return [{ type: "message", role: "system", kind: "status", text: "You're on the phone — ask the caller to help, or advise where to go." }];
+  if (hidden.status === "critical" || hidden.status === "deceased") return [{ type: "message", role: "system", kind: "action", text: "Too unwell to do that." }];
+  const p = phrase.toLowerCase();
+  const text = /stand|get up/.test(p)
+    ? "Stands up slowly and steadily."
+    : /walk/.test(p)
+      ? "Walks a few steps across the room."
+      : /sit/.test(p)
+        ? "Sits up."
+        : /lie|turn/.test(p)
+          ? "Lies down on the couch as asked."
+          : /breath/.test(p)
+            ? "Takes a slow, deep breath."
+            : /mouth|aa|ahh|tongue/.test(p)
+              ? "Opens the mouth and puts out the tongue."
+              : /cough/.test(p)
+                ? "Coughs."
+                : "Does as you ask.";
+  return [{ type: "message", role: "system", kind: "action", text }];
+}
+
 function handleHint(ctx: TurnContext): TurnEffect[] {
   const { def, hidden } = ctx;
   // Like asking your senior: a few nudges a case, not a walkthrough.
@@ -2459,6 +2483,9 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       }
       case "hint":
         fx.push(...handleHint(ctx));
+        break;
+      case "instruct":
+        fx.push(...handleInstruct(ctx, intent.phrase));
         break;
       case "consult":
         fx.push(...handleConsult(ctx, intent.targetId));

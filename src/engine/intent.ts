@@ -591,6 +591,8 @@ export function consultDepartment(raw: string): string | null {
 }
 
 export function resolveIntents(raw: string, ctx: IntentContext): ResolvedIntent[] {
+  // Plain instructions to the patient — answered at once, no AI needed.
+  if (/^\s*(?:please\s+|can you\s+|could you\s+)?(?:stand(?: up)?|get up|sit(?: up| down)?|lie (?:down|flat)|lie on (?:your|the) (?:back|side|left|right)|turn (?:over|to (?:your|the) (?:left|right|side))|walk(?: a few steps| for me| around)?|take a (?:deep )?breath|breathe (?:in|deeply)|hold your breath|open your mouth|say (?:aa+h|ahh+)|stick out your tongue|show (?:me )?your tongue|relax|cough)\b[^?]{0,30}$/i.test(raw)) return [{ kind: "instruct", phrase: raw, matched: true }];
   // "Hint", "give me a hint", "I'm stuck": a nudge, only when asked for.
   if (/^\s*(?:please\s+)?(?:give me |show me |i need |any )?(?:a |another )?(?:hint|clue)s?\b|\bi'?m stuck\b|\bwhat (?:should|do) i do next\b/i.test(raw)) return [{ kind: "hint", phrase: raw, matched: true }];
   // "Call cardiology", "surgery consult", "ortho opinion": another department's view.

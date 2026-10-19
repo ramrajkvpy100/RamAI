@@ -14,6 +14,7 @@ import { deriveSecret } from "@/engine/session";
 import type { CareLevel, CaseTrack } from "@/engine/types";
 import { isCountry, type Country } from "@/engine/countries";
 import { avatarOf, type AvatarLook } from "@/lib/avatar";
+import { parseAvatar } from "@/lib/avatar-style";
 import { dailyNumber } from "@/lib/daily";
 
 import { db } from "./db";
@@ -170,10 +171,27 @@ export async function achievementCard(value: string): Promise<AchievementCard | 
     if (!badge) return null;
     prize = { kind: "badge", label: badge.label, description: badge.description };
   }
-  return { kind: "achievement", name: shownName(u.name, u.is_guest === 1), avatar: avatarOf(u.name), tier: rank.tier, rank: rank.label, prize, cases: p.casesCompleted, xp: p.xp, unlocked: p.badges.length, of: BADGE_LIST.length };
+  return { kind: "achievement", name: shownName(u.name, u.is_guest === 1), avatar: await avatarWithFace(userId, u.name), tier: rank.tier, rank: rank.label, prize, cases: p.casesCompleted, xp: p.xp, unlocked: p.badges.length, of: BADGE_LIST.length };
 }
 
 /** The doctor's own result for a case they played — the only one they can share. */
 export async function ownResultId(userId: string, sessionId: string): Promise<number | null> {
   return (await db.get<{ id: number }>("SELECT id FROM results WHERE user_id = ? AND session_id = ?", userId, sessionId))?.id ?? null;
+}
+
+/** Their initials — and the avatar they made, drawn, if they made one. */
+async function avatarWithFace(userId: string, name: string): Promise<AvatarLook> {
+  const look = avatarOf(name);
+  try {
+    const row = await db.get<{ style: string }>("SELECT style FROM user_avatars WHERE user_id = ?", userId);
+    const style = row ? parseAvatar(JSON.parse(row.style)) : null;
+    if (!style) return look;
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { createElement } = await import("react");
+    const { AvatarFace } = await import("@/components/game/avatar-face");
+    const svg = renderToStaticMarkup(createElement(AvatarFace, { style, size: 256 })).replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    return { ...look, face: `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}` };
+  } catch {
+    return look;
+  }
 }

@@ -132,7 +132,15 @@ export function mixHex(a: string, b: string, t: number): string {
 }
 
 /** The doctor's avatar — their initials on their colour, as on the site. */
-export function AvatarDisc({ avatar, size, ring = 0, ringColor = "#fff" }: { avatar: { initials: string; color: string }; size: number; ring?: number; ringColor?: string }) {
+export function AvatarDisc({ avatar, size, ring = 0, ringColor = "#fff" }: { avatar: { initials: string; color: string; face?: string }; size: number; ring?: number; ringColor?: string }) {
+  if (avatar.face) {
+    return (
+      <div style={{ display: "flex", width: size, height: size, borderRadius: 9999, padding: ring, background: ringColor }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatar.face} width={size - ring * 2} height={size - ring * 2} style={{ borderRadius: 9999 }} alt="" />
+      </div>
+    );
+  }
   return (
     <div style={{ display: "flex", width: size, height: size, borderRadius: 9999, padding: ring, background: ringColor }}>
       <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 9999, backgroundImage: `linear-gradient(135deg, ${avatar.color}, ${mixHex(avatar.color, "#0b1220", 0.45)})`, color: "#fff", fontSize: (size - ring * 2) * 0.38, fontWeight: 700, letterSpacing: -0.5 }}>
@@ -546,8 +554,11 @@ export function AchievementCardImage({ card, format, site, img }: { card: Achiev
           <div style={{ display: "flex", fontSize: (label.length > 18 ? 72 : 92) * s, fontWeight: 700, letterSpacing: -3 * s, lineHeight: 1.02, textAlign: wide ? "left" : "center", backgroundImage: gradient(tier.colors, 90), backgroundClip: "text", color: "transparent" }}>{label}</div>
           <div style={{ display: "flex", fontSize: 32 * s, lineHeight: 1.35, color: "rgba(255,255,255,0.78)", maxWidth: story ? 860 : wide ? 620 : 820, textAlign: wide ? "left" : "center" }}>{card.prize.description}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 * s, marginTop: 10 * s, marginBottom: wide ? 0 : 18 * s }}>
-            <AvatarDisc avatar={card.avatar} size={64 * s} ring={3 * s} ringColor={tier.colors[1]!} />
-            <div style={{ display: "flex", fontSize: 32 * s, color: "#fff", fontWeight: 600 }}>{card.name}</div>
+            <AvatarDisc avatar={card.avatar} size={(card.avatar.face ? 112 : 64) * s} ring={4 * s} ringColor={tier.colors[1]!} />
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", fontSize: 36 * s, color: "#fff", fontWeight: 700 }}>{card.name}</div>
+              <div style={{ display: "flex", fontSize: 24 * s, color: tier.accent }}>{`${card.rank} · ${card.cases.toLocaleString("en-IN")} patients treated`}</div>
+            </div>
           </div>
         </div>
       </div>

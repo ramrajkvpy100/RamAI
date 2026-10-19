@@ -4,6 +4,8 @@ const PALETTE = ["#2563eb", "#7c3aed", "#0891b2", "#db2777", "#ea580c", "#059669
 export interface AvatarLook {
   initials: string;
   color: string;
+  /** The avatar they made, drawn (an SVG data URI) — for share cards. */
+  face?: string;
 }
 
 export function avatarOf(name: string): AvatarLook {
