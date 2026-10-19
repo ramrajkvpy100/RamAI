@@ -26,7 +26,6 @@ import { HomeTour, TOUR_EVENT, tourSeen, type TourStop } from "./home-tour";
 import { LevelPath } from "./level-path";
 import { SPECIALTY_EVENT, SpecialtySheet } from "./specialty-sheet";
 import { UpgradeSheet } from "./upgrade-sheet";
-import { AppCard } from "./app-card";
 import { DailyCard } from "./daily-card";
 import { ReviewCard } from "./review-card";
 import { useLauncher } from "./use-launcher";
@@ -201,9 +200,6 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
               {error}
             </p>
           )}
-          <button type="button" onClick={() => setTour(true)} className="mt-4 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium text-white/65 transition-colors hover:text-white">
-            <Icon name="target" size={14} /> Quick tour of RamAI
-          </button>
         </section>
 
         <div data-tour="daily">
@@ -211,8 +207,6 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
         </div>
 
         {showGuide && <GuidedCard onStart={() => void launch({ tutorial: true })} onSkip={skipGuide} starting={starting} />}
-
-        {!showGuide && <AppCard guest={me.user.isGuest} played={p.history.length > 0} />}
 
         <ReviewCard onPractise={(disease) => void start({ disease })} starting={starting} />
 
