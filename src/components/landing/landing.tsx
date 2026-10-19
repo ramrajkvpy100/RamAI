@@ -23,7 +23,7 @@ import { cn } from "@/lib/cn";
 import { PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { DemoButton } from "./demo-button";
-import { Faq, Numbers, SampleDebrief, Trust, type SiteStats } from "./landing-proof";
+import { Faq, SampleDebrief, Trust, type SiteStats } from "./landing-proof";
 import { Tilt } from "./tilt";
 
 const CTA = "inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow transition-transform active:scale-[0.98]";
@@ -393,7 +393,6 @@ export function Landing({ country: guessed, stats }: { country?: Country; stats:
       <LandingNav />
       <main className="flex-1">
         <Hero />
-        <Numbers stats={stats} />
         <HowItWorks />
         <SampleDebrief />
         <Ladder country={country} onCountry={setCountry} />

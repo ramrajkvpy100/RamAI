@@ -7,5 +7,8 @@
       "path": "/api/cron/reminders",
       "schedule": "30 13 * * *"
     }
+  ],
+  "regions": [
+    "bom1"
   ]
 }
