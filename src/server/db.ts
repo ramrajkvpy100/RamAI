@@ -288,6 +288,13 @@ CREATE TABLE IF NOT EXISTS user_prefs (
   updated_at INTEGER NOT NULL
 );
 
+-- A doctor's own cartoon avatar (JSON: AvatarStyle), made on the profile page.
+CREATE TABLE IF NOT EXISTS user_avatars (
+  user_id TEXT PRIMARY KEY,
+  style TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 -- Private leaderboards: a college, hospital or coaching class, joined by code.
 CREATE TABLE IF NOT EXISTS study_groups (
   code TEXT PRIMARY KEY,
@@ -646,7 +653,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 28;
+const SCHEMA_VERSION = 29;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

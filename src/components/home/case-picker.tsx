@@ -58,6 +58,8 @@ export function CasePicker({
   const [level, setLevel] = useState<CareLevel | undefined>();
   const [unlimited, setUnlimited] = useState(false);
   const [disease, setDisease] = useState("");
+  // Kept simple: specialty and level; the rest one tap away.
+  const [more, setMore] = useState(false);
   // Starts at the doctor's own specialty; "Any specialty" means every one this time.
   const own = useMe()?.user.specialty;
   const [specialty, setSpecialty] = useState<Specialty | undefined>(own && own !== "mixed" ? own : undefined);
@@ -101,30 +103,6 @@ export function CasePicker({
           </div>
         </Group>
 
-        <Group label="Mode">
-          <div className="grid grid-cols-4 gap-1.5 rounded-xl bg-surface-3 p-1">
-            {[undefined, ...CASE_TRACKS].map((t) => {
-              const none = t !== undefined && !(library.tracks[t] ?? 0);
-              return (
-                <button
-                  key={t ?? "any"}
-                  type="button"
-                  disabled={none}
-                  aria-pressed={track === t}
-                  onClick={() => setTrack(t)}
-                  className={cn(
-                    "flex h-10 items-center justify-center gap-1.5 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-35",
-                    track === t ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg",
-                  )}
-                >
-                  {t && <Icon name={TRACK_ICON[t]} size={14} className="hidden sm:block" />}
-                  {t ? (t === "phone" ? "Phone" : trackLabel(t, country)) : "Any"}
-                </button>
-              );
-            })}
-          </div>
-        </Group>
-
         <Group label="Level">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <button
@@ -160,6 +138,36 @@ export function CasePicker({
                     <span className="block text-[13.5px] leading-tight font-semibold">{levelMeta(l, country).short}</span>
                     <span className="mt-0.5 block truncate text-[11.5px] text-fg-2">{locked ? "Pro" : none ? "Coming soon" : levelMeta(l, country).tagline}</span>
                   </span>
+                </button>
+              );
+            })}
+          </div>
+        </Group>
+
+        <button type="button" aria-expanded={more} onClick={() => setMore((m) => !m)} className="flex items-center justify-center gap-1.5 text-[13.5px] font-medium text-fg-2 hover:text-fg">
+          {more ? "Fewer options" : "More options — mode, a disease, play with a friend…"}
+          <Icon name="chevron-down" size={14} className={cn("transition-transform", more && "rotate-180")} />
+        </button>
+        {more && (
+          <>
+        <Group label="Mode">
+          <div className="grid grid-cols-4 gap-1.5 rounded-xl bg-surface-3 p-1">
+            {[undefined, ...CASE_TRACKS].map((t) => {
+              const none = t !== undefined && !(library.tracks[t] ?? 0);
+              return (
+                <button
+                  key={t ?? "any"}
+                  type="button"
+                  disabled={none}
+                  aria-pressed={track === t}
+                  onClick={() => setTrack(t)}
+                  className={cn(
+                    "flex h-10 items-center justify-center gap-1.5 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-35",
+                    track === t ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg",
+                  )}
+                >
+                  {t && <Icon name={TRACK_ICON[t]} size={14} className="hidden sm:block" />}
+                  {t ? (t === "phone" ? "Phone" : trackLabel(t, country)) : "Any"}
                 </button>
               );
             })}
@@ -239,6 +247,8 @@ export function CasePicker({
           <LangToggle className="self-start" />
         </Group>
 
+          </>
+        )}
       </div>
     </Sheet>
   );

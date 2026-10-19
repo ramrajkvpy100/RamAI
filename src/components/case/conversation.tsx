@@ -12,6 +12,7 @@ import { clockAt } from "@/lib/format";
 import { send } from "@/lib/case-store";
 
 import { useComposer } from "./composer-context";
+import { isLowData } from "@/lib/low-data";
 import { usePortrait } from "./patient-panel";
 import { HiddenReport, ResultCard } from "./result-card";
 import { StethoscopePlayer } from "./stethoscope-player";
@@ -45,12 +46,19 @@ function toBlocks(messages: EncounterMessage[], arrival: number): Block[] {
 /** The patient as they came in: their photograph, large, at the top of the encounter. */
 function PatientIntro({ state }: { state: CaseState }) {
   const url = usePortrait(state);
-  if (!url) return null;
   const sex = state.patient.sex === "Male" ? "Male" : state.patient.sex === "Female" ? "Female" : "";
   return (
     <figure className="mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-line bg-surface shadow-sm animate-enter">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="The patient" className="aspect-[4/5] w-full object-cover" />
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt="The patient" className="aspect-[4/5] w-full object-cover" />
+      ) : (
+        // Until the photograph is ready: the drawn patient, with a soft shimmer.
+        <div className="relative flex aspect-[4/5] w-full items-center justify-center bg-surface-2">
+          <PatientFigure patient={state.patient} status={statusAt(state, 0)} seed={figureSeed(state)} size={180} />
+          {!isLowData() && <span className="absolute bottom-3 rounded-full bg-surface/80 px-3 py-1 text-[11.5px] text-fg-2 backdrop-blur animate-pulse">Photo on its way…</span>}
+        </div>
+      )}
       <figcaption className="px-4 py-3 text-center text-[13px] text-fg-2">
         <span className="font-semibold text-fg">{state.patient.age} · {sex}</span>
         {state.patient.occupation ? ` · ${state.patient.occupation}` : ""}

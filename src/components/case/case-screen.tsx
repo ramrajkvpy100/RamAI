@@ -264,7 +264,7 @@ function Workspace() {
                       </div>
                     )}
                     <div className="flex items-center gap-1 md:hidden">
-                      {(["patient", "results", "timeline"] as const).map((t) => (
+                      {(["patient", "results"] as const).map((t) => (
                         <button key={t} type="button" onClick={() => setSheet(t)} className="flex h-8 items-center gap-1.5 rounded-full px-3 text-ui whitespace-nowrap text-fg-2 capitalize hover:bg-surface-3 hover:text-fg">
                           {t}
                           {t === "results" && state.investigations.length > 0 && <span className="text-[10.5px] text-fg-3 tabular">{state.investigations.length}</span>}

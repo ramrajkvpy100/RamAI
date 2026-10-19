@@ -1,5 +1,7 @@
 "use client";
 
+import { AvatarMaker } from "./avatar-maker";
+
 import Link from "next/link";
 import { useState } from "react";
 
@@ -57,12 +59,18 @@ export function Profile({ initial }: { initial: Me }) {
   const mastery = p.mastery.filter((m) => m.cases > 0).sort((a, b) => b.cases - a.cases);
   const recent = [...p.history].reverse().slice(0, 10);
   const [sharing, setSharing] = useState(false);
+  const [making, setMaking] = useState(false);
+  const live = useMe();
 
   return (
     <div className="flex flex-col gap-5">
       <section className="panel flex flex-col gap-6 p-6 md:flex-row md:items-center">
         <div className="flex min-w-0 items-center gap-4">
-          <Avatar name={me.user.name} size={64} />
+          <button type="button" onClick={() => setMaking(true)} aria-label="Make your avatar" className="group relative shrink-0 rounded-full">
+            <Avatar name={me.user.name} size={72} style={live?.avatar ?? me.avatar} />
+            <span className="absolute -right-1 -bottom-1 rounded-full bg-accent px-1.5 py-0.5 text-[10.5px] font-semibold text-on-accent shadow ring-2 ring-surface">✏️ Edit</span>
+          </button>
+          {making && <AvatarMaker onClose={() => setMaking(false)} />}
           <div className="min-w-0">
             <h1 className="truncate text-[24px] leading-tight font-semibold tracking-[-0.02em]">{me.user.name}</h1>
             <p className="mt-1 text-[13.5px] text-fg-2">

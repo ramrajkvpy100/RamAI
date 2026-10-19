@@ -1,5 +1,6 @@
 "use client";
 
+import { usePortrait } from "./patient-panel";
 import Link from "next/link";
 import { useEffect, type CSSProperties } from "react";
 
@@ -34,6 +35,7 @@ const CTA: Record<CaseState["track"], string> = {
 
 function Visual({ state }: { state: CaseState }) {
   const seed = figureSeed(state);
+  const portrait = usePortrait(state);
   if (state.track === "phone") {
     return (
       <div className="relative mx-auto flex h-28 w-28 items-center justify-center" aria-hidden>
@@ -45,6 +47,15 @@ function Visual({ state }: { state: CaseState }) {
         <span className="absolute -right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white ring-4 ring-bg">
           <Icon name="phone" size={15} strokeWidth={2} />
         </span>
+      </div>
+    );
+  }
+  // The patient's photograph, once drawn (asked for as soon as the case opens).
+  if (portrait) {
+    return (
+      <div className="mx-auto h-36 w-36 animate-pop overflow-hidden rounded-full shadow-lg ring-4 ring-surface sm:h-44 sm:w-44" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={portrait} alt="" className="h-full w-full object-cover" />
       </div>
     );
   }

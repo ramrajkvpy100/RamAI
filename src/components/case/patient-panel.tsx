@@ -6,7 +6,7 @@ import { DuelCard } from "@/components/duel/duel-card";
 import { PatientFigure } from "@/components/game/caricature";
 import { fetchPicture } from "@/components/media/ai-picture";
 import { MediaFigure } from "@/components/media/media-figure";
-import { caseSnapshot, useCase } from "@/lib/case-store";
+import { useCase } from "@/lib/case-store";
 import { isLowData } from "@/lib/low-data";
 import { Label } from "@/components/ui/primitives";
 import type { CaseState, FactGroup, VitalKey } from "@/engine/types";
@@ -125,31 +125,43 @@ export function PatientPanel({ state, flashKeys, className }: { state: CaseState
   );
 }
 
-/** The patient's realistic portrait, once drawn (kept with the case); the drawn figure until then. Tap to enlarge. */
+/** One request per case, shared by every picture of the patient on the page (header, intro, each message). */
+const portraits = new Map<string, { url: string | null; wait: Promise<string | null> | null; subs: Set<(u: string | null) => void> }>();
+
+function loadPortrait(sessionId: string, token: string) {
+  let entry = portraits.get(sessionId);
+  if (!entry) {
+    entry = { url: null, wait: null, subs: new Set() };
+    portraits.set(sessionId, entry);
+  }
+  const e = entry;
+  if (e.url || e.wait) return e;
+  let tries = 0;
+  const get = (): Promise<string | null> =>
+    fetchPicture(`${sessionId}:portrait`, token, "portrait")
+      .then((p) => p.url)
+      .catch(() => (tries++ < 2 ? new Promise<string | null>((r) => window.setTimeout(() => r(get()), 4000)) : null));
+  e.wait = get().then((url) => {
+    e.url = url;
+    e.wait = url ? e.wait : null;
+    for (const s of e.subs) s(url);
+    return url;
+  });
+  return e;
+}
+
 /** The patient's portrait, once drawn — fetched once per case and shared by everything that shows it. */
 export function usePortrait(state: CaseState): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null>(() => portraits.get(state.sessionId)?.url ?? null);
   // The case's token may arrive after the first paint (a reopened case is resumed): wait for it.
   const token = useCase().session?.token ?? null;
-  const ready = !!token;
   useEffect(() => {
-    if (!ready || isLowData()) return;
-    const session = caseSnapshot().session;
-    if (!session) return;
-    let live = true;
-    let tries = 0;
-    const get = () =>
-      fetchPicture(`${state.sessionId}:portrait`, session.token, "portrait")
-        .then((p) => live && setUrl(p.url))
-        .catch(() => {
-          // A slow first drawing: one more try a little later.
-          if (live && tries++ < 2) window.setTimeout(get, 4000);
-        });
-    void get();
-    return () => {
-      live = false;
-    };
-  }, [state.sessionId, ready]);
+    if (!token || isLowData()) return;
+    const e = loadPortrait(state.sessionId, token);
+    if (e.url) setUrl(e.url);
+    e.subs.add(setUrl);
+    return () => void e.subs.delete(setUrl);
+  }, [state.sessionId, token]);
   return url;
 }
 
