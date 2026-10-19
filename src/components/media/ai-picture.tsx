@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { FillingBar } from "@/components/ui/filling-bar";
+import { ScanAnimation } from "./scan-animation";
 import { Icon } from "@/components/ui/icon";
 import type { MediaAsset, PictureType } from "@/engine/types";
 import { caseSnapshot } from "@/lib/case-store";
@@ -130,19 +130,13 @@ export function AiPicture({ media, className, large = false, fallback }: { media
     );
   return (
     <div className={cn("relative flex aspect-square w-full flex-col items-center justify-center gap-2 overflow-hidden bg-[#0b0d12] text-center text-white/80", large && "w-[min(78dvh,92vw)] rounded-md", className)} role="status" aria-live="polite">
-      {!failed && (
-        <>
-          <span aria-hidden className="scan-anim absolute -inset-1/4 bg-[radial-gradient(circle_at_35%_40%,rgb(56_189_248/0.22),transparent_45%),radial-gradient(circle_at_65%_60%,rgb(167_139_250/0.2),transparent_45%)]" style={{ animation: "scan-glow 6s ease-in-out infinite" }} />
-          <span aria-hidden className="absolute inset-0 bg-[linear-gradient(rgb(255_255_255/0.035)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.035)_1px,transparent_1px)] bg-[size:24px_24px]" />
-          <span aria-hidden className="scan-anim absolute inset-x-0 top-0 h-[10%] bg-gradient-to-b from-transparent via-sky-300/25 to-transparent shadow-[0_0_24px_rgb(125_211_252/0.35)]" style={{ animation: "scan-beam 2.4s cubic-bezier(.45,0,.55,1) infinite" }} />
-        </>
-      )}
-      <span className="relative flex h-14 w-14 items-center justify-center">
-        {!failed && <span aria-hidden className="scan-anim absolute inset-0 rounded-full border border-sky-300/50" style={{ animation: "scan-ring 1.8s ease-out infinite" }} />}
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur">
-          <Icon name={failed ? "alert" : "image"} size={20} className="text-white/80" />
+      {failed ? (
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+          <Icon name="alert" size={20} className="text-white/80" />
         </span>
-      </span>
+      ) : (
+        <ScanAnimation type={ai.type} />
+      )}
       <span className="relative text-[13px] font-medium">{failed ? "Couldn't get this picture just now." : WAITING[ai.type]}</span>
       {failed ? (
         <button
@@ -157,8 +151,10 @@ export function AiPicture({ media, className, large = false, fallback }: { media
         </button>
       ) : (
         <>
-          <span className="relative text-[11.5px] text-white/50">Usually ready in under half a minute — carry on meanwhile.</span>
-          <FillingBar active expectedMs={14_000} tone="light" label="Preparing the picture" className="relative mt-1 w-2/3 max-w-[220px]" />
+          <span className="relative flex items-center gap-1.5 text-[11.5px] text-white/50">
+            <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-300" />
+            Takes a moment — carry on with the case meanwhile.
+          </span>
         </>
       )}
     </div>

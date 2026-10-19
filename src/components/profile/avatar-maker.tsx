@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { AvatarFace } from "@/components/game/avatar-face";
 import { BGS, DEFAULT_AVATAR, EXTRA, EYES, HAIR, HAIR_COLORS, MOUTH, SKIN, type AvatarStyle } from "@/lib/avatar-style";
@@ -64,7 +65,16 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
     </div>
   );
 
-  return (
+  // Drawn at the top of the page: inside a blurred card a fixed panel would be cut to the card's size.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => void (document.body.style.overflow = prev);
+  }, []);
+  if (!mounted) return null;
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-label="Make your avatar">
       <div className="flex max-h-[92dvh] w-full max-w-lg animate-enter flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl sm:rounded-3xl">
         <div className="flex flex-col items-center gap-3 bg-[radial-gradient(60%_80%_at_50%_0%,var(--accent-soft),transparent)] px-5 pt-6 pb-4">
@@ -95,6 +105,7 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
           <button type="button" onClick={() => void save()} disabled={saving} className="h-11 flex-1 rounded-full bg-accent text-[14px] font-semibold text-on-accent disabled:opacity-60">{saving ? "Saving…" : "Save avatar"}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
