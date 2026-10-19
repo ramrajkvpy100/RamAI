@@ -193,3 +193,23 @@ describe("children's doses go by weight", () => {
     expect(childDose("adrenaline", 15)?.amount).toBe(0.15);
   });
 });
+
+describe("a drug name slightly misspelt is still understood", () => {
+  it("'Syrup Oseltimivir' is oseltamivir, by mouth", async () => {
+    const { resolveIntents } = await import("@/engine/intent");
+    const { surgAppendicitis } = await import("@/engine/cases/surg-appendicitis");
+    const [i] = resolveIntents("Syrup Oseltimivir", { def: surgAppendicitis, setting: "OPD", weightKg: 10 });
+    expect(i?.kind).toBe("drug");
+    expect(i?.targetId).toBe("oseltamivir");
+  });
+});
+
+describe("drug interactions", () => {
+  it("warfarin with ibuprofen, and sildenafil with a nitrate, are found; paracetamol alone is not", async () => {
+    const { findInteractions } = await import("@/engine/interactions");
+    const n = (id: string) => id;
+    expect(findInteractions(["warfarin", "ibuprofen"], n)).toHaveLength(1);
+    expect(findInteractions(["sildenafil", "isosorbide-mononitrate"], n)[0]?.effect).toMatch(/hypotension/);
+    expect(findInteractions(["paracetamol", "ondansetron"], n)).toHaveLength(0);
+  });
+});
