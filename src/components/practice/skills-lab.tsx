@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { RadiologyReporting } from "@/components/radiology/radiology-reporting";
-import { cn } from "@/lib/cn";
+import { useCareerStage } from "@/lib/career-stage";
+import { useMe } from "@/lib/me-store";
+import { MODALITY_IDS, type Modality } from "@/lib/practice";
 import type { PracticeStats } from "@/server/practice";
-import { algorithmQuestions, antidoteQuestions, calculationQuestions } from "@/lib/skills";
+import { algorithmQuestions, antidoteQuestions, calculationQuestions, type SkillLevel } from "@/lib/skills";
 
 import { PracticeDrill } from "./practice-drill";
 import { QuizDrill } from "./quiz-drill";
@@ -13,38 +15,97 @@ import { SoundsDrill } from "./sounds-drill";
 
 type Section = "spot" | "radiology" | "sounds" | "antidotes" | "algorithms" | "calculations";
 
-const SECTIONS: [Section, string, string][] = [
-  ["spot", "🔍 Spot the diagnosis", "ECG, X-ray, CT, ultrasound, blood smear"],
-  ["radiology", "🩻 Radiology reporting", "History to diagnosis — scroll real CT and MRI"],
-  ["sounds", "🩺 Heart & breath sounds", "Listen and name it — murmurs, gallops, crackles…"],
-  ["antidotes", "💊 Antidotes", "Poisoning and the right antidote"],
-  ["algorithms", "🚨 Emergency algorithms", "ACLS, anaphylaxis, DKA, status, PPH…"],
-  ["calculations", "🧮 Clinical calculations", "GCS, CURB-65, anion gap, CrCl, fluids…"],
-];
+const SECTIONS: Record<Section, [string, string]> = {
+  spot: ["🔍 Spot the diagnosis", "ECG, X-ray, CT, ultrasound, blood smear"],
+  radiology: ["🩻 Radiology reporting", "History to diagnosis on real scans"],
+  sounds: ["🩺 Heart & breath sounds", "Listen and name it"],
+  antidotes: ["💊 Antidotes", "Poisoning and the right antidote"],
+  algorithms: ["🚨 Emergency algorithms", "What comes next?"],
+  calculations: ["🧮 Clinical calculations", "Quick bedside sums"],
+};
 
-/** Skills Lab: every drill in one place — pick one. */
+/** A doctor's own specialty's drills come first. */
+const FIRST: Record<string, Section[]> = {
+  Cardiology: ["sounds", "spot", "algorithms"],
+  Respiratory: ["sounds", "spot"],
+  Emergency: ["algorithms", "antidotes", "calculations"],
+  Medicine: ["spot", "algorithms", "antidotes"],
+  Pediatrics: ["calculations", "sounds"],
+  Nephrology: ["calculations", "algorithms"],
+  Endocrinology: ["calculations", "algorithms"],
+  Neurology: ["spot", "algorithms"],
+  Surgery: ["spot", "algorithms"],
+  OBGYN: ["algorithms", "spot"],
+};
+const MODALITY_FIRST: Record<string, Modality[]> = {
+  Cardiology: ["ecg"], Respiratory: ["xray"], Neurology: ["ct"], Surgery: ["xray", "ct"], Emergency: ["ecg", "xray"],
+  OBGYN: ["usg"], Gastroenterology: ["usg", "ct"], Urology: ["usg", "ct"], Orthopedics: ["xray"], "Infectious Disease": ["smear"],
+};
+
+/** Skills Lab: a short list of drills — tap one; nothing loads until then. */
 export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
-  const [section, setSection] = useState<Section>("spot");
+  const me = useMe();
+  const stage = useCareerStage();
+  const specialty = me?.user.specialty && me.user.specialty !== "mixed" ? me.user.specialty : null;
+  const level: SkillLevel = stage === "student" || stage === "intern" ? "basic" : "full";
+  const [section, setSection] = useState<Section | null>(null);
+
+  useEffect(() => {
+    const d = new URLSearchParams(window.location.search).get("drill");
+    if (d && d in SECTIONS) setSection(d as Section);
+  }, []);
+
+  const order = useMemo(() => {
+    const all = Object.keys(SECTIONS) as Section[];
+    const first = stage === "radiologist" ? (["radiology", "spot"] as Section[]) : specialty ? FIRST[specialty] ?? [] : [];
+    // Radiology reporting is for radiologists and seniors; students see it last.
+    const rest = all.filter((s) => !first.includes(s));
+    if (level === "basic") rest.sort((a, b) => Number(a === "radiology") - Number(b === "radiology"));
+    return [...first, ...rest];
+  }, [stage, specialty, level]);
+
+  const modalities = useMemo(() => {
+    const first = specialty ? MODALITY_FIRST[specialty] ?? [] : [];
+    return [...first, ...MODALITY_IDS.filter((m) => !first.includes(m))];
+  }, [specialty]);
+
+  const antidotes = useCallback(() => antidoteQuestions(level, specialty), [level, specialty]);
+  const algorithms = useCallback(() => algorithmQuestions(level, specialty), [level, specialty]);
+  const calculations = useCallback(() => calculationQuestions(level, specialty), [level, specialty]);
+
+  if (!section) {
+    return (
+      <div className="flex flex-col gap-5 py-6">
+        <header>
+          <h1 className="text-[28px] font-semibold tracking-[-0.03em]">Skills Lab</h1>
+          <p className="mt-1 text-[14.5px] text-fg-2">{level === "basic" ? "Must-know drills for your level." : "Short drills. Pick one."}</p>
+        </header>
+        <div className="flex flex-col gap-2">
+          {order.map((id) => (
+            <button key={id} type="button" onClick={() => setSection(id)} className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2">
+              <span className="text-[15.5px] font-semibold">{SECTIONS[id][0]}</span>
+              <span className="text-right text-[12.5px] text-fg-2">{SECTIONS[id][1]}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-5 py-6">
-      <header>
-        <h1 className="text-[28px] font-semibold tracking-[-0.03em]">Skills Lab</h1>
-        <p className="mt-1 text-[14.5px] text-fg-2">Short drills for every doctor. Pick one.</p>
+      <header className="flex items-center gap-3">
+        <button type="button" onClick={() => setSection(null)} className="h-9 rounded-full border border-line bg-surface px-3.5 text-[13.5px] font-medium hover:bg-surface-2">
+          ← Skills Lab
+        </button>
+        <h1 className="text-[20px] font-semibold tracking-[-0.02em]">{SECTIONS[section][0]}</h1>
       </header>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {SECTIONS.map(([id, label, sub]) => (
-          <button key={id} type="button" aria-pressed={section === id} onClick={() => setSection(id)} className={cn("flex min-h-[76px] flex-col justify-center rounded-2xl border px-3 py-2.5 text-left transition-colors", section === id ? "border-accent-line bg-accent-soft" : "border-line bg-surface hover:bg-surface-2")}>
-            <span className="text-[14px] font-semibold">{label}</span>
-            <span className="mt-0.5 text-[11.5px] leading-4 text-fg-2">{sub}</span>
-          </button>
-        ))}
-      </div>
-      {section === "spot" && <PracticeDrill stats={stats} />}
+      {section === "spot" && <PracticeDrill stats={stats} level={level} order={modalities} />}
       {section === "radiology" && <RadiologyReporting embedded />}
-      {section === "sounds" && <SoundsDrill />}
-      {section === "antidotes" && <QuizDrill make={antidoteQuestions} title="Antidotes" />}
-      {section === "algorithms" && <QuizDrill make={algorithmQuestions} title="Emergency algorithms" />}
-      {section === "calculations" && <QuizDrill make={calculationQuestions} title="Clinical calculations" />}
+      {section === "sounds" && <SoundsDrill level={level} />}
+      {section === "antidotes" && <QuizDrill make={antidotes} title="Antidotes" />}
+      {section === "algorithms" && <QuizDrill make={algorithms} title="Emergency algorithms" />}
+      {section === "calculations" && <QuizDrill make={calculations} title="Clinical calculations" />}
     </div>
   );
 }

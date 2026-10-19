@@ -86,6 +86,15 @@ describe("facility levels", () => {
     expect(state.investigations.map((i) => i.defId)).toEqual(["20wbct"]);
   });
 
+  it("a test the PHC can't do can be sent to a private lab — slower, dearer, and it costs marks", () => {
+    const { turns, hidden, state } = play(emViperPhc, ["Order RFT", "Send RFT to a private lab", "Final diagnosis: viper bite. Case close."]);
+    expect(allMessages(turns).join("\n")).toContain("private lab");
+    const rft = hidden.investigations.find((i) => i.defId === "rft");
+    expect(rft?.private).toBe(true);
+    const debrief = generateDebrief(emViperPhc, hidden, state);
+    expect(debrief.score.penalties.some((p) => p.label === "Private lab tests")).toBe(true);
+  });
+
   it("the 20WBCT result arrives after 20 minutes: not clotted", () => {
     const { state } = play(emViperPhc, ["Do a 20WBCT", "Wait for results"]);
     expect(state.investigations[0]?.status).toBe("resulted");

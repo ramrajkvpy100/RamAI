@@ -11,6 +11,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+import { isLowData } from "@/lib/low-data";
+
 import { cn } from "@/lib/cn";
 
 /** One heartbeat, ~70 a minute: the atria kick, then the ventricles squeeze and relax. */
@@ -69,12 +71,11 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
       }
       // The organ (three.js and a model of a few hundred KB) waits until the page itself has loaded and gone quiet, so it never slows first paint.
       // On phones and small machines it waits for the visitor to touch, scroll or type — a page only looked at never pays for it.
-      const phone = window.matchMedia("(pointer: coarse)").matches || Math.min(window.innerWidth, window.innerHeight) < 700 || (navigator.hardwareConcurrency ?? 8) <= 4;
+      // Phones get the light model, loaded only once the page is idle; a narrow desktop window still gets its heart.
+      const phone = window.matchMedia("(pointer: coarse)").matches;
       await new Promise<void>((resolve) => {
         const idle = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
         const go = () => (idle ? idle(() => resolve(), { timeout: 2000 }) : window.setTimeout(resolve, 300));
-        // Phones never load the 3D organ at all (a soft glow stands in): it was the slowest thing on the page.
-        if (phone) return resolve();
         if (false as boolean) {
           const events = ["pointerdown", "touchstart", "scroll", "keydown", "wheel"] as const;
           const once = () => {
@@ -88,12 +89,14 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
         if (document.readyState === "complete") go();
         else window.addEventListener("load", go, { once: true });
       });
-      if (disposed || phone) {
-        if (phone) setFallback(true);
+      if (disposed) return;
+      // Low-data mode (or the browser's data saver): the soft glow stands in.
+      if (isLowData()) {
+        setFallback(true);
         return;
       }
       // The detailed model for large screens; a lighter one for phones and small cards.
-      const detailed = density === "hero" && Math.max(window.innerWidth, window.innerHeight) >= 900;
+      const detailed = !phone && density === "hero" && Math.max(window.innerWidth, window.innerHeight) >= 900;
       const [THREE, { loadHeart }, { studioScene, wetTissue }] = await Promise.all([import("three"), import("./heart-asset"), import("./heart-material")]);
       const asset = await loadHeart(`/models/${organ}-${detailed ? "hd" : "sd"}.bin.gz`, abort.signal);
       const pose = ORGANS[organ];

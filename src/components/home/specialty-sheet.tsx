@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Sheet } from "@/components/ui/sheet";
-import { Icon } from "@/components/ui/icon";
 import { ALL_SPECIALTIES } from "@/engine/progression";
+import { setCareerStage, useCareerStage, type CareerStage } from "@/lib/career-stage";
 import { cn } from "@/lib/cn";
 import { updateSettings } from "@/lib/engine-client";
 import { primeMe, type Me } from "@/lib/me-store";
@@ -13,16 +13,23 @@ import { specialtyLabel, type PreferredSpecialty } from "@/lib/specialty";
 /** Asked once, at the start (and changeable from the menu): the doctor's own specialty. Skipping it means mixed cases. */
 export const SPECIALTY_EVENT = "ramai:specialty";
 
-const STAGE_LABELS: [string, string][] = [["student", "🎓 Student"], ["intern", "🩺 Intern"], ["resident", "🏥 Resident"], ["specialist", "⭐ Specialist"], ["radiologist", "🩻 Radiologist"]];
+const STAGE_LABELS: [CareerStage, string, string][] = [
+  ["student", "🎓 Student", "Mixed cases"],
+  ["intern", "🩺 Intern", "Mixed cases"],
+  ["resident", "🏥 Resident", "Pick your specialty"],
+  ["specialist", "⭐ Specialist", "Pick your specialty"],
+  ["radiologist", "🩻 Radiologist", "Radiology reporting"],
+];
 
 export function SpecialtySheet({ open, current, onClose }: { open: boolean; current: PreferredSpecialty | null; onClose: () => void }) {
   const [saving, setSaving] = useState<PreferredSpecialty | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stage, setStage] = useState<string | null>(null);
-  const pickStage = async (id: string) => {
-    setStage(id);
-    await fetch("/api/me/stage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage: id }) }).catch(() => undefined);
-  };
+  const stage = useCareerStage();
+  // Step two — the specialty — only for residents and specialists; everyone else gets mixed cases.
+  const [step, setStep] = useState<"stage" | "specialty">("stage");
+  useEffect(() => {
+    if (open) setStep("stage");
+  }, [open]);
 
   const choose = async (specialty: PreferredSpecialty) => {
     if (saving) return;
@@ -39,60 +46,59 @@ export function SpecialtySheet({ open, current, onClose }: { open: boolean; curr
     }
   };
 
+  const pickStage = async (id: CareerStage) => {
+    setCareerStage(id);
+    if (id === "resident" || id === "specialist") setStep("specialty");
+    else {
+      await choose("mixed");
+      if (id === "radiologist") window.location.href = "/practice?drill=radiology";
+    }
+  };
+
   return (
     <Sheet
       open={open}
       onClose={() => (current === null ? void choose("mixed") : onClose())}
-      title="What's your specialty?"
-      description="Your cases will come from it. You can change it any time from the menu."
+      title={step === "stage" ? "Where are you in your career?" : "What's your specialty?"}
+      description={step === "stage" ? "Cases and drills will match your level. You can change it any time from the menu." : "Your cases will come from it."}
       placement="center"
       footer={
-        <button type="button" onClick={() => void choose("mixed")} disabled={!!saving} className="h-10 w-full text-[13.5px] font-medium text-fg-2 hover:text-fg disabled:opacity-60">
-          {current === null ? "Rather not say — give me mixed cases" : "Mixed cases — every specialty"}
-        </button>
+        step === "specialty" ? (
+          <button type="button" onClick={() => setStep("stage")} className="h-10 w-full text-[13.5px] font-medium text-fg-2 hover:text-fg">
+            ← Back
+          </button>
+        ) : undefined
       }
     >
-      <div className="flex flex-col gap-3">
-        <div>
-          <div className="mb-1.5 text-[12.5px] font-semibold text-fg-2">Where are you in your career?</div>
-          <div className="flex flex-wrap gap-1.5">
-            {STAGE_LABELS.map(([id, label]) => (
-              <button key={id} type="button" aria-pressed={stage === id} onClick={() => void pickStage(id)} className={cn("rounded-full border px-3 py-1.5 text-[13px]", stage === id ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}>
-                {label}
+      <div className="flex flex-col gap-2">
+        {step === "stage" ? (
+          STAGE_LABELS.map(([id, label, hint]) => (
+            <button
+              key={id}
+              type="button"
+              disabled={!!saving}
+              onClick={() => void pickStage(id)}
+              className={cn("flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors disabled:opacity-60", stage === id ? "border-accent-line bg-accent-soft" : "border-line bg-surface hover:bg-surface-2")}
+            >
+              <span className="text-[15px] font-semibold">{label}</span>
+              <span className="text-[12.5px] text-fg-2">{saving && stage === id ? "Saving…" : hint}</span>
+            </button>
+          ))
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {ALL_SPECIALTIES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => void choose(s)}
+                disabled={!!saving}
+                className={cn("min-h-11 rounded-xl border px-3 py-2 text-left text-[13.5px] font-medium transition-colors disabled:opacity-60", current === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}
+              >
+                {saving === s ? "Saving…" : specialtyLabel(s)}
               </button>
             ))}
           </div>
-          {stage === "radiologist" && (
-            <a href="/radiology" className="mt-2 inline-block text-[13px] font-semibold text-accent-text underline">Go to Radiology reporting →</a>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => void choose("mixed")}
-          disabled={!!saving}
-          className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors disabled:opacity-60", current === "mixed" ? "border-accent-line bg-accent-soft" : "border-line bg-surface hover:bg-surface-2")}
-        >
-          <span className="bg-ai flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
-            <Icon name="sparkles" size={16} />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[14.5px] font-semibold">{specialtyLabel("mixed")}</span>
-            <span className="block text-[12.5px] text-fg-2">Students, interns and anyone preparing for exams</span>
-          </span>
-        </button>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {ALL_SPECIALTIES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => void choose(s)}
-              disabled={!!saving}
-              className={cn("min-h-11 rounded-xl border px-3 py-2 text-left text-[13.5px] font-medium transition-colors disabled:opacity-60", current === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}
-            >
-              {saving === s ? "Saving…" : specialtyLabel(s)}
-            </button>
-          ))}
-        </div>
+        )}
         {error && (
           <p role="alert" className="text-[13px] text-danger">
             {error}

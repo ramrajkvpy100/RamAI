@@ -26,6 +26,7 @@ import { setSfxEnabled, useSfxEnabled } from "@/lib/sfx";
 export function UserMenu({ me }: { me: Me }) {
   const sfx = useSfxEnabled();
   const [open, setOpen] = useState(false);
+  const [more, setMore] = useState(false);
   const [pref, setPref] = useThemePref();
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -33,7 +34,10 @@ export function UserMenu({ me }: { me: Me }) {
   const { launch, starting } = useLauncher();
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setMore(false);
+      return;
+    }
     const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", onDown);
@@ -92,6 +96,30 @@ export function UserMenu({ me }: { me: Me }) {
           <button
             role="menuitem"
             type="button"
+            onClick={() => {
+              setOpen(false);
+              if (window.location.pathname === "/") window.dispatchEvent(new Event(SPECIALTY_EVENT));
+              else router.push("/?specialty=1");
+            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3"
+          >
+            <Icon name="pulse" size={15} className="text-fg-2" /> Your specialty
+            <span className="ml-auto max-w-[140px] truncate text-[12.5px] text-fg-2">{me.user.specialty ? specialtyLabel(me.user.specialty).replace(" — every specialty", "") : "Not set"}</span>
+          </button>
+          {([["/exams", "file", "Exam MCQs"], ["/leaderboard", "trophy", "Leaderboard"]] as const).map(([href, icon, label]) => (
+            <Link key={href} role="menuitem" href={href} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
+              <Icon name={icon} size={15} className="text-fg-2" /> {label}
+            </Link>
+          ))}
+          <button type="button" aria-expanded={more} onClick={() => setMore((m) => !m)} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3">
+            <Icon name="sparkles" size={15} className="text-fg-2" /> More
+            <Icon name="chevron-down" size={14} className={cn("ml-auto text-fg-2 transition-transform", more && "rotate-180")} />
+          </button>
+          {more && (
+            <div className="ml-3 border-l border-line pl-1">
+          <button
+            role="menuitem"
+            type="button"
             disabled={starting}
             onClick={async () => {
               if (await launch({ tutorial: true })) setOpen(false);
@@ -112,20 +140,7 @@ export function UserMenu({ me }: { me: Me }) {
           >
             <Icon name="target" size={15} className="text-fg-2" /> Quick tour of RamAI
           </button>
-          <button
-            role="menuitem"
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              if (window.location.pathname === "/") window.dispatchEvent(new Event(SPECIALTY_EVENT));
-              else router.push("/?specialty=1");
-            }}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] hover:bg-surface-3"
-          >
-            <Icon name="pulse" size={15} className="text-fg-2" /> Your specialty
-            <span className="ml-auto max-w-[140px] truncate text-[12.5px] text-fg-2">{me.user.specialty ? specialtyLabel(me.user.specialty).replace(" — every specialty", "") : "Not set"}</span>
-          </button>
-          {([["/exams", "file", "Exam MCQs"], ["/community", "users", "Community"], ["/leaderboard", "trophy", "Leaderboard"]] as const).map(([href, icon, label]) => (
+          {([["/community", "users", "Community"]] as const).map(([href, icon, label]) => (
             <Link key={href} role="menuitem" href={href} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
               <Icon name={icon} size={15} className="text-fg-2" /> {label}
             </Link>
@@ -187,6 +202,8 @@ export function UserMenu({ me }: { me: Me }) {
             </div>
           )}
           <AppOptions guest={me.user.isGuest} onNavigate={() => setOpen(false)} />
+            </div>
+          )}
           <button
             role="menuitem"
             type="button"

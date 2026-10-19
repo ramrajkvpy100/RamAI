@@ -41,7 +41,11 @@ const LUNGS: SoundItem[] = [
 const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 
 /** Listen (headphones help), name the sound, see why — ten at a time. */
-export function SoundsDrill() {
+/** Harder to tell apart — residents and specialists only. */
+const ADVANCED = new Set(["ar", "ms", "s4", "rub", "pleural-rub", "coarse"]);
+
+export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
+  const keep = (xs: SoundItem[]) => (level === "basic" ? xs.filter((x) => !ADVANCED.has(x.id)) : xs);
   const [kind, setKind] = useState<"heart" | "lungs">("heart");
   const [order, setOrder] = useState<SoundItem[] | null>(null);
   const [i, setI] = useState(0);
@@ -50,14 +54,14 @@ export function SoundsDrill() {
   const audio = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setOrder(shuffle(kind === "heart" ? HEART : LUNGS));
+    setOrder(shuffle(keep(kind === "heart" ? HEART : LUNGS)));
     setI(0);
     setPicked(null);
     setScore(0);
   }, [kind]);
 
   const item = order?.[i];
-  const pool = kind === "heart" ? HEART : LUNGS;
+  const pool = keep(kind === "heart" ? HEART : LUNGS);
   const options = useMemo(() => (item ? shuffle([item, ...shuffle(pool.filter((p) => p.id !== item.id)).slice(0, 3)]) : []), [item, pool]);
   // The sound itself, made on this device the first time it's played.
   const url = useMemo(() => {

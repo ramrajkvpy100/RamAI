@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `dark:` follows the app's own theme (data-theme), not only the system setting — a doctor who picks Light on a dark Mac must not get pale-on-pale text. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 /* ──────────────────────────────────────────────────────────────────────────
    RamAI — design tokens
    Professional and vivid: deep ink, clinical blue → cyan, a violet "AI" accent.

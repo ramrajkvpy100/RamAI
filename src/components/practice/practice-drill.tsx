@@ -30,8 +30,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 /** Practice: pick a modality and a mode, then name what you see — at your own pace, or as many as you can in a minute. */
-export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
-  const [modality, setModality] = useState<Modality>("ecg");
+export function PracticeDrill({ stats: initialStats, level = "full", order = MODALITY_IDS }: { stats: Stat[]; level?: "basic" | "full"; order?: readonly Modality[] }) {
+  const [modality, setModality] = useState<Modality>(order[0] ?? "ecg");
   const [mode, setMode] = useState<PracticeMode>("spot");
   const [items, setItems] = useState<DrillItem[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,7 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
     setLoading(true);
     setError(null);
     try {
-      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode });
+      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode, level });
       if (r.items.length === 0) {
         setError(r.offline ? "Pictures for this one can't be gathered right now — the picture checker is offline. Try the ECGs meanwhile." : "The pictures for this one are still being gathered. Try the ECGs meanwhile, or come back in a minute.");
         return;
@@ -121,12 +121,8 @@ export function PracticeDrill({ stats: initialStats }: { stats: Stat[] }) {
   if (!items) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.025em] sm:text-[38px]">Practice</h1>
-          <p className="mt-2 text-[15px] leading-7 text-fg-2">Name what you see — real ECGs, X-rays, CT scans, ultrasound and blood smears, with the one feature to recognise each by. Separate from your cases, XP and rank.</p>
-        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {MODALITY_IDS.map((id) => {
+          {order.map((id) => {
             const st = stats.find((s) => s.modality === id);
             return (
               <button

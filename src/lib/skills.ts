@@ -25,6 +25,39 @@ const shuffle = <T,>(xs: T[], rnd = Math.random): T[] => {
   return a;
 };
 
+/**
+ * How hard a drill is: "basic" (students and interns) keeps to the classic, high-yield
+ * questions; "full" (residents, specialists) adds the rest.
+ */
+export type SkillLevel = "basic" | "full";
+
+/** The harder questions — left out at the basic level. */
+const ADVANCED = new Set([
+  "antidote-tca", "antidote-ccb", "antidote-betablocker", "antidote-sulfonylurea", "antidote-cyanide", "antidote-digoxin",
+  "antidote-dabigatran", "antidote-methotrexate", "antidote-isoniazid", "antidote-lignocaine", "antidote-methanol",
+  "calc-ag", "calc-crcl", "calc-hs", "calc-ca", "calc-na",
+]);
+
+/** Which specialty each question belongs to — a doctor's own come first. */
+const OWNER: Record<string, string[]> = {
+  "algo-vf": ["Cardiology", "Emergency", "Medicine"], "algo-asystole": ["Cardiology", "Emergency"], "algo-anaphylaxis": ["Emergency", "Medicine"],
+  "algo-dka": ["Endocrinology", "Medicine", "Emergency"], "algo-status": ["Neurology", "Emergency", "Pediatrics"], "algo-hyperk": ["Nephrology", "Medicine"],
+  "algo-pph": ["OBGYN"], "algo-tension": ["Surgery", "Emergency", "Respiratory"], "algo-sepsis": ["Infectious Disease", "Medicine", "Emergency", "Urology"],
+  "algo-stroke": ["Neurology", "Emergency"],
+  "antidote-snake": ["Emergency", "Medicine"], "antidote-organophosphate": ["Emergency", "Medicine"], "antidote-paracetamol": ["Emergency", "Gastroenterology"],
+  "antidote-iron": ["Pediatrics"], "antidote-warfarin": ["Cardiology", "Medicine"], "antidote-heparin": ["Cardiology", "Surgery"], "antidote-isoniazid": ["Infectious Disease", "Respiratory"],
+  "calc-pcm": ["Pediatrics"], "calc-curb": ["Respiratory", "Medicine"], "calc-gcs": ["Neurology", "Emergency", "Surgery"], "calc-crcl": ["Nephrology"], "calc-ag": ["Nephrology", "Endocrinology"],
+  "calc-na": ["Endocrinology"], "calc-hs": ["Gastroenterology"],
+};
+
+/** Keeps the questions for this level, the doctor's own specialty's first, then a few more for variety. */
+export function forDoctor<T extends { id: string }>(items: T[], level: SkillLevel, specialty: string | null | undefined, count: number): T[] {
+  const kept = level === "basic" ? items.filter((i) => !ADVANCED.has(i.id)) : items;
+  const own = specialty ? kept.filter((i) => OWNER[i.id]?.includes(specialty)) : [];
+  const rest = kept.filter((i) => !own.includes(i));
+  return [...shuffle(own), ...shuffle(rest)].slice(0, count);
+}
+
 /** A question from a right answer and distractors (each with why it's wrong), shuffled. */
 function q(id: string, stem: string, right: string, explain: string, wrong: [string, string][], source: string): QuizQuestion {
   const opts = shuffle([{ t: right, why: "" }, ...wrong.map(([t, why]) => ({ t, why }))]);
@@ -55,8 +88,8 @@ const ANTIDOTES: [string, string, string, string, [string, string][]][] = [
   ["lignocaine", "Seizures then cardiac arrest during a nerve block with bupivacaine.", "IV 20% lipid emulsion", "Lipid binds the local anaesthetic (the 'lipid sink').", [["Naloxone", "For opioids."], ["Flumazenil", "For benzodiazepines."], ["Atropine", "Not the antidote."]]],
 ];
 
-export const antidoteQuestions = (): QuizQuestion[] =>
-  shuffle(ANTIDOTES).slice(0, 10).map(([id, stem, right, explain, wrong]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, "BNF / Toxbase; National Snakebite Management Protocol (India)"));
+export const antidoteQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
+  forDoctor(ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, "BNF / Toxbase; National Snakebite Management Protocol (India)"));
 
 /* Emergency algorithms ------------------------------------------------------ */
 
@@ -73,8 +106,8 @@ const ALGORITHMS: [string, string, string, string, [string, string][], string][]
   ["stroke", "Sudden right-sided weakness and aphasia 90 minutes ago; glucose normal.", "Urgent non-contrast CT head, then thrombolysis if no bleed and no contraindication", "Time is brain: imaging to exclude haemorrhage, then alteplase/tenecteplase within 4.5 hours.", [["Aspirin straight away", "Not before a bleed is excluded and the thrombolysis decision is made."], ["MRI tomorrow", "Too late for thrombolysis."], ["Lower BP to 120/80 at once", "Aggressive lowering harms the penumbra."]], "AHA/ASA acute stroke guideline 2019"],
 ];
 
-export const algorithmQuestions = (): QuizQuestion[] =>
-  shuffle(ALGORITHMS).slice(0, 10).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
+export const algorithmQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
+  forDoctor(ALGORITHMS.map((a) => ({ id: `algo-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
 
 /* Clinical calculations ------------------------------------------------------ */
 
@@ -144,4 +177,5 @@ const CALCS: (() => QuizQuestion)[] = [
   },
 ];
 
-export const calculationQuestions = (): QuizQuestion[] => shuffle(CALCS).slice(0, 8).map((make, i) => ({ ...make(), id: `calc-${i}` }));
+export const calculationQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
+  forDoctor(CALCS.map((make) => make()).map((x) => ({ ...x, id: `calc-${x.id}` })), level, specialty, 8);

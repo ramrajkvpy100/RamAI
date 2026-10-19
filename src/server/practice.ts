@@ -24,8 +24,22 @@ const PER_ITEM = 3;
 const TYPE: Record<Modality, PictureType> = { ecg: "photo", xray: "xray", ct: "ct", usg: "usg", smear: "slide" };
 const STYLE: Partial<Record<Modality, string>> = {
   ecg: "A real 12-lead ECG printed on standard pink-red grid paper at 25 mm/s and 10 mm/mV, photographed flat or scanned: crisp black traces, lead labels only, true electrophysiology.",
+  usg: "An original, unannotated ultrasound frame as a radiologist sees it on the scanner: no text labels, arrows or captions naming any structure or finding (machine overlays such as depth scale and calipers are fine). Reject any image whose text names the diagnosis or a finding.",
   smear: "A real thin peripheral blood smear under oil-immersion light microscopy (×1000), Leishman or Giemsa stain: pink red cells, purple-staining nuclei, true cell sizes and morphology.",
 };
+
+/** Pictures past a student's or intern's level — shown to residents and specialists only. */
+const ADVANCED_SPOT = new Set([
+  "flutter", "svt", "first-degree", "hyperk", "lvh", "long-qt", "lbbb", "rbbb", "wpw", "pericarditis", "paced",
+  "miliary", "cavity", "collapse", "copd", "sbo",
+  "edh", "sdh", "dissection", "pe", "pancreatitis",
+  "ovarian-cyst", "dvt", "free-fluid",
+  "spherocytes", "schistocytes", "target", "aml", "cll", "microfilaria", "megaloblastic",
+]);
+
+/** Kept pictures found to carry labels that name the answer — removed on sight. */
+const REMOVED = ["d1d59e4e-398f-4f5b-b3cb-18042b05891a", "19041bed-3818-48f7-899d-7c0b44fc20a7"];
+let removed = false;
 
 export const picturesAvailable = () => !!process.env.OPENAI_API_KEY;
 
@@ -84,8 +98,13 @@ const shuffle = <T,>(xs: T[]): T[] => {
 };
 
 /** A round: every picture already kept (and each drawable ECG), shuffled, with four names to choose from. */
-export async function round(modality: Modality, mode: PracticeMode): Promise<{ items: DrillItem[]; ready: number; total: number }> {
-  const bank = MODALITIES[modality].items;
+export async function round(modality: Modality, mode: PracticeMode, level: "basic" | "full" = "full"): Promise<{ items: DrillItem[]; ready: number; total: number }> {
+  // Students and interns: the classic, must-know pictures only.
+  const bank = MODALITIES[modality].items.filter((i) => level === "full" || !ADVANCED_SPOT.has(i.id));
+  if (!removed) {
+    removed = true;
+    await db.run(`DELETE FROM practice_images WHERE id IN (${REMOVED.map(() => "?").join(", ")})`, ...REMOVED).catch(() => (removed = false));
+  }
   const rows = await db.all<Row>("SELECT id, item, credit, source FROM practice_images WHERE modality = ? AND source = 'commons'", modality);
   const pool: { item: PracticeItem; row: Row | null }[] = [];
   for (const item of bank) {
@@ -96,7 +115,7 @@ export async function round(modality: Modality, mode: PracticeMode): Promise<{ i
   const ready = new Set(pool.map((p) => p.item.id)).size;
   const picked = shuffle(pool).slice(0, mode === "spot" ? SPOT_COUNT : 40);
   const items = picked.map(({ item, row }): DrillItem => {
-    const others = shuffle(bank.filter((b) => b.id !== item.id)).slice(0, 3);
+    const others = shuffle(bank.filter((b) => b.id !== item.id && b.label !== item.label)).slice(0, 3);
     const options = shuffle([item, ...others]);
     return {
       item: item.id,

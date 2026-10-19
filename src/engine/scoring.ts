@@ -193,6 +193,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     if (unnecessary.length > 0) {
       penalties.push({ label: "Unnecessary investigations", points: -Math.round(W.investigationSelection * Math.min(penalty, 1) * 10) / 10, reason: `${unnecessary.map((u) => u.name).join(", ")} — ₹${spendWasted.toLocaleString("en-IN")}` });
     }
+    const sentOut = [...new Map(hidden.investigations.filter((i) => i.private).map((i) => [i.defId, i])).values()];
+    if (sentOut.length > 0) {
+      penalties.push({ label: "Private lab tests", points: -Math.round(W.investigationSelection * Math.min(0.3, sentOut.length * 0.1) * 10) / 10, reason: `${sentOut.map((u) => u.name).join(", ")} — sent outside, slower and dearer for the family` });
+    }
     const missed = essentials.filter((i) => !ordered.has(i.id)).map((i) => i.short ?? catalogInvestigation(i.id)?.short ?? i.name ?? i.id);
     const notes: string[] = [];
     if (missed.length) notes.push(`Missed: ${missed.join(", ")}`);

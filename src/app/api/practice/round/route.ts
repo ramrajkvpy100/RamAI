@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 /** The very first round of a modality may wait for its first pictures. */
 export const maxDuration = 60;
 
-const RoundRequest = z.object({ modality: z.enum(MODALITY_IDS as [Modality, ...Modality[]]), mode: z.enum(["spot", "rapid"]) });
+const RoundRequest = z.object({ modality: z.enum(MODALITY_IDS as [Modality, ...Modality[]]), mode: z.enum(["spot", "rapid"]), level: z.enum(["basic", "full"]).optional() });
 
 /** POST /api/practice/round — a round of pictures to name. Open to everyone; scores are recorded only with a session. */
 export async function POST(req: Request) {
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const body = await parseBody(req, RoundRequest);
   if (body instanceof Response) return body;
   try {
-    let r: Awaited<ReturnType<typeof round>> & { offline?: boolean } = await round(body.modality, body.mode);
+    let r: Awaited<ReturnType<typeof round>> & { offline?: boolean } = await round(body.modality, body.mode, body.level);
     // Nothing kept yet for this modality: find the first few now (the progress bar covers it).
     if (r.ready < 4 && picturesAvailable()) {
       const first = withUsage({ kind: "practice" }, async () => Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false)))).catch((err) => {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       });
       // Whatever is ready by 35 s (well inside the minute the function has); the rest carries on in the background.
       const found = await Promise.race([first, new Promise<null>((resolve) => setTimeout(() => resolve(null), 35_000))]);
-      r = await round(body.modality, body.mode);
+      r = await round(body.modality, body.mode, body.level);
       // Every search came back with nothing: the picture checker (the AI) isn't answering.
       if (r.items.length === 0 && found !== null && !found.some(Boolean)) r = { ...r, offline: !(await aiAnswering()) };
     }

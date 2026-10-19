@@ -23,3 +23,14 @@ export async function POST(req: Request) {
     return handleError(err);
   }
 }
+
+/** GET /api/me/stage — the stage chosen, or null. */
+export async function GET() {
+  try {
+    const user = await requireUser();
+    const row = await db.get<{ stage: string | null }>("SELECT stage FROM user_prefs WHERE user_id = ?", user.id);
+    return ok({ stage: row?.stage ?? null });
+  } catch (err) {
+    return handleError(err);
+  }
+}

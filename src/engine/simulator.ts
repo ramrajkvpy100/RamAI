@@ -56,6 +56,8 @@ export interface OrderedInvestigation {
   delivered: boolean;
   result: { rows?: LabRow[]; report?: string; media?: MediaAsset };
   priority: "essential" | "useful" | "situational" | "unnecessary";
+  /** Sent out to a private lab because this facility can't do it — slower, dearer, and it costs marks. */
+  private?: boolean;
 }
 
 export interface GivenDrug {
@@ -1373,6 +1375,10 @@ function handleResults(ctx: TurnContext): TurnEffect[] {
 const INSTANT_RESULTS = true;
 
 /** "Repeat the lipase", "check it again": a fresh sample, even when the test was only just done. */
+/** "Send it to a private lab" — for a test this facility can't do. */
+const PRIVATE_RE = /\bprivate\b|\boutside lab\b|\bsend (it )?out\b/i;
+/** A sample sent out takes the courier's time on top. */
+const PRIVATE_DELAY_MIN = 60;
 const REPEAT_RE = /\b(repeat|again|recheck|re check|re do|redo|serial|another|once more|fresh sample)\b/i;
 /** A test done this recently is shown again rather than sent twice (and charged twice). */
 const RECENT_MIN = 30;
@@ -1616,15 +1622,25 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     }
     return [];
   }
+  let privateLab = false;
   if (!(def.unlimited || canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel }))) {
-    hidden.unavailable.push(id);
-    return [{ type: "message", role: "system", kind: "status", text: `${testName} isn't available at this ${facilityName(def)}. Decide clinically, or refer.` }];
+    if (intent.payload?.private || PRIVATE_RE.test(intent.phrase)) privateLab = true;
+    else {
+      hidden.unavailable.push(id);
+      return [{
+        type: "message",
+        role: "system",
+        kind: "status",
+        text: `${testName} isn't available at this ${facilityName(def)}. Decide clinically, refer — or send it to a private lab (slower, costs the family more, and costs you marks).`,
+        replies: [{ text: `Send ${testName} to a private lab`, send: true }],
+      }];
+    }
   }
 
   const name = study.kind ? studyName(study, override?.short ?? cat?.short ?? override?.name ?? id) : override?.short ?? cat?.short ?? override?.name ?? id;
   const category = override?.category ?? cat?.category ?? "lab";
-  const turnaround = INSTANT_RESULTS ? 0 : (override?.turnaroundMin ?? cat?.turnaroundMin ?? 30);
-  const cost = override?.cost ?? cat?.cost ?? 0;
+  const turnaround = (INSTANT_RESULTS ? 0 : (override?.turnaroundMin ?? cat?.turnaroundMin ?? 30)) + (privateLab ? PRIVATE_DELAY_MIN : 0);
+  const cost = Math.round((override?.cost ?? cat?.cost ?? 0) * (privateLab ? 1.5 : 1));
 
   // Result composition: catalogue default → values the patient already has → the model's, for what the case didn't write → case override → time phase → active hazard stage.
   let result: OrderedInvestigation["result"] = catalogueResult(def, hidden, id);
@@ -1677,6 +1693,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     delivered: false,
     result,
     priority: override?.priority ?? "unnecessary",
+    ...(privateLab ? { private: true } : {}),
   };
   hidden.investigations.push(inv);
   ctx.sent.push(inv);
