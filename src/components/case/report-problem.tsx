@@ -49,8 +49,26 @@ function transcript(): string {
     .slice(-7900);
 }
 
-/** 🚩 in the case's top bar: two taps to tell RamAI what's wrong — the screen and the conversation go with it. */
-export function ReportProblem() {
+/** Outside a case: which drill or question, and the question as shown. */
+export interface ReportTarget {
+  area: "skills" | "exam";
+  ref: string;
+  details?: string;
+}
+
+const DRILL_KINDS = [
+  ["fact", "🩺 Wrong medical fact"],
+  ["result", "❌ Wrong answer or picture"],
+  ["understanding", "❓ Unclear question"],
+  ["broken", "🛠️ Something broke"],
+  ["other", "✏️ Something else"],
+] as const;
+
+/**
+ * 🚩 — two taps to tell RamAI what's wrong: the screen goes with it, and in a case the conversation,
+ * in a drill or exam the question itself.
+ */
+export function ReportProblem({ target, compact = false }: { target?: ReportTarget; compact?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [shot, setShot] = useState<string | undefined>();
   const [kind, setKind] = useState<Kind | null>(null);
@@ -70,15 +88,19 @@ export function ReportProblem() {
   };
 
   const send = async () => {
+    if (!kind) return;
     const session = caseSnapshot().session;
-    if (!session || !kind) return;
+    if (!target && !session) return;
     setState("sending");
     setError(null);
-    const res = await fetch("/api/cases/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: session.token, kind: "report", category: kind, reason: note.trim(), screenshot: shot, transcript: transcript(), caseNumber: session.state.caseNumber }),
-    }).catch(() => null);
+    const res = await (target
+      ? fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...target, category: kind, reason: note.trim(), screenshot: shot }) })
+      : fetch("/api/cases/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: session!.token, kind: "report", category: kind, reason: note.trim(), screenshot: shot, transcript: transcript(), caseNumber: session!.state.caseNumber }),
+        })
+    ).catch(() => null);
     if (!res?.ok) {
       setState("idle");
       return setError("That didn't send. Please try again.");
@@ -92,16 +114,16 @@ export function ReportProblem() {
 
   return (
     <>
-      <button type="button" onClick={() => void start()} disabled={state === "capturing"} aria-label="Report a problem in this case" title="Report a problem" className="flex h-8 items-center gap-1 rounded-full bg-danger-soft px-2.5 text-[12.5px] font-semibold text-danger hover:brightness-110 disabled:opacity-60">
-        🚩<span className="hidden sm:inline">{state === "capturing" ? "…" : "Report"}</span>
+      <button type="button" onClick={() => void start()} disabled={state === "capturing"} aria-label={target ? "Report a problem with this question" : "Report a problem in this case"} title="Report a problem" className="flex h-8 items-center gap-1 rounded-full bg-danger-soft px-2.5 text-[12.5px] font-semibold text-danger hover:brightness-110 disabled:opacity-60">
+        🚩<span className={compact ? "" : "hidden sm:inline"}>{state === "capturing" ? "…" : "Report"}</span>
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Report a problem" description="The screen and the conversation are attached — just pick what's wrong." placement="responsive">
+      <Sheet open={open} onClose={() => setOpen(false)} title="Report a problem" description={target ? "The screen and the question are attached — just pick what's wrong." : "The screen and the conversation are attached — just pick what's wrong."} placement="responsive">
         {state === "sent" ? (
           <p className="py-8 text-center text-[15px] font-semibold text-success">✓ Thank you — sent to the RamAI team.</p>
         ) : (
           <div className="flex flex-col gap-3">
             <div className="grid gap-2">
-              {KINDS.map(([id, label]) => (
+              {(target ? DRILL_KINDS : KINDS).map(([id, label]) => (
                 <button key={id} type="button" aria-pressed={kind === id} onClick={() => setKind(id)} className={cn("flex min-h-12 items-center rounded-xl border px-4 text-left text-[14.5px] font-medium", kind === id ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}>
                   {label}
                 </button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportProblem } from "@/components/case/report-problem";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -256,7 +257,8 @@ function Question({
         <div className="animate-enter rounded-xl bg-surface-2 p-4">
           <div className={cn("text-[14px] font-semibold", checked.correct ? "text-success" : "text-danger")}>{checked.correct ? "Correct" : `The answer is ${LETTERS[checked.answer]}`}</div>
           <p className="mt-1.5 text-[14px] leading-6 whitespace-pre-wrap text-fg">{checked.explanation}</p>
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <ReportProblem compact target={{ area: "exam", ref: `${q.pattern ?? "Exam MCQ"} · ${q.topic} · Q${n + 1}`, details: `${q.stem}\n\nOptions: ${q.options.map((o, i) => `${i === checked.answer ? "✓ " : ""}${LETTERS[i]}. ${o}`).join(" | ")}\n\nExplanation: ${checked.explanation}` }} />
             <button type="button" onClick={onNext} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">
               {n + 1 < total ? "Next question" : "See your score"}
             </button>

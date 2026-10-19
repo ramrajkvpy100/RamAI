@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { renderAuscultation, toWav } from "@/engine/stethoscope-audio";
@@ -113,7 +114,8 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
               <p className="mt-1 text-[14px] leading-6">{item.key}</p>
               {options[picked]?.id !== item.id && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {options[picked]?.label}?</b> {options[picked]?.key}</p>}
               <p className="mt-2 text-[11.5px] text-fg-3">A teaching simulation of the sound, made by RamAI&apos;s stethoscope engine — real recordings vary. Source for the findings: Macleod&apos;s Clinical Examination.</p>
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <ReportProblem compact target={{ area: "skills", ref: `Heart & breath sounds · ${item.label}`, details: `Sound: ${item.label}\nOptions: ${options.map((o) => `${o.id === item.id ? "✓ " : ""}${o.label}`).join(" | ")}\nKey: ${item.key}` }} />
                 <button type="button" onClick={() => { audio.current?.pause(); setPlaying(false); setPicked(null); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < order.length ? "Next" : "See your score"}</button>
               </div>
             </section>

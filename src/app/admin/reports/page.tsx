@@ -10,13 +10,14 @@ import { isAdmin } from "@/server/suggestions";
 export const metadata: Metadata = { title: "Case reports · Admin", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong result or picture", understanding: "Didn't understand me", broken: "Something broke", other: "Other" };
+const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong result, answer or picture", understanding: "Didn't understand me", broken: "Something broke", other: "Other" };
 
 interface Row {
   id: string;
   reason: string;
   category: string | null;
   case_number: number | null;
+  case_ref: string | null;
   screenshot: string | null;
   transcript: string | null;
   created_at: number;
@@ -31,7 +32,7 @@ export default async function ReportsPage() {
   const user = await getCurrentUser();
   if (!user || !(await isAdmin(user))) notFound();
   const rows = await db.all<Row>(
-    "SELECT f.id, f.reason, f.category, f.case_number, f.screenshot, f.transcript, f.created_at, u.name, u.email FROM case_feedback f LEFT JOIN users u ON u.id = f.user_id WHERE f.kind = 'report' ORDER BY f.created_at DESC LIMIT 100",
+    "SELECT f.id, f.reason, f.category, f.case_number, f.case_ref, f.screenshot, f.transcript, f.created_at, u.name, u.email FROM case_feedback f LEFT JOIN users u ON u.id = f.user_id WHERE f.kind = 'report' ORDER BY f.created_at DESC LIMIT 100",
   );
   return (
     <AppShell me={me}>
@@ -42,7 +43,7 @@ export default async function ReportsPage() {
           <article key={r.id} id={r.id} className="panel flex flex-col gap-3 p-4">
             <div className="flex flex-wrap items-center gap-2 text-[13px]">
               <span className="rounded-full bg-danger-soft px-2.5 py-0.5 font-semibold text-danger">{r.category ? CATEGORY[r.category] ?? r.category : "Report"}</span>
-              {r.case_number !== null && <span className="font-semibold">Case #{r.case_number}</span>}
+              {r.case_number !== null ? <span className="font-semibold">Case #{r.case_number}</span> : r.case_ref?.match(/^(skills|exam): /) ? <span className="font-semibold">{r.case_ref.replace(/^skills: /, "Skills Lab · ").replace(/^exam: /, "Exam · ")}</span> : null}
               <span className="text-fg-2">{r.name ?? "Someone"}{r.email ? ` · ${r.email}` : ""}</span>
               <span className="ml-auto text-fg-3">{new Date(r.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" })}</span>
             </div>
@@ -55,7 +56,7 @@ export default async function ReportsPage() {
             )}
             {r.transcript && (
               <details className="rounded-xl bg-surface-2 p-3 text-[13px]">
-                <summary className="cursor-pointer font-medium">The conversation</summary>
+                <summary className="cursor-pointer font-medium">{r.case_number !== null ? "The conversation" : "The question"}</summary>
                 <pre className="mt-2 font-sans whitespace-pre-wrap text-fg-2">{r.transcript}</pre>
               </details>
             )}

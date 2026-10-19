@@ -88,8 +88,31 @@ const ANTIDOTES: [string, string, string, string, [string, string][]][] = [
   ["lignocaine", "Seizures then cardiac arrest during a nerve block with bupivacaine.", "IV 20% lipid emulsion", "Lipid binds the local anaesthetic (the 'lipid sink').", [["Naloxone", "For opioids."], ["Flumazenil", "For benzodiazepines."], ["Atropine", "Not the antidote."]]],
 ];
 
+/** Each antidote's own authority — never one line for all. */
+const ANTIDOTE_SOURCE: Record<string, string> = {
+  snake: "National Snakebite Management Protocol (MoHFW, India, 2017); WHO Guidelines for the Management of Snakebites (2016)",
+  organophosphate: "WHO / IPCS Poisons Information; AIIMS Poison Control Centre protocols",
+  paracetamol: "BNF; TOXBASE; RCEM/NPIS paracetamol overdose guideline",
+  methanol: "BNF; TOXBASE; EXTRIP recommendations for toxic alcohols",
+  iron: "BNF; TOXBASE",
+  digoxin: "BNF (digoxin-specific antibody fragments); TOXBASE",
+  warfarin: "BNF; British Society for Haematology guideline on warfarin reversal",
+  heparin: "BNF (protamine sulfate)",
+  dabigatran: "BNF (idarucizumab); European Heart Rhythm Association practical guide on DOACs",
+  opioid: "BNF (naloxone); Resuscitation Council UK",
+  benzo: "BNF (flumazenil — cautions); TOXBASE",
+  cyanide: "BNF (hydroxocobalamin); TOXBASE",
+  tca: "TOXBASE (sodium bicarbonate for QRS widening)",
+  betablocker: "TOXBASE (glucagon, high-dose insulin)",
+  ccb: "TOXBASE; EXTRIP / expert consensus on calcium channel blocker poisoning (2017)",
+  sulfonylurea: "TOXBASE (octreotide with glucose)",
+  methotrexate: "BNF (folinic acid / glucarpidase)",
+  isoniazid: "TOXBASE (pyridoxine)",
+  lignocaine: "Association of Anaesthetists — local anaesthetic systemic toxicity guideline (lipid emulsion)",
+};
+
 export const antidoteQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
-  forDoctor(ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, "BNF / Toxbase; National Snakebite Management Protocol (India)"));
+  forDoctor(ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, ANTIDOTE_SOURCE[id] ?? "BNF; TOXBASE (UK National Poisons Information Service)"));
 
 /* Emergency algorithms ------------------------------------------------------ */
 

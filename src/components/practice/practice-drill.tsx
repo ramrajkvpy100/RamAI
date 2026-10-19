@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportProblem } from "@/components/case/report-problem";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { EcgTrace } from "@/components/media/ecg";
@@ -250,7 +251,8 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
               Image source
             </a>
           )}
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <ReportProblem compact target={{ area: "skills", ref: `Spot the diagnosis · ${MODALITIES[modality].label} · ${item.options[item.answer]}`, details: `Picture: ${item.image ?? "drawn ECG"}\nOptions: ${item.options.map((o, n) => `${n === item.answer ? "✓ " : ""}${o}`).join(" | ")}\nKey: ${item.key}` }} />
             <button type="button" onClick={next} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">
               {index + 1 < items.length ? "Next" : "See your score"}
             </button>
