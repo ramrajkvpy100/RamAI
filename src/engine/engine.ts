@@ -369,7 +369,7 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   const { def, hidden, state, country } = rebuild(payload, provider);
   if (hidden.closed) throw new EngineError("CASE_CLOSED", "This case is already closed.");
 
-  const interpretation = await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-12), country, lang });
+  const interpretation = await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-40), country, lang });
   const record: ActionRecord = {
     id: `a${payload.a.length + 1}`,
     at: hidden.clock,

@@ -121,8 +121,9 @@ function stateNote(ctx: InterpretContext): string {
   const h = ctx.hidden;
   const v = vitalsNow(h);
   const given = h.drugs.filter((d) => d.mode === "given").slice(-8).map((d) => `${d.generic}${d.dose ? ` ${d.dose}` : ""} ${d.route} at minute ${Math.round(d.at)}`);
+  // The whole conversation (up to 40 lines), so the model follows it the way a colleague would.
   const recent = ctx.transcript
-    .slice(-8)
+    .slice(-40)
     .map((m) => `${m.role === "doctor" ? "Doctor" : m.role === "attendant" ? "Relative" : m.role === "nurse" ? "Nurse" : m.role === "patient" ? "Patient" : "Ward"}: ${m.text}`)
     .join("\n");
   return `Minute ${Math.round(h.clock)} of the encounter. The patient is ${h.status}${h.patientSays ? ` and says "${h.patientSays}"` : ""}. Vitals: HR ${v.hr.value}, BP ${v.bp.value}, RR ${v.rr.value}, SpO2 ${v.spo2.value}, temperature ${v.temp.value}.
@@ -166,6 +167,7 @@ Read the doctor's words in the context of the conversation — a follow-up is ab
 Orders are carried out exactly as given, however unusual, excessive or unsafe — the simulation plays out the consequences. Never refuse, soften or correct an order: map it to the matching id with the dose, route and rate exactly as said, in "payload": {"mode":"given"|"prescribed","route":"IV|IM|PO|SC|SL|NEB|INH|PR|TOP|IN","amount":<number>,"unit":"mg|mcg|g|units|mL|L|mmol","volumeMl":<for fluids>,"overMin":<minutes it is given over, if said>,"frequency"?,"duration"?}. Put in the payload ONLY what the doctor said — never fill in a usual dose, route, rate, frequency or duration: the ward asks for whatever is missing. For imaging, put the part, view and contrast the doctor said in "payload": {"region"?: "chest|abdomen|pelvis|kub|head|neck|knee|…","view"?: "PA|AP|lateral|erect|supine","contrast"?: "plain|contrast"}; an X-ray, CT, ultrasound or MRI with no part named uses targetId "xray", "ct", "usg" or "mri".
 If the nurse has just asked about an order's missing details and the doctor answers them, return that same order (same kind and targetId) with the details in its payload.
 Map to existing ids whenever the meaning matches — the game answers those itself.
+Understand the doctor the way a thoughtful, experienced colleague would in a real conversation: typos, abbreviations (c/o, h/o, o/e, BD, TDS, stat), shorthand, Hinglish or Hindi, half-sentences and several requests in one message — handle every request, in the order given, each as its own intent. Use the whole conversation to work out what "it", "that", "same", "again" and short replies refer to.
 Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${def.unlimited ? `
 This hospital has every resource: any test can be done. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
 For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}.
@@ -187,7 +189,7 @@ function voicePrompt(def: ClinicalCaseDefinition, items: VoiceItem[], said: stri
   const p = def.patient;
   const recent = ctx.transcript
     .filter((m) => m.role === "doctor" || m.role === "patient" || m.role === "attendant")
-    .slice(-6)
+    .slice(-24)
     .map((m) => `${m.role === "doctor" ? "Doctor" : m.role === "attendant" ? "Relative" : "Patient"}: ${m.text}`)
     .join("\n");
   return [
@@ -916,7 +918,10 @@ export function createOpenAIProvider(): ClinicalProvider {
       if (rules.generated && rules.intents.some((i) => i.payload?.keepPending === true)) return rules;
       const ruled = rules.intents;
       // The doctor answered an order's question: that's settled; the rest isn't worth a model call to reread.
-      const unresolved = !ruled.some((i) => i.payload?.completes === true) && ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:")));
+      // Several requests in one message, or a long one the rules only partly placed: the model reads all of it, as ChatGPT would.
+      const clauses = text.split(/[.?!;\n]+|\band\b|\balso\b|\bthen\b|,/i).filter((c) => c.trim().split(/\s+/).length >= 2).length;
+      const partly = text.trim().split(/\s+/).length > 6 && clauses > ruled.filter((i) => i.kind !== "unknown").length;
+      const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
       const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : voice(text, ctx, ruled);
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;
