@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Wordmark } from "@/components/brand/wordmark";
 
@@ -10,6 +10,14 @@ export function InviteGate({ next, signedInNeedsCode }: { next: string; signedIn
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // A friend's invite link: the code filled in, and who invited them remembered (both get free Pro cases).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const c = q.get("code");
+    if (c) setCode(c.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12));
+    const ref = q.get("ref");
+    if (ref && /^[a-z0-9_.-]{2,40}$/i.test(ref)) document.cookie = `ramai_ref=${encodeURIComponent(ref)}; max-age=${30 * 86400}; path=/; samesite=lax; secure`;
+  }, []);
   const submit = async () => {
     setBusy(true);
     setError(null);

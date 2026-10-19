@@ -52,6 +52,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const audio = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     setOrder(shuffle(keep(kind === "heart" ? HEART : LUNGS)));
@@ -90,7 +91,11 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
       ) : (
         <article className="card flex flex-col gap-4 p-5">
           <div className="text-[12px] text-fg-3 tabular">Sound {i + 1} of {order.length} · headphones help</div>
-          {url && <audio ref={audio} src={url} controls loop className="w-full" />}
+          <button type="button" onClick={() => (audio.current?.paused ? void audio.current.play() : audio.current?.pause())} aria-label={playing ? "Pause the sound" : "Play the sound"} className="mx-auto flex flex-col items-center gap-1">
+            <OrganPicture sound={item.sound} playing={playing} />
+            <span className="text-[12.5px] font-medium text-fg-2">{playing ? "Listening… tap to pause" : "▶ Tap to listen"}</span>
+          </button>
+          {url && <audio ref={audio} src={url} controls loop className="w-full" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />}
           <div className="grid gap-2">
             {options.map((o, n) => {
               const right = o.id === item.id;
@@ -109,12 +114,46 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
               {options[picked]?.id !== item.id && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {options[picked]?.label}?</b> {options[picked]?.key}</p>}
               <p className="mt-2 text-[11.5px] text-fg-3">A teaching simulation of the sound, made by RamAI&apos;s stethoscope engine — real recordings vary. Source for the findings: Macleod&apos;s Clinical Examination.</p>
               <div className="mt-3 flex justify-end">
-                <button type="button" onClick={() => { audio.current?.pause(); setPicked(null); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < order.length ? "Next" : "See your score"}</button>
+                <button type="button" onClick={() => { audio.current?.pause(); setPlaying(false); setPicked(null); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < order.length ? "Next" : "See your score"}</button>
               </div>
             </section>
           )}
         </article>
       )}
     </div>
+  );
+}
+
+/** A heart that beats, or lungs that breathe, at the sound's own rate — without giving the answer away. */
+function OrganPicture({ sound, playing }: { sound: Auscultation; playing: boolean }) {
+  const heart = sound.kind === "heart";
+  const rate = sound.rate ?? (heart ? 72 : 16);
+  const irregular = heart && !!(sound as { irregular?: boolean }).irregular;
+  const anim: React.CSSProperties = playing
+    ? { animation: `${heart ? (irregular ? "ramai-beat-irregular" : "ramai-beat") : "ramai-breathe"} ${((60 / rate) * (irregular ? 4 : 1)).toFixed(2)}s ease-in-out infinite`, transformOrigin: "50% 60%" }
+    : {};
+  return (
+    <span className="relative flex h-40 w-40 items-center justify-center">
+      <span className={cn("absolute inset-2 rounded-full blur-2xl transition-opacity", heart ? "bg-rose-500/30" : "bg-sky-400/30", playing ? "opacity-100" : "opacity-40")} />
+      {heart ? (
+        <svg viewBox="0 0 100 100" className="ramai-organ-anim relative h-32 w-32 drop-shadow-lg" style={anim} aria-hidden>
+          <defs>
+            <radialGradient id="ramai-heart-g" cx="40%" cy="35%" r="70%"><stop offset="0%" stopColor="#fb7185" /><stop offset="60%" stopColor="#e11d48" /><stop offset="100%" stopColor="#881337" /></radialGradient>
+          </defs>
+          <path d="M50 88 C20 66 8 48 12 32 C16 16 36 12 50 28 C64 12 84 16 88 32 C92 48 80 66 50 88 Z" fill="url(#ramai-heart-g)" />
+          <path d="M40 22 C42 14 46 10 50 10 M58 20 C60 12 66 8 70 10" stroke="#9f1239" strokeWidth="5" strokeLinecap="round" fill="none" />
+          <path d="M28 34 C30 28 34 26 38 26" stroke="#fecdd3" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.7" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 100 100" className="ramai-organ-anim relative h-32 w-32 drop-shadow-lg" style={anim} aria-hidden>
+          <defs>
+            <radialGradient id="ramai-lung-g" cx="45%" cy="35%" r="75%"><stop offset="0%" stopColor="#fda4af" /><stop offset="70%" stopColor="#f472b6" /><stop offset="100%" stopColor="#be185d" /></radialGradient>
+          </defs>
+          <path d="M50 8 V40 M50 40 C46 44 42 46 38 48 M50 40 C54 44 58 46 62 48" stroke="#94a3b8" strokeWidth="5" strokeLinecap="round" fill="none" />
+          <path d="M44 30 C30 24 14 40 12 62 C10 82 22 92 36 88 C44 86 46 78 46 66 Z" fill="url(#ramai-lung-g)" />
+          <path d="M56 30 C70 24 86 40 88 62 C90 82 78 92 64 88 C56 86 54 78 54 66 Z" fill="url(#ramai-lung-g)" />
+        </svg>
+      )}
+    </span>
   );
 }

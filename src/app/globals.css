@@ -520,3 +520,30 @@ html[data-coach="end-case"] [data-coach-target="end-case"] {
     --material-bar: var(--surface-solid);
   }
 }
+
+/* Skills Lab sounds: the heart beats and the lungs breathe in time with what's playing. */
+@keyframes ramai-beat {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.12); }
+  24% { transform: scale(0.98); }
+  36% { transform: scale(1.06); }
+  50% { transform: scale(1); }
+}
+@keyframes ramai-beat-irregular {
+  0%, 100% { transform: scale(1); }
+  8% { transform: scale(1.1); }
+  18% { transform: scale(1); }
+  31% { transform: scale(1.07); }
+  40% { transform: scale(1); }
+  47% { transform: scale(1.12); }
+  56% { transform: scale(1); }
+  79% { transform: scale(1.08); }
+  88% { transform: scale(1); }
+}
+@keyframes ramai-breathe {
+  0%, 100% { transform: scale(1, 1); }
+  42% { transform: scale(1.08, 1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ramai-organ-anim { animation: none !important; }
+}

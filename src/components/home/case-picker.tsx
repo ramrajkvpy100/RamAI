@@ -82,6 +82,25 @@ export function CasePicker({
       }
     >
       <div className="flex flex-col gap-6">
+        <Group label="Specialty">
+          <div className="relative">
+            <select
+              value={specialty ?? ""}
+              onChange={(e) => setSpecialty((e.target.value || undefined) as Specialty | undefined)}
+              className="h-11 w-full appearance-none rounded-xl border border-line bg-surface pr-10 pl-3.5 text-[14.5px] outline-none focus:border-accent-line focus:shadow-[0_0_0_3px_var(--accent-soft)]"
+              aria-label="Specialty"
+            >
+              <option value="">Any specialty</option>
+              {specialties.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevron-down" size={15} className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-fg-3" />
+          </div>
+        </Group>
+
         <Group label="Mode">
           <div className="grid grid-cols-4 gap-1.5 rounded-xl bg-surface-3 p-1">
             {[undefined, ...CASE_TRACKS].map((t) => {
@@ -220,24 +239,6 @@ export function CasePicker({
           <LangToggle className="self-start" />
         </Group>
 
-        <Group label="Specialty">
-          <div className="relative">
-            <select
-              value={specialty ?? ""}
-              onChange={(e) => setSpecialty((e.target.value || undefined) as Specialty | undefined)}
-              className="h-11 w-full appearance-none rounded-xl border border-line bg-surface pr-10 pl-3.5 text-[14.5px] outline-none focus:border-accent-line focus:shadow-[0_0_0_3px_var(--accent-soft)]"
-              aria-label="Specialty"
-            >
-              <option value="">Any specialty</option>
-              {specialties.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <Icon name="chevron-down" size={15} className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-fg-3" />
-          </div>
-        </Group>
       </div>
     </Sheet>
   );
