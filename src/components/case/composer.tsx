@@ -169,6 +169,9 @@ export function Composer({
             <button type="button" onClick={() => expert.toggle()} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2" title="Beginner shows suggestions and timed hints; Expert shows nothing">
               {expert.on ? "🎓 Expert mode ✓" : "🌱 Beginner mode ✓"}
             </button>
+            <a href="/suggestions" target="_blank" rel="noopener" className="flex h-11 items-center justify-center rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2" title="Report a problem with this case — it can be attached">
+              🚩 Report an issue
+            </a>
           </div>
         </div>
       )}

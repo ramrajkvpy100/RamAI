@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import type { Country } from "@/engine/countries";
 import { cn } from "@/lib/cn";
+import { useCareerStage } from "@/lib/career-stage";
 import { examsFor } from "@/lib/exams";
 
 /** "Exam practice ▾" — only the exams of the country the doctor practises in. */
@@ -14,7 +15,7 @@ export function ExamMenu({ country, className }: { country: Country; className?:
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const path = usePathname();
-  const exams = examsFor(country);
+  const exams = examsFor(country, useCareerStage());
   useEffect(() => setOpen(false), [path]);
   useEffect(() => {
     if (!open) return;

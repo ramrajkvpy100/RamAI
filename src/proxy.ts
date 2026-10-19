@@ -62,6 +62,14 @@ export async function proxy(request: NextRequest) {
     ...(https ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 
+  // One site only: an old deployment's own address (ram-ai-<id>.vercel.app) sends the visitor to the live site.
+  const live = process.env.RAMAI_SITE_HOST ?? "ram-ai-liard.vercel.app";
+  const host = request.headers.get("host") ?? "";
+  if (process.env.VERCEL_ENV === "production" && live && host.endsWith(".vercel.app") && host !== live) {
+    const to = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${live}`);
+    return NextResponse.redirect(to, 308);
+  }
+
   // Invite-only: a visitor with neither an invite pass nor a signed-in session sees the invite page.
   if (inviteOnly() && !OPEN_PATHS.test(request.nextUrl.pathname) && !hasAuthCookie(request.cookies.getAll().map((c) => c.name)) && !(await validAccessCookie(request.cookies.get(ACCESS_COOKIE)?.value))) {
     const to = request.nextUrl.clone();

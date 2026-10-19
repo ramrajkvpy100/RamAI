@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
+import { AttachCase, withCase } from "./attach-case";
 import { CATEGORY_LABEL, mySuggestions, sendSuggestion, type Suggestion, type SuggestionCategory } from "@/lib/suggestions-client";
 
 import { StatusPill, when } from "./status-pill";
@@ -15,6 +16,7 @@ export function SuggestionsPage({ who }: { who: "account" | "guest" | "visitor" 
   const [category, setCategory] = useState<SuggestionCategory>("idea");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
+  const [attached, setAttached] = useState("");
   const anonymous = who !== "account";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,12 +41,13 @@ export function SuggestionsPage({ who }: { who: "account" | "guest" | "visitor" 
     try {
       const { suggestion } = await sendSuggestion({
         category,
-        message: message.trim(),
+        message: withCase(message.trim(), attached),
         page: "/suggestions",
         ...(anonymous && email.trim() ? { email: email.trim() } : {}),
       });
       setItems((list) => [suggestion, ...(list ?? [])]);
       setMessage("");
+      setAttached("");
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "That didn't send. Please try again.");
@@ -105,6 +108,7 @@ export function SuggestionsPage({ who }: { who: "account" | "guest" | "visitor" 
               />
               <span className={cn("self-end text-[12px] tabular", length > 0 && length < 10 ? "text-warning" : "text-fg-3")}>{length < 10 ? `${10 - length} more characters` : `${length.toLocaleString()} / ${MAX.toLocaleString()}`}</span>
             </label>
+            <AttachCase value={attached} onChange={setAttached} />
             {anonymous && (
               <label className="flex flex-col gap-1.5">
                 <span className="text-[13px] font-medium text-fg-2">

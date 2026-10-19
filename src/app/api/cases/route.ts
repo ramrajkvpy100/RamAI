@@ -56,13 +56,14 @@ export async function POST(req: Request) {
     } else if (overLimit) {
       // Guests get a few real cases a day; accounts a free Pro trial; Pro is unlimited.
       if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's your ${limit} free cases for today. Sign up free for ${TRIAL} Pro cases — or come back after midnight.`);
-      return apiError(402, "DAILY_LIMIT", "Your free Pro cases are used up. Go Pro for unlimited cases at every level — or invite a friend for 5 more each.");
+      return apiError(402, "DAILY_LIMIT", "Your free Pro cases are used up. Go Pro for unlimited cases at every level — or invite a friend for 10 more each.");
     }
     // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
     const picked = !!(body.specialty || body.track || body.level);
     // Students get classic presentations; everyone else after their first few cases gets the full range.
     const stage = (await db.get<{ stage: string }>("SELECT stage FROM user_prefs WHERE user_id = ?", user.id).catch(() => undefined))?.stage;
-    const easy = !tutorial && !daily && !picked && (user.isGuest || total <= 3 || stage === "student");
+    // The first three cases are always easy and winnable — even ones picked from the menu; students and interns keep classic cases.
+    const easy = !tutorial && !daily && (total < 3 || (!picked && (user.isGuest || stage === "student" || stage === "intern")));
     // Their own specialty, unless they chose one (or "any") for this case. "mixed" (or not said): every specialty.
     const own = user.specialty && user.specialty !== "mixed" ? user.specialty : undefined;
     const specialty = body.specialty === "any" ? undefined : ((body.specialty as Specialty | undefined) ?? own);

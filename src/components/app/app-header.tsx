@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/brand/wordmark";
 import { GoalRing } from "@/components/game/goal-ring";
 import { StreakPill } from "@/components/game/streak";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { useMe, type Me } from "@/lib/me-store";
 
@@ -13,12 +14,15 @@ import { ExamMenu } from "./exam-menu";
 import { InstallButton } from "./install-button";
 import { UserMenu } from "./user-menu";
 
-/** Kept to four: the rest (exams, community, leaderboard) is in the profile menu. */
+/** The main places — always in sight: across the top on a computer, as a tab bar at the bottom on a phone. */
 const NAV = [
-  { href: "/", label: "Cases" },
-  { href: "/practice", label: "Skills Lab" },
-  { href: "/progress", label: "Progress" },
-];
+  { href: "/", label: "Cases", icon: "pulse" },
+  { href: "/practice", label: "Skills Lab", icon: "target" },
+  { href: "/leaderboard", label: "Leaderboard", icon: "trophy" },
+  { href: "/community", label: "Community", icon: "users" },
+  { href: "/progress", label: "Progress", icon: "award" },
+] as const;
+const PHONE_NAV = [NAV[0], NAV[1], { href: "/exams", label: "Exams", icon: "file" }, NAV[2], NAV[3]] as const;
 
 export function AppHeader({ initial }: { initial: Me }) {
   const me = useMe(initial) ?? initial;
@@ -51,12 +55,17 @@ export function AppHeader({ initial }: { initial: Me }) {
           <UserMenu me={me} />
         </div>
       </div>
-      <nav className="flex items-center gap-1 overflow-x-auto border-t border-line/60 px-4 py-1.5 whitespace-nowrap sm:hidden" aria-label="Main">
-        {[...NAV, { href: "/exams", label: "Exam MCQs" }].map((n) => (
-          <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1 text-[13px] font-medium", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2")}>
-            {n.label}
-          </Link>
-        ))}
+      {/* Phones: a tab bar along the bottom, like an app. */}
+      <nav className="material-bar fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--material-stroke)] pb-[env(safe-area-inset-bottom)] sm:hidden" aria-label="Main">
+        {PHONE_NAV.map((n) => {
+          const on = n.href === "/" ? path === "/" : path.startsWith(n.href);
+          return (
+            <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined} className={cn("flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", on ? "text-accent-text" : "text-fg-2")}>
+              <Icon name={n.icon} size={20} strokeWidth={on ? 2.3 : 1.8} />
+              {n.label}
+            </Link>
+          );
+        })}
       </nav>
     </header>
   );

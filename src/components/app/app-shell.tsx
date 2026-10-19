@@ -21,6 +21,8 @@ export function AppShell({ me, children, wide = false }: { me: Me; children: Rea
         </ViewTransition>
       </main>
       <Footer />
+      {/* Room for the phone tab bar. */}
+      <div aria-hidden className="h-16 sm:hidden" />
     </div>
   );
 }

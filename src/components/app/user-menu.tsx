@@ -106,7 +106,7 @@ export function UserMenu({ me }: { me: Me }) {
             <Icon name="pulse" size={15} className="text-fg-2" /> Your specialty
             <span className="ml-auto max-w-[140px] truncate text-[12.5px] text-fg-2">{me.user.specialty ? specialtyLabel(me.user.specialty).replace(" — every specialty", "") : "Not set"}</span>
           </button>
-          {([["/exams", "file", "Exam MCQs"], ["/leaderboard", "trophy", "Leaderboard"]] as const).map(([href, icon, label]) => (
+          {([["/exams", "file", "Exam MCQs"]] as const).map(([href, icon, label]) => (
             <Link key={href} role="menuitem" href={href} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
               <Icon name={icon} size={15} className="text-fg-2" /> {label}
             </Link>
@@ -140,11 +140,6 @@ export function UserMenu({ me }: { me: Me }) {
           >
             <Icon name="target" size={15} className="text-fg-2" /> Quick tour of RamAI
           </button>
-          {([["/community", "users", "Community"]] as const).map(([href, icon, label]) => (
-            <Link key={href} role="menuitem" href={href} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
-              <Icon name={icon} size={15} className="text-fg-2" /> {label}
-            </Link>
-          ))}
           <Link role="menuitem" href="/achievements" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
             <Icon name="award" size={15} className="text-fg-2" /> Achievements
             <span className="ml-auto text-[12.5px] text-fg-2 tabular">{me.progress.badges.length}</span>

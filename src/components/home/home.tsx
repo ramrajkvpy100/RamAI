@@ -293,6 +293,14 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
         </section>
 
         <div data-tour="league">{showMore && <LeagueCard meId={me.user.id} />}</div>
+
+        <Link href="/suggestions" className="panel flex items-center gap-3 p-4 hover:bg-surface-2">
+          <span aria-hidden className="text-[22px]">✨</span>
+          <span className="min-w-0">
+            <span className="block text-[14.5px] font-semibold">New features are on the way</span>
+            <span className="block text-[12.5px] text-fg-2">We add something new every week. Tell us what you&apos;d like next →</span>
+          </span>
+        </Link>
       </div>
 
       <CasePicker

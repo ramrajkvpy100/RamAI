@@ -42,15 +42,21 @@ export const PRO_FOR_EVERYONE = process.env.NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE =
 /** Free, with no account: the demo, then this many real cases a day. More means logging in and going Pro. */
 export const GUEST_DAILY_CASES = 5;
 
+/**
+ * While RamAI is invite-only, every invited doctor plays every level free, with
+ * GUEST_DAILY_CASES cases a day (more with free Pro cases, or Pro). Off with NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS=0.
+ */
+export const INVITEES_ALL_LEVELS = process.env.NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS !== "0";
+
 /** The plan a player actually has: their own, or Pro while it's open to everyone (guests keep their daily allowance). */
 export function planFor(user: { plan: PlanId; isGuest: boolean }): Plan {
-  if (!PRO_FOR_EVERYONE) return PLANS[user.plan];
+  if (!PRO_FOR_EVERYONE) return user.plan === "free" && INVITEES_ALL_LEVELS ? { ...PLANS.free, levels: PLANS.pro.levels, dailyCases: GUEST_DAILY_CASES } : PLANS[user.plan];
   return user.isGuest ? { ...PLANS.pro, dailyCases: GUEST_DAILY_CASES } : PLANS.pro;
 }
 
 /** How many cases this player can start today (null = unlimited). The daily case and the demo don't count. */
 export const dailyLimitFor = (user: { plan: PlanId; isGuest: boolean }): number | null =>
-  PRO_FOR_EVERYONE ? planFor(user).dailyCases : user.isGuest ? GUEST_DAILY_CASES : PLANS[user.plan].dailyCases;
+  PRO_FOR_EVERYONE || INVITEES_ALL_LEVELS ? planFor(user).dailyCases : user.isGuest ? GUEST_DAILY_CASES : PLANS[user.plan].dailyCases;
 
 /**
  * What Pro costs, in the currency of the country the doctor practises in

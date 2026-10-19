@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type CareerStage = "student" | "intern" | "resident" | "specialist" | "radiologist";
+export type CareerStage = "student" | "intern" | "resident" | "specialist" | "superspecialist" | "radiologist";
 
 let cached: CareerStage | null | undefined;
 const listeners = new Set<(s: CareerStage | null) => void>();

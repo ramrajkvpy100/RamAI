@@ -18,7 +18,7 @@ const STAGE_LABELS: [CareerStage, string, string][] = [
   ["intern", "🩺 Intern", "Mixed cases"],
   ["resident", "🏥 Resident", "Pick your specialty"],
   ["specialist", "⭐ Specialist", "Pick your specialty"],
-  ["radiologist", "🩻 Radiologist", "Radiology reporting"],
+  ["superspecialist", "🏅 Super-specialist", "Pick your specialty"],
 ];
 
 export function SpecialtySheet({ open, current, onClose }: { open: boolean; current: PreferredSpecialty | null; onClose: () => void }) {
@@ -48,11 +48,8 @@ export function SpecialtySheet({ open, current, onClose }: { open: boolean; curr
 
   const pickStage = async (id: CareerStage) => {
     setCareerStage(id);
-    if (id === "resident" || id === "specialist") setStep("specialty");
-    else {
-      await choose("mixed");
-      if (id === "radiologist") window.location.href = "/practice?drill=radiology";
-    }
+    if (id === "resident" || id === "specialist" || id === "superspecialist") setStep("specialty");
+    else await choose("mixed");
   };
 
   return (
@@ -86,6 +83,17 @@ export function SpecialtySheet({ open, current, onClose }: { open: boolean; curr
           ))
         ) : (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <button
+              type="button"
+              disabled={!!saving}
+              onClick={() => {
+                setCareerStage("radiologist");
+                void choose("mixed").then(() => (window.location.href = "/practice?drill=radiology"));
+              }}
+              className={cn("min-h-11 rounded-xl border px-3 py-2 text-left text-[13.5px] font-medium transition-colors disabled:opacity-60", stage === "radiologist" ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}
+            >
+              Radiology
+            </button>
             {ALL_SPECIALTIES.map((s) => (
               <button
                 key={s}

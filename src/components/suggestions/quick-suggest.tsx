@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { AttachCase, withCase } from "./attach-case";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { ClinicalEngineError } from "@/lib/engine-client";
@@ -17,6 +18,7 @@ export function QuickSuggest() {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<SuggestionCategory>("idea");
   const [message, setMessage] = useState("");
+  const [attached, setAttached] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -39,7 +41,8 @@ export function QuickSuggest() {
     setState("sending");
     setError(null);
     try {
-      await sendSuggestion({ category, message: message.trim(), page: path });
+      await sendSuggestion({ category, message: withCase(message.trim(), attached), page: path });
+      setAttached("");
       setState("sent");
       setMessage("");
       setTimeout(() => {
@@ -53,7 +56,7 @@ export function QuickSuggest() {
   };
 
   return (
-    <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6">
+    <div className="fixed right-4 bottom-20 z-40 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6">
       {open && (
         <div role="dialog" aria-label="Suggest an improvement" className="popover w-[min(92vw,360px)] animate-enter rounded-2xl p-4">
           {state === "sent" ? (
@@ -87,6 +90,7 @@ export function QuickSuggest() {
                 placeholder="What would make RamAI better?"
                 className="mt-3 w-full resize-none rounded-xl border border-line bg-surface px-3 py-2.5 text-[14px] leading-6 outline-none focus:border-accent-line focus:shadow-[0_0_0_3px_var(--accent-soft)]"
               />
+              <AttachCase value={attached} onChange={setAttached} />
               {error && <p className="mt-1.5 text-[12.5px] text-danger">{error}</p>}
               <button type="button" onClick={() => void send()} disabled={state === "sending"} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-accent text-[14px] font-semibold text-on-accent disabled:opacity-60">
                 {state === "sending" ? "Sending…" : "Send"} <Icon name="send" size={14} />

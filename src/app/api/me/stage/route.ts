@@ -6,7 +6,7 @@ import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server
 
 export const runtime = "nodejs";
 
-const STAGES = ["student", "intern", "resident", "specialist", "radiologist"] as const;
+const STAGES = ["student", "intern", "resident", "specialist", "superspecialist", "radiologist"] as const;
 const Schema = z.object({ stage: z.enum(STAGES) });
 
 /** POST /api/me/stage — the doctor's career stage: students get classic cases, residents and specialists harder ones. */

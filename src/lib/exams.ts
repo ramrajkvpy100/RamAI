@@ -116,10 +116,22 @@ export const EXAMS: Record<ExamId, ExamInfo> = {
 export const EXAM_IDS = Object.keys(EXAMS) as ExamId[];
 export const isExamId = (x: unknown): x is ExamId => typeof x === "string" && x in EXAMS;
 
-/** Only the exams of the country the doctor practises in. */
-/** A country's own exams; the rest of the world sits the international ones (USMLE, PLAB, FMGE). */
-export const examsFor = (country: Country): ExamInfo[] =>
-  country === "WW" ? (["usmle", "plab", "fmge"] as ExamId[]).map((id) => EXAMS[id]) : EXAM_IDS.map((id) => EXAMS[id]).filter((e) => e.country === country);
+/** Super-speciality entrances — for those who've done their PG. */
+const SS: ExamId[] = ["neet-ss", "ini-ss"];
+
+/**
+ * A country's own exams; the rest of the world sits the international ones (USMLE, PLAB, FMGE).
+ * By career stage: students and interns see the PG entrances; residents and beyond, the super-speciality ones.
+ */
+export const examsFor = (country: Country, stage?: string | null): ExamInfo[] => {
+  const all = country === "WW" ? (["usmle", "plab", "fmge"] as ExamId[]).map((id) => EXAMS[id]) : EXAM_IDS.map((id) => EXAMS[id]).filter((e) => e.country === country);
+  if (stage === "student" || stage === "intern") return all.filter((e) => !SS.includes(e.id));
+  if (stage === "resident" || stage === "specialist" || stage === "superspecialist") {
+    const ss = all.filter((e) => SS.includes(e.id));
+    return ss.length ? ss : all;
+  }
+  return all;
+};
 
 /** "Mixed" draws from every subject. */
 export const MIXED = "Mixed";

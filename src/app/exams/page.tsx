@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { examsFor } from "@/lib/exams";
 import { countryFromIp } from "@/lib/plans";
 import { getCurrentUser } from "@/server/auth";
+import { db } from "@/server/db";
 import { examStats } from "@/server/exam-practice";
 
 export const metadata: Metadata = { title: "Exam practice", description: "NEET PG and INI-CET, USMLE, UKMLA and PLAB practice questions — single best answer, with explanations." };
@@ -26,7 +27,8 @@ const BLURB: Record<string, string> = {
 export default async function ExamsPage() {
   const user = await getCurrentUser().catch(() => null);
   const country = user?.country ?? countryFromIp((await headers()).get("x-vercel-ip-country"));
-  const exams = examsFor(country);
+  const stage = user ? (await db.get<{ stage: string | null }>("SELECT stage FROM user_prefs WHERE user_id = ?", user.id).catch(() => undefined))?.stage : null;
+  const exams = examsFor(country, stage);
   const stats = user ? await Promise.all(exams.map((e) => examStats(user.id, e.id))) : [];
   return (
     <PublicPage>

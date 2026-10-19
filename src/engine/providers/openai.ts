@@ -356,7 +356,7 @@ You author realistic, guideline-accurate clinical cases for ${c.name}. Patients 
 function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
   const country = COUNTRY[opts.country ?? "IN"];
   const level = levelMeta(brief.level, country.id);
-  const difficulty = opts.easy ? "1 — EASY: a common, classic presentation with clear findings and a straightforward plan, for a doctor's first cases" : "matched to the setting (1 easy, 2 moderate, 3 hard)";
+  const difficulty = opts.easy ? "1 — EASY: a common, classic presentation with clear findings and a straightforward plan, for a doctor's first cases — the patient stays stable while the doctor works, with no sudden deterioration, so a careful beginner can win it" : "matched to the setting (1 easy, 2 moderate, 3 hard)";
   return [
     { role: "system", content: authoring(country.id) },
     {
