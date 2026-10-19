@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportProblem } from "./report-problem";
 import Link from "next/link";
 
 import { LogoTile } from "@/components/brand/wordmark";
@@ -82,6 +83,7 @@ export function CaseTopBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {!complete && <ReportProblem />}
           {onSkip && !complete && (
             <button type="button" onClick={onSkip} className="flex h-8 items-center gap-1 rounded-full bg-surface-3 px-3 text-[12.5px] font-semibold text-fg-2 hover:text-fg">
               Skip<span className="hidden sm:inline"> demo</span> <Icon name="arrow-right" size={13} />

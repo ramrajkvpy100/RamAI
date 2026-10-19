@@ -653,7 +653,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 29;
+const SCHEMA_VERSION = 30;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
@@ -697,6 +697,12 @@ async function migrate(b: Backend) {
   if (!paymentColumns.includes("updated_at")) add.push("ALTER TABLE payments ADD COLUMN updated_at INTEGER");
   const archiveColumns = (await b.all<{ name: string }>("PRAGMA table_info(payments_archive)")).map((c) => c.name);
   if (!archiveColumns.includes("currency")) add.push("ALTER TABLE payments_archive ADD COLUMN currency TEXT NOT NULL DEFAULT 'INR'");
+  // "Report a problem" during a case: what the screen showed, and the conversation leading up to it.
+  const feedbackColumns = (await b.all<{ name: string }>("PRAGMA table_info(case_feedback)")).map((c) => c.name);
+  if (!feedbackColumns.includes("screenshot")) add.push("ALTER TABLE case_feedback ADD COLUMN screenshot TEXT");
+  if (!feedbackColumns.includes("transcript")) add.push("ALTER TABLE case_feedback ADD COLUMN transcript TEXT");
+  if (!feedbackColumns.includes("category")) add.push("ALTER TABLE case_feedback ADD COLUMN category TEXT");
+  if (!feedbackColumns.includes("case_number")) add.push("ALTER TABLE case_feedback ADD COLUMN case_number INTEGER");
   const startColumns = (await b.all<{ name: string }>("PRAGMA table_info(case_starts)")).map((c) => c.name);
   if (!startColumns.includes("tutorial")) add.push("ALTER TABLE case_starts ADD COLUMN tutorial INTEGER NOT NULL DEFAULT 0");
   // The daily case: which day a start or a ranked result belongs to, and how long it took.

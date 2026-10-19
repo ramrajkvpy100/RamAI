@@ -144,6 +144,7 @@ export function UserMenu({ me }: { me: Me }) {
                 <div className="flex gap-1.5 text-[11.5px]">
                   <Link href="/admin/access" onClick={() => setOpen(false)} className="flex-1 rounded-lg bg-surface-3/60 px-2 py-1.5 text-center hover:bg-surface-3">🔑 Invites</Link>
                   <Link href="/admin/costs" onClick={() => setOpen(false)} className="flex-1 rounded-lg bg-surface-3/60 px-2 py-1.5 text-center hover:bg-surface-3">📊 AI costs</Link>
+                  <Link href="/admin/reports" onClick={() => setOpen(false)} className="flex-1 rounded-lg bg-surface-3/60 px-2 py-1.5 text-center hover:bg-surface-3">🚩 Reports</Link>
                 </div>
               )}
               <div className="mt-1 flex flex-col gap-2.5 rounded-xl bg-surface-3/40 p-3 text-[13px]">
