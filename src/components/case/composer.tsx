@@ -214,12 +214,19 @@ export function Composer({
         data-coach-target="composer"
         className={cn(
           "rounded-2xl border bg-surface shadow-sm transition-[border-color,box-shadow] duration-150",
-          speech.listening ? "border-danger shadow-[0_0_0_3px_var(--danger-soft)]" : "border-line focus-within:border-accent-line focus-within:shadow-[0_0_0_3px_var(--accent-soft)]",
+          speech.listening ? "border-danger shadow-[0_0_0_3px_var(--danger-soft)]" : "border-accent-line focus-within:border-accent-line focus-within:shadow-[0_0_0_3px_var(--accent-soft)]",
         )}
       >
-        <label htmlFor="composer" className="sr-only">
-          Your next action
-        </label>
+        {/* First time in a case: say plainly where to type. */}
+        {history.length === 0 ? (
+          <label htmlFor="composer" className="flex items-center gap-1.5 px-4 pt-3 text-[13px] font-semibold text-accent-text">
+            <span className="animate-bounce">👇</span> Type here — talk to the patient, examine, order tests or treat
+          </label>
+        ) : (
+          <label htmlFor="composer" className="sr-only">
+            Your next action
+          </label>
+        )}
         <textarea
           id="composer"
           ref={inputRef}
@@ -228,7 +235,7 @@ export function Composer({
           onKeyDown={onKeyDown}
           rows={1}
           disabled={disabled}
-          placeholder={speech.listening ? "Listening… speak your question or order" : phone ? "Ask the caller, give advice, or decide where the patient should go…" : "Ask the patient, examine, order a test, or give an order…"}
+          placeholder={speech.listening ? "Listening… speak your question or order" : phone ? "Type to the caller — e.g. What happened?" : "Type here… e.g. What brings you in today?"}
           className="block max-h-[168px] min-h-[52px] w-full resize-none bg-transparent px-4 pt-[15px] pb-2 text-[15px] leading-6 text-fg outline-none placeholder:text-fg-3 disabled:opacity-60"
           autoComplete="off"
           spellCheck

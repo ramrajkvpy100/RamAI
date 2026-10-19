@@ -862,6 +862,10 @@ export interface CaseDebrief {
   followUp: FollowUpPlan;
   treatmentFailure: TreatmentFailurePath;
   pearl: string;
+  /** Major interactions among the drugs given and the patient's own medicines. */
+  interactions?: { drugs: [string, string]; effect: string; advice: string }[];
+  /** The guidelines and standard textbooks this teaching follows ("IAP Guidelines on Dengue 2023", "Nelson Textbook of Pediatrics"). */
+  sources?: string[];
   /** What the stethoscope would have picked up — revealed only once the case is over. */
   auscultation?: { area: ListenArea; heard: string; listened: boolean }[];
   /** Where the case was set; money in this debrief is in that country's currency. */

@@ -94,6 +94,18 @@ function resolveOverlaps(cands: Candidate[]): ResolvedIntent[] {
 }
 
 /** Every hit of a phrase list, not just the first. */
+/** Letters to change, add or drop to turn one word into another. */
+function editDistance(a: string, b: string): number {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length]!;
+}
+
 function allHits(tk: string[], phrases: readonly string[]): PhraseHit[] {
   const hits: PhraseHit[] = [];
   for (const p of phrases) {
@@ -275,6 +287,21 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
   // Longest non-overlapping drug mentions ("adapalene with benzoyl peroxide" beats "adapalene").
   const hits: { drug: (typeof FORMULARY)[number]; hit: PhraseHit }[] = [];
   for (const drug of FORMULARY) for (const hit of allHits(tk, drugMatchPhrases(drug))) hits.push({ drug, hit });
+  // A drug name slightly misspelt ("oseltimivir", "amoxycilin"): the closest one, if it's close enough.
+  if (hits.length === 0) {
+    for (let i = 0; i < tk.length; i++) {
+      const word = tk[i]!;
+      if (word.length < 6) continue;
+      let best: { drug: (typeof FORMULARY)[number]; phrase: string; d: number } | null = null;
+      for (const drug of FORMULARY)
+        for (const phrase of drugMatchPhrases(drug)) {
+          if (phrase.includes(" ") || phrase.length < 6 || phrase[0] !== word[0]) continue;
+          const d = editDistance(word, phrase);
+          if (d <= (phrase.length >= 9 ? 2 : 1) && (!best || d < best.d)) best = { drug, phrase, d };
+        }
+      if (best) hits.push({ drug: best.drug, hit: { phrase: best.phrase, start: i, end: i + 1 } });
+    }
+  }
   hits.sort((a, b) => b.hit.end - b.hit.start - (a.hit.end - a.hit.start) || a.hit.start - b.hit.start);
   const kept: typeof hits = [];
   for (const h of hits) if (!kept.some((k) => h.hit.start < k.hit.end && k.hit.start < h.hit.end)) kept.push(h);

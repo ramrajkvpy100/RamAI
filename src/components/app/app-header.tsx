@@ -16,8 +16,7 @@ import { UserMenu } from "./user-menu";
 /** Kept to four: the rest (exams, community, leaderboard) is in the profile menu. */
 const NAV = [
   { href: "/", label: "Cases" },
-  { href: "/radiology", label: "Radiology" },
-  { href: "/practice", label: "Practice" },
+  { href: "/practice", label: "Skills Lab" },
   { href: "/progress", label: "Progress" },
 ];
 

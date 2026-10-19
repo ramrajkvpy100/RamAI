@@ -223,6 +223,14 @@ export function TreatmentSection({ d }: { d: CaseDebrief }) {
   const band = d.severityBands.find((b) => b.id === d.patientBand);
   return (
     <div className="flex flex-col gap-5">
+      {d.sources?.length ? (
+        <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 dark:border-amber-400/30 dark:bg-amber-400/10">
+          <div className="text-[11px] font-bold tracking-[0.1em] text-amber-800 uppercase dark:text-amber-200">📚 Source</div>
+          <ul className="mt-1 list-disc pl-4 text-[13.5px] leading-6 font-medium text-amber-950 dark:text-amber-100">
+            {d.sources.map((src) => <li key={src}>{src}</li>)}
+          </ul>
+        </div>
+      ) : null}
       {band && (
         <div>
           <Label className="mb-2">For this patient — {band.label.toLowerCase()}</Label>
@@ -288,10 +296,25 @@ function Monograph({ m }: { m: DrugMonograph }) {
 
 export function DrugsSection({ d }: { d: CaseDebrief }) {
   return (
-    <div className="grid gap-3 xl:grid-cols-2">
-      {d.drugs.map((m) => (
-        <Monograph key={m.generic} m={m} />
-      ))}
+    <div className="flex flex-col gap-4">
+      {d.interactions?.length ? (
+        <div className="rounded-xl border border-danger/40 bg-danger-soft px-4 py-3">
+          <div className="text-[11px] font-bold tracking-[0.1em] text-danger uppercase">⚠ Drug interactions in this case</div>
+          <ul className="mt-2 flex flex-col gap-2">
+            {d.interactions.map((x) => (
+              <li key={x.drugs.join("+") + x.effect} className="text-[13.5px] leading-6">
+                <b>{x.drugs[0]} + {x.drugs[1]}:</b> {x.effect} <span className="text-fg-2">{x.advice}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-fg-3">Source: BNF Appendix 1; Stockley&apos;s Drug Interactions.</p>
+        </div>
+      ) : null}
+      <div className="grid gap-3 xl:grid-cols-2">
+        {d.drugs.map((m) => (
+          <Monograph key={m.generic} m={m} />
+        ))}
+      </div>
     </div>
   );
 }

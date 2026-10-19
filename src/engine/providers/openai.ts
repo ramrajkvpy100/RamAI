@@ -299,6 +299,35 @@ function caseBrief(opts: StartOptions) {
 }
 type Brief = ReturnType<typeof caseBrief>;
 
+/**
+ * The guideline bodies each specialty follows, by country — the case, its treatment and its teaching
+ * follow these exclusively where they apply (WHO for anything they don't cover).
+ */
+const SPECIALTY_BODIES: Partial<Record<string, Record<"IN" | "INTL", string>>> = {
+  Pediatrics: { IN: "Indian Academy of Pediatrics (IAP) guidelines and IAP Standard Treatment Guidelines, with Nelson Textbook of Pediatrics and OP Ghai", INTL: "AAP / NICE paediatric guidelines and WHO IMCI, with Nelson Textbook of Pediatrics" },
+  OBGYN: { IN: "FOGSI guidelines and the MoHFW/NHM maternal health guidelines, with Williams Obstetrics and DC Dutta", INTL: "ACOG / RCOG guidelines and WHO maternal care guidance, with Williams Obstetrics" },
+  Cardiology: { IN: "Cardiological Society of India (CSI) guidance with ESC and ACC/AHA guidelines", INTL: "ACC/AHA and ESC guidelines" },
+  Medicine: { IN: "API (Association of Physicians of India) guidance and ICMR Standard Treatment Guidelines, with Harrison's Principles of Internal Medicine", INTL: "NICE / ACP guidance, with Harrison's Principles of Internal Medicine" },
+  Surgery: { IN: "Association of Surgeons of India (ASI) guidance, with Bailey & Love's Short Practice of Surgery", INTL: "ACS / NICE surgical guidance, with Bailey & Love and Sabiston" },
+  Dermatology: { IN: "IADVL guidelines, with Rook's Textbook of Dermatology", INTL: "AAD / BAD guidelines, with Rook's Textbook of Dermatology" },
+  Psychiatry: { IN: "Indian Psychiatric Society (IPS) clinical practice guidelines, with Kaplan & Sadock", INTL: "APA / NICE mental health guidelines, with Kaplan & Sadock" },
+  ENT: { IN: "Association of Otolaryngologists of India guidance, with Dhingra's ENT", INTL: "AAO-HNS / ENT UK guidance, with Scott-Brown's" },
+  Ophthalmology: { IN: "AIOS guidance, with Kanski's Clinical Ophthalmology and Khurana", INTL: "AAO Preferred Practice Patterns, with Kanski's" },
+  Orthopedics: { IN: "Indian Orthopaedic Association guidance, with Apley's System of Orthopaedics", INTL: "AAOS / BOA guidance, with Apley's" },
+  "Infectious Disease": { IN: "ICMR antimicrobial guidelines and national programme guidelines (NVBDCP, NTEP, NACO), with Harrison's", INTL: "IDSA guidelines and WHO, with Harrison's" },
+  Endocrinology: { IN: "RSSDI and Endocrine Society of India guidance, with Williams Textbook of Endocrinology", INTL: "ADA Standards of Care and Endocrine Society guidelines" },
+  Respiratory: { IN: "ICS–NCCP guidelines, GINA and GOLD", INTL: "GINA, GOLD and BTS guidelines" },
+  Gastroenterology: { IN: "Indian Society of Gastroenterology guidance, with Sleisenger and Fordtran", INTL: "ACG / BSG guidelines" },
+  Nephrology: { IN: "Indian Society of Nephrology guidance and KDIGO", INTL: "KDIGO guidelines" },
+  Neurology: { IN: "Indian Academy of Neurology guidance with AHA/ASA stroke guidelines", INTL: "AAN and AHA/ASA guidelines" },
+  Urology: { IN: "Urological Society of India guidance with EAU guidelines", INTL: "AUA / EAU guidelines, with Campbell-Walsh Urology" },
+  Emergency: { IN: "ACLS/PALS (AHA) and Society for Emergency Medicine India guidance, with Tintinalli's", INTL: "AHA ACLS/PALS, ATLS and RCEM guidance, with Tintinalli's" },
+};
+function specialtyGuidelines(specialty: string, country: Country): string {
+  const b = SPECIALTY_BODIES[specialty];
+  return b ? (country === "IN" ? b.IN : b.INTL) : country === "IN" ? "ICMR Standard Treatment Guidelines and national programme guidelines" : "WHO guidance";
+}
+
 /** Difficult patients, as doctors meet them every day. */
 const PERSONAS = [
   "anxious — frightened it is something serious, asks again and again what is wrong and needs calm reassurance",
@@ -321,7 +350,7 @@ function seasonNote(country: Country, month = new Date().getMonth()): string {
 const authoring = (country: Country) => {
   const c = COUNTRY[country];
   return `${simulationRules(country)}
-You author realistic, guideline-accurate clinical cases for ${c.name}. Patients are fictional and culturally realistic, never stereotyped; places, food, drug brands and services are local (the ambulance number is ${c.emergency}). Lab values in conventional units (mg/dL, g/dL, °F); costs in Indian rupees (the app converts them).`;
+You author realistic, guideline-accurate clinical cases for ${c.name}. Patients are fictional and culturally realistic, never stereotyped; places, food, drug brands and services are local (the ambulance number is ${c.emergency}). Lab values in conventional units (mg/dL, g/dL, °F); costs in Indian rupees (the app converts them). Management, drugs and doses follow the specialty's own guidelines exclusively, as named in each request, and standard textbooks.`;
 };
 
 function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
@@ -381,7 +410,7 @@ function managementPrompt(opts: StartOptions, concept: Concept, brief: Brief): C
     { role: "system", content: authoring(opts.country ?? "IN") },
     {
       role: "user",
-      content: `${partHead(concept, brief)}Write the management and the marking key. Return JSON:
+      content: `${partHead(concept, brief)}Write the management and the marking key, following ${specialtyGuidelines(concept.specialty ?? brief.specialty, opts.country ?? "IN")} exclusively where they apply. Return JSON:
 { "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why" (one line — and the guideline it follows, e.g. WHO, ICMR, NICE or AHA, where one applies), "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
   "reasoning": [{ "stage": "History", "text" }, { "stage": "Examination", "text" }, { "stage": "Investigation", "text" }, { "stage": "Diagnosis", "text" }],
   "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": [], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
@@ -491,7 +520,7 @@ function teachingPrompt(def: ClinicalCaseDefinition): ChatMessage[] {
     ...def.therapeutics.map((t) => `${t.id} (treatment: ${t.label}, ${t.appropriateness})`),
   ];
   return [
-    { role: "system", content: "You write concise, guideline-accurate teaching for a clinical simulation's debrief (shown only after the case). Output JSON only." },
+    { role: "system", content: `You write concise, guideline-accurate teaching for a clinical simulation's debrief (shown only after the case). Follow ${specialtyGuidelines(def.specialty, def.countries?.[0] ?? "IN")} exclusively where they apply. Output JSON only.` },
     {
       role: "user",
       content: `Case: ${def.patient.age}-year-old ${def.patient.sex}. ${def.briefing}
@@ -499,7 +528,7 @@ Diagnosis: ${def.truth.diagnosis}${def.truth.qualifier ? ` — ${def.truth.quali
 Items in the case (id, what, importance): ${items.join("; ")}
 
 Return JSON:
-{ "teaching": { "patientBand": "the id of this patient's severity band", "severityBands": [{ "id", "label", "recognition": [], "investigation": [], "treatment": [], "followUp": [] }] (2–4 bands), "drugs": [{ "generic", "brand", "dose", "route": "PO"|"IV"|"IM"|"SC"|"SL"|"PR"|"TOP"|"INH"|"NEB"|"IN", "frequency", "duration", "indication", "mechanism", "whyItWorks", "avoidWhen": [], "adverseEffects": [], "monitoring": [] }] (1–4), "routines": [], "followUp": { "interval", "reassess": [], "redFlags": [], "whenToEscalate": [] }, "treatmentFailure": { "steps": [] }, "pearl": "one memorable teaching point" },
+{ "teaching": { "patientBand": "the id of this patient's severity band", "severityBands": [{ "id", "label", "recognition": [], "investigation": [], "treatment": [], "followUp": [] }] (2–4 bands), "drugs": [{ "generic", "brand", "dose", "route": "PO"|"IV"|"IM"|"SC"|"SL"|"PR"|"TOP"|"INH"|"NEB"|"IN", "frequency", "duration", "indication", "mechanism", "whyItWorks", "avoidWhen": [], "adverseEffects": [], "monitoring": [] }] (1–4), "routines": [], "followUp": { "interval", "reassess": [], "redFlags": [], "whenToEscalate": [] }, "treatmentFailure": { "steps": [] }, "pearl": "one memorable teaching point", "sources": ["1–3 real, widely recognised guidelines or standard textbooks this teaching follows — the specialty's own body first (e.g. 'IAP Standard Treatment Guidelines', 'Nelson Textbook of Pediatrics'); no page numbers, never invent a title"] },
   "misses": { "<id of an essential or useful item>": { "what": "what the doctor didn't do", "why": "why it matters here, in one line — naming the guideline (WHO, ICMR, NICE, AHA…) where one applies", "better": "the better approach", "severity": "minor"|"moderate"|"major" } },
   "strengths": { "<id>": "what doing it well shows" } }
 misses and strengths: one for each essential item and the most useful ones; keys must be ids from the list.`,

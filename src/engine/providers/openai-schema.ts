@@ -224,6 +224,7 @@ export const TeachingSchema = z.object({
     followUp: z.object({ interval: str(60), reassess: strs(6), redFlags: strs(6), whenToEscalate: strs(6) }).catch({ interval: "", reassess: [], redFlags: [], whenToEscalate: [] }),
     treatmentFailure: z.object({ steps: strs(6) }).catch({ steps: [] }),
     pearl: str(600),
+    sources: strs(4).catch([]),
   }),
   misses: z.record(z.string(), Miss).catch({}),
   strengths: z.record(z.string(), str(200)).catch({}),

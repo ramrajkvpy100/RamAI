@@ -377,7 +377,7 @@ export interface ClinicalCaseDefinition {
   /** Static teaching content, released at closure only. */
   teaching: Pick<
     CaseDebrief,
-    "severityBands" | "treatmentByBand" | "drugs" | "routines" | "followUp" | "treatmentFailure" | "pearl"
+    "severityBands" | "treatmentByBand" | "drugs" | "routines" | "followUp" | "treatmentFailure" | "pearl" | "sources"
   > & {
     /** Counterfactual teaching shown when no deterioration occurred. */
     hazardTeaching?: { title: string; body: string; sequence: string[] };

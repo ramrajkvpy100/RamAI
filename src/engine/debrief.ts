@@ -7,6 +7,8 @@
  */
 
 import { heardIn, LISTEN_SOURCE, listen, type ListenPart } from "./auscultation";
+import { formularyDrug } from "./formulary";
+import { findInteractions } from "./interactions";
 import { catalogInvestigation } from "./catalog";
 import type { ClinicalCaseDefinition } from "./case-definition";
 import { hazardLibrary } from "./physiology";
@@ -187,6 +189,12 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     followUp: def.teaching.followUp,
     treatmentFailure: def.teaching.treatmentFailure,
     pearl: def.teaching.pearl,
+    // The drugs given, checked against each other and against the patient's own medicines.
+    ...(() => {
+      const found = findInteractions([...hidden.drugs.map((g) => g.drugId), ...(def.profile.currentDrugs ?? [])], (id) => formularyDrug(id)?.generic ?? id.replace(/^./, (c) => c.toUpperCase()));
+      return found.length ? { interactions: found } : {};
+    })(),
+    ...(def.teaching.sources?.length ? { sources: def.teaching.sources } : {}),
     auscultation: auscultationReview(def, hidden),
   };
 }
