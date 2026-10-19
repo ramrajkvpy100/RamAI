@@ -10,7 +10,7 @@ import { isAdmin } from "@/server/suggestions";
 export const metadata: Metadata = { title: "Case reports · Admin", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong result, answer or picture", understanding: "Didn't understand me", broken: "Something broke", other: "Other" };
+const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong result, answer or picture", understanding: "Didn't understand me", broken: "Something broke", other: "Report" };
 
 interface Row {
   id: string;

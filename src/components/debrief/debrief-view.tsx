@@ -23,7 +23,7 @@ import { DiseaseSection } from "./disease";
 import { LearnSection, useCoach } from "./learn";
 import { DailyShare } from "./daily-share";
 import { RewardsPanel } from "./rewards";
-import { LostMarks, ScoreBreakdown, ScoreRing } from "./score";
+import { ScoreBreakdown, ScoreRing } from "./score";
 import {
   AuscultationSection,
   DecisionTreeSection,
@@ -151,6 +151,8 @@ function DemoDone({ name, won }: { name: string; won: boolean }) {
   );
 }
 
+const SEVERITY_RANK = { major: 3, moderate: 2, minor: 1 } as const;
+
 export function DebriefView({
   session,
   progress,
@@ -173,7 +175,7 @@ export function DebriefView({
   const d = session.debrief as CaseDebrief;
   const startingLabel = useStartingMessage(starting);
   const state = session.state;
-  const [showScore, setShowScore] = useState(false);
+  const [tab, setTab] = useState<"happened" | "treat" | "practise" | "more">("happened");
   const [sharing, setSharing] = useState(false);
   const { coach, writing: writingCoach } = useCoach(session.token, d.coach);
   const [discussing, setDiscussing] = useState(false);
@@ -199,20 +201,24 @@ export function DebriefView({
   const majors = d.missed.filter((m) => m.severity === "major").length;
   const hasImages = d.severityBands.some((b) => b.media);
 
-  const sections: { title: string; summary: string; body: ReactNode; open?: boolean }[] = [
-    { title: "Diagnosis", summary: "History → examination → investigation → diagnosis", body: <DiagnosisSection d={d} />, open: true },
-    { title: "What you did well", summary: d.didWell.length ? `${d.didWell.length} strengths` : "—", body: d.didWell.length ? <Bullets items={d.didWell} marker="check" /> : <p className="text-[14px] text-fg-2">Little went to plan this time — the sections below show how to approach it next time.</p> },
-    { title: "What you missed", summary: d.missed.length ? `${d.missed.length} item${d.missed.length === 1 ? "" : "s"}${majors ? ` · ${majors} major` : ""}` : "Nothing significant", body: <MissesSection d={d} />, open: d.missed.length > 0 },
-    ...(d.auscultation?.length ? [{ title: "Auscultation", summary: `What the stethoscope picked up · ${d.auscultation.filter((a) => a.listened).length} of ${d.auscultation.length} listened to`, body: <AuscultationSection d={d} /> }] : []),
-    { title: "Disease decision tree", summary: `${d.severityBands.length} severity bands · treatment failure pathway`, body: <DecisionTreeSection d={d} /> },
-    ...(hasImages ? [{ title: "Severity comparison", summary: "Clinical images by severity", body: <SeveritySection d={d} /> }] : []),
-    { title: "Treatment", summary: d.routines.length ? `Plan and ${d.routines.length} practical routine${d.routines.length === 1 ? "" : "s"}` : "The plan for this patient", body: <TreatmentSection d={d} /> },
-    { title: "Drugs", summary: [...new Set(d.drugs.map((x) => x.generic.split(" (")[0]!.trim()))].join(" · ") || "—", body: <DrugsSection d={d} /> },
-    { title: "Investigations", summary: `What to order, when, and what it costs`, body: <InvestigationsSection d={d} /> },
-    { title: "Rescue opportunities", summary: d.rescue.occurred ? `${d.rescue.episodes.length} deterioration${d.rescue.episodes.length === 1 ? "" : "s"}` : "No deterioration", body: <RescueSection d={d} /> },
-    { title: "Follow-up", summary: d.followUp.interval, body: <FollowUpSection d={d} /> },
-    { title: "Clinical pearl", summary: "One thing to remember", body: <blockquote className="border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-pretty">{d.pearl}</blockquote> },
+  type Tab = "happened" | "treat" | "practise" | "more";
+  const sections: { tab: Tab; title: string; summary: string; body: ReactNode; open?: boolean }[] = [
+    { tab: "happened", title: "Diagnosis", summary: "History → examination → investigation → diagnosis", body: <DiagnosisSection d={d} />, open: true },
+    { tab: "happened", title: "What you did well", summary: d.didWell.length ? `${d.didWell.length} strengths` : "—", body: d.didWell.length ? <Bullets items={d.didWell} marker="check" /> : <p className="text-[14px] text-fg-2">Little went to plan this time — How to treat shows the approach for next time.</p> },
+    { tab: "happened", title: "What you missed", summary: d.missed.length ? `${d.missed.length} item${d.missed.length === 1 ? "" : "s"}${majors ? ` · ${majors} major` : ""}` : "Nothing significant", body: <MissesSection d={d} />, open: d.missed.length > 0 },
+    { tab: "happened", title: "Score breakdown", summary: `${d.score.total}/100 · ${d.score.penalties.length} penalt${d.score.penalties.length === 1 ? "y" : "ies"}`, body: <ScoreBreakdown score={d.score} /> },
+    { tab: "happened", title: "Your encounter", summary: `${state.timeline.length} events`, body: <Timeline events={state.timeline} /> },
+    { tab: "treat", title: "Treatment", summary: "The plan for this patient, with its source", body: <TreatmentSection d={d} />, open: true },
+    { tab: "treat", title: "Drugs", summary: [...new Set(d.drugs.map((x) => x.generic.split(" (")[0]!.trim()))].join(" · ") || "—", body: <DrugsSection d={d} /> },
+    { tab: "treat", title: "Investigations", summary: `What to order, when, and what it costs`, body: <InvestigationsSection d={d} /> },
+    { tab: "treat", title: "Follow-up", summary: d.followUp.interval, body: <FollowUpSection d={d} /> },
+    { tab: "treat", title: "Disease decision tree", summary: `${d.severityBands.length} severity bands · if treatment fails`, body: <DecisionTreeSection d={d} /> },
+    ...(d.auscultation?.length ? [{ tab: "more" as Tab, title: "Auscultation", summary: `${d.auscultation.filter((a) => a.listened).length} of ${d.auscultation.length} listened to`, body: <AuscultationSection d={d} /> }] : []),
+    ...(hasImages ? [{ tab: "more" as Tab, title: "Severity comparison", summary: "Clinical images by severity", body: <SeveritySection d={d} /> }] : []),
+    { tab: "more", title: "Rescue opportunities", summary: d.rescue.occurred ? `${d.rescue.episodes.length} deterioration${d.rescue.episodes.length === 1 ? "" : "s"}` : "No deterioration", body: <RescueSection d={d} /> },
   ];
+  // The three things to take away: the biggest misses first.
+  const takeaways = [...d.missed].sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]).slice(0, 3);
 
   return (
     <div className="min-h-dvh animate-fade">
@@ -235,21 +241,30 @@ export function DebriefView({
             </div>
             <div className="flex flex-col items-start gap-3 lg:items-center">
               <ScoreRing score={d.score.total} />
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-3">
-                  <Icon name="share-ios" size={15} /> Share result
-                </button>
-                <button type="button" onClick={() => void discuss()} disabled={discussing} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-3 disabled:opacity-60">
-                  <Icon name="chat" size={15} /> {discussing ? "Opening…" : "Discuss this case"}
-                </button>
-              </div>
             </div>
           </div>
         </section>
         <ShareSheet open={sharing} onClose={() => setSharing(false)} target={{ kind: "result", sessionId: state.sessionId }} title="Share your result" />
 
         {state.guided && <DemoDone name={state.patient.name ?? "your patient"} won={won} />}
-        <LostMarks score={d.score} />
+        {/* Three things to take away, and the pearl — the debrief at a glance. */}
+        <section className="card mt-4 p-5 sm:p-6" aria-labelledby="takeaways">
+          <h2 id="takeaways" className="text-[16px] font-semibold">{takeaways.length ? `${takeaways.length === 1 ? "One thing" : `${takeaways.length} things`} to take away` : "Well managed — one thing to remember"}</h2>
+          {takeaways.length > 0 && (
+            <ol className="mt-3 flex flex-col gap-3">
+              {takeaways.map((m, i) => (
+                <li key={m.what} className="flex gap-3">
+                  <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white", m.severity === "major" ? "bg-danger" : m.severity === "moderate" ? "bg-warning" : "bg-fg-3")}>{i + 1}</span>
+                  <span className="min-w-0 text-[14.5px] leading-6">
+                    <span className="font-semibold">{m.what}</span>
+                    {m.better && <span className="block text-fg-2">→ {m.better}</span>}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+          <blockquote className="mt-4 border-l-2 border-accent pl-4 text-[15px] leading-7 text-pretty">💡 {d.pearl}</blockquote>
+        </section>
         {coach ? (
           <CoachFeedback coach={coach} />
         ) : (
@@ -280,81 +295,60 @@ export function DebriefView({
           </p>
         </div>
 
-        {/* Score breakdown -------------------------------------------------- */}
-        <section className="mt-4 animate-rise [animation-delay:180ms]">
-          <div className="card">
-            <button
-              type="button"
-              onClick={() => setShowScore((s) => !s)}
-              aria-expanded={showScore}
-              className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] px-5 py-4 text-left transition-colors hover:bg-surface-2 sm:px-6"
-            >
-              <span className="flex items-baseline gap-3">
-                <span className="text-[15px] font-medium">Score breakdown</span>
-                <span className="text-[12.5px] text-fg-2 tabular">
-                  {d.score.total}/100 · {d.score.penalties.length} penalt{d.score.penalties.length === 1 ? "y" : "ies"} · {d.score.bonuses.length} bonus{d.score.bonuses.length === 1 ? "" : "es"}
-                </span>
-              </span>
-              <Icon name="chevron-down" className={cn("text-fg-3 transition-transform", showScore && "rotate-180")} />
-            </button>
-            {showScore && (
-              <div className="animate-enter border-t border-line-2 px-5 py-5 sm:px-6">
-                <ScoreBreakdown score={d.score} />
+        {/* The debrief, in four tabs ----------------------------------------- */}
+        <section className="mt-8" aria-label="Debrief">
+          <div role="tablist" className="sticky top-14 z-10 -mx-1 flex gap-1 overflow-x-auto rounded-2xl bg-surface-3/80 p-1 backdrop-blur">
+            {([["happened", "What happened"], ["treat", "How to treat"], ["practise", "Practise"], ["more", "More"]] as const).map(([id, label]) => (
+              <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={cn("h-10 flex-1 rounded-xl px-3 text-[13.5px] font-semibold whitespace-nowrap transition-colors", tab === id ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-col gap-2.5">
+            {sections
+              .filter((x) => x.tab === tab)
+              .map((x, i) => (
+                <Section key={x.title} n={i + 1} title={x.title} summary={x.summary} defaultOpen={x.open}>
+                  {x.body}
+                </Section>
+              ))}
+            {tab === "practise" && (
+              <>
+                <LearnSection token={session.token} />
+                <DiseaseSection token={session.token} />
+                {!state.guided && (
+                  <Link href={`/exams/${EXAM_FOR[state.country ?? "IN"]}?subject=${encodeURIComponent(SUBJECT_FOR[d.specialty] ?? "Medicine")}`} className="card flex items-center justify-between gap-3 p-4 hover:bg-surface-2">
+                    <span>
+                      <span className="block text-[14.5px] font-semibold">📝 Exam questions on this topic</span>
+                      <span className="block text-[12.5px] text-fg-2">{EXAM_LABEL[state.country ?? "IN"]}-style MCQs in {SUBJECT_FOR[d.specialty] ?? "Medicine"}</span>
+                    </span>
+                    <Icon name="arrow-right" size={16} className="text-fg-3" />
+                  </Link>
+                )}
+                {!state.guided && onRetry && (
+                  <button type="button" onClick={onRetry} disabled={starting} className="h-11 self-center rounded-full border border-line bg-surface px-5 text-[14px] font-semibold hover:bg-surface-2 disabled:opacity-60">
+                    ↻ Retry this patient — try another approach
+                  </button>
+                )}
+              </>
+            )}
+            {tab === "more" && (
+              <div className="flex flex-wrap justify-center gap-2 pt-2">
+                <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line hover:bg-surface-3">
+                  <Icon name="share-ios" size={15} /> Share result
+                </button>
+                <button type="button" onClick={() => void discuss()} disabled={discussing} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold text-fg ring-1 ring-line hover:bg-surface-3 disabled:opacity-60">
+                  <Icon name="chat" size={15} /> {discussing ? "Opening…" : "Discuss this case"}
+                </button>
               </div>
             )}
           </div>
-        </section>
-
-        <DiseaseSection token={session.token} />
-        <LearnSection token={session.token} />
-
-        {/* Debrief ---------------------------------------------------------- */}
-        <section className="mt-10" aria-labelledby="debrief-heading">
-          <div className="mb-4 flex items-baseline justify-between">
-            <h2 id="debrief-heading" className="micro text-fg-2">
-              Debrief
-            </h2>
-            <span className="text-[12px] text-fg-3">How to manage the next patient with this condition</span>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            {sections.map((s, i) => (
-              <Section key={s.title} n={i + 1} title={s.title} summary={s.summary} defaultOpen={s.open}>
-                {s.body}
-              </Section>
-            ))}
-            <div className="card">
-              <Disclosure
-                headerClassName="px-5 py-4 sm:px-6 rounded-[var(--radius-lg)] hover:bg-surface-2 transition-colors"
-                summary={
-                  <span className="flex items-baseline gap-4">
-                    <Icon name="timeline" size={14} className="w-6 shrink-0 text-fg-3" />
-                    <span className="text-[15px] font-medium">Your encounter</span>
-                    <span className="text-[12.5px] text-fg-2">{state.timeline.length} events</span>
-                  </span>
-                }
-              >
-                <div className="border-t border-line-2 px-5 py-5 sm:px-6 sm:pl-[64px]">
-                  <Timeline events={state.timeline} />
-                </div>
-              </Disclosure>
+          {!state.guided && (
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <CaseFeedback />
+              <ReportCase />
             </div>
-            {!state.guided && (
-              <Link href={`/exams/${EXAM_FOR[state.country ?? "IN"]}?subject=${encodeURIComponent(SUBJECT_FOR[d.specialty] ?? "Medicine")}`} className="card mt-4 flex items-center justify-between gap-3 p-4 hover:bg-surface-2">
-                <span>
-                  <span className="block text-[14.5px] font-semibold">📝 Exam questions on this topic</span>
-                  <span className="block text-[12.5px] text-fg-2">{EXAM_LABEL[state.country ?? "IN"]}-style MCQs in {SUBJECT_FOR[d.specialty] ?? "Medicine"}</span>
-                </span>
-                <Icon name="arrow-right" size={16} className="text-fg-3" />
-              </Link>
-            )}
-            {!state.guided && <CaseFeedback className="mt-4" />}
-            {!state.guided && onRetry && (
-              <button type="button" onClick={onRetry} disabled={starting} className="mt-4 h-11 self-center rounded-full border border-line bg-surface px-5 text-[14px] font-semibold hover:bg-surface-2 disabled:opacity-60">
-                ↻ Retry this patient — try another approach
-              </button>
-            )}
-            {!state.guided && <ReportCase className="mt-3 self-center" />}
-          </div>
+          )}
         </section>
       </main>
 

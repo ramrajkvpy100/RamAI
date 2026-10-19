@@ -194,6 +194,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
       const found = findInteractions([...hidden.drugs.map((g) => g.drugId), ...(def.profile.currentDrugs ?? [])], (id) => formularyDrug(id)?.generic ?? id.replace(/^./, (c) => c.toUpperCase()));
       return found.length ? { interactions: found } : {};
     })(),
+    // The case's own guidelines; the condition's or specialty's (and the textbook) are added once the country is known — see withSources.
     ...(def.teaching.sources?.length ? { sources: def.teaching.sources } : {}),
     auscultation: auscultationReview(def, hidden),
   };

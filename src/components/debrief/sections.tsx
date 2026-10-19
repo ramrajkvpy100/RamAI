@@ -295,8 +295,11 @@ function Monograph({ m }: { m: DrugMonograph }) {
 }
 
 export function DrugsSection({ d }: { d: CaseDebrief }) {
+  // Doses come from the national formulary, the specialty's guideline and its textbook — said every time.
+  const doseSources = [d.country === "IN" ? "National Formulary of India (NFI)" : d.country === "UK" ? "BNF / BNFC" : d.country === "WW" ? "WHO Model Formulary" : "Lexicomp / national formulary", ...(d.sources ?? [])];
   return (
     <div className="flex flex-col gap-4">
+      <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12.5px] leading-5 font-medium text-amber-950 dark:bg-amber-400/10 dark:text-amber-100">📚 Doses: {doseSources.join(" · ")}</p>
       {d.interactions?.length ? (
         <div className="rounded-xl border border-danger/40 bg-danger-soft px-4 py-3">
           <div className="text-[11px] font-bold tracking-[0.1em] text-danger uppercase">⚠ Drug interactions in this case</div>

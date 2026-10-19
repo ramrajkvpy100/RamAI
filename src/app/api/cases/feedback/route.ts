@@ -23,7 +23,7 @@ const Schema = z.object({
   caseNumber: z.number().int().min(0).max(1_000_000).optional(),
 });
 
-const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong result or picture", understanding: "Didn't understand me", broken: "Something broke", other: "Other" };
+const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong result or picture", understanding: "Didn't understand me", broken: "Something broke", other: "Report" };
 
 /** POST /api/cases/feedback — "Report this case" (an error in it) or thumbs up/down after the debrief. Kept for the weekly review. */
 export async function POST(req: Request) {

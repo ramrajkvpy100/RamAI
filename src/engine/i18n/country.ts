@@ -10,6 +10,7 @@
  * rupees, so scoring and physiology are identical in every country; only the
  * rendering changes. India passes through untouched.
  */
+import { treatmentSources } from "../references";
 import "server-only";
 
 import type { ClinicalCaseDefinition } from "../case-definition";
@@ -436,7 +437,9 @@ export function presentEffects(effects: TurnEffect[], country: Country): TurnEff
 /** Debrief keys that are ids, enums or the player's own words. */
 const DEBRIEF_FIXED = new Set(["caseRef", "specialty", "track", "level", "verdict", "finalStatus", "priority", "rescued", "category", "route", "severity", "stage", "id", "orderedInvestigationIds", "patientBand", "spec", "src", "userDiagnosis", "country", "coach"]);
 
-export function presentDebrief(debrief: CaseDebrief, country: Country): CaseDebrief {
+export function presentDebrief(raw: CaseDebrief, country: Country): CaseDebrief {
+  // Always sourced, for the country the case was played in: the case's own guidelines, else the condition's or specialty's — and the standard textbook.
+  const debrief = { ...raw, sources: treatmentSources(raw.sources, raw.specialty, country, raw.diagnosis) };
   if (country === "IN" || country === "WW") return { ...debrief, country };
   const fix = (value: unknown): unknown => {
     if (typeof value === "string") return text(value, country);

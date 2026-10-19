@@ -22,7 +22,7 @@ const Schema = z.object({
   screenshot: z.string().max(1_600_000).regex(/^data:image\/(jpeg|png);base64,/).optional(),
 });
 
-const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong answer or picture", understanding: "Unclear question", broken: "Something broke", other: "Other" };
+const CATEGORY: Record<string, string> = { fact: "Wrong medical fact", result: "Wrong answer or picture", understanding: "Unclear question", broken: "Something broke", other: "Report" };
 
 /** POST /api/report — a problem in a Skills Lab drill or an exam question, with a screenshot. The owner is told at once. */
 export async function POST(req: Request) {
