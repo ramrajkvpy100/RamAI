@@ -2,7 +2,6 @@
 
 import { useState, type CSSProperties } from "react";
 
-import { LangToggle } from "@/components/case/lang-toggle";
 import { LEVEL_STYLE, levelGradient, TRACK_ICON } from "@/components/game/level-style";
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
@@ -174,79 +173,59 @@ export function CasePicker({
           </div>
         </Group>
 
-        <Group label="Practise a disease (optional)">
+        <Group label="A disease to practise">
           <input
             value={disease}
             onChange={(e) => setDisease(e.target.value.slice(0, 80))}
-            placeholder="Any — or type one, e.g. Dengue fever"
+            placeholder="Any — or type one, e.g. Dengue"
             className="h-11 w-full rounded-xl border border-line bg-surface px-3.5 text-[14px] outline-none focus:border-accent-line"
             aria-label="Disease to practise"
           />
-          <div className="mt-3 text-[11.5px] font-bold tracking-[0.08em] text-danger uppercase">Can't miss</div>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {CANT_MISS.map((d) => (
-              <button key={d} type="button" aria-pressed={disease === d} onClick={() => setDisease(disease === d ? "" : d)} className={cn("rounded-full border px-3 py-1 text-[12.5px] transition-colors", disease === d ? "border-danger bg-danger-soft text-fg" : "border-danger/40 bg-surface text-fg-2 hover:bg-surface-2")}>
-                {d}
-              </button>
-            ))}
-          </div>
-          <div className="mt-3 text-[11.5px] font-bold tracking-[0.08em] text-fg-3 uppercase">Common</div>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {COMMON_DISEASES.map((d) => (
-              <button
-                key={d}
-                type="button"
-                aria-pressed={disease === d}
-                onClick={() => setDisease(disease === d ? "" : d)}
-                className={cn("rounded-full border px-3 py-1 text-[12.5px] transition-colors", disease === d ? "border-accent-line bg-accent-soft text-fg" : "border-line bg-surface text-fg-2 hover:bg-surface-2")}
-              >
+          <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1">
+            {[...CANT_MISS.slice(0, 4), ...COMMON_DISEASES.slice(0, 4)].map((d) => (
+              <button key={d} type="button" aria-pressed={disease === d} onClick={() => setDisease(disease === d ? "" : d)} className={cn("shrink-0 rounded-full border px-3 py-1 text-[12.5px] whitespace-nowrap transition-colors", disease === d ? "border-accent-line bg-accent-soft text-fg" : "border-line bg-surface text-fg-2 hover:bg-surface-2")}>
                 {d}
               </button>
             ))}
           </div>
         </Group>
 
-        <Group label="Play with someone (optional)">
-          <div className="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={unlimited}
+          onClick={() => setUnlimited((u) => !u)}
+          className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3 text-left"
+        >
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold">🏥 All resources</span>
+            <span className="block text-[12px] text-fg-2">Any test, at any level</span>
+          </span>
+          <span className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", unlimited ? "bg-accent" : "bg-surface-3")}>
+            <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all", unlimited ? "left-[22px]" : "left-0.5")} />
+          </span>
+        </button>
+
+        <Group label="Play with someone">
+          <div className="grid grid-cols-3 gap-1.5">
             {([
-              ["invite", "👥", "Invite a friend"],
-              ["find", "🔎", "Find an opponent"],
-              ["computer", "🤖", "Play the computer"],
+              ["invite", "👥", "A friend"],
+              ["find", "🔎", "Anyone"],
+              ["computer", "🤖", "Computer"],
             ] as const).map(([id, icon, label]) => (
               <button
                 key={id}
                 type="button"
                 disabled={starting}
                 onClick={() => onStart({ track, level, specialty: specialty ?? "any", duel: id, ...(unlimited ? { unlimited: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })}
-                className="flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-line bg-surface px-2 py-2 text-center text-[12.5px] font-medium text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-60"
+                className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface text-[13px] font-medium text-fg-2 hover:bg-surface-2 hover:text-fg disabled:opacity-60"
               >
-                <span className="text-[20px]" aria-hidden>{icon}</span>
+                <span aria-hidden>{icon}</span>
                 {label}
               </button>
             ))}
           </div>
-          <p className="mt-1.5 text-[11.5px] text-fg-3">Same patient, two doctors — the higher score wins.</p>
         </Group>
-
-        <Group label="Resources">
-          <button
-            type="button"
-            aria-pressed={unlimited}
-            onClick={() => setUnlimited((u) => !u)}
-            className={cn("flex min-h-[56px] items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors", unlimited ? "border-accent-line bg-accent-soft" : "border-line bg-surface hover:bg-surface-2")}
-          >
-            <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[12px]", unlimited ? "border-accent bg-accent text-white" : "border-line")}>{unlimited ? "✓" : ""}</span>
-            <span className="min-w-0">
-              <span className="block text-[13.5px] font-semibold">All resources 🏥</span>
-              <span className="block text-[11.5px] text-fg-2">Order any test, do anything — whatever the level.</span>
-            </span>
-          </button>
-        </Group>
-
-        <Group label="Patients and families speak">
-          <LangToggle className="self-start" />
-        </Group>
-
           </>
         )}
       </div>
