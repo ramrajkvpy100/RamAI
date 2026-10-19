@@ -1,7 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { ACCESS_COOKIE, inviteOnly, validAccessCookie } from "@/lib/server/access-cookie";
 import { authCookieOptions, hasAuthCookie, supabaseConfig } from "@/lib/server/supabase-env";
+
+/** Pages anyone may open: the invite page, signing in, the legal pages and shared result cards. */
+const OPEN_PATHS = /^\/(invite|login|signup|verify-email|forgot-password|reset-password|auth|privacy|terms|disclaimer|refund-policy|shipping-policy|contact|about|s|models|radiology\/[^/]+\/)(\/|$|\?)|^\/(radiology\/.+\.(jpg|png)|.*\.(png|jpg|svg|webmanifest|txt|xml|ico))$/;
 
 /**
  * Keeps a Supabase session alive: its access token lasts an hour, so an
@@ -57,6 +61,14 @@ export async function proxy(request: NextRequest) {
     "frame-ancestors 'none'",
     ...(https ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
+
+  // Invite-only: a visitor with neither an invite pass nor a signed-in session sees the invite page.
+  if (inviteOnly() && !OPEN_PATHS.test(request.nextUrl.pathname) && !hasAuthCookie(request.cookies.getAll().map((c) => c.name)) && !(await validAccessCookie(request.cookies.get(ACCESS_COOKIE)?.value))) {
+    const to = request.nextUrl.clone();
+    to.pathname = "/invite";
+    to.search = request.nextUrl.pathname === "/" ? "" : `?next=${encodeURIComponent(request.nextUrl.pathname)}`;
+    return NextResponse.redirect(to);
+  }
 
   // First, so the refreshed cookies are in the headers passed on to the page.
   const session = await refreshSession(request).catch((err) => {

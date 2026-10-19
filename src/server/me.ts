@@ -28,6 +28,19 @@ export async function meFor(user: User): Promise<Me> {
  * to the database (every page load needs it, so every trip saved counts).
  */
 export async function getMe(): Promise<Me | null> {
+  const me = await getMeUnchecked();
+  // Invite-only: a signed-in account nobody invited is sent to enter a code.
+  if (me) {
+    const { accessCookieValue, userAllowed } = await import("./access");
+    if (!(await userAllowed(me.user as unknown as User, await accessCookieValue()))) {
+      const { redirect } = await import("next/navigation");
+      redirect("/invite?need=1");
+    }
+  }
+  return me;
+}
+
+async function getMeUnchecked(): Promise<Me | null> {
   const who = await identityQuery();
   if (!who) return null;
   const [users, results, today] = await db.readMany([

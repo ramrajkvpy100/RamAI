@@ -125,6 +125,11 @@ export function UserMenu({ me }: { me: Me }) {
             <Icon name="pulse" size={15} className="text-fg-2" /> Your specialty
             <span className="ml-auto max-w-[140px] truncate text-[12.5px] text-fg-2">{me.user.specialty ? specialtyLabel(me.user.specialty).replace(" — every specialty", "") : "Not set"}</span>
           </button>
+          {([["/exams", "file", "Exam MCQs"], ["/community", "users", "Community"], ["/leaderboard", "trophy", "Leaderboard"]] as const).map(([href, icon, label]) => (
+            <Link key={href} role="menuitem" href={href} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
+              <Icon name={icon} size={15} className="text-fg-2" /> {label}
+            </Link>
+          ))}
           <Link role="menuitem" href="/achievements" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
             <Icon name="award" size={15} className="text-fg-2" /> Achievements
             <span className="ml-auto text-[12.5px] text-fg-2 tabular">{me.progress.badges.length}</span>
@@ -143,6 +148,11 @@ export function UserMenu({ me }: { me: Me }) {
             <Link role="menuitem" href="/admin/suggestions" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium hover:bg-surface-3">
               <Icon name="shield" size={15} className="text-accent-text" /> Admin · Suggestions
               {!!me.newSuggestions && <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white tabular">{me.newSuggestions} new</span>}
+            </Link>
+          )}
+          {me.admin && (
+            <Link role="menuitem" href="/admin/access" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium hover:bg-surface-3">
+              <Icon name="key" size={15} className="text-accent-text" /> Admin · Invites
             </Link>
           )}
           {me.admin && (

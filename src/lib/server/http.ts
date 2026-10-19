@@ -46,7 +46,7 @@ export async function parseBody<S extends z.ZodType>(req: Request, schema: S): P
 /** Maps engine errors to safe responses; logs everything else server-side only. */
 export function handleError(err: unknown) {
   if (err instanceof AuthError) {
-    return apiError(err.code === "UNAUTHENTICATED" ? 401 : err.code === "EXISTS" ? 409 : 401, err.code, err.message);
+    return apiError(err.code === "UNAUTHENTICATED" ? 401 : err.code === "EXISTS" ? 409 : err.code === "INVITE" ? 403 : 401, err.code, err.message);
   }
   if (err instanceof EngineError) {
     const status = err.code === "BAD_SESSION" ? 410 : err.code === "CASE_CLOSED" || err.code === "NOT_CLOSED" ? 409 : err.code === "LIMIT" ? 429 : err.code === "NO_CASES" ? 404 : 400;

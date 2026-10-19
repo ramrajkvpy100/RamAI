@@ -13,13 +13,12 @@ import { ExamMenu } from "./exam-menu";
 import { InstallButton } from "./install-button";
 import { UserMenu } from "./user-menu";
 
+/** Kept to four: the rest (exams, community, leaderboard) is in the profile menu. */
 const NAV = [
-  { href: "/", label: "Home" },
-  { href: "/practice", label: "Practice" },
+  { href: "/", label: "Cases" },
   { href: "/radiology", label: "Radiology" },
+  { href: "/practice", label: "Practice" },
   { href: "/progress", label: "Progress" },
-  { href: "/community", label: "Community" },
-  { href: "/leaderboard", label: "Leaderboard" },
 ];
 
 export function AppHeader({ initial }: { initial: Me }) {

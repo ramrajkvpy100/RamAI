@@ -302,6 +302,25 @@ CREATE TABLE IF NOT EXISTS study_group_members (
   PRIMARY KEY (code, user_id)
 );
 
+-- Invite-only access: codes to hand out, emails allowed in, and accounts let in.
+CREATE TABLE IF NOT EXISTS access_codes (
+  code TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  max_uses INTEGER NOT NULL,
+  uses INTEGER NOT NULL DEFAULT 0,
+  revoked INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS access_emails (
+  email TEXT PRIMARY KEY,
+  added_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS access_users (
+  user_id TEXT PRIMARY KEY,
+  via TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+
 -- Two doctors, one patient: the case is shared, the scores compared.
 CREATE TABLE IF NOT EXISTS duels (
   id TEXT PRIMARY KEY,
@@ -627,7 +646,7 @@ function backend(): Promise<Backend> {
  * database already at this version (or newer) skips the setup: one quick read
  * instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 27;
+const SCHEMA_VERSION = 28;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();

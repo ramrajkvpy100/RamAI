@@ -1,3 +1,7 @@
+import { cookies } from "next/headers";
+
+import { ACCESS_COOKIE, inviteOnly, validAccessCookie } from "@/lib/server/access-cookie";
+import { db } from "@/server/db";
 import { appUrl } from "@/server/app-url";
 import { currentGuest, endGuestSession, identityOf, linkProfile, signupProblem } from "@/server/auth";
 import { authFailure } from "@/server/auth-errors";
@@ -22,6 +26,10 @@ export async function POST(req: Request) {
   const { name, username, email, password, country } = parsed.data;
   const weak = passwordProblem(password, parsed.data);
   if (weak) return apiError(400, "BAD_INPUT", weak);
+  // Invite-only: a new account needs an invite code (redeemed on this browser) or an invited email.
+  if (inviteOnly() && !(await validAccessCookie((await cookies()).get(ACCESS_COOKIE)?.value)) && !(await db.get("SELECT 1 AS ok FROM access_emails WHERE email = ?", email.trim().toLowerCase()))) {
+    return apiError(403, "INVITE", "RamAI is invite-only — enter your invite code first.");
+  }
   try {
     if (await overLimit(`signup:${clientIp(req)}`, 10, 3_600_000)) return apiError(429, "RATE_LIMITED", "Too many sign-ups from this network. Please try again in an hour.");
     const problem = await signupProblem(email, username);

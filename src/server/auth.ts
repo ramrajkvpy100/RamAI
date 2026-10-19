@@ -88,7 +88,7 @@ function toUser(r: UserRow): User {
 }
 
 export class AuthError extends Error {
-  constructor(public readonly code: "EXISTS" | "INVALID" | "UNAUTHENTICATED", message: string) {
+  constructor(public readonly code: "EXISTS" | "INVALID" | "UNAUTHENTICATED" | "INVITE", message: string) {
     super(message);
     this.name = "AuthError";
   }
@@ -415,6 +415,9 @@ export const userFromRow = (row: Record<string, unknown>): User => toUser(row as
 export async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) throw new AuthError("UNAUTHENTICATED", "Please log in.");
+  // Invite-only: an account nobody invited can't play.
+  const { accessCookieValue, userAllowed } = await import("./access");
+  if (!(await userAllowed(user, await accessCookieValue()))) throw new AuthError("INVITE", "RamAI is invite-only — enter your invite code to join.");
   return user;
 }
 

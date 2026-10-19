@@ -91,8 +91,19 @@ describe("consent and data rights", () => {
   });
 });
 
+describe("invite-only", () => {
+  it("a visitor without an invite pass or a session is sent to the invite page; the invite page itself is open", async () => {
+    delete process.env.RAMAI_INVITE_ONLY;
+    const res = await proxy(new NextRequest("https://ram-ai.example/case"));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/invite");
+    expect((await proxy(new NextRequest("https://ram-ai.example/invite"))).status).toBe(200);
+  });
+});
+
 describe("content security policy", () => {
   it("gives every page a fresh nonce and locks scripts, framing and plugins down", async () => {
+    process.env.RAMAI_INVITE_ONLY = "0";
     const a = (await proxy(new NextRequest("https://ram-ai.example/case"))).headers.get("content-security-policy")!;
     const b = (await proxy(new NextRequest("https://ram-ai.example/case"))).headers.get("content-security-policy")!;
     const nonce = (csp: string) => csp.match(/'nonce-([^']+)'/)?.[1];

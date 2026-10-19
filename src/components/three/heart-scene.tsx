@@ -73,7 +73,9 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
       await new Promise<void>((resolve) => {
         const idle = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
         const go = () => (idle ? idle(() => resolve(), { timeout: 2000 }) : window.setTimeout(resolve, 300));
-        if (phone) {
+        // Phones never load the 3D organ at all (a soft glow stands in): it was the slowest thing on the page.
+        if (phone) return resolve();
+        if (false as boolean) {
           const events = ["pointerdown", "touchstart", "scroll", "keydown", "wheel"] as const;
           const once = () => {
             events.forEach((e) => window.removeEventListener(e, once));
@@ -86,7 +88,10 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
         if (document.readyState === "complete") go();
         else window.addEventListener("load", go, { once: true });
       });
-      if (disposed) return;
+      if (disposed || phone) {
+        if (phone) setFallback(true);
+        return;
+      }
       // The detailed model for large screens; a lighter one for phones and small cards.
       const detailed = density === "hero" && Math.max(window.innerWidth, window.innerHeight) >= 900;
       const [THREE, { loadHeart }, { studioScene, wetTissue }] = await Promise.all([import("three"), import("./heart-asset"), import("./heart-material")]);
