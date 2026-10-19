@@ -46,18 +46,19 @@ export function CaseTopBar({
         <Link href="/" aria-label="RamAI — home" className="shrink-0 rounded-lg">
           <LogoTile size={28} />
         </Link>
-        <div className="flex min-w-0 flex-col leading-tight">
-          <span className="truncate text-[13px] font-semibold tracking-[0.02em] tabular">
-            {caseLabel(state.caseNumber)}
-            {/* Who the patient is, always in view: age, sex and what they came with. */}
-            <span className="ml-1.5 font-medium text-fg-2">· {state.patient.age}{state.patient.sex === "Male" ? " M" : state.patient.sex === "Female" ? " F" : ""}</span>
+        {/* Who the patient is and why they came — large enough to read at a glance. (The case number is in the tooltip.) */}
+        <div className="flex min-w-0 flex-1 flex-col leading-tight" title={`${caseLabel(state.caseNumber)} · ${trackLabel(state.track, state.country)} · ${levelMeta(state.level, state.country).short}`}>
+          <span className="line-clamp-2 text-[14px] font-semibold text-fg sm:text-[15px]">
+            <span className="text-accent-text">{state.patient.age}{state.patient.sex === "Male" ? " M" : state.patient.sex === "Female" ? " F" : ""}</span>
+            {" · "}
+            {complaintOf(state) || trackLabel(state.track, state.country)}
           </span>
-          <span className="truncate text-[11.5px] text-fg-2" title={complaintOf(state)}>
-            {complaintOf(state) || `${trackLabel(state.track, state.country)} · ${levelMeta(state.level, state.country).short}`}
+          <span className="truncate text-[11.5px] text-fg-3">
+            {trackLabel(state.track, state.country)} · {levelMeta(state.level, state.country).short}
           </span>
         </div>
 
-        <div className="ml-auto flex min-w-0 items-center gap-2 text-[12.5px] sm:mx-auto">
+        <div className="flex shrink-0 items-center gap-2 text-[12.5px]">
           {complete && (
             <>
               <span className="font-medium text-fg">Complete</span>
@@ -151,8 +152,19 @@ function VoiceButton({ on, toggle }: { on: boolean; toggle: () => void }) {
 
 /** What the patient came with: the first thing they (or their family, or the caller) said, briefly. */
 function complaintOf(state: CaseState): string {
-  const clean = (t: string) => t.replace(/\s*\p{Extended_Pictographic}/gu, "").replace(/^(namaste|hello|good (morning|evening|afternoon))[,.!]?\s*(doctor)?[,.!]?\s*/i, "").trim();
+  const clean = (t: string) => t.replace(/\s*\p{Extended_Pictographic}/gu, "").replace(/^(namaste|hello|hi|good (morning|evening|afternoon))[,.!]?\s*(doctor)?[,.!]?\s*/i, "").trim();
   const said = state.messages.filter((m) => (m.role === "patient" || m.role === "attendant") && m.kind === "speech").map((m) => clean(m.text));
-  const text = said.find((t) => t.length > 12) ?? "";
-  return text.length > 70 ? `${text.slice(0, 68).trimEnd()}…` : text;
+  const first = said.find((t) => t.length > 12) ?? "";
+  // The sentence with the symptom, not the introduction ("This is my daughter Anaya.").
+  const sentences = first.split(/(?<=[.!?])\s+/);
+  const SYMPTOM = /\b(had|have|has|having|since|pain|ache|hurt|fever|cough|vomit|bleed|swell|breath|rash|itch|weak|dizz|faint|fit|seiz|burn|loose|diarr|injur|fell|bite|lump|discharge)/i;
+  let text = sentences.find((x) => SYMPTOM.test(x)) ?? sentences[0] ?? "";
+  // "She's had a fever for three days" → "Fever for three days".
+  text = text
+    .replace(/^doctor[,!]?\s*/i, "")
+    .replace(/^(?:i|she|he|they|my \w+|the baby|baby)(?:'ve|'s| have| has| had)\s+(?:been\s+)?(?:(?:had|having|got|getting)\s+)?(?:a |an |some )?/i, "")
+    .replace(/[.!]+$/, "")
+    .trim();
+  if (text) text = text[0]!.toUpperCase() + text.slice(1);
+  return text.length > 80 ? `${text.slice(0, 78).trimEnd()}…` : text;
 }

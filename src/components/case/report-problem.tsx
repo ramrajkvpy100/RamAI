@@ -20,6 +20,31 @@ async function screenshot(): Promise<string | undefined> {
   try {
     const { domToCanvas } = await import("modern-screenshot");
     const scale = Math.min(1.5, 1100 / Math.max(1, window.innerWidth));
+    // Scrolled boxes (the chat) are drawn from their top by the library: shift their content so the
+    // part on screen is what's drawn, then put everything back.
+    const shifted: { el: HTMLElement; top: number; left: number; prev: string[] }[] = [];
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("body *"))) {
+      if ((el.scrollTop > 0 || el.scrollLeft > 0) && el.firstElementChild instanceof HTMLElement) {
+        const child = el.firstElementChild;
+        shifted.push({ el, top: el.scrollTop, left: el.scrollLeft, prev: [child.style.transform, el.style.overflow] });
+      }
+    }
+    for (const x of shifted) {
+      const child = x.el.firstElementChild as HTMLElement;
+      x.el.style.overflow = "hidden";
+      x.el.scrollTop = 0;
+      x.el.scrollLeft = 0;
+      child.style.transform = `translate(${-x.left}px, ${-x.top}px)`;
+    }
+    const restore = () => {
+      for (const x of shifted) {
+        const child = x.el.firstElementChild as HTMLElement;
+        child.style.transform = x.prev[0]!;
+        x.el.style.overflow = x.prev[1]!;
+        x.el.scrollTop = x.top;
+        x.el.scrollLeft = x.left;
+      }
+    };
     const page = await Promise.race([
       domToCanvas(document.body, {
         scale,
@@ -30,7 +55,7 @@ async function screenshot(): Promise<string | undefined> {
         timeout: 6000,
       }),
       new Promise<null>((r) => setTimeout(() => r(null), 8000)),
-    ]);
+    ]).finally(restore);
     if (!page) return undefined;
     // Just what was on screen.
     const out = document.createElement("canvas");
