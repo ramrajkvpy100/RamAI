@@ -293,13 +293,19 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
       const word = tk[i]!;
       if (word.length < 6) continue;
       let best: { drug: (typeof FORMULARY)[number]; phrase: string; d: number } | null = null;
+      // Every other drug nearly as close — if there is one, the spelling is ambiguous and nothing is guessed.
+      let rival = false;
       for (const drug of FORMULARY)
         for (const phrase of drugMatchPhrases(drug)) {
           if (phrase.includes(" ") || phrase.length < 6 || phrase[0] !== word[0]) continue;
           const d = editDistance(word, phrase);
-          if (d <= (phrase.length >= 9 ? 2 : 1) && (!best || d < best.d)) best = { drug, phrase, d };
+          if (d > (phrase.length >= 9 ? 2 : 1) + 1) continue;
+          if (!best || d < best.d) {
+            if (best && best.drug.id !== drug.id && best.d <= d + 1) rival = true;
+            best = d <= (phrase.length >= 9 ? 2 : 1) ? { drug, phrase, d } : best;
+          } else if (best.drug.id !== drug.id && d <= best.d + 1) rival = true;
         }
-      if (best) hits.push({ drug: best.drug, hit: { phrase: best.phrase, start: i, end: i + 1 } });
+      if (best && !rival) hits.push({ drug: best.drug, hit: { phrase: best.phrase, start: i, end: i + 1 } });
     }
   }
   hits.sort((a, b) => b.hit.end - b.hit.start - (a.hit.end - a.hit.start) || a.hit.start - b.hit.start);

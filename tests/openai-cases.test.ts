@@ -49,13 +49,15 @@ const TEACHING = {
   strengths: { cc: "Opened well." },
 };
 
-function fakeOpenAI(opts: { brokenOutline?: boolean } = {}) {
+function fakeOpenAI(opts: { brokenOutline?: boolean; rejectCase?: boolean } = {}) {
   const prompts: string[] = [];
   vi.stubGlobal("fetch", vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body ?? "{}")) as { messages: { content: string }[] };
     const text = body.messages.map((m) => m.content).join("\n");
     prompts.push(text);
-    const answer = text.includes("Outline one case")
+    const answer = text.includes("checking a simulated clinical case")
+      ? (opts.rejectCase ? { verdict: "reject", problems: ["Chest X-ray says left lower lobe but crackles are on the right"] } : { verdict: "ok", problems: [] })
+      : text.includes("Outline one case")
       ? (opts.brokenOutline ? { nonsense: true } : OUTLINE)
       : text.includes("Write what the patient and family say")
         ? DIALOGUE
@@ -123,5 +125,21 @@ describe("AI-invented patients", () => {
     const start = await simulateCase({ userId: "gen-3", caseNumber: 1 });
     expect(sessionInfo(start.token).generated).toBe(false);
     expect(start.state.patient.age).toBeGreaterThan(0);
+  });
+
+  it("a case the senior review finds wrong is never used — a written case stands in", async () => {
+    fakeOpenAI({ rejectCase: true });
+    const start = await simulateCase({ userId: "gen-4", caseNumber: 5 });
+    expect(sessionInfo(start.token).generated).toBe(false);
+  });
+});
+
+import { sanityProblems } from "@/engine/providers/openai";
+describe("sanity checks on invented cases", () => {
+  it("catches impossible patients and vitals", () => {
+    expect(sanityProblems({ patient: { age: 30, sex: "Male" }, diagnosis: "Ectopic pregnancy" }, {})).not.toHaveLength(0);
+    expect(sanityProblems({ patient: { age: 0, sex: "Female" }, diagnosis: "Bronchiolitis" }, { hr: "62" })).not.toHaveLength(0);
+    expect(sanityProblems({ patient: { age: 40, sex: "Female" }, diagnosis: "Dengue fever" }, { bp: "70/90" })).not.toHaveLength(0);
+    expect(sanityProblems({ patient: { age: 42, sex: "Female" }, diagnosis: "Dengue fever" }, { hr: "94", bp: "116/74", temp: "101.3 °F", spo2: "98" })).toEqual([]);
   });
 });

@@ -165,7 +165,8 @@ Use kind "results" when the doctor asks about the results of tests already sent.
 Read the doctor's words in the context of the conversation — a follow-up is about the order just given: "same again", "another", "double it" is a new order (kind "drug", same targetId, with the payload); "stop it" is kind "action", targetId "measure:stop-drug" (or "measure:stop-fluids" for a drip); a new rate or timing ("in 2 seconds", "faster") for something already given is kind "unknown", and the nurse answers in the room's words — for a bolus that has already gone in, that it has; for a drip still running, that it's been sped up.
 Orders are carried out exactly as given, however unusual, excessive or unsafe — the simulation plays out the consequences. Never refuse, soften or correct an order: map it to the matching id with the dose, route and rate exactly as said, in "payload": {"mode":"given"|"prescribed","route":"IV|IM|PO|SC|SL|NEB|INH|PR|TOP|IN","amount":<number>,"unit":"mg|mcg|g|units|mL|L|mmol","volumeMl":<for fluids>,"overMin":<minutes it is given over, if said>,"frequency"?,"duration"?}. Put in the payload ONLY what the doctor said — never fill in a usual dose, route, rate, frequency or duration: the ward asks for whatever is missing. For imaging, put the part, view and contrast the doctor said in "payload": {"region"?: "chest|abdomen|pelvis|kub|head|neck|knee|…","view"?: "PA|AP|lateral|erect|supine","contrast"?: "plain|contrast"}; an X-ray, CT, ultrasound or MRI with no part named uses targetId "xray", "ct", "usg" or "mri".
 If the nurse has just asked about an order's missing details and the doctor answers them, return that same order (same kind and targetId) with the details in its payload.
-Map to existing ids whenever the meaning matches — the game answers those itself.${def.unlimited ? `
+Map to existing ids whenever the meaning matches — the game answers those itself.
+Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${def.unlimited ? `
 This hospital has every resource: any test can be done. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
 For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}.
 Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
@@ -264,22 +265,76 @@ const REVIEW_TIMEOUT_MS = 25_000;
 const CASE_DEADLINE_MS = 54_000;
 
 /**
- * A consultant's look at one part: its corrections applied — or, if the review
- * can't be had in time, the part as it was (the case still starts).
+ * A consultant's look at one part, its corrections applied. Accuracy comes first: a part that
+ * couldn't be reviewed in time is never shown — the case is dropped (a written, checked case
+ * stands in) rather than served unchecked.
  */
 async function reviewPart<T>(name: string, part: T, prompt: ChatMessage[], maxTokens: number, apply: (part: T, raw: unknown) => { part: T; fixes: string[] }, timeLeft: number): Promise<T> {
-  if (timeLeft < 6_000) {
-    console.warn(`[ramai] no time left to review the ${name}`);
-    return part;
-  }
+  if (timeLeft < 6_000) throw new UpstreamError(`no time left to review the ${name}`);
   try {
     const { part: fixed, fixes } = apply(part, await chatJSON(prompt, maxTokens, true, Math.min(REVIEW_TIMEOUT_MS, timeLeft)));
     if (fixes.length) console.info(`[ramai] consultant review — ${name}: ${fixes.length} correction${fixes.length === 1 ? "" : "s"}: ${fixes.join(" | ").slice(0, 800)}`);
     return fixed;
   } catch (err) {
-    console.error(`[ramai] the ${name} went unreviewed:`, err instanceof Error ? err.message : err);
-    return part;
+    throw new UpstreamError(`the ${name} couldn't be reviewed: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/** A number from a vital as written ("116/74", "98.6 °F", "94"). */
+const firstNum = (v: string | undefined) => {
+  const m = v?.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : undefined;
+};
+
+/**
+ * Plain impossibilities, caught in code before anyone sees the case: a diagnosis the patient's
+ * sex can't have, adult numbers on a baby, vitals no living patient shows.
+ */
+export function sanityProblems(concept: { patient: { age: number; sex: string }; diagnosis: string }, vitals: Record<string, string>): string[] {
+  const out: string[] = [];
+  const dx = concept.diagnosis.toLowerCase();
+  const { age, sex } = concept.patient;
+  if (sex === "Male" && /pregnan|ectopic|eclampsia|post-?partum|\bpph\b|abortion|miscarriage|placenta|ovar|uter|endometri|cervi|menstru|vagin|mastitis|puerper/.test(dx)) out.push(`a male patient with "${concept.diagnosis}"`);
+  if (sex === "Female" && /prostat|testic|scrot|hydrocele|varicocele|phimosis|epididym/.test(dx)) out.push(`a female patient with "${concept.diagnosis}"`);
+  if ((age < 12 || age > 55) && /pregnan|ectopic|eclampsia|post-?partum|\bpph\b|abortion|placenta/.test(dx)) out.push(`pregnancy at age ${age}`);
+  if (age < 15 && /\bbph\b|benign prostatic|copd|alzheimer|parkinson|osteoarthritis|myocardial infarction|\bstemi\b/.test(dx)) out.push(`"${concept.diagnosis}" at age ${age}`);
+  const hr = firstNum(vitals.hr);
+  const rr = firstNum(vitals.rr);
+  const spo2 = firstNum(vitals.spo2);
+  const sbp = firstNum(vitals.bp);
+  const dbp = vitals.bp?.match(/\/\s*(\d+)/) ? Number(vitals.bp.match(/\/\s*(\d+)/)![1]) : undefined;
+  const temp = firstNum(vitals.temp);
+  if (hr !== undefined && (hr < 25 || hr > 240)) out.push(`pulse ${hr}`);
+  if (rr !== undefined && (rr < 4 || rr > 90)) out.push(`respiratory rate ${rr}`);
+  if (spo2 !== undefined && (spo2 > 100 || spo2 < 40)) out.push(`SpO2 ${spo2}`);
+  if (sbp !== undefined && (sbp < 40 || sbp > 280)) out.push(`systolic BP ${sbp}`);
+  if (sbp !== undefined && dbp !== undefined && dbp >= sbp) out.push(`BP ${vitals.bp} (diastolic not below systolic)`);
+  if (temp !== undefined && !((temp >= 32 && temp <= 43.5) || (temp >= 89 && temp <= 110))) out.push(`temperature ${vitals.temp}`);
+  // A baby's or a child's numbers, not an adult's.
+  if (age < 1 && hr !== undefined && hr < 80) out.push(`pulse ${hr} in an infant`);
+  if (age < 1 && rr !== undefined && rr < 20) out.push(`respiratory rate ${rr} in an infant`);
+  if (age < 5 && sbp !== undefined && sbp > 150) out.push(`systolic BP ${sbp} in a ${age}-year-old`);
+  if (age >= 14 && hr !== undefined && hr > 200) out.push(`pulse ${hr} in an adult`);
+  return out;
+}
+
+/**
+ * The last look before a case is used: one senior clinician reads the whole case at once —
+ * story, examination, every result and the marking key — and says whether it hangs together.
+ * Parts were each reviewed alone; this catches what only shows across them.
+ */
+function coherencePrompt(def: unknown): ChatMessage[] {
+  return [
+    {
+      role: "system",
+      content:
+        "You are a senior consultant and medical educator checking a simulated clinical case before trainee doctors see it. Clinical accuracy is everything: a single wrong fact teaches a doctor something false. Read the whole case and check that (1) the history, vital signs, examination findings and every investigation result are consistent with each other and with the final diagnosis, for this patient's age and sex; (2) no finding or result contradicts the diagnosis or another finding, and nothing is mislabelled (wrong side, wrong organ, wrong units, wrong normal range, impossible value); (3) the expected management and drug doses follow current standard guidelines for this setting and patient (age, weight, pregnancy, kidney function); (4) the marking key rewards what a good doctor would do and does not penalise correct alternatives. Minor stylistic points do not matter. Reply as JSON only.",
+    },
+    {
+      role: "user",
+      content: `The case:\n${JSON.stringify(def).slice(0, 24_000)}\n\nReturn JSON {"verdict": "ok" | "reject", "problems": ["each clinically wrong or inconsistent point, briefly"]}. Use "reject" if there is ANY clinical error, contradiction, mislabel or unsafe dose that a trainee could learn from; "ok" only when the case is clinically sound.`,
+    },
+  ];
 }
 
 const pickOne = <T>(xs: readonly T[], random = Math.random): T => xs[Math.floor(random() * xs.length)]!;
@@ -805,7 +860,16 @@ export function createOpenAIProvider(): ClinicalProvider {
         if (d.history.length < 4 || f.exam.length < 1 || m.therapeutics.length < 2) {
           throw new UpstreamError(`a part came back too thin (history ${d.history.length}, exam ${f.exam.length}, treatments ${m.therapeutics.length})`);
         }
-        return { kind: "generated", def: toDefinition(concept, d, f, m, brief, opts) };
+        const impossible = sanityProblems(concept, d.baselineVitals);
+        if (impossible.length) throw new UpstreamError(`the case failed its sanity checks: ${impossible.join("; ")}`);
+        const def = toDefinition(concept, d, f, m, brief, opts);
+        // The whole case, read at once by a senior: anything wrong or inconsistent and it isn't used.
+        const verdict = (await chatJSON(coherencePrompt(def), 900, true, Math.max(12_000, Math.min(25_000, left() + 10_000)))) as { verdict?: string; problems?: unknown };
+        if (verdict?.verdict !== "ok") {
+          const problems = Array.isArray(verdict?.problems) ? verdict.problems.map(String).join(" | ").slice(0, 800) : "no verdict";
+          throw new UpstreamError(`the senior review rejected the case: ${problems}`);
+        }
+        return { kind: "generated", def };
       } catch (err) {
         console.error("[ramai] couldn't invent a patient; using a written case", err instanceof Error ? err.message : err);
         return mockProvider.createCase(opts);
