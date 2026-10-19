@@ -1,3 +1,4 @@
+import { db } from "@/server/db";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createProfile, type User } from "@/server/auth";
@@ -44,16 +45,27 @@ describe("duels: two doctors, one patient", () => {
 
 import { creditReferral, creditsLeft, useCredit } from "@/server/credits";
 describe("free Pro cases", () => {
-  it("every account has a 5-case trial; a friend's link gives you both 5 more, once", async () => {
+  it("every account has a 5-case trial; a friend's link gives you both 10 more, once", async () => {
     const neha = await createProfile({ email: "neha@example.com", username: "neha", name: "Neha" });
     expect(await creditsLeft(neha.id)).toBe(5);
     expect(await useCredit(neha.id)).toBe(true);
     await creditReferral(neha.id, "asha");
     await creditReferral(neha.id, "asha");
-    expect(await creditsLeft(neha.id)).toBe(9);
-    expect(await creditsLeft(asha.id)).toBe(10);
+    expect(await creditsLeft(neha.id)).toBe(14);
+    expect(await creditsLeft(asha.id)).toBe(15);
     await creditReferral(asha.id, "asha");
-    expect(await creditsLeft(asha.id)).toBe(10);
+    expect(await creditsLeft(asha.id)).toBe(15);
+  });
+
+  it("the third friend unlocks a month of Pro", async () => {
+    const host = await createProfile({ email: "host@example.com", username: "host", name: "Host" });
+    for (const n of ["f1", "f2", "f3"]) {
+      const f = await createProfile({ email: `${n}@example.com`, username: n, name: n });
+      await creditReferral(f.id, "host");
+    }
+    const row = await db.get<{ plan: string; plan_expires_at: number }>("SELECT plan, plan_expires_at FROM users WHERE id = ?", host.id);
+    expect(row?.plan).toBe("pro");
+    expect(row!.plan_expires_at).toBeGreaterThan(Date.now() + 29 * 86_400_000);
   });
 });
 
