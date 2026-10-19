@@ -46,13 +46,13 @@ export async function proxy(request: NextRequest) {
   const https = request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https";
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://checkout.razorpay.com${dev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://checkout.razorpay.com https://accounts.google.com/gsi/client${dev ? " 'unsafe-eval'" : ""}`,
     // React sets inline style attributes (gradients, animation timing); scripts stay locked down.
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
     "img-src 'self' data: blob: https://cdn.razorpay.com",
     "font-src 'self' data:",
-    `connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com${dev ? " ws: wss:" : ""}`,
-    "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+    `connect-src 'self' https://accounts.google.com/gsi/ https://api.razorpay.com https://lumberjack.razorpay.com${dev ? " ws: wss:" : ""}`,
+    "frame-src https://accounts.google.com/gsi/ https://api.razorpay.com https://checkout.razorpay.com",
     "media-src 'self' blob: data:",
     "worker-src 'self' blob:",
     "object-src 'none'",

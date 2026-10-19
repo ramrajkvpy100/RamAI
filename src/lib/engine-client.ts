@@ -106,6 +106,7 @@ export const signup = (body: { name: string; username: string; email: string; pa
 export const verifyCode = (email: string, code: string) => call<{ user: unknown }>("/api/auth/verify", { email, code });
 /** The code in a confirmation link (Supabase's default email template). */
 export const confirmLink = (code: string) => call<{ user: unknown }>("/api/auth/verify", { code });
+export const googleSignIn = (credential: string, nonce: string) => call<{ user: unknown }>("/api/auth/google/token", { credential, nonce });
 /** After the case: pearls and exam-style questions; marking one answer; the AI's feedback in words. */
 export const fetchLearn = (token: string) => call<{ pack: LearnPack | null }>("/api/cases/learn", { token });
 export const answerMcq = (token: string, q: number, choice: number) => call<{ correct: boolean; answer: number }>("/api/cases/learn/answer", { token, q, choice });

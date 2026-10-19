@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { confirmLink } from "@/lib/engine-client";
+import { confirmLink, googleSignIn } from "@/lib/engine-client";
 import { clearMe } from "@/lib/me-store";
 
 import { AuthFrame, AuthNotice, PRIMARY_LINK } from "./auth-ui";
@@ -47,8 +47,99 @@ export function OAuthCallback({ code, next, failed }: { code: string | null; nex
   );
 }
 
-/** "Continue with Google" — shown only when Google sign-in is switched on in Supabase. */
-export function GoogleButton({ next, label = "Continue with Google" }: { next: string; label?: string }) {
+/** The public OAuth client id (not a secret — Google shows it in every sign-in URL). */
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "758025896647-8rvvrtpi59sa8t3ulh952dhg99ifo983.apps.googleusercontent.com";
+
+interface GoogleId {
+  initialize(options: { client_id: string; nonce: string; callback: (r: { credential?: string }) => void; ux_mode?: "popup"; use_fedcm_for_button?: boolean; itp_support?: boolean }): void;
+  renderButton(el: HTMLElement, options: Record<string, unknown>): void;
+}
+declare global {
+  interface Window { google?: { accounts?: { id?: GoogleId } } }
+}
+
+let gsi: Promise<GoogleId> | null = null;
+function loadGsi(): Promise<GoogleId> {
+  gsi ??= new Promise<GoogleId>((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true;
+    s.onload = () => (window.google?.accounts?.id ? resolve(window.google.accounts.id) : reject(new Error("gsi")));
+    s.onerror = () => reject(new Error("gsi"));
+    document.head.appendChild(s);
+    setTimeout(() => reject(new Error("gsi timeout")), 6000);
+  }).catch((err) => {
+    gsi = null;
+    throw err;
+  });
+  return gsi;
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * "Continue with Google" — Google's own button, so its screen names this site
+ * rather than the Supabase project. If Google's script can't load, the
+ * redirect button below takes over.
+ */
+export function GoogleButton({ next }: { next: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<"loading" | "google" | "fallback" | "working">("loading");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    const raw = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, "0")).join("");
+    Promise.all([loadGsi(), sha256Hex(raw)])
+      .then(([id, hashed]) => {
+        if (!live || !box.current) return;
+        id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          nonce: hashed,
+          ux_mode: "popup",
+          use_fedcm_for_button: true,
+          itp_support: true,
+          callback: ({ credential }) => {
+            if (!credential) return;
+            setMode("working");
+            setError(null);
+            googleSignIn(credential, raw)
+              .then(() => {
+                clearMe();
+                window.location.replace(next);
+              })
+              .catch((err: unknown) => {
+                setMode("google");
+                setError(err instanceof Error ? err.message : "Google sign-in didn't finish. Please try again.");
+              });
+          },
+        });
+        const width = Math.min(400, Math.max(200, Math.round(box.current.parentElement?.clientWidth ?? 320)));
+        id.renderButton(box.current, { type: "standard", theme: "outline", size: "large", shape: "pill", text: "continue_with", logo_alignment: "center", width });
+        setMode("google");
+      })
+      .catch(() => live && setMode("fallback"));
+    return () => {
+      live = false;
+    };
+  }, [next]);
+
+  if (mode === "fallback") return <GoogleRedirectButton next={next} />;
+  return (
+    <div className="flex w-full flex-col items-center">
+      <div ref={box} className={mode === "working" ? "pointer-events-none opacity-50" : ""} style={{ minHeight: 44 }} aria-busy={mode !== "google"} />
+      {mode === "loading" && <div className="-mt-11 h-11 w-full animate-pulse rounded-full border border-line bg-surface-2" aria-hidden />}
+      {mode === "working" && <p className="mt-2 text-[12.5px] text-fg-2">Signing you in…</p>}
+      {error && <p role="alert" className="mt-2 text-center text-[12.5px] text-danger">{error}</p>}
+    </div>
+  );
+}
+
+/** The redirect way (Supabase OAuth) — used only when Google's own button can't load. */
+function GoogleRedirectButton({ next, label = "Continue with Google" }: { next: string; label?: string }) {
   return (
     <a
       href={`/api/auth/google${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`}
