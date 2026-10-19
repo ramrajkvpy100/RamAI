@@ -119,3 +119,6 @@ export function priceList(period: BillingPeriod): string {
 
 /** Where a visitor without an account is browsing from (Vercel's country header): India, the UK, or else US dollars. */
 export const countryFromIp = (code: string | null | undefined): Country => (code === "IN" ? "IN" : code === "GB" ? "UK" : code === "US" ? "US" : code ? "WW" : "IN");
+
+/** RamAI is invite-only (the server enforces it; this tells the pages what to offer). Off with NEXT_PUBLIC_RAMAI_INVITE_ONLY=0. */
+export const INVITE_ONLY = process.env.NEXT_PUBLIC_RAMAI_INVITE_ONLY !== "0";

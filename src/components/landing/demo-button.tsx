@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
+
 import { Icon } from "@/components/ui/icon";
+import { INVITE_ONLY } from "@/lib/plans";
 import { cn } from "@/lib/cn";
 
 import { useGuestStart } from "./use-guest-start";
@@ -8,6 +11,14 @@ import { useGuestStart } from "./use-guest-start";
 /** Plays the guided demo case straight away — no account needed (the specialty is asked first). */
 export function DemoButton({ className }: { className?: string }) {
   const { begin, busy, error, sheet } = useGuestStart();
+  // Invite-only: there's no playing without an account — the second door is the invite code.
+  if (INVITE_ONLY) {
+    return (
+      <Link href="/invite" className={cn("inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-surface px-5 text-[15px] font-semibold shadow-sm transition-[transform,background-color] hover:bg-surface-3 active:scale-[0.98]", className)}>
+        🔑 I have an invite code
+      </Link>
+    );
+  }
   return (
     <span className="inline-flex flex-col">
       <button

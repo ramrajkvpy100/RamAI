@@ -20,7 +20,7 @@ import { levelMeta, trackLabel } from "@/engine/levels";
 import { RANKS } from "@/engine/progression";
 import { CARE_LEVELS, CASE_TRACKS } from "@/engine/types";
 import { cn } from "@/lib/cn";
-import { PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
+import { INVITE_ONLY, PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { DemoButton } from "./demo-button";
 import { Faq, SampleDebrief, Trust, type SiteStats } from "./landing-proof";
@@ -55,8 +55,8 @@ export function LandingNav() {
           <Link href="/login" className="rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg">
             Log in
           </Link>
-          <Link href="/signup" className="bg-ai ml-1 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white shadow-glow">
-            Start free
+          <Link href={INVITE_ONLY ? "/invite" : "/signup"} className="bg-ai ml-1 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white shadow-glow">
+            {INVITE_ONLY ? "Join" : "Start free"}
           </Link>
         </nav>
       </div>
@@ -164,13 +164,13 @@ function Hero() {
           Real patients with hidden diagnoses. Take the history, examine, order tests and treat — nothing is suggested. Then see exactly what you missed, scored out of 100.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-2">
-          <Link href="/signup" className={cn("shine", CTA)}>
-            Start free <Icon name="arrow-right" size={16} />
+          <Link href={INVITE_ONLY ? "/invite" : "/signup"} className={cn("shine", CTA)}>
+            {INVITE_ONLY ? "Join RamAI" : "Start free"} <Icon name="arrow-right" size={16} />
           </Link>
           <DemoButton />
         </div>
         <p className="mt-4 text-[12.5px] text-fg-3">
-          Try a guided case in 3 minutes — no sign-up · {PRO_FOR_EVERYONE ? "every level free for now" : "5 free cases a day"} ·{" "}
+          {INVITE_ONLY ? "Invite-only for now — join with a code from a doctor who uses RamAI" : `Try a guided case in 3 minutes — no sign-up · ${PRO_FOR_EVERYONE ? "every level free for now" : "5 free cases a day"}`} ·{" "}
           <Link href="/login" className="font-medium text-fg-2 underline-offset-2 hover:text-fg hover:underline">
             Log in
           </Link>
@@ -224,7 +224,7 @@ function HowItWorks() {
       </ol>
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <DemoButton />
-        <span className="text-[13px] text-fg-3">A 3-minute guided case shows you everything — no sign-up needed.</span>
+        <span className="text-[13px] text-fg-3">{INVITE_ONLY ? "Invited? Your first case is a 3-minute guided one that shows you everything." : "A 3-minute guided case shows you everything — no sign-up needed."}</span>
       </div>
     </section>
   );

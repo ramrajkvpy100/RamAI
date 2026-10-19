@@ -15,24 +15,31 @@ const KINDS = [
 ] as const;
 type Kind = (typeof KINDS)[number][0];
 
-/** The screen as it is now — a small JPEG, for the report. */
+/** The screen as it is now — what's in view, pictures included — as a small JPEG for the report. */
 async function screenshot(): Promise<string | undefined> {
   try {
-    const { toJpeg } = await import("html-to-image");
-    const node = document.body;
-    const scale = Math.min(1, 900 / Math.max(1, window.innerWidth));
-    return await toJpeg(node, {
-      quality: 0.72,
-      pixelRatio: scale,
-      backgroundColor: getComputedStyle(document.body).backgroundColor || "#0b0d12",
-      width: window.innerWidth,
-      height: window.innerHeight,
-      style: { transform: `translateY(-${window.scrollY}px)` },
-      // Only the page: no dialogs, no pictures from other sites.
-      filter: (el) => !(el instanceof HTMLDialogElement) && !(el instanceof HTMLIFrameElement),
-      skipFonts: true,
-    });
-  } catch {
+    const { domToCanvas } = await import("modern-screenshot");
+    const scale = Math.min(1.5, 1100 / Math.max(1, window.innerWidth));
+    const page = await Promise.race([
+      domToCanvas(document.body, {
+        scale,
+        font: false,
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#0b0d12",
+        // Only the page: no dialogs, no embedded frames.
+        filter: (el) => !(el instanceof HTMLDialogElement) && !(el instanceof HTMLIFrameElement),
+        timeout: 6000,
+      }),
+      new Promise<null>((r) => setTimeout(() => r(null), 8000)),
+    ]);
+    if (!page) return undefined;
+    // Just what was on screen.
+    const out = document.createElement("canvas");
+    out.width = Math.round(window.innerWidth * scale);
+    out.height = Math.round(window.innerHeight * scale);
+    out.getContext("2d")!.drawImage(page, Math.round(window.scrollX * scale), Math.round(window.scrollY * scale), out.width, out.height, 0, 0, out.width, out.height);
+    return out.toDataURL("image/jpeg", 0.75);
+  } catch (err) {
+    console.warn("[ramai] screenshot failed", err);
     return undefined;
   }
 }
