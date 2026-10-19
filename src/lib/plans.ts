@@ -22,7 +22,7 @@ export const PLANS: Record<PlanId, Plan> = {
     // The free cases are a guest's (GUEST_DAILY_CASES); beyond them, an account with Pro.
     dailyCases: 0,
     levels: ["phc", "chc", "district"],
-    features: ["5 cases a day as a guest — no account needed", "The guided demo and the daily case", "Full debrief and score", "Your progress kept on every device"],
+    features: ["20 cases a day for invited doctors, every level", "The guided demo and the daily case", "Full debrief and score", "Your progress kept on every device"],
   },
   pro: {
     id: "pro",
@@ -42,15 +42,18 @@ export const PRO_FOR_EVERYONE = process.env.NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE =
 /** Free, with no account: the demo, then this many real cases a day. More means logging in and going Pro. */
 export const GUEST_DAILY_CASES = 5;
 
+/** Invited doctors (RamAI is invite-only): free cases a day, at every level. */
+export const INVITEE_DAILY_CASES = 20;
+
 /**
  * While RamAI is invite-only, every invited doctor plays every level free, with
- * GUEST_DAILY_CASES cases a day (more with free Pro cases, or Pro). Off with NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS=0.
+ * INVITEE_DAILY_CASES cases a day (more with free Pro cases, or Pro). Off with NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS=0.
  */
 export const INVITEES_ALL_LEVELS = process.env.NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS !== "0";
 
 /** The plan a player actually has: their own, or Pro while it's open to everyone (guests keep their daily allowance). */
 export function planFor(user: { plan: PlanId; isGuest: boolean }): Plan {
-  if (!PRO_FOR_EVERYONE) return user.plan === "free" && INVITEES_ALL_LEVELS ? { ...PLANS.free, levels: PLANS.pro.levels, dailyCases: GUEST_DAILY_CASES } : PLANS[user.plan];
+  if (!PRO_FOR_EVERYONE) return user.plan === "free" && INVITEES_ALL_LEVELS ? { ...PLANS.free, levels: PLANS.pro.levels, dailyCases: user.isGuest ? GUEST_DAILY_CASES : INVITEE_DAILY_CASES } : PLANS[user.plan];
   return user.isGuest ? { ...PLANS.pro, dailyCases: GUEST_DAILY_CASES } : PLANS.pro;
 }
 

@@ -95,7 +95,7 @@ const FAQS: [string, string][] = [
   ["How are cases made?", "A few are written by hand. Most are invented on demand by an AI model from a case blueprint — the hidden diagnosis, history, findings, results and ideal management — and the simulator plays the patient strictly from that blueprint."],
   ["Are they clinician-reviewed?", "Each invented case is checked automatically by a second AI review before you see it, and the scoring is done by fixed rules, not the AI. Reported cases are reviewed by a doctor every week."],
   ["Is my data safe?", "Sign-in is handled by Supabase; we never store your password. Your cases and progress are private to your account, and you can export or delete your data from your profile at any time."],
-  ["Is it free?", "Yes — 5 cases a day free, the daily case and the demo. Pro gives unlimited cases and every level."],
+  ["Is it free?", "Yes — invited doctors get 20 cases a day free at every level, plus the daily case and the demo. Pro gives unlimited cases and every level."],
 ];
 
 export function Faq() {
