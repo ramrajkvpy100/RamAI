@@ -254,7 +254,7 @@ function Question({
         })}
       </ol>
       {checked && (
-        <div className="animate-enter rounded-xl bg-surface-2 p-4">
+        <div className="selectable animate-enter rounded-xl bg-surface-2 p-4">
           <div className={cn("text-[14px] font-semibold", checked.correct ? "text-success" : "text-danger")}>{checked.correct ? "Correct" : `The answer is ${LETTERS[checked.answer]}`}</div>
           <p className="mt-1.5 text-[14px] leading-6 whitespace-pre-wrap text-fg">{checked.explanation}</p>
           <div className="mt-3 flex items-center justify-between gap-2">

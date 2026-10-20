@@ -237,7 +237,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
         })}
       </div>
       {picked !== null && mode === "spot" && (
-        <div className="panel animate-enter p-4">
+        <div className="selectable panel animate-enter p-4">
           <div className={cn("text-[14px] font-semibold", picked === item.answer ? "text-success" : "text-danger")}>{picked === item.answer ? "Correct" : `It's ${item.options[item.answer]}`}</div>
           <p className="mt-1 text-[14px] leading-6">{item.key}</p>
           {picked !== item.answer && item.keys?.[picked] && (

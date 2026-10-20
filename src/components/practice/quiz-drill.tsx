@@ -39,7 +39,7 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
         })}
       </div>
       {picked !== null && (
-        <section className="animate-enter rounded-xl border border-line p-4">
+        <section className="selectable animate-enter rounded-xl border border-line p-4">
           <div className={cn("text-[14px] font-semibold", picked === q.answer ? "text-success" : "text-danger")}>{picked === q.answer ? "Correct" : `Answer: ${q.options[q.answer]}`}</div>
           <p className="mt-1 text-[14px] leading-6">{q.explain}</p>
           {picked !== q.answer && q.whyNot?.[picked] && (

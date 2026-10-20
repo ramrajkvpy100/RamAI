@@ -150,7 +150,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
             </div>
           </div>
           {picked !== null && (
-            <section className="animate-enter rounded-xl border border-line p-4">
+            <section className="selectable animate-enter rounded-xl border border-line p-4">
               <div className={cn("text-[14px] font-semibold", picked === item.answer ? "text-success" : "text-danger")}>{picked === item.answer ? "Correct" : `Impression: ${item.options[item.answer]}`}</div>
               <div className="mt-2 text-[11px] font-bold tracking-[0.1em] text-fg-3 uppercase">Model report — key findings</div>
               <p className="mt-1 text-[14px] leading-6">{item.key}</p>

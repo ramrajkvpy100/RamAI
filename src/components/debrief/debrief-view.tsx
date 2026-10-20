@@ -223,7 +223,7 @@ export function DebriefView({
   return (
     <div className="min-h-dvh animate-fade">
       <CaseTopBar state={state} complete />
-      <main className="mx-auto w-full max-w-5xl px-4 pt-10 pb-32 sm:px-6 sm:pt-14">
+      <main className="selectable mx-auto w-full max-w-5xl px-4 pt-10 pb-32 sm:px-6 sm:pt-14">
         {state.duel && <DuelCard id={state.duel} className="mb-6" />}
         {/* Header ------------------------------------------------------- */}
         <section className="animate-rise">

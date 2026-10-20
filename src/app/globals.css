@@ -566,7 +566,8 @@ input,
 textarea,
 select,
 [contenteditable="true"],
-.selectable {
+.selectable,
+body[data-copy="on"] {
   -webkit-user-select: text;
   user-select: text;
   -webkit-touch-callout: default;
