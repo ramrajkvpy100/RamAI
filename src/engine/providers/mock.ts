@@ -31,6 +31,18 @@ const ELSEWHERE: ResolvedIntent["kind"][] = ["investigation", "action", "diagnos
  * "the usual dose": that order, completed. Null when the words aren't an answer (another order, a
  * question for the patient, a remark): then the order isn't carried out, as at a real bedside.
  */
+/** Words an answer to "what dose, route, how often, how long?" is made of. */
+const DETAIL_WORD = /^(mg|mcg|ug|g|gm|gms|gram|grams|ml|mls|l|litre|litres|liter|liters|unit|units|iu|vial|vials|amp|ampoule|puff|puffs|drop|drops|tab|tabs|tablet|tablets|cap|caps|capsule|syp|syr|syrup|susp|inj|injection|iv|im|sc|sq|po|oral|orally|sl|sublingual|neb|nebulised|nebulized|inh|inhaled|pr|top|topical|topically|local|locally|skin|drip|infusion|bolus|slow|slowly|fast|rapid|push|stat|now|od|bd|bid|tds|tid|qid|qds|hs|sos|prn|daily|weekly|monthly|once|twice|thrice|times|day|days|week|weeks|month|months|year|for|over|in|min|mins|minute|minutes|hour|hours|hr|hrs|h|every|each|at|night|nightly|bedtime|morning|evening|noon|with|without|and|or|then|the|a|an|of|to|usual|standard|normal|same|dose|doses|give|given|start|continue|it|that|this|per|kg|cream|gel|ointment|lotion|spray|apply|thin|layer|area|affected|before|after|food|meal|meals|empty|stomach|by|mouth|vein|muscle|yes|ok|okay|please|doctor|sir|ma'?am|until|till|up|to|repeat|again|more|less|half|one|two|three|four|five|six|seven|eight|nine|ten|first|loading|maintenance|followed|taper|tapering)$/i;
+
+/** Is there a word here that names something else — another medicine — rather than this order's details? */
+function namesSomethingElse(clause: string, pending: readonly { phrase?: string; targetId?: string }[]): boolean {
+  const own = new Set(pending.flatMap((p) => `${p.phrase ?? ""} ${p.targetId ?? ""}`.toLowerCase().split(/[^a-z]+/)).filter(Boolean));
+  return clause
+    .toLowerCase()
+    .split(/[^a-z']+/)
+    .some((w) => w.length >= 4 && !DETAIL_WORD.test(w) && !own.has(w));
+}
+
 function answerPending(text: string, ctx: InterpretContext, rctx: IntentContext): ResolvedIntent[] | null {
   const pending = ctx.hidden.pendingOrders ?? [];
   if (pending.length === 0) return null;
@@ -40,7 +52,9 @@ function answerPending(text: string, ctx: InterpretContext, rctx: IntentContext)
     const own = resolveIntents(clause, rctx);
     const elsewhere = own.some(
       (i) =>
+        // Another medicine named — even one we don't stock ("mycophenolate", "topical steroids") — is a new order, never this one's details.
         (i.kind === "drug" && i.targetId !== "unknown" && !pending.some((p) => p.kind === "drug" && p.targetId === i.targetId)) ||
+        (pending.every((p) => p.kind === "drug") && namesSomethingElse(clause, pending)) ||
         ELSEWHERE.includes(i.kind) ||
         (i.kind === "exam" && EXAM_VERB.test(clause)) ||
         (i.kind === "history" && /\?\s*$/.test(clause)),

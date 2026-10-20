@@ -420,11 +420,22 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
 
   // Dose. A percentage is usually the strength in the name ("25% dextrose", "1% cream"),
   // so it counts as the dose only when no other dose or volume is given.
-  const dose =
-    t.match(/(\d+(?:[.,]\d+)?)\s*(mg|mcg|µg|ug|g|gm|grams?|iu|units?|u|meq|mmol|mg\/kg|vials?)(?![a-z])/) ??
+  // Per kilogram first ("1 mg/kg", "0.1 units per kg"): worked out for this patient's weight.
+  const perKg = t.match(/(\d+(?:[.,]\d+)?)\s*(mg|mcg|µg|ug|g|units?|u|meq|mmol)\s*(?:\/|per|a)\s*kg\b/);
+  if (perKg?.[1] && perKg[2] && opts.weightKg) {
+    const unit = perKg[2].replace(/^(ug|µg)$/, "mcg").replace(/^u$|^unit$/, "units");
+    const per = parseFloat(perKg[1].replace(",", "."));
+    const total = per * opts.weightKg;
+    const nice = total >= 100 ? Math.round(total / 5) * 5 : total >= 10 ? Math.round(total) : Math.round(total * 10) / 10;
+    out.amount = nice;
+    out.unit = unit;
+    out.text = `${nice} ${unit} (${per} ${unit}/kg)`;
+  }
+  const dose = out.amount !== undefined ? null :
+    t.match(/(\d+(?:[.,]\d+)?)\s*(mg|mcg|µg|ug|g|gm|grams?|iu|units?|u|meq|mmol|vials?)(?![a-z/])/) ??
     (out.volumeMl ? null : t.match(/(\d+(?:[.,]\d+)?)\s*(%)(?![a-z])/));
   // Counted forms: "2 tablets", "one respule", "2 puffs".
-  const count = dose ? null : t.match(/\b(\d+(?:\.\d+)?|one|two|three|four|half|a|an)\s*(tabs?|tablets?|caps?|capsules?|respules?|puffs?|sachets?|ampoules?|amps?|drops?)\b/);
+  const count = dose || out.amount !== undefined ? null : t.match(/\b(\d+(?:\.\d+)?|one|two|three|four|half|a|an)\s*(tabs?|tablets?|caps?|capsules?|respules?|puffs?|sachets?|ampoules?|amps?|drops?)\b/);
   if (dose?.[1] && dose[2]) {
     const unit = dose[2].replace(/^(gm|grams?)$/, "g").replace(/^(ug|µg)$/, "mcg").replace(/^u$/, "units").replace(/^unit$/, "units").replace(/^vial$/, "vials");
     out.amount = parseFloat(dose[1].replace(",", ""));
@@ -436,6 +447,8 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     out.amount = n;
     out.unit = unit;
     out.text = `${n} ${unit}${n === 1 ? "" : "s"}`;
+  } else if (out.amount !== undefined) {
+    // already set from a per-kg dose
   } else if (out.volumeMl) {
     out.text = out.volumeMl >= 1000 ? `${+(out.volumeMl / 1000).toFixed(2)} L` : `${out.volumeMl} mL`;
   }

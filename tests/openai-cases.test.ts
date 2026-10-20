@@ -127,10 +127,11 @@ describe("AI-invented patients", () => {
     expect(start.state.patient.age).toBeGreaterThan(0);
   });
 
-  it("a case the senior review finds wrong is never used — a written case stands in", async () => {
-    fakeOpenAI({ rejectCase: true });
+  it("what the senior review finds is sent back to be corrected — the case is repaired, then used", async () => {
+    const prompts = fakeOpenAI({ rejectCase: true });
     const start = await simulateCase({ userId: "gen-4", caseNumber: 5 });
-    expect(sessionInfo(start.token).generated).toBe(false);
+    expect(prompts.some((p) => p.includes("A senior consultant read the whole case and found these problems") && p.includes("left lower lobe"))).toBe(true);
+    expect(sessionInfo(start.token).generated).toBe(true);
   });
 });
 

@@ -1701,6 +1701,23 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   return [{ type: "investigation_ordered", instanceId: inv.instanceId, defId: id, name, category, turnaroundMin: turnaround, cost }];
 }
 
+/** The patient's own reason this drug is dangerous, as the nurse would say it — or null. */
+function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, rbs: number): string | null {
+  const them = def.patient.sex === "Female" ? "She" : def.patient.sex === "Male" ? "He" : "They";
+  const is = them === "They" ? "are" : "is";
+  // An allergy the doctor asked about is on the chart, so the nurse knows it; one never asked about, nobody knows — as at a real bedside.
+  const allergyEntry = def.history.find((h) => h.group === "allergy");
+  const charted = !allergyEntry || hidden.history[allergyEntry.id] !== undefined;
+  const allergies = charted ? (def.profile.allergies ?? []).map((a) => a.toLowerCase()) : [];
+  const name = `${drug.id} ${drug.generic}`.toLowerCase();
+  const direct = allergies.find((a) => name.includes(a.split(/[\s—(-]/)[0]!) || drug.classes.some((c) => a.includes(c)));
+  if (direct) return `${them} ${is} allergic to ${direct.split(/[—(]/)[0]!.trim()}.`;
+  if (allergies.some((a) => a.includes("penicillin")) && drug.classes.includes("cephalosporin")) return `${them} ${is} allergic to penicillin — a cephalosporin can cross-react.`;
+  if (allergies.some((a) => a.includes("sulfa") || a.includes("sulpha")) && /sulfa|sulpha|cotrimoxazole/.test(name)) return `${them} ${is} allergic to sulfa drugs.`;
+  if (drug.classes.includes("insulin") && rbs < 90) return `The sugar is ${Math.round(rbs)} mg/dL — insulin now could drop it dangerously.`;
+  return null;
+}
+
 function findDrugRule(def: ClinicalCaseDefinition, drug: FormularyDrug): TherapeuticRule | undefined {
   const drugRules = def.therapeutics.filter((r) => r.kind === "drug");
   return (
@@ -1853,6 +1870,15 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const order = orderKey(drug.id, given.at);
   const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
   const grave = graveHazards(triggered);
+  // What the nurse knows about this patient that makes the order dangerous: an allergy to it (or its family), insulin for a low sugar.
+  const contextual = challenge ? contextualRisk(def, hidden, drug, snap.rbs) : null;
+  if (challenge && contextual && grave.length === 0) {
+    for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
+    Object.assign(hidden, challenge);
+    const what = `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}`;
+    const question = `Doctor — ${what}? ${contextual} Do you still want it given?`;
+    return askAbout(ctx, { kind: "confirm", targetId: drug.id, payload: { ...p, mode, question }, phrase: intent.phrase, needs: [] }, question, mode);
+  }
   if (challenge && grave.length > 0) {
     for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
     Object.assign(hidden, challenge);

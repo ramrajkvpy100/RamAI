@@ -78,6 +78,16 @@ const listOf = <T extends z.ZodType>(item: T, maxItems: number) =>
   );
 const num = (fallback: number) => z.coerce.number().catch(fallback);
 
+/** An age in whole years, however it's written: 34, "34", "2 years", "18 months" (→ 1), "6 weeks" (→ 0). Unreadable → null (the case is rejected, never given a made-up age). */
+const ageYears = z.union([z.number(), z.string()]).transform((v) => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const m = v.toLowerCase().match(/(\d+(?:\.\d+)?)\s*(year|yr|y\b|month|mo\b|week|wk|day|d\b)?/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  const unit = m[2] ?? "year";
+  return unit.startsWith("mo") ? n / 12 : unit.startsWith("w") ? n / 52 : unit.startsWith("d") ? n / 365 : n;
+}).catch(null);
+
 const Flag = z.enum(["normal", "low", "high", "critical", "unknown"]).catch("normal");
 const LabRow = z.object({ analyte: str(80), value: str(40), unit: optStr(30), reference: optStr(60), flag: Flag });
 const VitalKey = z.enum(["bp", "hr", "rr", "temp", "spo2", "rbs", "weight", "height", "bmi", "gcs", "pain", "urine"]);
@@ -136,7 +146,7 @@ const Miss = z.object({ what: str(300), why: str(300), better: str(300), severit
 export const ConceptSchema = z.object({
   specialty: Specialty.catch("Medicine"),
   difficulty: z.coerce.number().int().min(1).max(3).catch(2),
-  patient: z.object({ name: optStr(60), age: num(40).transform((n) => Math.max(0, Math.min(110, Math.round(n)))), sex: z.enum(["Male", "Female"]).catch("Male"), city: str(80), occupation: optStr(80) }),
+  patient: z.object({ name: optStr(60), age: ageYears.transform((n) => (n === null ? null : Math.max(0, Math.min(110, Math.floor(n))))), sex: z.enum(["Male", "Female"]).catch("Male"), city: str(80), occupation: optStr(80) }),
   briefing: str(260),
   diagnosis: str(140),
   qualifier: optStr(400),

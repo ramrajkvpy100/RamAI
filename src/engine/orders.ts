@@ -83,8 +83,14 @@ export function drugNeeds(drug: FormularyDrug, p: Payload, mode: "given" | "pres
 
 /** The question, as whoever takes the order would put it: "Paracetamol — what dose, and oral, IV or rectal, doctor?" */
 export function drugQuestion(drug: FormularyDrug, needs: OrderNeed[], p: Payload, polite: boolean): string {
-  const name = (drug.generic.split(/\s[(]/)[0] ?? drug.generic).trim();
-  const known = [typeof p.dose === "string" ? p.dose : undefined, typeof p.route === "string" ? ROUTE_WORDS[p.route as DrugRoute] : undefined].filter(Boolean).join(" ");
+  let name = (drug.generic.split(/\s[(]/)[0] ?? drug.generic).trim();
+  // A strength the doctor said ("hydroquinone 4%") replaces the stock one in the name — never "Hydroquinone 2% cream 4 %".
+  let dose = typeof p.dose === "string" ? p.dose : undefined;
+  if (p.unit === "%" && typeof p.amount === "number" && /\d[\d.]*\s*%/.test(name)) {
+    name = name.replace(/\d[\d.]*\s*%/, `${p.amount}%`);
+    dose = undefined;
+  }
+  const known = [dose, typeof p.route === "string" ? ROUTE_WORDS[p.route as DrugRoute] : undefined].filter(Boolean).join(" ");
   const routes = routesFor(drug).map((r) => ROUTE_WORDS[r] ?? r);
   const asks: string[] = [];
   if (needs.includes("volume")) asks.push("how much");

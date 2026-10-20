@@ -213,3 +213,36 @@ describe("drug interactions", () => {
     expect(findInteractions(["paracetamol", "ondansetron"], n)).toHaveLength(0);
   });
 });
+
+import { getCase } from "@/engine/cases";
+describe("a doctor's real shorthand — found by the messy-doctor audit", () => {
+  const sle = () => getCase("med-sle-apex-01")!;
+  it("a new medicine named while another waits for its dose is never swapped into it", async () => {
+    const { hidden } = await converse(sle(), ["hcq bd", "mycophenolate 1 g bd"]);
+    expect(hidden.drugs.every((d) => d.drugId !== "hydroxychloroquine" || d.amount !== 1)).toBe(true);
+  });
+  it("'1 mg/kg' is worked out for the patient's weight, not read as 1 mg", async () => {
+    const { turns } = await converse(sle(), ["prednisolone 1mg/kg od"]);
+    expect(turns[0]!.record.intents[0]?.payload?.amount).toBeGreaterThan(20);
+  });
+  it("a bare number after the drug is its usual unit: 'hcq 200 bd' is 200 mg", async () => {
+    const { turns } = await converse(sle(), ["hcq 200 bd"]);
+    expect(turns[0]!.record.intents[0]?.payload).toMatchObject({ amount: 200, unit: "mg" });
+  });
+  it("'24 hr urine protein' and 'over 1 hr' are hours, never the pulse", async () => {
+    const { turns } = await converse(sle(), ["24 hr urine protein"]);
+    expect(turns[0]!.record.intents.some((i) => i.kind === "vitals")).toBe(false);
+  });
+  it("'dx … close' and a bare 'close' end the case", async () => {
+    expect((await converse(sle(), ["dx sle. close"])).hidden.closed).toBe(true);
+    expect((await converse(sle(), ["close"])).hidden.closed).toBe(true);
+  });
+  it("'any drug allergy' is answered about allergies, not the medicines", async () => {
+    const { turns } = await converse(getCase("derm-melasma-01")!, ["any drug allergy"]);
+    expect(turns[0]!.record.intents[0]?.targetId).toBe("allergy");
+  });
+  it("the nurse questions a cephalosporin once the penicillin allergy is on the chart", async () => {
+    const { turns } = await converse(surgAppendicitis, ["any drug allergy", "inj ceftriaxone 1 g iv"]);
+    expect(said(turns[1]!)).toMatch(/allergic to penicillin/);
+  });
+});

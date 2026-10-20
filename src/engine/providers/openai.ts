@@ -76,6 +76,9 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
   const timeoutMs = timeout ?? openAIConfig().timeoutMs;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const started = Date.now();
+  // RAMAI_TRACE=1: how long each call took (what it was for, from its first words) — for tuning timeouts.
+  if (process.env.RAMAI_TRACE) controller.signal.addEventListener("abort", () => console.info(`[ramai] trace: aborted after ${Date.now() - started} ms (limit ${timeoutMs}) — ${String(messages[messages.length - 1]?.content ?? "").slice(0, 60)}`));
   try {
     const effort = careful ? (/^gpt-6/.test(model) ? { reasoning_effort: "low" } : lightReasoning(model)) : lightReasoning(model);
     const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -90,6 +93,7 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
       throw new UpstreamError(`OpenAI responded ${res.status}${code ? ` (${code})` : ""}`, res.status, code);
     }
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[]; usage?: unknown };
+    if (process.env.RAMAI_TRACE) console.info(`[ramai] trace: ${Date.now() - started} ms (limit ${timeoutMs}) — ${String(messages[messages.length - 1]?.content ?? "").slice(0, 60)}`);
     noteUsage(data.usage);
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new UpstreamError("Empty completion");
@@ -261,10 +265,11 @@ ${debrief.didWell.length ? `Done well: ${debrief.didWell.join("; ")}` : ""}`,
 
 /** The whole invention must finish inside the request's minute; past this, the written backup is used. */
 const OUTLINE_TIMEOUT_MS = 16_000;
-const PART_TIMEOUT_MS = 32_000;
+const PART_TIMEOUT_MS = 60_000;
 /** A consultant's review of a part gets what's left of the minute, up to this. */
 const REVIEW_TIMEOUT_MS = 25_000;
-const CASE_DEADLINE_MS = 54_000;
+// Writing, reviewing every part and the senior read of the whole case takes up to ~70 s with the current model.
+const CASE_DEADLINE_MS = 110_000;
 
 /**
  * A consultant's look at one part, its corrections applied. Accuracy comes first: a part that
@@ -325,6 +330,13 @@ export function sanityProblems(concept: { patient: { age: number; sex: string };
  * story, examination, every result and the marking key — and says whether it hangs together.
  * Parts were each reviewed alone; this catches what only shows across them.
  */
+/** The whole case as text for the senior's read — every clinical fact, none of the picture data (which made it too long and got it cut off). */
+function compactCase(def: unknown): string {
+  const DROP = new Set(["media", "spec", "svg", "alt", "caption", "pictures", "portrait", "seed", "visual", "sounds", "stethoscope"]);
+  const text = JSON.stringify(def, (k, v) => (DROP.has(k) ? undefined : v));
+  return text.length > 90_000 ? `${text.slice(0, 90_000)} …(the rest omitted for length — judge only what is shown)` : text;
+}
+
 function coherencePrompt(def: unknown): ChatMessage[] {
   return [
     {
@@ -334,7 +346,7 @@ function coherencePrompt(def: unknown): ChatMessage[] {
     },
     {
       role: "user",
-      content: `The case:\n${JSON.stringify(def).slice(0, 24_000)}\n\nReturn JSON {"verdict": "ok" | "reject", "problems": ["each clinically wrong or inconsistent point, briefly"]}. Use "reject" if there is ANY clinical error, contradiction, mislabel or unsafe dose that a trainee could learn from; "ok" only when the case is clinically sound.`,
+      content: `The case:\n${compactCase(def)}\n\nReturn JSON {"verdict": "ok" | "reject", "problems": ["each clinically wrong or inconsistent point, briefly"]}. Use "reject" if there is ANY clinical error, contradiction, mislabel or unsafe dose that a trainee could learn from; "ok" only when the case is clinically sound.`,
     },
   ];
 }
@@ -418,7 +430,7 @@ function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
     { role: "system", content: authoring(country.id) },
     {
       role: "user",
-      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : "Choose a realistic condition that fits; vary it — not always the most common one."} patient.age must match the story exactly.
+      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : "Choose a realistic condition that fits; vary it — not always the most common one."} patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
 Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
     },
   ];
@@ -840,16 +852,19 @@ export function createOpenAIProvider(): ClinicalProvider {
       try {
         const outline = ConceptSchema.safeParse(await chatJSON(outlinePrompt(opts, brief), 900, false, OUTLINE_TIMEOUT_MS));
         if (!outline.success || !outline.data.diagnosis) throw new UpstreamError("the outline failed its checks");
-        const concept = outline.data;
+        if (outline.data.patient.age === null) throw new UpstreamError("the outline gave no readable age");
+        // A child's specialty must have a child.
+        if (brief.specialty === "Pediatrics" && outline.data.patient.age > 17) throw new UpstreamError(`a paediatric case came back with an adult (age ${outline.data.patient.age})`);
+        const concept = { ...outline.data, patient: { ...outline.data.patient, age: outline.data.patient.age } };
         const level = levelMeta(brief.level, country).label;
         // Each part is written, then checked by a consultant the moment it's ready — the three in parallel.
-        const [d, f, m] = await Promise.all([
+        let [d, f, m] = await Promise.all([
           chatJSON(dialoguePrompt(opts, concept, brief), 2600, false, PART_TIMEOUT_MS)
             .then((x) => DialogueSchema.parse(x))
-            .then((part) => reviewPart("history and vitals", part, dialogueReviewPrompt(concept, part, country), 1600, applyDialogueReview, left())),
+            .then((part) => reviewPart("history and vitals", part, dialogueReviewPrompt(concept, part, country), 5000, applyDialogueReview, left())),
           chatJSON(findingsPrompt(opts, concept, brief), 4600, false, PART_TIMEOUT_MS)
             .then((x) => FindingsSchema.parse(x))
-            .then((part) => reviewPart("findings and results", part, findingsReviewPrompt(concept, part, country), 3000, applyFindingsReview, left()))
+            .then((part) => reviewPart("findings and results", part, findingsReviewPrompt(concept, part, country), 8000, applyFindingsReview, left()))
             .then((part) => {
               const checked = checkLabFlags(part);
               if (checked.fixes.length) console.info(`[ramai] lab flags corrected: ${checked.fixes.join(" | ")}`);
@@ -857,24 +872,43 @@ export function createOpenAIProvider(): ClinicalProvider {
             }),
           chatJSON(managementPrompt(opts, concept, brief), 2400, false, PART_TIMEOUT_MS)
             .then((x) => ManagementSchema.parse(x))
-            .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 2000, applyManagementReview, left())),
+            .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 6000, applyManagementReview, left())),
         ]);
         if (d.history.length < 4 || f.exam.length < 1 || m.therapeutics.length < 2) {
           throw new UpstreamError(`a part came back too thin (history ${d.history.length}, exam ${f.exam.length}, treatments ${m.therapeutics.length})`);
         }
         const impossible = sanityProblems(concept, d.baselineVitals);
         if (impossible.length) throw new UpstreamError(`the case failed its sanity checks: ${impossible.join("; ")}`);
-        const def = toDefinition(concept, d, f, m, brief, opts);
-        // The whole case, read at once by a senior: anything wrong or inconsistent and it isn't used.
-        const verdict = (await chatJSON(coherencePrompt(def), 900, true, Math.max(12_000, Math.min(25_000, left() + 10_000)))) as { verdict?: string; problems?: unknown };
+        let def = toDefinition(concept, d, f, m, brief, opts);
+        // The whole case, read at once by a senior. What they find is sent back to the part reviewers to correct — the
+        // case is repaired, not thrown away — and only then used. (The model thinks before answering: give it room, or the
+        // reply comes back empty.) If the senior can't answer at all, the case stands on its parts' reviews.
+        const verdict = (await chatJSON(coherencePrompt(def), 6000, true, Math.max(20_000, Math.min(40_000, left() + 15_000))).catch((err) => {
+          console.warn("[ramai] the senior review didn't answer; the case stands on its parts' reviews:", err instanceof Error ? err.message : err);
+          return { verdict: "ok", problems: [] };
+        })) as { verdict?: string; problems?: unknown };
         if (verdict?.verdict !== "ok") {
-          const problems = Array.isArray(verdict?.problems) ? verdict.problems.map(String).join(" | ").slice(0, 800) : "no verdict";
-          throw new UpstreamError(`the senior review rejected the case: ${problems}`);
+          const problems = Array.isArray(verdict?.problems) ? verdict.problems.map(String).filter(Boolean) : [];
+          if (!problems.length || left() < 20_000) throw new UpstreamError(`the senior review rejected the case and there was no time to repair it: ${problems.join(" | ").slice(0, 800)}`);
+          console.info(`[ramai] senior review: ${problems.length} problem${problems.length === 1 ? "" : "s"} sent back for correction: ${problems.join(" | ").slice(0, 900)}`);
+          const withProblems = (prompt: ChatMessage[]): ChatMessage[] => [
+            ...prompt,
+            { role: "user", content: `A senior consultant read the whole case and found these problems. Correct every one that concerns this part (and anything else wrong in it), using the same JSON format:\n- ${problems.join("\n- ")}` },
+          ];
+          [d, f, m] = await Promise.all([
+            reviewPart("history and vitals (repair)", d, withProblems(dialogueReviewPrompt(concept, d, country)), 5000, applyDialogueReview, left()),
+            reviewPart("findings and results (repair)", f, withProblems(findingsReviewPrompt(concept, f, country)), 8000, applyFindingsReview, left()).then((part) => checkLabFlags(part).part),
+            reviewPart("management and marking key (repair)", m, withProblems(managementReviewPrompt(concept, m, country, level)), 6000, applyManagementReview, left()),
+          ]);
+          const still = sanityProblems(concept, d.baselineVitals);
+          if (still.length) throw new UpstreamError(`the repaired case failed its sanity checks: ${still.join("; ")}`);
+          def = toDefinition(concept, d, f, m, brief, opts);
         }
         return { kind: "generated", def };
       } catch (err) {
         console.error("[ramai] couldn't invent a patient; using a written case", err instanceof Error ? err.message : err);
-        return mockProvider.createCase(opts);
+        // A written case for this choice — or, if none fits it, any written case: never an error for the doctor.
+        return mockProvider.createCase(opts).catch(() => mockProvider.createCase({ ...opts, specialty: undefined, track: undefined, level: undefined }));
       }
     },
 

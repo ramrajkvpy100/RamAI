@@ -7,7 +7,7 @@ import { crossSite, handleError, ok, rateLimited } from "@/lib/server/http";
 
 export const runtime = "nodejs";
 // Inventing a patient takes the model up to about a minute.
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 /**
  * POST /api/cases/prepare — writes the doctor's next patient ahead of time

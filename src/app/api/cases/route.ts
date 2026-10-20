@@ -20,7 +20,7 @@ import { dailyLimitFor, planFor } from "@/lib/plans";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 /** Inventing a new patient can take most of a minute. */
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 /** POST /api/cases — start a case within the player's plan, or the free guided demo case. */
 export async function POST(req: Request) {

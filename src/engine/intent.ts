@@ -23,7 +23,7 @@ export interface IntentContext {
 /* Lexicon                                                                     */
 /* -------------------------------------------------------------------------- */
 
-const CLOSE_RE = /\b(case close|close (?:the )?case|case closed|end (?:the )?case|finish (?:the )?case|close (?:the )?encounter|end (?:the )?encounter|close this case)\b/;
+const CLOSE_RE = /\b(case close|close (?:the )?case|case closed|end (?:the )?case|finish (?:the )?case|close (?:the )?encounter|end (?:the )?encounter|close this case)\b|^\s*(?:close|close it|closed|end|end it|finish|done|that'?s all)\s*[.!]*\s*$/;
 const GREETING_RE = /^(hi|hello|hey|namaste|namaskar|good (?:morning|afternoon|evening)|greetings)\b[\s,!.]*/i;
 const DIAGNOSIS_RE = /^(?:my |the |our )?(?:final |provisional |working |clinical |most likely |likely )?(?:diagnosis|dx|impression)\b(?:\s*(?:is|would be|of|:|-|=))?\s*(.+)$/i;
 const OPINION_RE = /^(?:i think|i believe|i suspect|i am thinking|my guess is|this looks like|it looks like|looks like|most likely|probably|likely|consistent with|suggestive of)\b\s*(?:this is |it is |it s |its |a case of |an? )?(.+)$/i;
@@ -166,6 +166,14 @@ export function matchHistory(tk: string[], def: ClinicalCaseDefinition): { id: s
 }
 
 function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): ResolvedIntent[] {
+  // An allergy question is about allergies — even when it says "drug" ("any drug allergy?") and the
+  // case's medicines entry matches "drugs" too.
+  if (/\ballerg/i.test(rawClause) && rawClause.trim().split(/\s+/).length <= 7 && !/,/.test(rawClause)) {
+    const allergy = ctx.def.history.find((h) => h.group === "allergy");
+    // "Medicines and allergies?" asks both.
+    const meds = /\b(medicin\w*|medication\w*|tablets?|taking|pills?)\b/i.test(rawClause) ? ctx.def.history.find((h) => h.group === "medication") : undefined;
+    if (allergy) return [...(meds ? [{ kind: "history" as const, targetId: meds.id, phrase: rawClause, matched: true }] : []), { kind: "history", targetId: allergy.id, phrase: rawClause, matched: true }];
+  }
   // Several topics joined by "or" / "and" / commas each get their own answer
   // ("any fever or vomiting?"); otherwise the single best match wins.
   const segments = rawClause.split(/,|\bor\b|\band\b|\//i).map((x) => x.trim()).filter(Boolean);
@@ -351,6 +359,23 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
         details.text = `${n} ${unit.toLowerCase()}`;
       }
     }
+    // A bare number after the name — "aspirin 75", "pantop 40 iv", "hcq 200 bd" — is that drug's usual unit (mg for most),
+    // when it's a sensible amount of it (not a time, a frequency or a volume).
+    if (details.amount === undefined && details.volumeMl === undefined) {
+      const usual = drug.dose?.match(/^([\d.,]+)\s*(mg|mcg|g|units|iu|meq|mmol)\b/i);
+      const after = segment.slice(segment.indexOf(hit.phrase) + hit.phrase.length);
+      const bare = after.match(/^\s*(\d+(?:\.\d+)?)(?!\s*(?:%|x|×|days?|weeks?|months?|hours?|hrs?|h\b|min|mins|minutes|times|ml|l\b|litres?|drops?|puffs?|tabs?|tablets?|caps?|\/|-\s*\d))/i);
+      if (usual && bare) {
+        const n = parseFloat(bare[1]!);
+        const ref = parseFloat(usual[1]!.replace(",", ""));
+        if (n > 0 && ref > 0 && n / ref >= 0.05 && n / ref <= 40) {
+          const unit = usual[2]!.toLowerCase();
+          details.amount = n;
+          details.unit = unit;
+          details.text = `${n} ${unit}`;
+        }
+      }
+    }
     // "A Sorbitrate", "one Crocin": one tablet of it.
     if (details.amount === undefined && ["PO", "SL"].includes(drug.route) && hit.start > 0 && ["a", "an", "one"].includes(tk[hit.start - 1] ?? "")) {
       details.amount = 1;
@@ -434,7 +459,7 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
   let closing = false;
   if (CLOSE_RE.test(norm)) {
     closing = true;
-    rawClause = rawClause.replace(/[,.\s-]*\b(case close[d]?|close (?:the )?case|end (?:the )?case|finish (?:the )?case|close (?:the )?encounter|end (?:the )?encounter|close this case)\b[.!\s]*/i, " ").trim();
+    rawClause = rawClause.replace(/[,.\s-]*\b(case close[d]?|close (?:the )?case|end (?:the )?case|finish (?:the )?case|close (?:the )?encounter|end (?:the )?encounter|close this case)\b[.!\s]*/i, " ").replace(/^\s*(?:close|close it|closed|end|end it|finish|done|that'?s all)\s*[.!]*\s*$/i, "").trim();
     norm = normalise(rawClause);
   }
 
@@ -596,9 +621,12 @@ export function consultDepartment(raw: string): string | null {
   return null;
 }
 
-export function resolveIntents(raw: string, ctx: IntentContext): ResolvedIntent[] {
-  // Plain instructions to the patient — answered at once, no AI needed.
-  if (/^\s*(?:please\s+|can you\s+|could you\s+)?(?:stand(?: up)?|get up|sit(?: up| down)?|lie (?:down|flat)|lie on (?:your|the) (?:back|side|left|right)|turn (?:over|to (?:your|the) (?:left|right|side))|walk(?: a few steps| for me| around)?|take a (?:deep )?breath|breathe (?:in|deeply)|hold your breath|open your mouth|say (?:aa+h|ahh+)|stick out your tongue|show (?:me )?your tongue|relax|cough)\b[^?]{0,30}$/i.test(raw)) return [{ kind: "instruct", phrase: raw, matched: true }];
+export function resolveIntents(input: string, ctx: IntentContext): ResolvedIntent[] {
+  // "over 1 hr", "24 hr urine": hours — never the heart rate.
+  const raw = input.replace(/(\d+(?:\.\d+)?)\s*hrs?\b/gi, "$1 hours").replace(/\b(per|an|a|each|every|half an?)\s+hrs?\b/gi, "$1 hour");
+  // Plain instructions to the patient ("stand up", "take a deep breath") — answered at once, no AI needed —
+  // unless the case has its own step for them (sitting a breathless patient up is treatment).
+  const instruction = /^\s*(?:please\s+|can you\s+|could you\s+|make (?:him|her|them|the patient)\s+)?(?:stand(?: up)?|get up|sit(?: (?:him|her|them|the patient))?(?: up| down| upright)?|prop (?:him|her|them|the patient) up|lie (?:down|flat)|lie on (?:your|the|his|her) (?:back|side|left|right)|turn (?:over|to (?:your|the|his|her) (?:left|right|side))|walk(?: a few steps| for me| around)?|take a (?:deep )?breath|breathe (?:in|deeply)|hold your breath|open your mouth|say (?:aa+h|ahh+)|stick out your tongue|show (?:me )?your tongue|relax|cough)\b[^?]{0,30}$/i.test(raw);
   // "Hint", "give me a hint", "I'm stuck": a nudge, only when asked for.
   if (/^\s*(?:please\s+)?(?:give me |show me |i need |any )?(?:a |another )?(?:hint|clue)s?\b|\bi'?m stuck\b|\bwhat (?:should|do) i do next\b/i.test(raw)) return [{ kind: "hint", phrase: raw, matched: true }];
   // "Call cardiology", "surgery consult", "ortho opinion": another department's view.
@@ -607,6 +635,7 @@ export function resolveIntents(raw: string, ctx: IntentContext): ResolvedIntent[
   const clauses = splitClauses(raw);
   const out: ResolvedIntent[] = [];
   for (const clause of clauses) out.push(...resolveClause(clause, ctx));
+  if (instruction && !out.some((i) => i.matched && i.kind !== "unknown" && i.kind !== "history")) return [{ kind: "instruct", phrase: raw, matched: true }];
   // A single "case close" anywhere wins once, at the end.
   const closing = out.some((i) => i.kind === "close");
   const rest = out.filter((i) => i.kind !== "close");
