@@ -61,7 +61,15 @@ export const FeedbackSchema = z.object({
 /* -------------------------------------------------------------------------- */
 
 /** Text (numbers accepted), trimmed and capped. A missing value is missing — never the word "undefined". */
-const str = (max: number) => z.preprocess((v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v), z.string()).transform((t) => t.trim().slice(0, max));
+/** Text up to `max` characters — cut at a word, with "…", never mid-word ("…continuous monitorin."). */
+const clip = (t: string, max: number) => {
+  const x = t.trim();
+  if (x.length <= max) return x;
+  const cut = x.slice(0, max - 1);
+  const at = cut.lastIndexOf(" ");
+  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).replace(/[\s,;:–—-]+$/, "")}…`;
+};
+const str = (max: number) => z.preprocess((v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v), z.string()).transform((t) => clip(t, max));
 /** Optional text: missing, null or malformed all mean "not given". */
 const optStr = (max: number) => str(max).optional().catch(undefined);
 /** A list from whatever arrived: an array, one value, or a semicolon-separated string. */
@@ -215,6 +223,7 @@ export const ManagementSchema = z.object({
   rubric: z.object({
     diagnosisAccept: strs(10, 100),
     diagnosisPartial: strs(10, 100),
+    diagnosisWrong: strs(10, 60).catch([]),
     differentials: strs(8, 100),
     idealTreatment: z.unknown().optional().transform((v) => (Array.isArray(v) ? v : []).map((g) => (Array.isArray(g) ? g : [g]).map(String)).filter((g) => g.length > 0).slice(0, 8)),
     expertActionCount: z.coerce.number().int().min(4).max(60).catch(14),

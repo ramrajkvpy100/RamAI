@@ -21,6 +21,7 @@
  * RAMAI_AI_VOICE=unscripted keeps scripted answers free and asks the model only
  * for questions the script doesn't cover.
  */
+import { withUntreatedCourse } from "./untreated";
 import "server-only";
 
 import { DEFAULT_MODEL, lightReasoning } from "@/lib/server/openai-check";
@@ -342,7 +343,7 @@ function coherencePrompt(def: unknown): ChatMessage[] {
     {
       role: "system",
       content:
-        "You are a senior consultant and medical educator checking a simulated clinical case before trainee doctors see it. Clinical accuracy is everything: a single wrong fact teaches a doctor something false. Read the whole case and check that (1) the history, vital signs, examination findings and every investigation result are consistent with each other and with the final diagnosis, for this patient's age and sex; (2) no finding or result contradicts the diagnosis or another finding, and nothing is mislabelled (wrong side, wrong organ, wrong units, wrong normal range, impossible value); (3) the expected management and drug doses follow current standard guidelines for this setting and patient (age, weight, pregnancy, kidney function); (4) the marking key rewards what a good doctor would do and does not penalise correct alternatives. Minor stylistic points do not matter. Reply as JSON only.",
+        "You are a senior consultant and medical educator checking a simulated clinical case before trainee doctors see it. Clinical accuracy is everything: a single wrong fact teaches a doctor something false. Read the whole case and check that (1) the history, vital signs, examination findings and every investigation result are consistent with each other and with the final diagnosis, for this patient's age and sex; (2) no finding or result contradicts the diagnosis or another finding, and nothing is mislabelled (wrong side, wrong organ, wrong units, wrong normal range, impossible value); (3) the expected management and drug doses follow current standard guidelines for this setting and patient (age, weight, pregnancy, kidney function), and every weight and per-kg dose uses the same weight the case states; (4) the marking key rewards what a good doctor would do and does not penalise correct alternatives. Minor stylistic points do not matter. Reply as JSON only.",
     },
     {
       role: "user",
@@ -444,7 +445,7 @@ function dialoguePrompt(opts: StartOptions, concept: Concept, brief: Brief): Cha
     { role: "system", content: authoring(opts.country ?? "IN") },
     {
       role: "user",
-      content: `${partHead(concept, brief)}${brief.persona ? `The patient is ${brief.persona}: every reply shows it, consistently. ` : ""}Write what the patient and family say, and the vital signs. Return JSON:
+      content: `${partHead(concept, brief)}${brief.persona ? `The patient is ${brief.persona}: it shows naturally in how they speak — now and then, not repeated in every reply. ` : ""}Write what the patient and family say, and the vital signs. Return JSON:
 { "opening": [{ "role": "patient"|"attendant"|"nurse"|"system", "kind": "speech"|"action"|"status", "text" }] (1–3 lines: how the patient arrives and their first words — no diagnosis),
   "baselineVitals": { "bp": "128/82", "hr": "88", "rr", "temp" (°F), "spo2", "rbs", "weight", "height", "gcs"?, "pain"? },
   "triageVitals": ["vitals already on the board on arrival"],
@@ -479,10 +480,10 @@ function managementPrompt(opts: StartOptions, concept: Concept, brief: Brief): C
     { role: "system", content: authoring(opts.country ?? "IN") },
     {
       role: "user",
-      content: `${partHead(concept, brief)}Write the management and the marking key, following ${specialtyGuidelines(concept.specialty ?? brief.specialty, opts.country ?? "IN")} exclusively where they apply. Return JSON:
+      content: `${partHead(concept, brief)}Write the management and the marking key, following ${specialtyGuidelines(concept.specialty ?? brief.specialty, opts.country ?? "IN")} exclusively where they apply. Every label is complete (no trailing fragments) and under 80 characters; every critique speaks to the doctor about what they did or didn't do ("Didn't check the sugar"), never about the case text. Return JSON:
 { "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why" (one line — and the guideline it follows, e.g. WHO, ICMR, NICE or AHA, where one applies), "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
   "reasoning": [{ "stage": "History", "text" }, { "stage": "Examination", "text" }, { "stage": "Investigation", "text" }, { "stage": "Diagnosis", "text" }],
-  "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": [], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
+  "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": [], "diagnosisWrong": ["words that make an otherwise-close diagnosis wrong, e.g. the wrong type, side or organism"], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
   "followUp": [{ "when": "ideal"|"acceptable"|"harmful"|"untreated"|"any", "status": "recovered"|"improving"|"stable"|"guarded"|"deteriorating"|"critical", "lines": [{ "role", "kind", "text" }] }] }
 therapeutics: 5–10 — the right treatments and common wrong or harmful ones. drugIds only from: ${FORMULARY.map((d) => d.id).join(", ")}. measureIds only from: ${MEASURES.map((m) => m.id).join(", ")}.`,
     },
@@ -568,6 +569,7 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     rubric: {
       diagnosisAccept: m.rubric.diagnosisAccept.length ? m.rubric.diagnosisAccept : [concept.diagnosis],
       diagnosisPartial: m.rubric.diagnosisPartial,
+      ...(m.rubric.diagnosisWrong?.length ? { diagnosisWrong: m.rubric.diagnosisWrong } : {}),
       differentials: m.rubric.differentials.length ? m.rubric.differentials : concept.differentials,
       idealTreatment: m.rubric.idealTreatment.map((g) => g.filter((id) => known.has(id))).filter((g) => g.length > 0),
       expertActionCount: m.rubric.expertActionCount,
@@ -762,7 +764,7 @@ async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): P
       [
         {
           role: "system",
-          content: `You are the laboratory and radiology department of a hospital in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}. You report results for one patient — exactly what a real patient with this condition, at this point in the illness and after the treatment so far, would show — consistent with every value already known. A value the condition wouldn't change is normal. Radiology reports state findings and an impression in one to three sentences, with no advice. Output JSON only.`,
+          content: `You are the laboratory and radiology department of a hospital in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}. You report results for one patient — exactly what a real patient with this condition, at this point in the illness and after the treatment so far, would show — consistent with every value already known. A value the condition wouldn't change is normal. Radiology reports state findings and an impression in one to three sentences, with no advice. Output JSON only. Each test reports its own specimen only: a urine test gives urine values (urine glucose and ketones as Nil/Trace/+ to ++++, urine pH 4.5–8), never a blood glucose, blood pH or blood-gas value; CSF and body fluids likewise.`,
         },
         {
           role: "user",
@@ -879,7 +881,7 @@ export function createOpenAIProvider(): ClinicalProvider {
         }
         const impossible = sanityProblems(concept, d.baselineVitals);
         if (impossible.length) throw new UpstreamError(`the case failed its sanity checks: ${impossible.join("; ")}`);
-        let def = toDefinition(concept, d, f, m, brief, opts);
+        let def = withUntreatedCourse(toDefinition(concept, d, f, m, brief, opts), brief.track === "emergency");
         // The whole case, read at once by a senior. What they find is sent back to the part reviewers to correct — the
         // case is repaired, not thrown away — and only then used. (The model thinks before answering: give it room, or the
         // reply comes back empty.) If the senior can't answer at all, the case stands on its parts' reviews.
@@ -902,7 +904,7 @@ export function createOpenAIProvider(): ClinicalProvider {
           ]);
           const still = sanityProblems(concept, d.baselineVitals);
           if (still.length) throw new UpstreamError(`the repaired case failed its sanity checks: ${still.join("; ")}`);
-          def = toDefinition(concept, d, f, m, brief, opts);
+          def = withUntreatedCourse(toDefinition(concept, d, f, m, brief, opts), brief.track === "emergency");
         }
         return { kind: "generated", def };
       } catch (err) {

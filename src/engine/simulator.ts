@@ -14,7 +14,7 @@ import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, Therapeutic
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
-import { confirmQuestion, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
+import { childDoseConcern, confirmQuestion, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { saltGrams } from "./toxicity";
@@ -1219,8 +1219,15 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       finding = cat.finding;
     }
   } else {
-    label = "Examination";
-    finding = "No abnormality detected on that examination.";
+    // "Examine", or an examination we don't recognise: never "no abnormality" — the patient's general examination,
+    // and which system next.
+    const general = def.exam.find((e) => e.id === "general");
+    label = general ? "General examination" : "Examination";
+    finding = general
+      ? `${hidden.examOverrides.general ?? general.finding} — say which system to examine next (chest, heart, abdomen, CNS…).`
+      : "Which system would you like to examine, doctor — chest, heart, abdomen, CNS?";
+    abnormal = !!general?.abnormal;
+    if (general) hidden.exams.general ??= hidden.clock;
   }
 
   let factValue = realFact(caseEntry?.fact) && !hidden.examOverrides[id] ? caseEntry!.fact! : finding;
@@ -1384,17 +1391,52 @@ const REPEAT_RE = /\b(repeat|again|recheck|re check|re do|redo|serial|another|on
 const RECENT_MIN = 30;
 
 /** Analytes compared loosely: "S. lipase", "Serum lipase" and "Lipase" are one. */
-const analyteKey = (s: string) => s.toLowerCase().replace(/^(?:serum|plasma|blood|s\.?)\s+/, "").replace(/[^a-z0-9]+/g, "");
+/** One name per analyte, so "ALT" and "ALT (SGPT)" are the same row, never both. */
+const ANALYTE_SYNONYMS: [RegExp, string][] = [
+  [/^(alt|sgpt|altsgpt|sgptalt|alaninetransaminase|alanineaminotransferase)$/, "alt"],
+  [/^(ast|sgot|astsgot|sgotast|aspartatetransaminase|aspartateaminotransferase)$/, "ast"],
+  [/^(alp|alkalinephosphatase|alkphos)$/, "alp"],
+  [/^(wbc|tlc|totalleucocytecount|totalleukocytecount|whitecellcount|whitebloodcells|totalwbccount)$/, "wbc"],
+  [/^(hb|hgb|haemoglobin|hemoglobin)$/, "hb"],
+  [/^(plt|platelets|plateletcount)$/, "plt"],
+  [/^(hct|pcv|haematocrit|hematocrit)$/, "hct"],
+  [/^(na|sodium)$/, "na"],
+  [/^(k|potassium)$/, "k"],
+  [/^(cr|creat|creatinine)$/, "creatinine"],
+  [/^(bun|urea|bloodurea|bloodureanitrogen)$/, "urea"],
+  [/^(tbil|totalbilirubin|bilirubintotal)$/, "tbil"],
+  [/^(dbil|directbilirubin|bilirubindirect|conjugatedbilirubin)$/, "dbil"],
+];
+const analyteKey = (s: string) => {
+  const k = s.toLowerCase().replace(/^(?:serum|plasma|blood|s\.?)\s+/, "").replace(/\(([^)]*)\)/g, "$1").replace(/[^a-z0-9]+/g, "");
+  return ANALYTE_SYNONYMS.find(([re]) => re.test(k))?.[1] ?? k;
+};
 
 /**
  * Values this patient already has for each analyte — from tests resulted in
  * this encounter (latest first), then the case's own results under other
  * tests' names (a "Lipase" row in its pancreatic panel). One patient, one value.
  */
+/** What a test is run on — so a urine "glucose" or "pH" is never filled from the blood's (nor the other way). */
+export function specimenOf(testId: string): string {
+  const t = testId.toLowerCase();
+  if (/urine|urinalysis|\bupt\b|pregnancy-test|uacr|24h|proteinuria/.test(t)) return "urine";
+  if (/csf|lumbar|\blp\b/.test(t)) return "csf";
+  if (/stool|faec|fecal|occult/.test(t)) return "stool";
+  if (/pleural|ascit|synovial|peritoneal|fluid-analysis/.test(t)) return "fluid";
+  if (/abg|vbg|blood-gas/.test(t)) return "gas";
+  return "blood";
+}
+
+const specimenKey = (testId: string, analyte: string) => `${specimenOf(testId)}:${analyteKey(analyte)}`;
+
+/** Values the patient already has, by specimen and analyte. */
 function knownValues(def: ClinicalCaseDefinition, hidden: HiddenState): Map<string, LabRow> {
   const known = new Map<string, LabRow>();
-  for (const inv of [...hidden.investigations].reverse()) for (const r of inv.result.rows ?? []) if (!known.has(analyteKey(r.analyte))) known.set(analyteKey(r.analyte), r);
-  for (const inv of def.investigations) for (const r of inv.rows ?? []) if (!known.has(analyteKey(r.analyte))) known.set(analyteKey(r.analyte), r);
+  for (const inv of [...hidden.investigations].reverse()) for (const r of inv.result.rows ?? []) if (!known.has(specimenKey(inv.defId, r.analyte))) known.set(specimenKey(inv.defId, r.analyte), r);
+  for (const inv of def.investigations) for (const r of inv.rows ?? []) if (!known.has(specimenKey(inv.id, r.analyte))) known.set(specimenKey(inv.id, r.analyte), r);
+  // A blood gas's pH, sodium or glucose is the blood's too (but never the urine's).
+  for (const [k, v] of [...known]) if (k.startsWith("gas:")) { const b = `blood:${k.slice(4)}`; if (!known.has(b)) known.set(b, v); }
   return known;
 }
 
@@ -1518,7 +1560,7 @@ export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, idIn: s
   const name = studyName(study, override?.name ?? cat?.name ?? id);
   const written = new Set((override?.rows ?? []).map((r) => analyteKey(r.analyte)));
   const known = knownValues(def, hidden);
-  const analytes = override?.report || override?.media ? [] : (normal.rows ?? []).filter((r) => !written.has(analyteKey(r.analyte)) && !known.has(analyteKey(r.analyte)));
+  const analytes = override?.report || override?.media ? [] : (normal.rows ?? []).filter((r) => !written.has(analyteKey(r.analyte)) && !known.has(`${specimenOf(id)}:${analyteKey(r.analyte)}`));
   const report = !override && !!normal.report && !normal.rows?.length;
   return analytes.length || report ? { id, name, analytes, report } : null;
 }
@@ -1652,7 +1694,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
       ...result,
       rows: result.rows.map((r) => {
         const k = analyteKey(r.analyte);
-        return authored.get(k) ?? known.get(k) ?? generated?.rows?.find((g) => analyteKey(g.analyte) === k) ?? r;
+        return authored.get(k) ?? known.get(`${specimenOf(id)}:${k}`) ?? generated?.rows?.find((g) => analyteKey(g.analyte) === k) ?? r;
       }),
     };
   }
@@ -1663,6 +1705,11 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     result = { rows: override.rows ? [...override.rows, ...(override.report || override.media ? [] : extra)] : result.rows, report: override.report ?? result.report, media: override.media ?? result.media };
   }
   if (override?.noMedia) result = { ...result, media: undefined };
+  // One row per analyte (the first — the case's own — wins): no "ALT" and "ALT (SGPT)" side by side.
+  if (result.rows) {
+    const seen = new Set<string>();
+    result = { ...result, rows: result.rows.filter((r) => { const k = analyteKey(r.analyte); if (seen.has(k)) return false; seen.add(k); return true; }) };
+  }
   const phase = [...(override?.phases ?? [])].filter((p) => p.fromMin <= hidden.clock).sort((a, b) => b.fromMin - a.fromMin)[0];
   if (phase) result = { rows: phase.rows ?? result.rows, report: phase.report ?? result.report, media: phase.media ?? result.media };
   for (const stage of activeHazardStage(def, hidden)) {
@@ -1702,7 +1749,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
 }
 
 /** The patient's own reason this drug is dangerous, as the nurse would say it — or null. */
-function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, rbs: number): string | null {
+function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, rbs: number, dose?: { amount?: number; unit?: string }): string | null {
   const them = def.patient.sex === "Female" ? "She" : def.patient.sex === "Male" ? "He" : "They";
   const is = them === "They" ? "are" : "is";
   // An allergy the doctor asked about is on the chart, so the nurse knows it; one never asked about, nobody knows — as at a real bedside.
@@ -1715,6 +1762,12 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   if (allergies.some((a) => a.includes("penicillin")) && drug.classes.includes("cephalosporin")) return `${them} ${is} allergic to penicillin — a cephalosporin can cross-react.`;
   if (allergies.some((a) => a.includes("sulfa") || a.includes("sulpha")) && /sulfa|sulpha|cotrimoxazole/.test(name)) return `${them} ${is} allergic to sulfa drugs.`;
   if (drug.classes.includes("insulin") && rbs < 90) return `The sugar is ${Math.round(rbs)} mg/dL — insulin now could drop it dangerously.`;
+  // A child: the dose for their weight.
+  if (def.patient.age < 16) {
+    const kg = parseFloat(vitalsNow(hidden).weight.value) || 0;
+    const concern = childDoseConcern(drug.id, dose?.amount, dose?.unit, kg);
+    if (concern) return concern;
+  }
   return null;
 }
 
@@ -1871,7 +1924,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
   const grave = graveHazards(triggered);
   // What the nurse knows about this patient that makes the order dangerous: an allergy to it (or its family), insulin for a low sugar.
-  const contextual = challenge ? contextualRisk(def, hidden, drug, snap.rbs) : null;
+  const contextual = challenge ? contextualRisk(def, hidden, drug, snap.rbs, { amount, unit }) : null;
   if (challenge && contextual && grave.length === 0) {
     for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
     Object.assign(hidden, challenge);
@@ -1938,7 +1991,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     } else if (until > hidden.clock) fx.push({ type: "watching", label: drug.generic, until });
   }
   // A course prescribed: taken as if its time is up — and the patient says, in their own words, what it did.
-  if (prescribed && !def.guided && def.track !== "phone") fx.push(...afterCourse(def, hidden, drug, duration, statusBefore));
+  // A take-home course is reported as it went — in clinic. In an emergency it's simply on the discharge sheet.
+  if (prescribed && !def.guided && def.track === "opd") fx.push(...afterCourse(def, hidden, drug, duration, statusBefore));
   noteResponse(hidden, `${label} ${mode}`);
   evaluateRescues(def, hidden);
   ctx.stages.push("treatment");
@@ -1952,15 +2006,33 @@ function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: For
   const feels = profileFor(drug)?.feels;
   const relief = feels && troublesOf(def, hidden).has(feels.when) ? feels.says : undefined;
   const now = hidden.status;
+  // What the case says this drug does for this illness: the right treatment clears it; a harmful one makes it worse.
+  const rule = findDrugRule(def, drug);
+  const fits = rule?.appropriateness === "ideal" || rule?.appropriateness === "acceptable";
+  const harms = rule?.appropriateness === "harmful";
   let says: string;
-  if (STATUS_RANK[now] > STATUS_RANK[before]) says = "It hasn't helped, doctor — if anything I feel worse.";
-  else if (STATUS_RANK[now] < STATUS_RANK[before]) says = relief ? `${relief} I feel much better overall.` : "I feel much better, doctor.";
+  if (STATUS_RANK[now] > STATUS_RANK[before] || harms) says = "It hasn't helped, doctor — if anything I feel worse.";
+  else if (STATUS_RANK[now] < STATUS_RANK[before] || (fits && duration)) says = relief ? `${relief} I feel much better overall.` : "It's much better, doctor — the problem is clearing up.";
   else if (relief) says = `${relief} But the main problem is still there.`;
   else says = "No real change, doctor. I feel about the same.";
+  // A child or someone who can't speak: the relative says it of them.
+  const role = patientRole(def);
+  if (role === "attendant") says = aboutThem(says, def.patient.sex);
   return [
     { type: "message", role: "system", kind: "action", text: `${when} —` },
-    { type: "message", role: patientRole(def), kind: "speech", text: says },
+    { type: "message", role, kind: "speech", text: says },
   ];
+}
+
+/** "I feel much better" → "He seems much better", for a relative speaking of the patient. */
+function aboutThem(text: string, sex?: string): string {
+  const he = sex === "Female" ? "She" : sex === "Male" ? "He" : "They";
+  const seems = he === "They" ? "seem" : "seems";
+  return text
+    .replace(/\bI feel\b/g, `${he} ${seems}`)
+    .replace(/\bif anything I feel\b/g, `if anything ${he.toLowerCase()} ${seems}`)
+    .replace(/\bI(?:'m| am)\b/g, `${he} ${he === "They" ? "are" : "is"}`)
+    .replace(/\bmy\b/gi, he === "She" ? "her" : he === "He" ? "his" : "their");
 }
 
 /** "I'm sure", "I know", "deliberately": said with the order, the nurse doesn't query it. */

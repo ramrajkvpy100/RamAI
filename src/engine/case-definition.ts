@@ -278,6 +278,8 @@ export interface CaseRubric {
   diagnosisAccept: string[];
   /** Partially correct diagnoses (right family, wrong specificity). */
   diagnosisPartial: string[];
+  /** Phrases that make a diagnosis wrong even if it's partly right ("neurotoxic snakebite" for a viper's haemotoxic one). */
+  diagnosisWrong?: string[];
   /** Reasonable differentials worth credit when stated. */
   differentials: string[];
   /** Ideal treatment: AND-of-ORs over therapeutic rule ids. */

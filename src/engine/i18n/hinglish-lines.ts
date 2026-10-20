@@ -406,6 +406,8 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "Mushkil hai doctor. Sujan wapas aa jaati hai.",
   },
   "ph-acs-01": {
+    "Okay — we're putting him in the car now. The hospital is about twenty minutes away.":
+      "Theek hai — hum unhe abhi gaadi mein bitha rahe hain. Hospital lagbhag bees minute door hai.",
     "Doctor, sorry to call so late — my father has pain in his chest for about forty minutes and he's sweating a lot. What should we do?":
       "Doctor, itni raat ko call karne ke liye sorry — papa ko kareeb chaalis minute se chhaati mein dard hai aur bahut paseena aa raha hai. Hum kya karein?",
     "He was watching TV after dinner and suddenly got pain in the middle of his chest. It's been about forty minutes. He's sweating even under the fan.":
@@ -606,6 +608,20 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "Ek mahine ventilator pe thi. Ab phir se chammach pakadna seekh rahi hoon.",
   },
   "global-templates": {
+    "It's much better, doctor — the problem is clearing up.":
+      "Ab kaafi behtar hai, doctor — takleef theek ho rahi hai.",
+    "He seems much better, doctor — the problem is clearing up.":
+      "Woh ab kaafi behtar lag raha hai, doctor — takleef theek ho rahi hai.",
+    "She seems much better, doctor — the problem is clearing up.":
+      "Woh ab kaafi behtar lag rahi hai, doctor — takleef theek ho rahi hai.",
+    "It hasn't helped, doctor — if anything he seems worse.":
+      "Koi fayda nahi hua, doctor — ulta woh aur bigad gaya lagta hai.",
+    "It hasn't helped, doctor — if anything she seems worse.":
+      "Koi fayda nahi hua, doctor — ulta woh aur bigad gayi lagti hai.",
+    "I feel worse, doctor.":
+      "Main aur kharab mehsoos kar raha hoon, doctor.",
+    "A little better, doctor.":
+      "Thoda behtar, doctor.",
     "I feel a little breathless now, doctor.":
       "Ab thodi saans phool rahi hai, doctor.",
     "The breathing has settled, doctor.":

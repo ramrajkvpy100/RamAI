@@ -246,3 +246,33 @@ describe("a doctor's real shorthand — found by the messy-doctor audit", () => 
     expect(said(turns[1]!)).toMatch(/allergic to penicillin/);
   });
 });
+
+import { childDoseConcern } from "@/engine/orders";
+import { judgeDiagnosis } from "@/engine/scoring";
+import { emViperPhc } from "@/engine/cases/em-viper-phc";
+describe("bad-doctor audit, round two", () => {
+  it("an adult dose for a baby is caught: paracetamol 1 g for 8 kg", () => {
+    expect(childDoseConcern("paracetamol", 1, "g", 8)).toMatch(/125 mg\/kg/);
+    expect(childDoseConcern("paracetamol", 120, "mg", 8)).toBeNull();
+  });
+  it("'currently taking any tab' is a question about medicines, not an order", async () => {
+    const { turns } = await converse(getCase("id-dengue-01")!, ["currently taking any tab"]);
+    expect(turns[0]!.record.intents[0]?.kind).toBe("history");
+  });
+  it("'dextrose 10%' is D10, and 'd10 100 ml' is 100 mL", async () => {
+    const { turns } = await converse(getCase("gr-aip-01")!, ["give iv dextrose 10%", "d10 100 ml iv"]);
+    expect(turns[0]!.record.intents[0]?.targetId).toBe("d10");
+  });
+  it("'rf' is rheumatoid factor", async () => {
+    const { turns } = await converse(getCase("derm-psoriasis-01")!, ["rf"]);
+    expect(turns[0]!.record.intents[0]?.targetId).toBe("rf");
+  });
+  it("'neurotoxic snake bite' for a viper's haemotoxic bite is wrong, not partly right", () => {
+    expect(judgeDiagnosis(emViperPhc, "neurotoxic snake bite")).toBe("incorrect");
+    expect(judgeDiagnosis(emViperPhc, "snake bite")).toBe("partial");
+  });
+  it("a vague 'examine' shows the general examination — never 'no abnormality'", async () => {
+    const { turns } = await converse(getCase("id-dengue-01")!, ["examine everything please doc"]);
+    expect(said(turns[0]!)).not.toMatch(/No abnormality detected on that examination/);
+  });
+});

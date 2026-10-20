@@ -45,7 +45,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     didWell.push("Asked about allergies before prescribing.");
   }
   for (const h of hidden.hazards.filter((x) => !x.superseded)) {
-    if (h.rescue === "full" && h.manifestedAt !== undefined) didWell.push(`Recognised the deterioration and rescued it within the window (${h.label.toLowerCase()}).`);
+    if (h.rescue === "full" && h.manifestedAt !== undefined && hidden.status !== "critical" && hidden.status !== "deceased") didWell.push(`Recognised the deterioration and rescued it within the window (${h.label.toLowerCase()}).`);
   }
   if (score.bonuses.some((b) => b.label === "Cost-effective work-up")) didWell.push("Kept the work-up focused and cost-effective.");
 
@@ -61,7 +61,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   }
   for (const e of def.exam) {
     if (e.importance === "essential" && hidden.exams[e.id] === undefined) {
-      missed.push(misses[e.id] ?? { what: `Did not examine: ${e.label}.`, why: "The key physical sign in this case was here.", better: `Examine ${e.label.toLowerCase()} specifically.`, severity: "moderate" });
+      missed.push(misses[e.id] ?? { what: `Did not do the ${e.label.toLowerCase().replace(/ examination$/, "")} examination.`, why: "The key physical sign in this case was here.", better: `Examine the ${e.label.toLowerCase().replace(/ examination$/, "")} — the sign was there to find.`, severity: "moderate" });
     }
   }
   for (const i of def.investigations) {
@@ -74,7 +74,8 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     if (!group.some(did)) {
       const key = group.find((id) => misses[id]) ?? group[0]!;
       const rule = def.therapeutics.find((r) => r.id === key);
-      missed.push(misses[key] ?? { what: `Did not give: ${rule?.label ?? key}.`, why: "This is a core part of treatment for this condition.", better: `Include ${rule?.label.toLowerCase() ?? key} in the plan.`, severity: "major" });
+      const label = (rule?.label ?? key).replace(/[.…]+$/, "");
+      missed.push(misses[key] ?? { what: `Missed: ${label.charAt(0).toLowerCase()}${label.slice(1)}.`, why: "This is a core part of treatment for this condition.", better: `${label}.`, severity: "major" });
     }
   }
   for (const r of def.therapeutics) {
@@ -174,7 +175,8 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     score,
     reasoning: def.truth.reasoning,
     didWell: [...new Set(didWell)].slice(0, 8),
-    missed: missed.slice(0, 10),
+    // What the doctor missed — never a remark about how the case was written ("The case summary does not document…").
+    missed: missed.filter((m) => !/\b(the case(?: summary)?|case (?:file|text|record)) (?:does not|doesn't|did not|identifies|states|lacks|omits)\b|\bis not documented\b|\bnot documented in the case\b/i.test(`${m.what} ${m.better}`)).slice(0, 10),
     severityBands: def.teaching.severityBands,
     patientBand: def.teaching.patientBand,
     treatmentByBand: def.teaching.treatmentByBand,

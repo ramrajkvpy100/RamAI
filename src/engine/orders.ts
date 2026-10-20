@@ -144,7 +144,42 @@ const PER_KG: Record<string, { perKg: number; unit: string; max: number; round: 
   furosemide: { perKg: 1, unit: "mg", max: 40, round: 1 },
   morphine: { perKg: 0.1, unit: "mg", max: 5, round: 0.1 },
   artesunate: { perKg: 3, unit: "mg", max: 240, round: 5 },
+  pantoprazole: { perKg: 1, unit: "mg", max: 40, round: 5 },
+  omeprazole: { perKg: 1, unit: "mg", max: 20, round: 5 },
+  ranitidine: { perKg: 2, unit: "mg", max: 150, round: 5 },
+  cetirizine: { perKg: 0.25, unit: "mg", max: 10, round: 0.5 },
+  "chlorpheniramine": { perKg: 0.1, unit: "mg", max: 4, round: 0.5 },
+  salbutamol: { perKg: 0.15, unit: "mg", max: 5, round: 0.5 },
+  hydrocortisone: { perKg: 4, unit: "mg", max: 200, round: 5 },
+  "cefotaxime": { perKg: 50, unit: "mg", max: 2000, round: 50 },
+  "vancomycin": { perKg: 15, unit: "mg", max: 1000, round: 10 },
+  "acyclovir": { perKg: 10, unit: "mg", max: 800, round: 10 },
+  "domperidone": { perKg: 0.25, unit: "mg", max: 10, round: 0.5 },
+  "promethazine": { perKg: 0.25, unit: "mg", max: 25, round: 1 },
+  "tramadol": { perKg: 1, unit: "mg", max: 50, round: 5 },
+  "ketorolac": { perKg: 0.5, unit: "mg", max: 15, round: 1 },
+  "diclofenac": { perKg: 1, unit: "mg", max: 50, round: 5 },
+  "insulin-regular": { perKg: 0.1, unit: "units", max: 10, round: 0.5 },
+  "mannitol": { perKg: 500, unit: "mg", max: 50000, round: 500 },
+  "calcium-gluconate": { perKg: 100, unit: "mg", max: 2000, round: 50 },
+  "doxycycline": { perKg: 2.2, unit: "mg", max: 100, round: 5 },
 };
+
+/**
+ * A child's dose far above the usual for their weight — what the nurse says, or null.
+ * (Above twice the usual per-kg dose, or above the adult maximum: the nurse checks.)
+ */
+export function childDoseConcern(drugId: string, amount: number | undefined, unit: string | undefined, weightKg: number): string | null {
+  const r = PER_KG[drugId];
+  if (!r || amount === undefined || !unit || !(weightKg > 0)) return null;
+  const inUnit = unit === r.unit ? amount : unit === "g" && r.unit === "mg" ? amount * 1000 : unit === "mcg" && r.unit === "mg" ? amount / 1000 : unit === "mg" && r.unit === "units" ? null : null;
+  if (inUnit === null) return null;
+  const usual = Math.min(r.max, r.perKg * weightKg);
+  if (inUnit <= usual * 2 && inUnit <= r.max * 1.1) return null;
+  const perKg = inUnit / weightKg;
+  const round = (n: number) => (n >= 10 ? Math.round(n) : Math.round(n * 10) / 10);
+  return `For a ${round(weightKg)}-kg child that's ${round(perKg)} ${r.unit}/kg — the usual is about ${r.perKg} ${r.unit}/kg (${round(usual)} ${r.unit}).`;
+}
 
 /** A child's weight-based dose of this drug, if there's a standard one: { amount, unit, dose text }. */
 export function childDose(drugId: string, weightKg: number): { amount: number; unit: string; dose: string } | null {

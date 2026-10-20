@@ -49,6 +49,7 @@ export function judgeDiagnosis(def: ClinicalCaseDefinition, text: string | undef
   if (!text?.trim()) return "not-recorded";
   const tk = tokens(normalise(text));
   if (def.rubric.diagnosisAccept.some((p) => findPhrase(tk, p))) return "correct";
+  if (def.rubric.diagnosisWrong?.some((p) => findPhrase(tk, p))) return "incorrect";
   if (def.rubric.diagnosisPartial.some((p) => findPhrase(tk, p))) return "partial";
   return "incorrect";
 }
@@ -255,7 +256,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     const satisfied = groups.filter((g) => g.some(done)).length;
     let frac = groups.length === 0 ? 1 : (satisfied / groups.length) * 0.85 + 0.15;
     const notes: string[] = [];
-    const unnecessaryDrugs = [...new Set(hidden.drugs.filter((d) => d.appropriateness === "unnecessary").map((d) => d.generic))];
+    // An antipyretic for a real fever is supportive care, not an unnecessary drug (a wrong dose is judged elsewhere).
+    const tempOf = (v: string | undefined) => { const t = parseFloat(v ?? ""); return t > 50 ? ((t - 32) * 5) / 9 : t; };
+    const febrile = tempOf(def.baselineVitals.temp?.value) >= 38;
+    const unnecessaryDrugs = [...new Set(hidden.drugs.filter((d) => d.appropriateness === "unnecessary" && !(febrile && d.classes.includes("antipyretic") && !d.doseError)).map((d) => d.generic))];
     if (unnecessaryDrugs.length) {
       frac -= Math.min(0.4, unnecessaryDrugs.length * 0.1);
       penalties.push({ label: "Unnecessary medications", points: -Math.round(W.treatment * Math.min(0.4, unnecessaryDrugs.length * 0.1) * 10) / 10, reason: unnecessaryDrugs.join(", ") });

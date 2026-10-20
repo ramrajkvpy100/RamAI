@@ -237,7 +237,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "flumazenil", generic: "Flumazenil", brands: ["Flumazen"], aliases: ["anexate"], classes: ["benzodiazepine-antagonist"], route: "IV", dose: "0.2 mg", frequency: "stat" },
   { id: "acetylcysteine", generic: "N-acetylcysteine", brands: ["Mucomix"], aliases: ["nac", "n acetylcysteine", "parvolex"], classes: ["antidote"], route: "IV", dose: "150 mg/kg", frequency: "stat" },
   { id: "naloxone", generic: "Naloxone", brands: ["Narcan"], classes: ["opioid-antagonist"], route: "IV", dose: "0.4 mg", frequency: "stat, repeat 2–3 min" },
-  { id: "dextrose-25", generic: "25% dextrose", brands: ["D25"], aliases: ["20% glucose", "glucose 20%", "20% dextrose", "d20", "50% glucose", "dextrose 50%", "glucose 50%", "d25", "25 dextrose", "25% dextrose", "dextrose 25", "50% dextrose", "d50", "iv glucose"], classes: ["glucose"], route: "IV", dose: "100 mL", frequency: "stat" },
+  { id: "dextrose-25", generic: "25% dextrose", brands: ["D25"], aliases: ["20% glucose", "glucose 20%", "20% dextrose", "d20", "50% glucose", "dextrose 50%", "glucose 50%", "d25", "25 dextrose", "25% dextrose", "dextrose 25", "dextrose 25%", "50% dextrose", "d50", "iv glucose"], classes: ["glucose"], route: "IV", dose: "100 mL", frequency: "stat" },
   { id: "glucagon", generic: "Glucagon", brands: ["GlucaGen"], classes: ["glucose"], route: "IM", dose: "1 mg", frequency: "stat" },
   { id: "potassium-chloride", generic: "Potassium chloride", brands: ["KCl"], aliases: ["potassium chloride", "kcl", "potassium supplement"], classes: ["electrolyte"], route: "IV", dose: "20 mEq", frequency: "over 2 h" },
   { id: "calcium-gluconate", generic: "Calcium gluconate 10%", brands: ["Calcium gluconate"], aliases: ["calcium gluconate"], classes: ["electrolyte", "calcium"], route: "IV", dose: "10 mL", frequency: "over 10 min" },
@@ -295,9 +295,9 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "ns", generic: "0.9% sodium chloride", brands: ["Normal saline"], aliases: ["ns", "normal saline", "saline", "0 9 saline", "0 9 normal saline", "nacl", "iv ns", "iv saline"], classes: ["fluid", "crystalloid"], route: "IV", dose: "500 mL", frequency: "bolus", fluid: true },
   { id: "rl", generic: "Ringer lactate", brands: ["Ringer lactate"], aliases: ["lactated ringer", "lactated ringers", "lactated ringer s", "lr", "hartmann s", "compound sodium lactate", "rl", "ringer lactate", "ringers lactate", "ringer s lactate", "ringers", "hartmann", "hartmanns", "iv rl"], classes: ["fluid", "crystalloid"], route: "IV", dose: "500 mL", frequency: "bolus", fluid: true },
   { id: "dns", generic: "Dextrose 5% in 0.9% saline", brands: ["DNS"], aliases: ["dns", "dextrose normal saline"], classes: ["fluid", "crystalloid"], route: "IV", dose: "500 mL", frequency: "over 6 h", fluid: true },
-  { id: "d10", generic: "10% dextrose", brands: ["D10"], aliases: ["10% glucose", "glucose 10%", "10% glucose infusion", "d10", "10 dextrose", "10% dextrose", "dextrose 10", "carbohydrate loading", "glucose infusion"], classes: ["fluid", "crystalloid", "glucose"], route: "IV", dose: "1000 mL", frequency: "over 8 h", fluid: true },
+  { id: "d10", generic: "10% dextrose", brands: ["D10"], aliases: ["10% glucose", "glucose 10%", "10% glucose infusion", "d10", "10 dextrose", "10% dextrose", "dextrose 10", "dextrose 10%", "iv dextrose 10%", "carbohydrate loading", "glucose infusion"], classes: ["fluid", "crystalloid", "glucose"], route: "IV", dose: "1000 mL", frequency: "over 8 h", fluid: true },
   { id: "hypertonic-saline", generic: "3% sodium chloride", brands: ["3% NaCl"], aliases: ["3% saline", "3 saline", "hypertonic saline", "3% nacl", "hts"], classes: ["fluid", "electrolyte"], route: "IV", dose: "100 mL", frequency: "over 10 min", fluid: true },
-  { id: "d5", generic: "5% dextrose", brands: ["D5"], aliases: ["d5", "d5w", "5 dextrose", "5% dextrose", "dextrose 5"], classes: ["fluid", "crystalloid"], route: "IV", dose: "500 mL", frequency: "over 6 h", fluid: true },
+  { id: "d5", generic: "5% dextrose", brands: ["D5"], aliases: ["d5", "d5w", "5 dextrose", "5% dextrose", "dextrose 5", "dextrose 5%"], classes: ["fluid", "crystalloid"], route: "IV", dose: "500 mL", frequency: "over 6 h", fluid: true },
   { id: "albumin", generic: "Human albumin 20%", brands: ["Albumed"], aliases: ["albumin", "human albumin"], classes: ["fluid", "colloid"], route: "IV", dose: "100 mL", frequency: "over 1 h", fluid: true },
   { id: "prbc", generic: "Packed red blood cells", brands: ["PRBC"], aliases: ["prbc", "packed red cells", "packed cells", "blood transfusion", "transfuse blood", "transfusion", "whole blood", "unit of blood"], classes: ["blood-product", "fluid"], route: "IV", dose: "1 unit", frequency: "over 3 h", fluid: true },
   { id: "platelet-transfusion", generic: "Platelet concentrate", brands: ["RDP", "SDP"], aliases: ["platelet transfusion", "random donor platelets", "single donor platelets", "rdp", "sdp", "transfuse platelets"], classes: ["blood-product"], route: "IV", dose: "1 unit SDP", frequency: "stat" },
@@ -347,7 +347,9 @@ export function drugMatchPhrases(drug: FormularyDrug): string[] {
   const phrases = new Set<string>();
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9%+ ]+/g, " ").replace(/\s+/g, " ").trim();
   phrases.add(norm(drug.generic.split(/[(,]/)[0] ?? drug.generic));
-  phrases.add(norm(drug.generic.replace(/\s[\d.]+%.*$/, "")));
+  // The name without its strength ("Betamethasone" from "Betamethasone 0.1%") — not for fluids, where the strength is the drug
+  // ("Dextrose 5% in saline" isn't plain "dextrose").
+  if (!drug.fluid) phrases.add(norm(drug.generic.replace(/\s[\d.]+%.*$/, "")));
   for (const a of drug.aliases ?? []) phrases.add(norm(a));
   for (const b of drug.brands) {
     phrases.add(norm(b));
@@ -398,7 +400,8 @@ export function wordToNumber(token: string): number | undefined {
 
 /** Extracts dose, route, frequency, duration and fluid volume from an order. */
 export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}): ParsedDose {
-  const t = ` ${text.toLowerCase()} `;
+  // A number glued to letters is part of a name ("d10", "d25", "b12", "ns1"), not an amount.
+  const t = ` ${text.toLowerCase()} `.replace(/\b([a-z]+)\d+\b/g, (w) => w.replace(/\d/g, "§"));
   const out: ParsedDose = {};
 
   // Fluid volume: litres, millilitres, ml/kg, pints.
@@ -440,7 +443,8 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     const unit = dose[2].replace(/^(gm|grams?)$/, "g").replace(/^(ug|µg)$/, "mcg").replace(/^u$/, "units").replace(/^unit$/, "units").replace(/^vial$/, "vials");
     out.amount = parseFloat(dose[1].replace(",", ""));
     out.unit = unit;
-    out.text = `${dose[1].replace(",", "")} ${unit}`;
+    const n = parseFloat(dose[1].replace(",", ""));
+    out.text = `${dose[1].replace(",", "")} ${n === 1 && /s$/.test(unit) && unit !== "units" ? unit : n === 1 && unit === "units" ? "unit" : unit}`;
   } else if (count?.[1] && count[2]) {
     const n = wordToNumber(count[1]) ?? 1;
     const unit = count[2].replace(/^tabs?$|^tablets$/, "tablet").replace(/^caps?$|^capsules$/, "capsule").replace(/s$/, "").replace(/^amp$/, "ampoule");

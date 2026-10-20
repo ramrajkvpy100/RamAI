@@ -228,7 +228,10 @@ function examCandidates(rawClause: string, tk: string[], ctx: IntentContext, req
     if (requireVerb && !verb) break;
     // A case's own version of a catalogue exam answers to the catalogue's phrases as well as its own
     // ("examine the patient" still means the general examination when the case writes that one itself).
-    const phrases = [...new Set([...e.match, ...(EXAMS.find((c) => c.id === e.id)?.match ?? [])])];
+    // "Vitals" and "vital signs" are the measured vital signs — never a case's examination that happens to mention them.
+    // With "BP" alongside, "pulse" is the vital sign — not the peripheral pulse examination.
+    const withBp = /\b(bp|blood pressure)\b/i.test(rawClause);
+    const phrases = [...new Set([...e.match, ...(EXAMS.find((c) => c.id === e.id)?.match ?? [])])].filter((p) => !/\bvitals?\b|\bvital signs\b/i.test(p) && !(withBp && /^(?:check )?(?:the )?pulses?$/i.test(p)));
     for (const hit of allHits(tk, phrases)) {
       out.push({ hit, priority: 4, intent: { kind: "exam", targetId: e.id, phrase: rawClause, matched: true } });
     }
@@ -350,7 +353,7 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
     // Salt is food, not a drug: only an order to eat an amount of it ("eat 50 g of salt") is an order; "low salt diet" is advice.
     if (drug.id === "table-salt" && !(details.amount !== undefined && /\b(eat|give|take|swallow|feed|have|consume|drink|mix|add|lick)\b/.test(lower))) return;
     // A brand that names its strength ("Dolo 650") is a dose.
-    if (details.amount === undefined && /\d/.test(hit.phrase) && drug.brands.some((b) => b.toLowerCase().includes(hit.phrase))) {
+    if (details.amount === undefined && !drug.fluid && /\d/.test(hit.phrase) && drug.brands.some((b) => b.toLowerCase().includes(hit.phrase))) {
       const n = hit.phrase.match(/(\d+(?:\.\d+)?)/)?.[1];
       const unit = drug.dose?.match(/^[\d.,]+\s*([a-zµ]+)/i)?.[1];
       if (n && unit) {
@@ -632,6 +635,11 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   // "Call cardiology", "surgery consult", "ortho opinion": another department's view.
   const consult = consultDepartment(raw);
   if (consult !== null) return [{ kind: "consult", targetId: consult || undefined, phrase: raw, matched: true }];
+  // "Currently taking any tab?", "on any medicines?": a question about their medicines — never an order (no dose, no drug named).
+  if (/\b(currently|presently|regularly|already|any|are you|is (?:he|she)|r u|do you|does (?:he|she)|taking|on)\b/i.test(raw) && /\b(tab|tabs|tablets?|medicines?|medications?|meds|drugs?|pills?|treatment)\b/i.test(raw) && !/\d/.test(raw) && !/\b(give|start|inj|prescribe|stop|hold)\b/i.test(raw) && !/\ballerg/i.test(raw)) {
+    const meds = ctx.def.history.find((h) => h.group === "medication");
+    return [{ kind: "history", targetId: meds?.id ?? "fallback:open", phrase: raw, matched: !!meds }];
+  }
   const clauses = splitClauses(raw);
   const out: ResolvedIntent[] = [];
   for (const clause of clauses) out.push(...resolveClause(clause, ctx));

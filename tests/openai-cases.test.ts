@@ -90,7 +90,7 @@ describe("AI-invented patients", () => {
 
   it("invents the patient in an outline and three parts, and plays it with the backend's rules", async () => {
     const prompts = fakeOpenAI();
-    const start = await simulateCase({ userId: "gen-1", caseNumber: 1, easy: true, level: "chc", allowedLevels: ["phc", "chc"] }); // A CHC has an X-ray machine; a PHC does not.
+    const start = await simulateCase({ userId: "gen-1", caseNumber: 1, specialty: "Medicine", easy: true, level: "chc", allowedLevels: ["phc", "chc"] }); // A CHC has an X-ray machine; a PHC does not.
     expect(sessionInfo(start.token).generated).toBe(true);
     expect(start.state.patient).toMatchObject({ age: 34, sex: "Male" });
     expect(prompts.filter((p) => p.includes("Outline one case"))).toHaveLength(1);
@@ -109,7 +109,7 @@ describe("AI-invented patients", () => {
 
   it("writes the teaching, and the debrief uses it — the same after reopening", async () => {
     fakeOpenAI();
-    const start = await simulateCase({ userId: "gen-2", caseNumber: 1 });
+    const start = await simulateCase({ userId: "gen-2", caseNumber: 1, specialty: "Medicine" });
     const pack = await teachingFor(start.token, "gen-2");
     expect(pack?.teaching.pearl).toMatch(/clinical diagnosis/);
     const closed = await submitDoctorAction(start.token, "Diagnosis: pneumonia. End case", "gen-2", "en", pack);
@@ -129,7 +129,7 @@ describe("AI-invented patients", () => {
 
   it("what the senior review finds is sent back to be corrected — the case is repaired, then used", async () => {
     const prompts = fakeOpenAI({ rejectCase: true });
-    const start = await simulateCase({ userId: "gen-4", caseNumber: 5 });
+    const start = await simulateCase({ userId: "gen-4", caseNumber: 5, specialty: "Medicine" });
     expect(prompts.some((p) => p.includes("A senior consultant read the whole case and found these problems") && p.includes("left lower lobe"))).toBe(true);
     expect(sessionInfo(start.token).generated).toBe(true);
   });

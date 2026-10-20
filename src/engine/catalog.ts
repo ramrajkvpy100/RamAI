@@ -302,6 +302,18 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
     }),
   },
   {
+    id: "rf", name: "Rheumatoid factor", short: "RF", category: "lab", menu: "Blood",
+    turnaroundMin: 60, cost: 450,
+    match: ["rf", "ra factor", "rheumatoid factor", "ra test", "r a factor"],
+    normal: () => ({ rows: [row("Rheumatoid factor", "8", "IU/mL", "< 14")] }),
+  },
+  {
+    id: "anti-ccp", name: "Anti-CCP antibodies", short: "Anti-CCP", category: "lab", menu: "Blood",
+    turnaroundMin: 240, cost: 1400,
+    match: ["anti ccp", "anti-ccp", "ccp antibody", "acpa", "anti cyclic citrullinated peptide"],
+    normal: () => ({ rows: [row("Anti-CCP", "4", "U/mL", "< 17")] }),
+  },
+  {
     id: "crp", name: "C-reactive protein", short: "CRP", category: "lab", menu: "Blood",
     turnaroundMin: 30, cost: 450,
     match: ["crp", "c reactive protein", "c-reactive protein", "hs crp"],
