@@ -187,6 +187,8 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
   }
   const best = matchHistory(tk, ctx.def)[0];
   if (best) return [{ kind: "history", targetId: best.id, phrase: rawClause, matched: true }];
+  // "H/o fever", "history of TB": a history question even when the case doesn't list that topic — the patient answers.
+  if (/^\s*history of\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:yesno", phrase: rawClause, matched: false }];
 
   for (const id of IDENTITY) {
     if (!hasAny(tk, id.phrases)) continue;
@@ -636,9 +638,14 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   const consult = consultDepartment(raw);
   if (consult !== null) return [{ kind: "consult", targetId: consult || undefined, phrase: raw, matched: true }];
   // "Currently taking any tab?", "on any medicines?": a question about their medicines — never an order (no dose, no drug named).
-  if (/\b(currently|presently|regularly|already|any|are you|is (?:he|she)|r u|do you|does (?:he|she)|taking|on)\b/i.test(raw) && /\b(tab|tabs|tablets?|medicines?|medications?|meds|drugs?|pills?|treatment)\b/i.test(raw) && !/\d/.test(raw) && !/\b(give|start|inj|prescribe|stop|hold)\b/i.test(raw) && !/\ballerg/i.test(raw)) {
+  const plain = normalise(raw);
+  if (/\b(currently|presently|regularly|already|any|are you|is (?:he|she)|r u|do you|does (?:he|she)|taking|on)\b/i.test(plain) && /\b(tab|tabs|tablets?|medicines?|medications?|meds|drugs?|pills?|treatment)\b/i.test(plain) && !/\d/.test(plain) && !/\b(give|start|inj|prescribe|stop|hold)\b/i.test(plain) && !/\ballerg/i.test(plain)) {
     const meds = ctx.def.history.find((h) => h.group === "medication");
     return [{ kind: "history", targetId: meds?.id ?? "fallback:open", phrase: raw, matched: !!meds }];
+  }
+  // "Order all tests", "do every investigation": the lab needs to know which — and a scattergun costs the family.
+  if (/\b(?:all|every) (?:the |possible |available )?(?:tests|investigations|labs|bloods|blood tests)\b|\b(?:order|do|send) everything\b|\bfull work ?up\b/i.test(plain)) {
+    return [{ kind: "investigation", targetId: "blood", phrase: raw, matched: true, payload: { everything: true } }];
   }
   const clauses = splitClauses(raw);
   const out: ResolvedIntent[] = [];

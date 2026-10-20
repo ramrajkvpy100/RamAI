@@ -516,6 +516,7 @@ const GRAVE: Record<string, (them: string) => string> = {
   "insulin-overdose-iv": (them) => `That's a very big insulin dose — it could drop ${them} sugar dangerously.`,
   "insulin-overdose-sc": (them) => `That's a very big insulin dose — it could drop ${them} sugar dangerously.`,
   "sedative-overdose": () => "That dose could stop the breathing.",
+  "opioid-respiratory-depression": () => "That much opioid could stop the breathing.",
   "cardiodepressant-overdose": () => "That dose could drop the heart rate and pressure dangerously.",
   "drug-toxicity": () => "That's far above the usual dose.",
   "drug-toxicity-severe": () => "That's many times the usual dose.",

@@ -302,6 +302,12 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
     }),
   },
   {
+    id: "pet-ct", name: "PET-CT scan", short: "PET-CT", category: "imaging", menu: "Imaging",
+    turnaroundMin: 240, cost: 22000,
+    match: ["pet scan", "pet ct", "pet-ct", "petct", "fdg pet", "pet"],
+    normal: () => ({ report: "Whole-body FDG PET-CT: no abnormal FDG-avid lesion." }),
+  },
+  {
     id: "rf", name: "Rheumatoid factor", short: "RF", category: "lab", menu: "Blood",
     turnaroundMin: 60, cost: 450,
     match: ["rf", "ra factor", "rheumatoid factor", "ra test", "r a factor"],

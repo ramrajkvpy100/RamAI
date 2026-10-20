@@ -6,6 +6,33 @@
  * so that matching is deterministic (required for session replay).
  */
 
+/** Common misspellings and everyday Hindi/Hinglish clinic words, read as the English the rules know. */
+const EVERYDAY: [RegExp, string][] = [
+  [/\bfe+v[ae]?r\b|\bfevr\b|\bfvr\b/g, " fever "],
+  [/\bvomit+i?ng\b|\bvomitng\b|\bvommiting\b/g, " vomiting "],
+  [/\bcoff\b|\bcaugh\b/g, " cough "],
+  [/\bheadach\b|\bhedache\b/g, " headache "],
+  [/\bdiarr?h?o?e?a\b|\bdiarhea\b|\bloose stools?\b/g, " diarrhoea "],
+  [/\bbreathlesness\b|\bbreathlessnes\b/g, " breathlessness "],
+  [/\bbukhar\b|\bbukhaar\b|\btaap\b/g, " fever "],
+  [/\bkhansi\b|\bkhaansi\b/g, " cough "],
+  [/\bulti\b|\bulti yan?\b/g, " vomiting "],
+  [/\bdast\b|\bpatle dast\b|\bloose motions?\b/g, " diarrhoea "],
+  [/\bdard\b/g, " pain "],
+  [/\bsaans\b|\bsans\b/g, " breathing "],
+  [/\bpeshab\b|\bpishab\b/g, " urine "],
+  [/\bkhoon\b/g, " blood "],
+  [/\bdawai\b|\bdawaai\b|\bdawa\b|\bgoli\b|\bgoliyan\b/g, " medicines "],
+  [/\bkab se\b/g, " since when "],
+  [/\bkahan\b|\bkaha\b/g, " where "],
+  [/\bkitne din\b|\bkitne dino se\b/g, " how many days "],
+  [/\bkoi\b/g, " any "],
+  [/\bpain where\b|\bwhere pain\b/g, " where is the pain "],
+  // Hindi sentence endings and particles carry no clinical meaning.
+  [/\s(?:hai|hain|he|ho|kya|na|ji|bhai|aap|aapko|tumko|tum|ko)(?=\s)/g, " "],
+  [/\blete ho\b|\ble rahe ho\b|\bkhate ho\b|\bkhaate ho\b/g, " taking "],
+];
+
 const ABBREVIATIONS: [RegExp, string][] = [
   [/\bk\s*\/\s*c\s*\/\s*o\b/g, " known case of "],
   [/\bh\s*\/\s*o\b/g, " history of "],
@@ -61,6 +88,7 @@ export function normalise(input: string): string {
   s = s.replace(/[’‘`´]/g, "'");
   s = s.replace(/₂/g, "2").replace(/µ/g, "u");
   for (const [re, rep] of ABBREVIATIONS) s = s.replace(re, rep);
+  for (const [re, rep] of EVERYDAY) s = s.replace(re, rep);
   s = s.replace(GLUED_UNIT, "$1 $2");
   s = s.replace(/'s\b/g, "s");
   s = s.replace(/'/g, "");

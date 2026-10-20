@@ -1607,7 +1607,8 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   // "Send bloods": which ones?
   if (requested === "blood") {
     if (def.track === "phone") return [];
-    return askAbout(ctx, { kind: "investigation", targetId: "blood", payload, phrase: intent.phrase, needs: ["tests"] }, `Which blood tests${askerRole(ctx, "test") === "system" ? "" : ", doctor"}?`, "test");
+    const question = payload.everything ? `Which tests, doctor? Ordering everything costs the family and hides what matters — name the ones you need.` : `Which blood tests${askerRole(ctx, "test") === "system" ? "" : ", doctor"}?`;
+    return askAbout(ctx, { kind: "investigation", targetId: "blood", payload, phrase: intent.phrase, needs: ["tests"] }, question, "test");
   }
   // "Show me the X-ray" — the last study of that kind.
   if (GENERIC_STUDY.has(requested) && payload.reshow) {
@@ -1749,7 +1750,16 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
 }
 
 /** The patient's own reason this drug is dangerous, as the nurse would say it — or null. */
-function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, rbs: number, dose?: { amount?: number; unit?: string }): string | null {
+/** The fastest a drug may safely go into a vein, in mg a minute. */
+const MAX_IV_RATE: Record<string, { mgPerMin: number; why: string }> = {
+  phenytoin: { mgPerMin: 50, why: "Phenytoin faster than 50 mg a minute can stop the heart." },
+  fosphenytoin: { mgPerMin: 150, why: "Fosphenytoin faster than 150 mg PE a minute can stop the heart." },
+  vancomycin: { mgPerMin: 10, why: "Vancomycin that fast causes red-man syndrome and low blood pressure — it goes over at least an hour." },
+  "magnesium-sulfate": { mgPerMin: 1000, why: "Magnesium that fast can stop the breathing and the heart." },
+  amiodarone: { mgPerMin: 30, why: "Amiodarone that fast drops the pressure — it goes over 20–60 minutes." },
+};
+
+function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, rbs: number, dose?: { amount?: number; unit?: string; multiple?: number; overMin?: number; route?: string; mode?: string }): string | null {
   const them = def.patient.sex === "Female" ? "She" : def.patient.sex === "Male" ? "He" : "They";
   const is = them === "They" ? "are" : "is";
   // An allergy the doctor asked about is on the chart, so the nurse knows it; one never asked about, nobody knows — as at a real bedside.
@@ -1762,6 +1772,18 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   if (allergies.some((a) => a.includes("penicillin")) && drug.classes.includes("cephalosporin")) return `${them} ${is} allergic to penicillin — a cephalosporin can cross-react.`;
   if (allergies.some((a) => a.includes("sulfa") || a.includes("sulpha")) && /sulfa|sulpha|cotrimoxazole/.test(name)) return `${them} ${is} allergic to sulfa drugs.`;
   if (drug.classes.includes("insulin") && rbs < 90) return `The sugar is ${Math.round(rbs)} mg/dL — insulin now could drop it dangerously.`;
+  // Too fast into a vein.
+  const rate = MAX_IV_RATE[drug.id];
+  if (rate && dose?.route === "IV" && dose.amount !== undefined) {
+    const mg = dose.unit === "g" ? dose.amount * 1000 : dose.unit === "mg" ? dose.amount : undefined;
+    const over = dose.overMin ?? 1;
+    if (mg !== undefined && mg / over > rate.mgPerMin) return rate.why;
+  }
+  // Well above the usual dose (a gross overdose is a hazard of its own, queried above): the nurse checks.
+  // (Not where high doses are a regimen — pulse steroids — nor where the drug's own hazards judge the dose: fluids, insulin,
+  // opioids, sedatives, potassium, salt.)
+  const ownRules = ["fluid", "crystalloid", "colloid", "blood-product", "insulin", "opioid", "benzodiazepine", "corticosteroid", "steroid", "steroid-systemic", "immunosuppressant", "vasopressor", "glucose", "vaccine"];
+  if (dose?.multiple !== undefined && dose.multiple >= 3 && !drug.fluid && !drug.classes.some((c) => ownRules.includes(c)) && !["table-salt", "potassium-chloride", "methotrexate"].includes(drug.id)) return `That's about ${Math.round(dose.multiple)} times the usual dose.`;
   // A child: the dose for their weight.
   if (def.patient.age < 16) {
     const kg = parseFloat(vitalsNow(hidden).weight.value) || 0;
@@ -1840,10 +1862,10 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   if (rateMlH) dose = `${dose ?? ""} at ${rateMlH} mL/h`.trim();
 
   // An order that could kill is queried once by the nurse, before it goes in — what it would do is worked
-  // out on a copy of the case, and only if the doctor says so again does it happen. (Not in the guided
-  // demo, nor on the phone: no nurse there.)
+  // out on a copy of the case, and only if the doctor says so again does it happen.
+  // A prescription is checked too — the pharmacist would query it. (Not on the phone: no nurse or pharmacist there.)
   const challenge =
-    mode === "given" && !def.guided && def.track !== "phone" && p.confirmed !== true && !ctx.challenged.includes(drug.id) && !SURE_RE.test(ctx.record.raw)
+    def.track !== "phone" && p.confirmed !== true && !ctx.challenged.includes(drug.id) && !SURE_RE.test(ctx.record.raw)
       ? structuredClone(hidden)
       : undefined;
 
@@ -1924,19 +1946,19 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
   const grave = graveHazards(triggered);
   // What the nurse knows about this patient that makes the order dangerous: an allergy to it (or its family), insulin for a low sugar.
-  const contextual = challenge ? contextualRisk(def, hidden, drug, snap.rbs, { amount, unit }) : null;
+  const contextual = challenge ? contextualRisk(def, hidden, drug, snap.rbs, { amount, unit, multiple, overMin, route, mode }) : null;
   if (challenge && contextual && grave.length === 0) {
     for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
     Object.assign(hidden, challenge);
     const what = `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}`;
-    const question = `Doctor — ${what}? ${contextual} Do you still want it given?`;
+    const question = `Doctor — ${what}? ${contextual} Do you still want it ${mode === "prescribed" ? "prescribed" : "given"}?`;
     return askAbout(ctx, { kind: "confirm", targetId: drug.id, payload: { ...p, mode, question }, phrase: intent.phrase, needs: [] }, question, mode);
   }
   if (challenge && grave.length > 0) {
     for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
     Object.assign(hidden, challenge);
     const what = `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}${overMin && route === "IV" && !rateMlH ? ` over ${describeSpan(overMin)}` : ""}`;
-    const question = confirmQuestion(what, grave, def.patient.sex);
+    const question = confirmQuestion(what, grave, def.patient.sex).replace(/given\?$/, mode === "prescribed" ? "prescribed?" : "given?");
     return askAbout(ctx, { kind: "confirm", targetId: drug.id, payload: { ...p, mode, question }, phrase: intent.phrase, needs: [] }, question, mode);
   }
   // Fluid overload starts when the infusion crosses into it, not when the bag is hung.
