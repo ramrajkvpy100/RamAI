@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { isScraper } from "@/lib/server/scrapers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { ACCESS_COOKIE, inviteOnly, validAccessCookie } from "@/lib/server/access-cookie";
@@ -61,6 +62,9 @@ export async function proxy(request: NextRequest) {
     "frame-ancestors 'none'",
     ...(https ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
+
+  // Scrapers and AI crawlers get nothing but robots.txt (which tells them so).
+  if (isScraper(request.headers.get("user-agent")) && request.nextUrl.pathname !== "/robots.txt") return new NextResponse("Not available.", { status: 403 });
 
   // One site only: an old deployment's own address (ram-ai-<id>.vercel.app) sends the visitor to the live site.
   const live = process.env.RAMAI_SITE_HOST ?? "ram-ai-liard.vercel.app";

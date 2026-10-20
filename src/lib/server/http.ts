@@ -1,6 +1,8 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
+
+import { isScraper } from "./scrapers";
 import type { z } from "zod";
 
 import { EngineError } from "@/engine/engine";
@@ -100,7 +102,9 @@ export const clientIp = (req: Request) => req.headers.get("x-forwarded-for")?.sp
  * playing a case never uses up sign-up attempts, and reading a list never
  * uses up sending to it.
  */
+
 export function rateLimited(req: Request, limit = 90, windowMs = 60_000): Response | null {
+  if (isScraper(req.headers.get("user-agent"))) return apiError(403, "FORBIDDEN", "Not available.");
   const ip = clientIp(req);
   const key = `${req.method} ${new URL(req.url).pathname} ${ip}`;
   const now = Date.now();

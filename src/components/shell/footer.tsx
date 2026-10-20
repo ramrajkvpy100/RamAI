@@ -10,7 +10,7 @@ export function Footer() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Wordmark tile={false} className="text-fg-2" />
-            <span>Clinical simulation for education. Cases are fictional — not medical advice.</span>
+            <span>Clinical simulation for education. Cases are fictional — not medical advice. © {new Date().getFullYear()} RamAI. All rights reserved; cases, questions and teaching may not be copied or scraped.</span>
           </div>
           <span className="flex items-center gap-5">
             <Link href="/community" className="hover:text-fg">

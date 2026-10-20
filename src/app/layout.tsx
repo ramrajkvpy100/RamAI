@@ -1,6 +1,7 @@
 import { RefCapture } from "@/components/app/ref-capture";
 import type { Metadata, Viewport } from "next";
 import { VersionCheck } from "@/components/app/version-check";
+import { CopyGuard } from "@/components/app/copy-guard";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 
@@ -54,6 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <StartingOverlay />
         <ServiceWorker />
         <VersionCheck />
+        <CopyGuard />
         <QuickSuggest />
       </body>
     </html>

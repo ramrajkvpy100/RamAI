@@ -554,3 +554,26 @@ html,
 body {
   overflow-x: clip;
 }
+
+/* Copy deterrents: RamAI's cases, questions and pictures can't be selected, dragged out or saved with a right-click.
+   Anything you type stays fully selectable. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input,
+textarea,
+select,
+[contenteditable="true"],
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+img,
+canvas,
+video,
+svg {
+  -webkit-user-drag: none;
+}

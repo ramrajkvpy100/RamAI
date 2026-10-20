@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { withUsage } from "@/engine/providers/usage";
 import { userOrGuest } from "@/server/auth";
+import { overLimit } from "@/server/rate-limit";
 import { ExamError, nextSet, writeSet } from "@/server/exam-practice";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { EXAM_IDS, EXAMS, MIXED, type ExamId } from "@/lib/exams";
@@ -24,6 +25,8 @@ export async function POST(req: Request) {
   if (body.subject !== MIXED && !exam.subjects.includes(body.subject)) return apiError(400, "BAD_REQUEST", "Pick one of the exam's subjects.");
   try {
     const user = await userOrGuest(exam.country);
+    // Plenty for real study; stops anyone downloading the whole question bank.
+    if (await overLimit(`exam-sets:${user.id}`, 40, 86_400_000)) return apiError(429, "RATE_LIMITED", "That's 40 sets today — well done. More tomorrow.");
     const { set, another } = await withUsage({ kind: "exams" }, () => nextSet(user, body.exam, body.subject, body.style));
     // The next set is written while they answer this one, so "Next set" is instant.
     if (!another) after(() => withUsage({ kind: "exams" }, () => writeSet(body.exam, body.subject, body.style).then(() => undefined).catch(() => undefined)));
