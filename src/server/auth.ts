@@ -427,6 +427,9 @@ export async function requireUser(): Promise<User> {
  * sign-up. Route handlers only.
  */
 export async function userOrGuest(country?: Country): Promise<User> {
+  // Invite-only: no guests are made — only invited, signed-in doctors play.
+  const { inviteOnly } = await import("@/lib/server/access-cookie");
+  if (inviteOnly()) return requireUser();
   const user = await getCurrentUser();
   if (user) return user;
   const guest = await createGuest(country);

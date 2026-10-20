@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { withUsage } from "@/engine/providers/usage";
+import { requireUser } from "@/server/auth";
 
 import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -30,6 +31,8 @@ export async function POST(req: Request) {
   const body = await parseBody(req, Request);
   if (body instanceof Response) return body;
   try {
+    // Invited, signed-in doctors only (the pictures and their answers are RamAI's).
+    await requireUser();
     // Mammography, MRI, contrast studies, nuclear medicine: the images kept with the site, and their own cases.
     if ((EXTRA as string[]).includes(body.modality)) {
       const pool = EXTRA_ITEMS.filter((x) => x.modality === body.modality);

@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { withUsage } from "@/engine/providers/usage";
+import { requireUser } from "@/server/auth";
 import { aiAnswering } from "@/server/ai-health";
 import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -21,6 +22,8 @@ export async function POST(req: Request) {
   const body = await parseBody(req, RoundRequest);
   if (body instanceof Response) return body;
   try {
+    // Invited, signed-in doctors only (the pictures and their answers are RamAI's).
+    await requireUser();
     let r: Awaited<ReturnType<typeof round>> & { offline?: boolean } = await round(body.modality, body.mode, body.level);
     // Nothing kept yet for this modality: find the first few now (the progress bar covers it).
     if (r.ready < 4 && picturesAvailable()) {
