@@ -48,7 +48,7 @@ export function CaseTopBar({
         </Link>
         {/* Who the patient is and why they came — large enough to read at a glance. (The case number is in the tooltip.) */}
         <div className="flex min-w-0 flex-1 flex-col leading-tight" title={`${caseLabel(state.caseNumber)} · ${trackLabel(state.track, state.country)} · ${levelMeta(state.level, state.country).short}`}>
-          <span className="line-clamp-2 text-[14px] font-semibold text-fg sm:text-[15px]">
+          <span className="line-clamp-2 text-[15px] leading-snug font-semibold text-fg">
             <span className="text-accent-text">{state.patient.age}{state.patient.sex === "Male" ? " M" : state.patient.sex === "Female" ? " F" : ""}</span>
             {" · "}
             {complaintOf(state) || trackLabel(state.track, state.country)}
@@ -58,7 +58,7 @@ export function CaseTopBar({
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 text-[12.5px]">
+        <div className={cn("shrink-0 items-center gap-2 text-[12.5px]", complete ? "hidden sm:flex" : "flex")}>
           {complete && (
             <>
               <span className="font-medium text-fg">Complete</span>
@@ -165,6 +165,13 @@ function complaintOf(state: CaseState): string {
     .replace(/^(?:i|she|he|they|my \w+|the baby|baby)(?:'ve|'s| have| has| had)\s+(?:been\s+)?(?:(?:had|having|got|getting)\s+)?(?:a |an |some )?/i, "")
     .replace(/[.!]+$/, "")
     .trim();
+  // One clause, whole — never cut mid-word: "A snake bit him in the paddy field, about an hour ago" → "A snake bit him in the paddy field".
+  const cuts = [/,/, /;/, / — /, / - /, /\s+about\b/i, /\s+around\b/i, /\s+and\b/i, /\s+but\b/i, /\s+which\b/i]
+    .map((re) => text.search(re))
+    .filter((i) => i >= 12)
+    .sort((a, b) => a - b);
+  if (cuts.length && text.length > 34) text = text.slice(0, cuts[0]);
+  if (text.length > 48) text = text.slice(0, text.lastIndexOf(" ", 48)).replace(/\s+(of|in|on|at|for|the|a|an|to|with|from|my|his|her|since|after|before|this)$/i, "");
   if (text) text = text[0]!.toUpperCase() + text.slice(1);
-  return text.length > 80 ? `${text.slice(0, 78).trimEnd()}…` : text;
+  return text;
 }
