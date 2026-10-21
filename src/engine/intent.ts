@@ -210,6 +210,8 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
     }
   }
   if (best) return [{ kind: "history", targetId: best.id, phrase: rawClause, matched: true }];
+  // "Fever since when?" and nothing in the case speaks of fever: they haven't had it.
+  if (symptom && /\b(since when|how long|how many days|when did)\b/.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:yesno", phrase: rawClause, matched: false }];
   // "H/o fever", "history of TB": a history question even when the case doesn't list that topic — the patient answers.
   // "Family history?", "travel history", "any contact with TB?" — the same, by topic.
   if (/^\s*history of\b/i.test(normalise(rawClause)) || /^(?:any |what is (?:the |your |his |her )?|tell me (?:the |your |about )?)?(?:family|travel|contact|surgical|operation|blood transfusion|transfusion|immuni[sz]ation|vaccination|birth|developmental|personal|addiction|sexual|occupational|drug|treatment) history(?: of)?\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:yesno", phrase: rawClause, matched: false }];

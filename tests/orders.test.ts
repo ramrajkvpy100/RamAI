@@ -473,3 +473,17 @@ describe("Random erratic-doctor audit, round eight", () => {
     expect(said(play(emViperPhc, ["how are you feeling"]).turns)).not.toMatch(/A little better/);
   });
 });
+
+describe("Random erratic-doctor audit, round nine", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("no vaginal examination in a man", () => {
+    expect(said(play(surgAppendicitis, ["pv exam"]).turns)).toMatch(/no vaginal examination to do/);
+  });
+  it("a phone 'discharge' is the family looking after them at home", () => {
+    const phone = ALL_PHONE[0];
+    if (!phone) return;
+    const text = said(play(phone, ["discharge"]).turns);
+    expect(text).toMatch(/look after them at home/);
+    expect(text).not.toMatch(/Discharged home/);
+  });
+});

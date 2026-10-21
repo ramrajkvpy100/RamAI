@@ -1152,6 +1152,10 @@ function handleVitals(ctx: TurnContext, keysIn: VitalKey[], announce = true): Tu
 function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
+  // A vaginal examination asked for in a man: there's none to do.
+  if (def.track !== "phone" && def.patient.sex === "Male" && /\b(p\s*\/?\s*v|per vagin\w*|vaginal)\b/i.test(intent.phrase)) {
+    return [{ type: "message", role: "nurse", kind: "speech", text: `Doctor, he's a ${def.patient.age < 15 ? "boy" : "man"} — there's no vaginal examination to do. Do you mean the genital or rectal examination?` }];
+  }
   if (def.track === "phone") {
     if (!ctx.notices.includes("no-exam")) {
       ctx.notices.push("no-exam");
@@ -2167,7 +2171,8 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
     if (question) return askAbout(ctx, { kind: "confirm", targetId: rule.id, payload: { question }, phrase: intent?.phrase ?? rule.label, needs: [] }, question, "given");
   }
   // Oxygen without a device or flow is asked about before anything is done.
-  if (rule.measureIds?.includes("oxygen") && intent) {
+  // (Not when the order is to intubate or ventilate — that's no question of nasal prongs or a mask.)
+  if (rule.measureIds?.includes("oxygen") && intent && !/\b(intubat\w*|ventilat\w*|rsi|et tube|endotracheal)\b/i.test(intent.phrase)) {
     const asked = askOxygen(ctx, intent, rule.id);
     if (asked) return asked;
   }
@@ -2293,6 +2298,10 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
   }
   // On the phone the patient is at home: hospital care means coming in.
   if (ctx.def.track === "phone") {
+    if (m.id === "discharge") {
+      record(hidden, "measure:discharge");
+      return [{ type: "message", role: "attendant", kind: "speech", text: "Okay, doctor — we'll look after them at home." }];
+    }
     if (m.id === "admit") {
       record(hidden, "measure:admit");
       return [{ type: "message", role: "attendant", kind: "speech", text: "Okay, doctor — we'll bring them to the hospital now." }];

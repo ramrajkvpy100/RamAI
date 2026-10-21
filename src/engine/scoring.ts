@@ -357,8 +357,14 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
   /* Efficiency ----------------------------------------------------------- */
   {
     const ratio = hidden.actionCount / Math.max(1, def.rubric.expertActionCount);
-    const frac = ratio <= 1.3 ? 1 : ratio <= 2 ? 0.7 : ratio <= 3 ? 0.4 : 0.15;
-    line("efficiency", frac, [`${hidden.actionCount} actions (expert: ~${def.rubric.expertActionCount})`], [`You took ${hidden.actionCount} actions; an expert needs about ${def.rubric.expertActionCount}. Fewer, more focused steps score higher.`]);
+    const pace = ratio <= 1.3 ? 1 : ratio <= 2 ? 0.7 : ratio <= 3 ? 0.4 : 0.15;
+    // Few steps are efficient only when they got the work done: scaled by the history and treatment achieved.
+    const share = (c: ScoreCategory) => { const l = lines.find((x) => x.category === c); return l && l.max > 0 ? l.earned / l.max : undefined; };
+    const parts = [share("history"), share("treatment")].filter((x): x is number => x !== undefined);
+    const achieved = parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 1;
+    const frac = pace * Math.min(1, achieved * 1.5);
+    const short = ratio <= 1.3 && frac < pace - 0.05;
+    line("efficiency", frac, [`${hidden.actionCount} actions (expert: ~${def.rubric.expertActionCount})`, ...(short ? ["Few steps, but the essentials weren't done"] : [])], [short ? "Few steps count as efficient only when the essential history and treatment are done." : `You took ${hidden.actionCount} actions; an expert needs about ${def.rubric.expertActionCount}. Fewer, more focused steps score higher.`]);
     if (ratio <= 1.3 && (verdict === "correct" || verdict === "implied")) bonuses.push({ label: "Efficient diagnosis", points: 0, reason: `Reached the diagnosis in ${hidden.actionCount} actions` });
   }
 

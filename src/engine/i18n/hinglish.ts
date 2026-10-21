@@ -35,6 +35,7 @@ const FIXED: Record<string, string> = {
   "Doctor, we can't give injections or drips at home.": "Doctor, ghar pe injection ya drip nahi de sakte.",
   "Okay, doctor — we'll bring them to the hospital now.": "Theek hai doctor — abhi hospital le aate hain.",
   "Doctor, we're at home — should we bring them to the hospital?": "Doctor, hum ghar pe hain — hospital le aayein?",
+  "Okay, doctor — we'll look after them at home.": "Theek hai doctor — ghar pe dhyan rakhenge.",
   "Doctor, we're at home — we can't do that here. Should we bring them to the hospital?": "Doctor, hum ghar pe hain — yahan ye nahi ho sakta. Hospital le aayein?",
   "Which medicine do you mean, doctor? Please tell me again — the name, how much and how to give it.": "Kaunsi dawai, doctor? Phir se bata dijiye — naam, kitni aur kaise deni hai.",
   "Good morning, doctor.": "Good morning, doctor.",
