@@ -6,6 +6,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { NotInAndroidApp } from "@/components/app/android-app";
 import { CountryPicker } from "@/components/app/country-picker";
 import { InstallButton } from "@/components/app/install-button";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Avatar } from "@/components/game/avatar";
 import { GoalRing } from "@/components/game/goal-ring";
@@ -37,6 +38,7 @@ export function LandingNav() {
           <Wordmark size="md" />
         </Link>
         <nav className="flex items-center gap-1" aria-label="Main">
+          <ThemeToggle className="mr-1" />
           <InstallButton className="mr-1" />
           <Link href="/practice" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
             Practice

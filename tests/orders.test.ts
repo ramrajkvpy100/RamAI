@@ -567,3 +567,15 @@ describe("Focus audit, round two", () => {
     expect(aboutThem("It hasn't helped, doctor — if anything I feel worse.", "Male")).toBe("It hasn't helped, doctor — if anything he seems worse.");
   });
 });
+
+describe("Case reports, 22 Oct", () => {
+  it("a test sent to a private lab comes back at once (a USG at a PHC was never seen)", async () => {
+    const { getCase } = await import("@/engine/cases");
+    const { converse } = await import("./helpers");
+    const def = getCase("gp-uti-phc-01")!;
+    const { hidden, turns } = await converse(def, ["usg abdomen", "Send USG abdomen to a private lab"]);
+    const usg = hidden.investigations.find((i) => /ultrasound|usg/i.test(i.name));
+    expect(usg?.delivered).toBe(true);
+    expect(turns.at(-1)!.effects.some((e) => e.type === "investigation_resulted" || (e.type === "message" && /result|ultrasound|usg/i.test(e.text)))).toBe(true);
+  });
+});

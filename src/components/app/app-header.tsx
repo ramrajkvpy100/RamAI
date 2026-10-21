@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { NotInAndroidApp } from "@/components/app/android-app";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Wordmark } from "@/components/brand/wordmark";
 import { GoalRing } from "@/components/game/goal-ring";
 import { StreakPill } from "@/components/game/streak";
@@ -52,6 +53,7 @@ export function AppHeader({ initial }: { initial: Me }) {
             </Link>
             <InstallButton />
           </NotInAndroidApp>
+          <ThemeToggle />
           <StreakPill days={me.progress.streakDays} />
           <Link href="/profile" className="hidden items-center sm:flex" aria-label="Daily goal">
             <GoalRing value={me.progress.dailyXp} goal={me.progress.dailyGoal} size={32} stroke={4}>

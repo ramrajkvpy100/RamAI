@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { requireUser } from "@/server/auth";
-import { vapidPublicKey } from "@/server/push";
+import { sendPush, vapidPublicKey } from "@/server/push";
 import { removeSubscription, saveSubscription, subscriptionProblem } from "@/server/reminders";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 
@@ -37,7 +37,14 @@ export async function POST(req: Request) {
     const problem = subscriptionProblem(sub);
     if (problem) return apiError(400, "BAD_REQUEST", problem);
     await saveSubscription(user.id, sub);
-    return ok({ ok: true });
+    // A notification at once, so the doctor knows reminders really reach this phone (and we learn if they don't).
+    const sent = await sendPush(sub, { title: "✅ Daily reminders are on", body: "We'll remind you each evening if you haven't played that day's case.", url: "/" }, 3600, "reminders-on")
+      .then((outcome) => outcome === "sent")
+      .catch((err) => {
+        console.error("[ramai] test reminder failed:", err instanceof Error ? err.message : err);
+        return false;
+      });
+    return ok({ ok: true, sent });
   } catch (err) {
     return handleError(err);
   }

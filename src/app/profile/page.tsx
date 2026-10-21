@@ -13,10 +13,14 @@ export const dynamic = "force-dynamic";
 export default async function ProfilePage() {
   const me = await getMe();
   if (!me) redirect("/login?next=/profile");
+  // Together, not one after another: each is a trip to the database.
+  const invite = me.user.isGuest
+    ? null
+    : await Promise.all([creditsLeft(me.user.id).catch(() => 0), referralCount(me.user.id).catch(() => 0), personalInvite(me.user.username).catch(() => ({ code: null, left: 0 }))]);
   return (
     <AppShell me={me}>
       <Profile initial={me} />
-      {!me.user.isGuest && <InviteCard username={me.user.username} credits={await creditsLeft(me.user.id).catch(() => 0)} friends={await referralCount(me.user.id).catch(() => 0)} {...await personalInvite(me.user.username).catch(() => ({ code: null, left: 0 }))} />}
+      {invite && <InviteCard username={me.user.username} credits={invite[0]} friends={invite[1]} {...invite[2]} />}
     </AppShell>
   );
 }

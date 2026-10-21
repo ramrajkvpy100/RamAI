@@ -1,5 +1,6 @@
 "use client";
 
+import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -251,6 +252,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
               Image source
             </a>
           )}
+          <ExplainMore key={item.image ?? item.key} drill={`Spot the diagnosis — ${MODALITIES[modality].label}`} question={`${MODALITIES[modality].label}: name the diagnosis.`} options={item.options} answer={item.options[item.answer]!} explanation={item.key} />
           <div className="mt-3 flex items-center justify-between gap-2">
             <ReportProblem compact target={{ area: "skills", ref: `Spot the diagnosis · ${MODALITIES[modality].label} · ${item.options[item.answer]}`, details: `Picture: ${item.image ?? "drawn ECG"}\nOptions: ${item.options.map((o, n) => `${n === item.answer ? "✓ " : ""}${o}`).join(" | ")}\nKey: ${item.key}` }} />
             <button type="button" onClick={next} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">

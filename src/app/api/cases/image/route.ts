@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { withUsage } from "@/engine/providers/usage";
 import { pictureFor, sessionInfo } from "@/engine/engine";
-import { libraryPicture } from "@/server/ai-images";
+import { drawPicture, libraryPicture } from "@/server/ai-images";
 import { requireUser } from "@/server/auth";
 import { getCaseAI, picturesDrawn, putCaseAI } from "@/server/case-ai";
 import { apiError, crossSite, handleError, parseBody, rateLimited } from "@/lib/server/http";
@@ -40,7 +40,17 @@ export async function POST(req: Request) {
       const picture = await pictureFor(body.token, user.id, body.ref);
       if (!picture) return apiError(404, "NOT_FOUND", "There's no picture there yet.");
       if ((await picturesDrawn(info.sessionId)) >= MAX_PICTURES) return apiError(429, "LIMIT", "This case has all the pictures it can have.");
-      const made = await withUsage({ kind: "picture", sessionId: info.sessionId }, () => libraryPicture(picture));
+      const began = Date.now();
+      const made = await withUsage({ kind: "picture", sessionId: info.sessionId }, async () => {
+        try {
+          return await libraryPicture(picture);
+        } catch (err) {
+          // Logged (so a failure can be traced), then drawn once more while the request still has time.
+          console.error("[ramai] picture failed:", body.ref, err instanceof Error ? err.message : err);
+          if (Date.now() - began > 30_000) throw err;
+          return { ...(await drawPicture(picture, 25_000)), credit: undefined };
+        }
+      });
       stored = { mime: made.mime, data: made.base64 };
       credit = made.credit ? { mime: "application/json", data: JSON.stringify(made.credit) } : undefined;
       await Promise.all([putCaseAI(info.sessionId, key, user.id, stored.mime, stored.data), credit && putCaseAI(info.sessionId, `credit:${body.ref}`, user.id, credit.mime, credit.data)]);

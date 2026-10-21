@@ -1,5 +1,6 @@
 "use client";
 
+import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useState } from "react";
 
@@ -46,6 +47,7 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {q.options[picked]}?</b> {q.whyNot[picked]}</p>
           )}
           <p className="mt-2 text-[12px] font-semibold text-amber-700 dark:text-amber-300">📚 {q.source}</p>
+          <ExplainMore key={q.id + i} drill={title} question={q.stem} options={q.options} answer={q.options[q.answer]!} explanation={q.explain} />
           <div className="mt-3 flex items-center justify-between gap-2">
             <ReportProblem compact target={{ area: "skills", ref: `${title} · ${q.stem.slice(0, 90)}`, details: `${q.stem}\n\nOptions: ${q.options.map((o, n) => `${n === q.answer ? "✓ " : ""}${o}`).join(" | ")}\n\nExplanation: ${q.explain}\nSource: ${q.source}` }} />
             <button type="button" onClick={() => { setPicked(null); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < qs.length ? "Next" : "See your score"}</button>

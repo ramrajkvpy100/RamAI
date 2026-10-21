@@ -43,7 +43,7 @@ export const viewport: Viewport = {
 };
 
 /** Applies the stored theme before first paint — no flash — and follows the system theme live on every page. */
-const THEME_SCRIPT = `(function(){try{var m=matchMedia("(prefers-color-scheme: dark)");var a=function(){try{var p=localStorage.getItem("ramai.theme");var d=p==="dark"||((!p||p==="system")&&m.matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}};a();m.addEventListener("change",a);}catch(e){}})();`;
+const THEME_SCRIPT = `(function(){try{var m=matchMedia("(prefers-color-scheme: dark)");var a=function(){try{var p=localStorage.getItem("ramai.theme");var d=p==="dark"||(p==="system"&&m.matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}};a();m.addEventListener("change",a);}catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // The per-request nonce from src/proxy.ts — the Content-Security-Policy only runs scripts that carry it.

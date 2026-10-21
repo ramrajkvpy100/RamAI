@@ -401,6 +401,12 @@ CREATE TABLE IF NOT EXISTS practice_rounds (
 );
 CREATE INDEX IF NOT EXISTS practice_rounds_user ON practice_rounds(user_id, modality);
 -- Case pictures shared by every player: one per exact picture brief, found on Commons or drawn once, then reused.
+-- A Skills Lab answer explained in detail, once per question and answer (written by the model, kept for everyone).
+CREATE TABLE IF NOT EXISTS teaching_cache (
+  key TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS picture_library (
   brief TEXT PRIMARY KEY,
   mime TEXT NOT NULL,

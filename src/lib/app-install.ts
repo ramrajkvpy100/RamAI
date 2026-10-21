@@ -124,12 +124,13 @@ function serverKey(): Promise<Uint8Array<ArrayBuffer>> {
 
 const sameKey = (a: ArrayBuffer | null, b: Uint8Array) => !!a && a.byteLength === b.length && new Uint8Array(a).every((v, i) => v === b[i]);
 
-async function tellServer(method: "POST" | "DELETE", body: unknown) {
+async function tellServer(method: "POST" | "DELETE", body: unknown): Promise<{ sent?: boolean }> {
   const res = await fetch("/api/push", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) {
     const err = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
     throw new Error(err?.error?.message ?? "Couldn't save that. Please try again.");
   }
+  return ((await res.json().catch(() => ({}))) as { sent?: boolean }) ?? {};
 }
 
 async function currentSubscription(): Promise<PushSubscription | null> {
@@ -207,18 +208,21 @@ export async function enableReminders(): Promise<ReminderState> {
     return reminder;
   }
   const sub = await subscribe();
+  let sent = false;
   try {
-    await tellServer("POST", sub.toJSON());
+    // The server sends a real reminder at once — the proof that evening reminders will reach this phone.
+    sent = !!(await tellServer("POST", sub.toJSON())).sent;
   } catch (err) {
     // Half on is worse than off: the browser would think it's subscribed.
     await sub.unsubscribe().catch(() => undefined);
     throw err;
   }
   setReminder("on");
+  if (sent) return "on";
   const reg = await navigator.serviceWorker.ready;
   await reg
-    .showNotification("Daily reminder is on", {
-      body: `If you haven't played by about ${reminderTime()}, RamAI will nudge you — never more than once a day.`,
+    .showNotification("Daily reminder is on — but the test didn't arrive", {
+      body: `The reminder service couldn't reach this phone just now. If you haven't played by about ${reminderTime()}, RamAI will still try.`,
       icon: "/icon-192.png",
       badge: "/icon-badge.png",
       tag: "ramai-welcome",

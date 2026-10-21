@@ -1,5 +1,6 @@
 "use client";
 
+import { ExplainMore } from "@/components/practice/explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { Portal } from "@/components/ui/portal";
 import { useCallback, useEffect, useState } from "react";
@@ -166,6 +167,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
                   <b>Why not {item.options[picked]}?</b> It would show {item.keys[picked]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())}.
                 </div>
               )}
+              <ExplainMore key={item.item} drill={`Radiology reporting (${modality})`} question={`${item.brief?.history ?? ""} ${item.brief?.question ?? ""}`.trim() || "Report the study."} options={item.options} answer={item.options[item.answer]!} explanation={item.key} />
               <div className="mt-4 flex items-center justify-between gap-2">
                 <ReportProblem compact target={{ area: "skills", ref: `Radiology reporting · ${item.options[item.answer]}`, details: `Study: ${item.image ?? "scroll series"}\nOptions: ${item.options.map((o, i) => `${i === item.answer ? "✓ " : ""}${o}`).join(" | ")}\nKey: ${item.key}` }} />
                 <button type="button" onClick={next} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">

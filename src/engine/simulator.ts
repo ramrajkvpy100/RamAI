@@ -1747,7 +1747,9 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
 
   const name = study.kind ? studyName(study, override?.short ?? cat?.short ?? override?.name ?? id) : override?.short ?? cat?.short ?? override?.name ?? id;
   const category = override?.category ?? cat?.category ?? "lab";
-  const turnaround = (INSTANT_RESULTS ? 0 : (override?.turnaroundMin ?? cat?.turnaroundMin ?? 30)) + (privateLab ? PRIVATE_DELAY_MIN : 0);
+  // (Results are instant everywhere — a private lab too: it costs more and costs marks, but the report still comes back.
+  // A delay that nothing told the doctor about left "USG to a private lab" never seen.)
+  const turnaround = INSTANT_RESULTS ? 0 : (override?.turnaroundMin ?? cat?.turnaroundMin ?? 30) + (privateLab ? PRIVATE_DELAY_MIN : 0);
   const cost = Math.round((override?.cost ?? cat?.cost ?? 0) * (privateLab ? 1.5 : 1));
 
   // Result composition: catalogue default → values the patient already has → the model's, for what the case didn't write → case override → time phase → active hazard stage.

@@ -76,7 +76,7 @@ export interface ExtraItem {
 
 export const EXTRA_ITEMS: ExtraItem[] = [
   // Mammography (CBIS-DDSM, TCIA)
-  { id: "mammo-mass", modality: "mammo", label: "Breast mass", key: "A focal mass with irregular or spiculated margins — suspicious for carcinoma; needs targeted ultrasound and biopsy (BI-RADS 4–5).", history: "54-year-old woman recalled from screening; no symptoms.", question: "Screening mammogram: findings?", search: [] },
+  { id: "mammo-mass", modality: "mammo", label: "Breast mass", key: "A new focal mass — a dense, rounded opacity that doesn't fade into the surrounding fibroglandular tissue — in a woman recalled from screening. Irregular, indistinct or spiculated margins make it suspicious for carcinoma; it needs further views, targeted ultrasound and, if suspicious, biopsy (BI-RADS 0 until worked up, then 4–5).", history: "54-year-old woman recalled from screening; no symptoms.", question: "Screening mammogram: findings?", search: [] },
   { id: "mammo-calc", modality: "mammo", label: "Suspicious microcalcifications", key: "Clustered, fine pleomorphic or linear branching calcifications — suspicious for ductal carcinoma in situ; stereotactic biopsy (BI-RADS 4).", history: "51-year-old woman recalled from screening; no lump felt.", question: "Screening mammogram: findings?", search: [] },
   // Mammography distractors (answer choices with their own findings, no pictures)
   { id: "mammo-normal", modality: "mammo", label: "Normal mammogram", key: "Symmetric fibroglandular tissue with no mass, architectural distortion or suspicious calcification (BI-RADS 1).", history: "", question: "", search: [] },

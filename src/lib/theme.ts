@@ -12,7 +12,8 @@ export function applyTheme(pref: ThemePref) {
 
 /** The root layout script follows live system changes while the preference is "system". */
 export function useThemePref(): [ThemePref, (p: ThemePref) => void] {
-  const [pref, setPref] = useState<ThemePref>("system");
+  // Light until the doctor chooses otherwise (dark, or follow the phone).
+  const [pref, setPref] = useState<ThemePref>("light");
   useEffect(() => {
     try {
       const v = localStorage.getItem(KEY);
