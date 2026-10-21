@@ -15,6 +15,7 @@ const GLOBAL = CASE_LINES["global-templates"] ?? {};
 
 const FIXED: Record<string, string> = {
   "No, doctor.": "Nahi, doctor.",
+  "Okay, doctor.": "Theek hai, doctor.",
   "No, nothing like that.": "Nahi, aisa kuch nahi.",
   "Not that I've noticed.": "Maine toh dhyan nahi diya.",
   "No, I don't think so.": "Nahi, mujhe aisa nahi lagta.",
@@ -33,6 +34,7 @@ const FIXED: Record<string, string> = {
   "We don't have any machines at home, doctor.": "Ghar pe koi machine nahi hai, doctor.",
   "Doctor, we can't give injections or drips at home.": "Doctor, ghar pe injection ya drip nahi de sakte.",
   "Okay, doctor — we'll bring them to the hospital now.": "Theek hai doctor — abhi hospital le aate hain.",
+  "Doctor, we're at home — should we bring them to the hospital?": "Doctor, hum ghar pe hain — hospital le aayein?",
   "Doctor, we're at home — we can't do that here. Should we bring them to the hospital?": "Doctor, hum ghar pe hain — yahan ye nahi ho sakta. Hospital le aayein?",
   "Which medicine do you mean, doctor? Please tell me again — the name, how much and how to give it.": "Kaunsi dawai, doctor? Phir se bata dijiye — naam, kitni aur kaise deni hai.",
   "Good morning, doctor.": "Good morning, doctor.",

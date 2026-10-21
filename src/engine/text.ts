@@ -10,6 +10,7 @@
 const EVERYDAY: [RegExp, string][] = [
   [/\bkya hua\b|\bkya ho gaya\b|\bkya taklee?f\b/g, " what happened "],
   [/\bkaise ho\b|\bkaisa lag raha\b|\bkaisi ho\b/g, " how are you feeling "],
+  [/\b(?:doctor sa(?:a)?hab|bade doctor|senior doctor|sir)\s+aa\s+rahe\b/g, " reassure "],
   [/\btheek ho ja(?:oge|ogi|yenge|enge|yega|egi|ega)\b|\bchinta mat karo\b|\bghabrao mat\b|\bdaro mat\b/g, " reassure "],
   [/\bfe+v[ae]?r\b|\bfevr\b|\bfvr\b/g, " fever "],
   [/\bvomit+i?ng\b|\bvomitng\b|\bvommiting\b/g, " vomiting "],

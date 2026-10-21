@@ -431,3 +431,21 @@ describe("Random erratic-doctor audit, round six", () => {
     expect(no.hidden.discharged).toBeFalsy();
   });
 });
+
+describe("Random erratic-doctor audit, round seven", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("'fundus' is the eye — or the womb in an obstetric case", async () => {
+    const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
+    expect(play(emAdhf, ["fundus"]).turns[0]!.record.intents[0]?.targetId).toBe("eyes");
+    expect(play(obgPphChc, ["fundus"]).turns[0]!.record.intents[0]?.targetId).toBe("uterus");
+  });
+  it("'shift to OT' runs the case's own operation, or theatre asks which", () => {
+    expect(said(play(emAdhf, ["shift to ot"]).turns)).toMatch(/Which operation, doctor\?/);
+    expect(play(surgAppendicitis, ["shift to ot"]).turns[0]!.record.intents[0]?.targetId).not.toBe("procedure:ot");
+  });
+  it("a bare yes or no with nothing asked is heard, not queried", () => {
+    const text = said(play(emAdhf, ["yes", "no", "hmm"]).turns);
+    expect(text).toMatch(/Okay, doctor\. What next\?/);
+    expect(text).not.toMatch(/say that once more|what would you like me to do/);
+  });
+});

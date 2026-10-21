@@ -728,6 +728,17 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   if (/^(?:ok |okay |no |then )?(?:cancel (?:that|it|this|the last (?:order|one))|same as (?:before|last time|earlier)|repeat (?:the )?(?:last|previous|same) (?:order|dose|one)|repeat (?:it|that|the same)|(?:double|halve|half|increase|reduce|decrease|lower|raise) (?:the |that |this |its )?dose|(?:change|switch|convert) (?:it |that |this |him |her )?to (?:iv|oral|po|im|sc|tablets?|injections?)|make it (?:iv|oral|po|im|sc|tablets?|injections?)|give (?:it|that) (?:again|iv|orally|im))$/.test(plain)) {
     return [{ kind: "drug", targetId: "unknown", phrase: raw, matched: false, payload: { modify: true } }];
   }
+  // "Shift to OT", "take him to theatre" — the case's own operation if it has one; otherwise theatre asks which.
+  if (/^(?:please\s+)?(?:shift|take|send|move|wheel|post)\s+(?:him|her|them|the patient|patient\s+)?\s*(?:to\s+)?(?:the\s+)?(?:ot|o t|operation theatre|operating theatre|theatre|surgery)(?:\s+(?:now|urgently|stat|immediately))?$/.test(plain)) {
+    const own = resolveClause(raw, ctx).filter((i) => i.kind === "action" && i.matched && i.targetId && ctx.def.therapeutics.some((r) => r.id === i.targetId));
+    return own.length ? own : [{ kind: "action", targetId: "procedure:ot", phrase: raw, matched: true }];
+  }
+  // A bare "fundus": the eye's — or, in pregnancy or after a birth, the womb's (the case's own examination if it has one).
+  if (/^(?:check |examine |see |feel |look at )?(?:the )?(?:fundus|fundal height)\??$/.test(plain)) {
+    const own = ctx.def.exam.find((e) => e.match.some((m) => /\bfund(?:us|al)\b/i.test(m)));
+    const womb = ctx.def.specialty === "OBGYN" || ctx.def.profile?.pregnant || /\bfundal\b/.test(plain);
+    return [{ kind: "exam", targetId: own?.id ?? (womb ? "abdomen" : "eyes"), phrase: raw, matched: true }];
+  }
   // "Order all tests", "do every investigation": the lab needs to know which — and a scattergun costs the family.
   if (/\b(?:all|every) (?:the |possible |available )?(?:tests|investigations|labs|bloods|blood tests)\b|\b(?:order|do|send) everything\b|\bfull work ?up\b/i.test(plain)) {
     return [{ kind: "investigation", targetId: "blood", phrase: raw, matched: true, payload: { everything: true } }];

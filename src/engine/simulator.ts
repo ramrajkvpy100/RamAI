@@ -2460,6 +2460,11 @@ function handleAction(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       { type: "timeline", label: "Counselling", category: "treatment" },
     ];
   }
+  // "Shift to OT" with no operation named: theatre needs to know which.
+  if (id === "procedure:ot") {
+    if (def.track === "phone") return [{ type: "message", role: "attendant", kind: "speech", text: "Doctor, we're at home — should we bring them to the hospital?" }];
+    return [{ type: "message", role: "nurse", kind: "speech", text: "Which operation, doctor? I'll inform the surgeon and the anaesthetist once you say." }];
+  }
   // Unrecognised procedure — still executed, as ordered.
   hidden.clock += 20;
   record(hidden, "procedure:generic");
@@ -2648,6 +2653,7 @@ function handleReassess(ctx: TurnContext): TurnEffect[] {
 /* -------------------------------------------------------------------------- */
 
 /** When nothing could make sense of an instruction (the model unreachable too), the nurse asks — never an error line. */
+const ACK_RE = /^(?:y+e+s+|yeah|yep|yup|ok(?:ay)?|ok go ahead|go ahead|no+|nope|no,? don'?t|don'?t|haan|ha|ji|nahi|na|hmm+|h+m+|right|fine|sure|alright|theek hai)[.!]*$/i;
 const NURSE_UNSURE = ["Sorry, doctor — what would you like me to do?", "Doctor, could you say that once more? I want to get it right."] as const;
 
 /** A real-time tick: the clock running on its own, recorded so replays stay exact. */
@@ -2771,6 +2777,9 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
             ? { type: "message", role: "system", kind: "status", text: "Type a full question or order — as you'd say it at the bedside." }
             : said
               ? { type: "message", role, kind: "speech", text: said }
+              // "Yes", "no", "ok", "hmm" with nothing asked: heard, and the room waits for the next instruction.
+              : ACK_RE.test(intent.phrase.trim())
+                ? def.track === "emergency" ? { type: "message", role: "nurse", kind: "speech", text: "Okay, doctor. What next?" } : { type: "message", role: patientRole(def), kind: "speech", text: "Okay, doctor." }
               : intent.payload?.question || def.track === "phone"
                 ? { type: "message", role: patientRole(def), kind: "speech", text: "Sorry, doctor — I didn't quite follow." }
                 : def.track === "emergency"

@@ -42,7 +42,7 @@ import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyMan
 import { normalise } from "../text";
 import { labGap, vitalsNow } from "../simulator";
 import { noteUsage } from "./usage";
-import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
+import type { CaseSource, ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -886,7 +886,9 @@ export function createOpenAIProvider(): ClinicalProvider {
       const country = opts.country ?? "IN";
       const started = Date.now();
       const left = () => CASE_DEADLINE_MS - (Date.now() - started);
-      try {
+      // A second attempt gets what's left of the deadline: the parts must still be reviewed in time.
+      const partTimeout = () => Math.max(20_000, Math.min(PART_TIMEOUT_MS, left() - 35_000));
+      const invent = async (): Promise<CaseSource> => {
         // The outline is quick; if it times out (a slow moment upstream) it's asked for once more.
         const outlineRaw = await chatJSON(outlinePrompt(opts, brief), 900, false, OUTLINE_TIMEOUT_MS).catch((err) => {
           if (left() < 85_000) throw err;
@@ -902,10 +904,10 @@ export function createOpenAIProvider(): ClinicalProvider {
         const level = levelMeta(brief.level, country).label;
         // Each part is written, then checked by a consultant the moment it's ready — the three in parallel.
         let [d, f, m] = await Promise.all([
-          chatJSON(dialoguePrompt(opts, concept, brief), 2600, false, PART_TIMEOUT_MS)
+          chatJSON(dialoguePrompt(opts, concept, brief), 2600, false, partTimeout())
             .then((x) => DialogueSchema.parse(x))
             .then((part) => reviewPart("history and vitals", part, dialogueReviewPrompt(concept, part, country), 5000, applyDialogueReview, left())),
-          chatJSON(findingsPrompt(opts, concept, brief), 4600, false, PART_TIMEOUT_MS)
+          chatJSON(findingsPrompt(opts, concept, brief), 4600, false, partTimeout())
             .then((x) => FindingsSchema.parse(x))
             .then((part) => reviewPart("findings and results", part, findingsReviewPrompt(concept, part, country), 8000, applyFindingsReview, left()))
             .then((part) => {
@@ -913,7 +915,7 @@ export function createOpenAIProvider(): ClinicalProvider {
               if (checked.fixes.length) console.info(`[ramai] lab flags corrected: ${checked.fixes.join(" | ")}`);
               return checked.part;
             }),
-          chatJSON(managementPrompt(opts, concept, brief), 2400, false, PART_TIMEOUT_MS)
+          chatJSON(managementPrompt(opts, concept, brief), 2400, false, partTimeout())
             .then((x) => ManagementSchema.parse(x))
             .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 6000, applyManagementReview, left())),
         ]);
@@ -948,12 +950,23 @@ export function createOpenAIProvider(): ClinicalProvider {
           def = withUntreatedCourse(toDefinition(concept, d, f, m, brief, opts), brief.track === "emergency");
         }
         return { kind: "generated", def };
+      };
+      try {
+        try {
+          return await invent();
+        } catch (first) {
+          // Failed early (a dropped connection, a case that didn't pass its checks): there is time to invent another.
+          if (left() < 70_000) throw first;
+          console.warn("[ramai] the first patient couldn't be invented; trying a fresh one:", first instanceof Error ? first.message : first);
+          return await invent();
+        }
       } catch (err) {
         console.error("[ramai] couldn't invent a patient; using a written case", err instanceof Error ? err.message : err);
         // A written case for this choice — or one in the same specialty. Never another specialty's patient: an eye
         // doctor handed a skin case would be misled, so then the doctor is asked to try again.
         return mockProvider.createCase(opts)
-          .catch(() => mockProvider.createCase({ ...opts, track: undefined, level: undefined }))
+          // Same specialty and mode (a phone call stays a phone call) at any level.
+          .catch(() => mockProvider.createCase({ ...opts, level: undefined, allowedLevels: undefined }))
           .catch(() => {
             throw new NoCaseError(`We couldn't prepare a new ${opts.specialty ?? ""} case just now — please press Start again.`.replace("  ", " "));
           });
