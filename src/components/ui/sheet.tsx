@@ -100,7 +100,7 @@ export function Sheet({
               <Icon name="x" />
             </IconButton>
           </header>
-          {children != null && <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">{children}</div>}
+          {children != null && <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-4">{children}</div>}
           {footer && <footer className={cn("px-5 py-3 pb-[max(12px,env(safe-area-inset-bottom))]", children != null && "border-t border-line-2")}>{footer}</footer>}
         </>
       )}

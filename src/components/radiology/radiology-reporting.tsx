@@ -74,8 +74,9 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
       </header>}
       <div className="grid grid-cols-5 gap-1 rounded-xl bg-surface-3 p-1">
         {TABS.map(([id, label]) => (
-          <button key={id} type="button" aria-pressed={modality === id} onClick={() => setModality(id)} className={cn("h-10 rounded-lg px-1 text-[11.5px] font-medium sm:text-[13.5px]", modality === id ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
-            {label}
+          <button key={id} type="button" aria-pressed={modality === id} onClick={() => setModality(id)} className={cn("h-10 min-w-0 truncate rounded-lg px-1 text-[11.5px] font-medium sm:text-[13.5px]", modality === id ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
+            {/* (Long names are shortened on phones, so the five tabs fit.) */}
+            {label === "Mammography" ? <><span className="sm:hidden">Mammo</span><span className="hidden sm:inline">{label}</span></> : label === "Ultrasound" ? <><span className="sm:hidden">USG</span><span className="hidden sm:inline">{label}</span></> : label}
           </button>
         ))}
       </div>

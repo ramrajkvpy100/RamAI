@@ -56,7 +56,8 @@ export function QuickSuggest() {
   };
 
   return (
-    <div className="fixed right-4 bottom-20 z-40 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6">
+    // Not on phones: there it covered menus, X-rays and buttons — Suggest is in the menu (and the footer) instead.
+    <div className="fixed right-6 bottom-6 z-40 hidden flex-col items-end gap-2 sm:flex">
       {open && (
         <div role="dialog" aria-label="Suggest an improvement" className="popover w-[min(92vw,360px)] animate-enter rounded-2xl p-4">
           {state === "sent" ? (

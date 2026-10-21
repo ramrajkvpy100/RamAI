@@ -151,52 +151,129 @@ function num(id: string, stem: string, right: number, explain: string, spread: n
   return { id, stem, options: opts.map((o) => `${o}${unit}`), answer: opts.indexOf(String(right)), explain, source };
 }
 
+/** A worked answer, line by line: the formula, each step with this patient's numbers, what it means, and the trap. */
+const steps = (...lines: (string | false)[]) => lines.filter(Boolean).join("\n");
+
 const CALCS: (() => QuizQuestion)[] = [
   () => {
     const e = rint(1, 4), v = rint(1, 5), m = rint(1, 6);
-    return num("gcs", `Eyes open ${["", "not at all", "to pain", "to voice", "spontaneously"][e]}, speech is ${["", "absent", "incomprehensible sounds", "inappropriate words", "confused", "oriented"][v]}, and to pain he ${["", "doesn't move", "extends", "flexes abnormally", "withdraws", "localises", "obeys commands"][m]}. GCS?`, e + v + m, `E${e} V${v} M${m} = ${e + v + m}.`, 2, "Teasdale & Jennett; ATLS");
+    const gcs = e + v + m;
+    const E = ["", "no eye opening", "opens to pain", "opens to voice", "opens spontaneously"][e];
+    const V = ["", "no speech", "incomprehensible sounds", "inappropriate words", "confused", "oriented"][v];
+    const M = ["", "no movement", "extension (decerebrate)", "abnormal flexion (decorticate)", "withdraws from pain", "localises pain", "obeys commands"][m];
+    return num("gcs", `Eyes open ${["", "not at all", "to pain", "to voice", "spontaneously"][e]}, speech is ${["", "absent", "incomprehensible sounds", "inappropriate words", "confused", "oriented"][v]}, and to pain he ${["", "doesn't move", "extends", "flexes abnormally", "withdraws", "localises", "obeys commands"][m]}. GCS?`, gcs, steps(
+      `GCS = Eyes (1–4) + Verbal (1–5) + Motor (1–6); 3 to 15.`,
+      `• Eyes: ${E} → E${e}`,
+      `• Verbal: ${V} → V${v}`,
+      `• Motor: ${M} → M${m}`,
+      `Total: E${e} V${v} M${m} = ${gcs}/15.`,
+      `What it means: ${gcs <= 8 ? "severe brain injury (≤ 8) — he may not protect his airway; call for help to secure it." : gcs <= 12 ? "moderate (9–12) — close neurological observation and imaging if trauma." : "mild (13–15) — keep reassessing; a fall of 2 or more points is a red flag."}`,
+      `Trap: always write the components (E${e}V${v}M${m}), not just the total — and score the best motor response; if intubated, record verbal as "T".`,
+    ), 2, "Teasdale & Jennett; ATLS");
   },
   () => {
     const na = rint(126, 146), cl = rint(92, 110), hco3 = rint(8, 26);
     const ag = na - (cl + hco3);
-    return num("ag", `Sodium ${na}, chloride ${cl}, bicarbonate ${hco3} mmol/L. The anion gap?`, ag, `Na − (Cl + HCO₃) = ${na} − (${cl} + ${hco3}) = ${ag} (normal about 8–12).`, 4, "Harrison's Principles of Internal Medicine");
+    return num("ag", `Sodium ${na}, chloride ${cl}, bicarbonate ${hco3} mmol/L. The anion gap?`, ag, steps(
+      `Anion gap = Na − (Cl + HCO₃).`,
+      `= ${na} − (${cl} + ${hco3}) = ${na} − ${cl + hco3} = ${ag} mmol/L.`,
+      `Normal is about 8–12 mmol/L.`,
+      ag > 12 ? `What it means: a raised gap — unmeasured acids. Think DKA, lactic acidosis, renal failure, or toxins (methanol, ethylene glycol, salicylates).` : hco3 < 22 ? `What it means: a normal gap with a low bicarbonate — a hyperchloraemic acidosis: diarrhoea, renal tubular acidosis, or large volumes of saline.` : `What it means: a normal gap, and the bicarbonate isn't low — no metabolic acidosis on these numbers.`,
+      `Trap: a low albumin hides a raised gap. Correct it: add 2.5 for every 1 g/dL that albumin is below 4.`,
+    ), 4, "Harrison's Principles of Internal Medicine");
   },
   () => {
     const age = rint(40, 85), wt = rint(45, 90), cr = rint(9, 30) / 10, female = Math.random() < 0.5;
-    const crcl = Math.round(((140 - age) * wt * (female ? 0.85 : 1)) / (72 * cr));
-    return num("crcl", `A ${age}-year-old ${female ? "woman" : "man"}, ${wt} kg, serum creatinine ${cr.toFixed(1)} mg/dL. Creatinine clearance (Cockcroft–Gault)?`, crcl, `(140 − ${age}) × ${wt}${female ? " × 0.85" : ""} ÷ (72 × ${cr.toFixed(1)}) ≈ ${crcl} mL/min.`, 10, "Cockcroft & Gault 1976; BNF", " mL/min");
+    const top = (140 - age) * wt * (female ? 0.85 : 1);
+    const crcl = Math.round(top / (72 * cr));
+    return num("crcl", `A ${age}-year-old ${female ? "woman" : "man"}, ${wt} kg, serum creatinine ${cr.toFixed(1)} mg/dL. Creatinine clearance (Cockcroft–Gault)?`, crcl, steps(
+      `Cockcroft–Gault: CrCl = (140 − age) × weight (kg)${female ? " × 0.85 (female)" : ""} ÷ (72 × creatinine in mg/dL).`,
+      `Top: (140 − ${age}) × ${wt}${female ? " × 0.85" : ""} = ${Math.round(top)}.`,
+      `Bottom: 72 × ${cr.toFixed(1)} = ${(72 * cr).toFixed(1)}.`,
+      `${Math.round(top)} ÷ ${(72 * cr).toFixed(1)} ≈ ${crcl} mL/min.`,
+      `What it means: ${crcl >= 60 ? "60 or more — most drugs at normal doses." : crcl >= 30 ? "30–59 — many drugs need a lower dose or longer interval (e.g. some antibiotics, DOACs); check the BNF." : crcl >= 15 ? "15–29 — severe impairment: reduce or avoid renally cleared drugs (metformin, nitrofurantoin, some DOACs)." : "below 15 — kidney failure: specialist dosing, many drugs contraindicated."}`,
+      `Trap: it's only valid when creatinine is stable (not in AKI), and it overestimates in the very obese and in frail elderly people with little muscle.`,
+    ), 10, "Cockcroft & Gault 1976; BNF", " mL/min");
   },
   () => {
     const wt = rint(4, 40);
-    const ml = wt <= 10 ? wt * 100 : wt <= 20 ? 1000 + (wt - 10) * 50 : 1500 + (wt - 20) * 20;
-    return num("hs", `A ${wt} kg child needs maintenance fluids. Daily volume (Holliday–Segar)?`, ml, `100 mL/kg for the first 10 kg, 50 for the next 10, 20 for each kg above 20 → ${ml} mL/day.`, 100, "Holliday & Segar; IAP", " mL/day", 10);
+    const a = Math.min(wt, 10) * 100, b = Math.max(0, Math.min(wt, 20) - 10) * 50, c = Math.max(0, wt - 20) * 20;
+    const ml = a + b + c;
+    return num("hs", `${/^(8|11|18)$/.test(String(wt)) ? "An" : "A"} ${wt} kg child needs maintenance fluids. Daily volume (Holliday–Segar)?`, ml, steps(
+      `Holliday–Segar: 100 mL/kg/day for the first 10 kg, 50 mL/kg/day for the next 10 kg, 20 mL/kg/day for every kg above 20.`,
+      `• First ${Math.min(wt, 10)} kg × 100 = ${a} mL`,
+      wt > 10 && `• Next ${Math.min(wt, 20) - 10} kg × 50 = ${b} mL`,
+      wt > 20 && `• Remaining ${wt - 20} kg × 20 = ${c} mL`,
+      `Total: ${ml} mL/day ≈ ${Math.round(ml / 24)} mL/hour.`,
+      `Fluid: an isotonic solution (e.g. 0.9% saline with 5% dextrose), checking sodium and glucose at least daily.`,
+      `Trap: this is maintenance only — add any deficit and ongoing losses separately, and restrict to about two-thirds in meningitis, pneumonia or after surgery (risk of low sodium).`,
+    ), 100, "Holliday & Segar; NICE NG29; IAP", " mL/day", 10);
   },
   () => {
     const wt = rint(6, 30);
     const dose = Math.round((15 * wt) / 10) * 10;
-    return num("pcm", `A ${wt} kg child with fever. One dose of paracetamol at 15 mg/kg?`, dose, `15 × ${wt} = ${15 * wt} mg → about ${dose} mg.`, 30, "IAP; BNF for Children", " mg", 10);
+    return num("pcm", `${/^(8|11|18)$/.test(String(wt)) ? "An" : "A"} ${wt} kg child with fever. One dose of paracetamol at 15 mg/kg?`, dose, steps(
+      `Dose = 15 mg/kg × weight.`,
+      15 * wt === dose ? `15 × ${wt} kg = ${dose} mg.` : `15 × ${wt} kg = ${15 * wt} mg → rounded to a measurable ${dose} mg.`,
+      `As syrup: 120 mg/5 mL → ${(dose / 24).toFixed(1)} mL; 250 mg/5 mL → ${(dose / 50).toFixed(1)} mL.`,
+      `How often: every 4–6 hours, no more than 4 doses in 24 hours (at most 60 mg/kg/day).`,
+      `Trap: check the strength on the bottle (drops, 120 and 250 mg/5 mL syrups differ), and ask what was already given at home — overdose is usually from double-dosing.`,
+    ), 30, "IAP; BNF for Children", " mg", 10);
   },
   () => {
     const ca = rint(70, 90) / 10, alb = rint(18, 34) / 10;
     const corr = Math.round((ca + 0.8 * (4 - alb)) * 10) / 10;
     const opts = shuffle([corr, Math.round((corr + 0.6) * 10) / 10, Math.round((corr - 0.6) * 10) / 10, Math.round((ca) * 10) / 10].map((x) => x.toFixed(1)));
-    return { id: "ca", stem: `Calcium ${ca.toFixed(1)} mg/dL with albumin ${alb.toFixed(1)} g/dL. The corrected calcium?`, options: opts.map((o) => `${o} mg/dL`), answer: opts.indexOf(corr.toFixed(1)), explain: `Ca + 0.8 × (4 − albumin) = ${ca.toFixed(1)} + 0.8 × ${(4 - alb).toFixed(1)} = ${corr.toFixed(1)} mg/dL.`, source: "Harrison's Principles of Internal Medicine" };
+    return { id: "ca", stem: `Calcium ${ca.toFixed(1)} mg/dL with albumin ${alb.toFixed(1)} g/dL. The corrected calcium?`, options: opts.map((o) => `${o} mg/dL`), answer: opts.indexOf(corr.toFixed(1)), explain: steps(
+      `Corrected Ca = measured Ca + 0.8 × (4 − albumin in g/dL).`,
+      `= ${ca.toFixed(1)} + 0.8 × (4 − ${alb.toFixed(1)}) = ${ca.toFixed(1)} + 0.8 × ${(4 - alb).toFixed(1)} = ${ca.toFixed(1)} + ${(0.8 * (4 - alb)).toFixed(1)} = ${corr.toFixed(1)} mg/dL.`,
+      `Normal is about 8.5–10.5 mg/dL.`,
+      `What it means: ${corr < 8.5 ? "true hypocalcaemia even after correction — look for tetany and a long QT, and check magnesium, phosphate and PTH." : corr > 10.5 ? "hypercalcaemia once corrected — think of hyperparathyroidism or malignancy." : "normal once corrected — the low total calcium was mostly from the low albumin."}`,
+      `Trap: in the critically ill, and with acid–base disturbance, the formula is unreliable — measure ionised calcium.`,
+    ), source: "Harrison's Principles of Internal Medicine" };
   },
   () => {
     const c = Math.random() < 0.5, u = Math.random() < 0.5, r = Math.random() < 0.5, b = Math.random() < 0.5, a = Math.random() < 0.6;
     const score = [c, u, r, b, a].filter(Boolean).length;
-    return num("curb", `Pneumonia: ${c ? "confused" : "alert"}, urea ${u ? "52" : "30"} mg/dL (BUN ${u ? "24" : "14"}), RR ${r ? "32" : "22"}, BP ${b ? "85/55" : "130/80"}, aged ${a ? "72" : "48"}. CURB-65?`, score, `One point each for confusion, urea > 7 mmol/L (BUN > 19 mg/dL), RR ≥ 30, SBP < 90 or DBP ≤ 60, age ≥ 65 → ${score}.`, 1, "BTS community-acquired pneumonia guideline");
+    const mark = (on: boolean) => (on ? "1" : "0");
+    return num("curb", `Pneumonia: ${c ? "confused" : "alert"}, urea ${u ? "52" : "30"} mg/dL (BUN ${u ? "24" : "14"}), RR ${r ? "32" : "22"}, BP ${b ? "85/55" : "130/80"}, aged ${a ? "72" : "48"}. CURB-65?`, score, steps(
+      `CURB-65: one point each.`,
+      `• Confusion — ${c ? "confused" : "alert"} → ${mark(c)}`,
+      `• Urea > 7 mmol/L (> 42 mg/dL; BUN > 19 mg/dL) — urea ${u ? "52" : "30"} → ${mark(u)}`,
+      `• Respiratory rate ≥ 30 — ${r ? "32" : "22"} → ${mark(r)}`,
+      `• BP: systolic < 90 or diastolic ≤ 60 — ${b ? "85/55" : "130/80"} → ${mark(b)}`,
+      `• Age ≥ 65 — ${a ? "72" : "48"} → ${mark(a)}`,
+      `Total: ${score}/5.`,
+      `What it means: ${score <= 1 ? "low risk (30-day mortality under 3%) — usually treat at home with oral antibiotics." : score === 2 ? "moderate risk (about 9%) — consider admission or close follow-up." : "high risk (15–40%) — admit; with 4–5, assess for ICU."}`,
+      `Trap: the score supports, not replaces, judgement — low oxygen saturation, a frail patient or poor home support can still mean admission.`,
+    ), 1, "BTS community-acquired pneumonia guideline");
   },
   () => {
     const na = rint(126, 136), glu = rint(300, 900);
-    const corr = Math.round(na + 1.6 * ((glu - 100) / 100));
-    return num("na", `Sodium ${na} mmol/L with glucose ${glu} mg/dL. The corrected sodium?`, corr, `Na + 1.6 × (glucose − 100)/100 = ${corr} mmol/L.`, 3, "Katz correction; JBDS");
+    const add = 1.6 * ((glu - 100) / 100);
+    const corr = Math.round(na + add);
+    return num("na", `Sodium ${na} mmol/L with glucose ${glu} mg/dL. The corrected sodium?`, corr, steps(
+      `Corrected Na = measured Na + 1.6 × (glucose − 100) ÷ 100 (glucose in mg/dL).`,
+      `= ${na} + 1.6 × (${glu} − 100) ÷ 100 = ${na} + 1.6 × ${((glu - 100) / 100).toFixed(1)} = ${na} + ${add.toFixed(1)} ≈ ${corr} mmol/L.`,
+      `Why: high glucose pulls water out of cells and dilutes the sodium — the low reading isn't a true sodium deficit.`,
+      `What it means: ${corr > 145 ? "the true sodium is high — there's a large water deficit; correct slowly." : corr >= 135 ? "the true sodium is normal — the low reading was dilution from the glucose." : "the true sodium is still low — a real hyponatraemia on top of the hyperglycaemia."}`,
+      `Trap: when glucose is above about 400 mg/dL, a factor of 2.4 (Hillier) fits better; and the corrected sodium should not fall during treatment — a fall raises the risk of cerebral oedema.`,
+    ), 3, "Katz correction; JBDS DKA guideline");
   },
   () => {
     const wt = rint(50, 100), ht = rint(150, 190);
-    const bmi = Math.round((wt / (ht / 100) ** 2) * 10) / 10;
+    const m = ht / 100;
+    const bmi = Math.round((wt / m ** 2) * 10) / 10;
     const opts = shuffle([bmi, bmi + 2.5, bmi - 2.5, bmi + 5].map((x) => x.toFixed(1)));
-    return { id: "bmi", stem: `${wt} kg, ${ht} cm. BMI?`, options: opts.map((o) => `${o} kg/m²`), answer: opts.indexOf(bmi.toFixed(1)), explain: `${wt} ÷ ${(ht / 100).toFixed(2)}² = ${bmi.toFixed(1)} kg/m² (Asian cut-offs: overweight ≥ 23, obese ≥ 25).`, source: "WHO; ICMR Asian BMI cut-offs" };
+    const asian = bmi < 18.5 ? "underweight" : bmi < 23 ? "normal" : bmi < 25 ? "overweight" : "obese";
+    const who = bmi < 18.5 ? "underweight" : bmi < 25 ? "normal" : bmi < 30 ? "overweight" : "obese";
+    return { id: "bmi", stem: `${wt} kg, ${ht} cm. BMI?`, options: opts.map((o) => `${o} kg/m²`), answer: opts.indexOf(bmi.toFixed(1)), explain: steps(
+      `BMI = weight (kg) ÷ height (m)².`,
+      `Height ${ht} cm = ${m.toFixed(2)} m; squared = ${(m ** 2).toFixed(2)}.`,
+      `${wt} ÷ ${(m ** 2).toFixed(2)} = ${bmi.toFixed(1)} kg/m².`,
+      `What it means: ${asian} by the Asian cut-offs (normal 18.5–22.9, overweight 23–24.9, obese ≥ 25)${asian !== who ? ` — but ${who} by the WHO global ones (overweight 25–29.9, obese ≥ 30)` : ""}.`,
+      `Trap: South Asians carry more risk at a lower BMI, so use the Asian cut-offs in India — and BMI misjudges muscular people; waist circumference adds to it.`,
+    ), source: "WHO; ICMR Asian BMI cut-offs" };
   },
 ];
 

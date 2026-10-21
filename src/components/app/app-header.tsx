@@ -37,7 +37,7 @@ export function AppHeader({ initial }: { initial: Me }) {
         </Link>
         <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className={cn("rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}>
+            <Link key={n.href} href={n.href} prefetch className={cn("rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}>
               {n.label}
             </Link>
           ))}
@@ -66,7 +66,8 @@ export function AppHeader({ initial }: { initial: Me }) {
         {PHONE_NAV.map((n) => {
           const on = n.href === "/" ? path === "/" : path.startsWith(n.href);
           return (
-            <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined} className={cn("flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", on ? "text-accent-text" : "text-fg-2")}>
+            // (prefetch: each tab's page and data are fetched ahead, so a tap opens it at once.)
+            <Link key={n.href} href={n.href} prefetch aria-current={on ? "page" : undefined} className={cn("flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", on ? "text-accent-text" : "text-fg-2")}>
               <Icon name={n.icon} size={20} strokeWidth={on ? 2.3 : 1.8} />
               {n.label}
             </Link>

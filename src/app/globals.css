@@ -298,6 +298,8 @@
 @layer base {
   html { -webkit-text-size-adjust: 100%; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); letter-spacing: -0.006em; }
+  /* A fieldset otherwise grows to its widest child (a row of chips), pushing a sheet or page off the screen sideways. */
+  fieldset { min-width: 0; }
   /* A soft colour wallpaper behind everything, so glass surfaces have something to frost. */
   body::before {
     content: "";
