@@ -136,6 +136,8 @@ const PER_KG: Record<string, { perKg: number; unit: string; max: number; round: 
   metronidazole: { perKg: 7.5, unit: "mg", max: 500, round: 5 },
   ondansetron: { perKg: 0.15, unit: "mg", max: 4, round: 0.5 },
   racecadotril: { perKg: 1.5, unit: "mg", max: 100, round: 5 },
+  heparin: { perKg: 75, unit: "units", max: 5000, round: 100 },
+  enoxaparin: { perKg: 1, unit: "mg", max: 100, round: 5 },
   dexamethasone: { perKg: 0.15, unit: "mg", max: 8, round: 0.5 },
   prednisolone: { perKg: 1, unit: "mg", max: 40, round: 5 },
   adrenaline: { perKg: 0.01, unit: "mg", max: 0.5, round: 0.05 },
@@ -568,6 +570,7 @@ export interface QuickReply {
 
 /** Buttons for what an order is waiting on — the usual dose, the routes it can go by, how often, how long. */
 export function orderReplies(p: PendingOrder): QuickReply[] {
+  if (p.kind === "confirm" && p.targetId === "measure:admit") return [{ text: "Yes, the ICU", send: true }, { text: "No, the ward", send: true }];
   if (p.kind === "confirm" && p.targetId === "measure:intubation") return [{ text: "Yes, intubate", send: true }, { text: "No, wait", send: true }];
   if (p.kind === "confirm" && !formularyDrug(p.targetId)) return [{ text: "Yes, discharge", send: true }, { text: "No, keep them here", send: true }];
   if (p.kind === "confirm") return [{ text: "Yes, give it", send: true }, { text: "No, hold it", send: true }];

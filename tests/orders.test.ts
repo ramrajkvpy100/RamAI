@@ -506,3 +506,35 @@ describe("Random erratic-doctor audit, round ten", () => {
     expect(text).not.toMatch(/IV access secured|Multipara monitor/);
   });
 });
+
+describe("Focus audit, round one", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("'150 weekly' is 150 mg, not 15", () => {
+    const { turns } = play(dermAcne, ["fluconazole 150 weekly x 4 weeks", "methotrexate 15 weekly"]);
+    expect(turns[0]!.record.intents[0]?.payload?.amount).toBe(150);
+    expect(turns[1]!.record.intents[0]?.payload?.amount).toBe(15);
+  });
+  it("queries lorazepam 4 mg IV in someone not fitting, a womb drug outside childbirth, and a BP-lowering drug in low BP", async () => {
+    const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
+    expect(said(play(emAdhf, ["lorazepam 4 mg iv"]).turns)).toMatch(/status epilepticus/);
+    expect(said(play(emAdhf, ["methergin 0.2 mg im"]).turns)).toMatch(/only around childbirth/);
+    expect(said(play(obgPphChc, ["amlodipine 5 mg po stat"]).turns)).toMatch(/could drop it further/);
+  });
+  it("asks before an ICU bed for a stable patient, and won't book a week's follow-up in the ER while unwell", async () => {
+    const { gpUtiPhc } = await import("@/engine/cases/gp-uti-phc");
+    expect(said(play(gpUtiPhc, ["admit in icu"]).turns)).toMatch(/the ICU\? They're stable/);
+    const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
+    expect(said(play(obgPphChc, ["follow up 1 week"]).turns)).toMatch(/still here in emergency/);
+  });
+  it("a case step never runs on a drug's or a test's name", () => {
+    const def = structuredClone(emAdhf);
+    def.therapeutics.push({ id: "nsaid-step", kind: "drug", drugClasses: ["nsaid"], match: ["aspirin", "ibuprofen"], label: "Give an NSAID", appropriateness: "harmful" });
+    def.therapeutics.push({ id: "cultures-step", kind: "procedure", match: ["blood culture"], label: "Send cultures", appropriateness: "ideal" });
+    const { turns } = play(def, ["blood culture"]);
+    expect(turns[0]!.record.intents[0]?.kind).toBe("investigation");
+  });
+  it("a child's heparin is checked by weight", async () => {
+    const { pedDiarrhoeaPhc } = await import("@/engine/cases/ped-diarrhoea-phc");
+    expect(said(play(pedDiarrhoeaPhc, ["heparin 5000 units iv"]).turns)).toMatch(/10-kg child/);
+  });
+});

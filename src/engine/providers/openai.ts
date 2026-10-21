@@ -34,6 +34,7 @@ import { levelMeta, trackLabel } from "../levels";
 import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Specialty } from "../types";
 import { CARE_LEVELS, PLAYABLE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
+import { pickCondition } from "./conditions";
 import { mockProvider, NoCaseError } from "./mock";
 import type { z } from "zod";
 
@@ -133,7 +134,7 @@ async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful:
 const IDIOM: Record<Country, string> = { IN: "Indian English", US: "American English", UK: "British English", WW: "plain international English" };
 const WHERE: Record<Country, string> = { IN: "India", US: "the USA", UK: "the UK", WW: "a low- or middle-income country (choose a realistic one — in Africa, South or Southeast Asia, the Middle East or Latin America), following WHO guidance" };
 const language = (country: Country = "IN", lang: PatientLang = "en") =>
-  lang === "hinglish" ? "Hinglish — everyday Hindi written in Roman letters, mixed with common English words, as people speak in North India" : `natural ${IDIOM[country]}`;
+  lang === "hinglish" ? "Hinglish — everyday Hindi written in Roman letters, mixed with common English words, as people speak in North India" : `natural ${IDIOM[country]} — even when the doctor writes in Hindi or Hinglish (the player chose English replies)`;
 
 const simulationRules = (country: Country = "IN") => `You are the hidden clinical environment of RamAI, an educational clinical-decision game for doctors in ${WHERE[country]}.
 Absolute rules while a case is active:
@@ -166,7 +167,7 @@ const DRUG_NAME_RE = new RegExp(`\\b(?:${DRUG_NAMES.map(escapeRe).join("|")})\\b
 const namesDrug = (phrase: string) => DRUG_NAME_RE.test(phrase.toLowerCase());
 
 /** A "value" that is no result at all — the lab must report the test, never decline it. */
-const NO_VALUE = /\b(not (?:obtained|measured|done|performed|available|tested|reported)|pending|awaited|n\/a)\b/i;
+const NO_VALUE = /\b(not (?:obtained|measured|done|performed|available|tested|reported)|pending|awaited|n\/a)\b|^\s*(?:not performed|not done)\.?\s*$/i;
 
 const BEDSIDE_TEST = /\b(visual acuity|snellen|\bva\b|fluorescein|pinhole|near vision|colou?r vision|confrontation|20 ?wbct|whole blood clotting|clotting time|bleeding time|dipstick|urine dip|glucometer|capillary glucose|peak flow|pefr|pulse oximetry|tuning fork|rinne|weber|otoscopy|schober|single breath count|bedside)\b/i;
 
@@ -395,6 +396,8 @@ function coherencePrompt(def: unknown): ChatMessage[] {
 const pickOne = <T>(xs: readonly T[], random = Math.random): T => xs[Math.floor(random() * xs.length)]!;
 
 /** General practice: the problems a GP sees every day, presented fairly — learnable and winnable. */
+/** What makes a general-practice case fair and learnable, whatever the condition. */
+const GP_FAIR = "Make it fair and learnable: a cooperative patient who volunteers the key history when asked, the key sign clearly present on examination, one or two simple tests that confirm it, and a standard first-line treatment from the national guidelines. The patient stays stable throughout.";
 const GP_BRIEF = "This is general practice: choose one of the commonest primary-care problems (fever with a cold or cough, sore throat, acute gastroenteritis, urinary infection, new or uncontrolled hypertension or type 2 diabetes, tinea, scabies, acne, iron-deficiency anaemia, asthma, low back pain, tension headache, otitis media, conjunctivitis, worms, dyspepsia, or — in season — dengue, malaria or typhoid without warning signs). Make it fair and learnable: a cooperative patient who volunteers the key history when asked, the key sign clearly present on examination, one or two simple tests that confirm it, and a standard first-line treatment from the national guidelines. The patient stays stable throughout.";
 
 /** What to ask for: the player's choices, and otherwise a varied mix — a new kind of patient each time. */
@@ -410,7 +413,9 @@ function caseBrief(opts: StartOptions) {
   const age = specialty === "Pediatrics" ? pickOne(["an infant", "a toddler", "a school-age child", "an adolescent"]) : pickOne(["a young adult", "an adult in their 30s or 40s", "a middle-aged adult", "an older adult"]);
   // About one patient in four is harder to talk to — never in a newcomer's easy case.
   const persona = opts.easy || opts.disease ? undefined : Math.random() < 0.25 ? pickOne(PERSONAS) : undefined;
-  return { track, level, specialty, sex, age, persona };
+  // A condition from the curated list for this specialty, level and mode (the model picks only where there's none).
+  const condition = opts.disease ? undefined : pickCondition(specialty, level, track, opts.country ?? "IN");
+  return { track, level, specialty, sex, age, persona, condition };
 }
 type Brief = ReturnType<typeof caseBrief>;
 
@@ -470,6 +475,7 @@ You author realistic, guideline-accurate clinical cases for ${c.name}. Patients 
 };
 
 function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
+  const chosen = opts.disease ?? brief.condition;
   const country = COUNTRY[opts.country ?? "IN"];
   const level = levelMeta(brief.level, country.id);
   const difficulty = opts.easy ? "1 — EASY: a common, classic presentation with clear findings and a straightforward plan, for a doctor's first cases — the patient stays stable while the doctor works, with no sudden deterioration, so a careful beginner can win it" : "matched to the setting (1 easy, 2 moderate, 3 hard)";
@@ -477,7 +483,7 @@ function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
     { role: "system", content: authoring(country.id) },
     {
       role: "user",
-      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : brief.specialty === "General Practice" ? GP_BRIEF : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : `Choose a realistic condition that fits; vary it — not always the most common one. ${["phc", "chc", "district"].includes(brief.level) ? "At this level, choose a condition commonly seen at such a facility — common or important presentations, no rare diseases (no rare syndromes, inborn errors, eosinophilic or genetic disorders)." : brief.level === "college" ? "Uncommon conditions are fine, rare ones occasionally." : "Rare and complex conditions are expected here."}`} The condition and its cause must occur where the patient lives (${country.name}) — never a disease, organism or venomous animal found only elsewhere in the world (Sin Nombre hantavirus, Lyme disease, coccidioidomycosis or rattlesnakes in India, say) unless recent travel is part of the story. patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
+      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${chosen ? `The condition is ${chosen} (${opts.disease ? "the doctor chose to practise it; " : ""}never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${chosen ? "" : `${seasonNote(country.id)} Sometimes (not usually) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${chosen ? `Give it a ${opts.easy ? "classic, textbook" : "typical"} presentation for this setting.${brief.specialty === "General Practice" ? ` ${GP_FAIR}` : ""}` : brief.specialty === "General Practice" ? GP_BRIEF : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : `Choose a realistic condition that fits; vary it — not always the most common one. ${["phc", "chc", "district"].includes(brief.level) ? "At this level, choose a condition commonly seen at such a facility — common or important presentations, no rare diseases (no rare syndromes, inborn errors, eosinophilic or genetic disorders)." : brief.level === "college" ? "Uncommon conditions are fine, rare ones occasionally." : "Rare and complex conditions are expected here."}`} The condition and its cause must occur where the patient lives (${country.name}) — never a disease, organism or venomous animal found only elsewhere in the world (Sin Nombre hantavirus, Lyme disease, coccidioidomycosis or rattlesnakes in India, say) unless recent travel is part of the story. patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
 Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
     },
   ];
@@ -606,7 +612,11 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     patient: { name: concept.patient.name, age: concept.patient.age, sex: concept.patient.sex, city: concept.patient.city, occupation: concept.patient.occupation, context: brief.track === "emergency" ? "Emergency" : "OPD" } as ClinicalCaseDefinition["patient"],
     arrivalMinuteOfDay: 8 * 60 + Math.floor(Math.random() * 10 * 60),
     briefing: concept.briefing,
-    opening: (d.opening.length ? d.opening : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }]) as ClinicalCaseDefinition["opening"],
+    // (An empty line — a toddler "says" nothing — is left out, never shown as an empty bubble.)
+    opening: (() => {
+      const lines = d.opening.filter((o) => typeof o.text === "string" && o.text.trim().length > 0);
+      return lines.length ? lines : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }];
+    })() as ClinicalCaseDefinition["opening"],
     baselineVitals: Object.fromEntries(Object.entries({ bp: "122/78", hr: "84", rr: "16", temp: "98.4", spo2: "98", weight: "62", ...cleanVitals(d.baselineVitals) }).map(([k, v]) => [k, { key: k, value: v }])) as ClinicalCaseDefinition["baselineVitals"],
     triageVitals: d.triageVitals as ClinicalCaseDefinition["triageVitals"],
     profile: d.profile,
@@ -850,7 +860,7 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
           .filter((x) => typeof x.analyte === "string" && (typeof x.value === "string" || typeof x.value === "number") && !NO_VALUE.test(String(x.value)))
           .slice(0, 12)
           .map((x) => flagFromRange({ analyte: String(x.analyte).slice(0, 60), value: String(x.value).slice(0, 24), unit: x.unit?.slice(0, 20), reference: x.reference?.slice(0, 40), flag: ["normal", "high", "low", "critical"].includes(String(x.flag)) ? (x.flag as "normal") : "normal" }));
-        const said = typeof r.report === "string" ? r.report.trim().slice(0, 600) : undefined;
+        const said = typeof r.report === "string" && !NO_VALUE.test(r.report) ? r.report.trim().slice(0, 600) : undefined;
         if (free.length || said) out[`lab:${g.id}`] = JSON.stringify({ ...(free.length ? { rows: free } : {}), ...(said ? { report: said } : {}) });
         continue;
       }
@@ -862,7 +872,7 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
           return flagFromRange({ analyte: a.analyte, value: String(got.value).slice(0, 24), unit: a.unit, reference: a.reference, flag });
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
-      const report = g.report && typeof r.report === "string" ? r.report.trim().slice(0, 600) : undefined;
+      const report = g.report && typeof r.report === "string" && !NO_VALUE.test(r.report) ? r.report.trim().slice(0, 600) : undefined;
       if (rows.length || report) out[`lab:${g.id}`] = JSON.stringify({ ...(rows.length ? { rows } : {}), ...(report ? { report } : {}) });
     }
     return out;
@@ -1042,7 +1052,7 @@ export function createOpenAIProvider(): ClinicalProvider {
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
       const rules = await mockProvider.interpret(text, ctx);
       // An order's question asked again: the rules have the words already.
-      if (rules.generated && rules.intents.some((i) => i.payload?.keepPending === true)) return rules;
+      if (rules.generated && rules.intents.some((i) => i.payload?.keepPending === true || i.payload?.settled === true)) return rules;
       const ruled = rules.intents;
       // The doctor answered an order's question: that's settled; the rest isn't worth a model call to reread.
       // Several requests in one message, or a long one the rules only partly placed: the model reads all of it, as ChatGPT would.

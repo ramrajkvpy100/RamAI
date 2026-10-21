@@ -20,6 +20,8 @@ export class NoCaseError extends Error {
 }
 import type { ClinicalProvider, InterpretContext } from "./types";
 
+/** A bare acknowledgement or refusal — said to no one in particular. */
+const BARE_ACK = /^(?:no+|nope|no,? don'?t|don'?t|nahi|na|ok(?:ay)?|hmm+|alright|fine|right|theek hai)[.!]*$/i;
 const AFFIRM = /^(y+a+|yes+|yeah|yep|ok(ay)?|haan|ha|sure|go ahead|do it|please do|of course|correct|right)[.!]*$/i;
 
 const EXAM_VERB = /\b(exam|examination|examine|palpate|auscultate|listen|inspect|percuss|check|look|feel|elicit|see)\b/i;
@@ -99,6 +101,11 @@ export const mockProvider: ClinicalProvider = {
     const waiting = ctx.hidden.pendingOrders?.[0];
     if (waiting && AFFIRM.test(text.trim())) {
       return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: ctx.def.track === "phone" ? "attendant" : "nurse", keepPending: true } }], generated: { "0": pendingQuestion(waiting, true) } };
+    }
+    // "No, don't", "ok", "hmm" with nothing waiting on it: heard, and nothing more to read into it (not even by the model).
+    if (!waiting && BARE_ACK.test(text.trim())) {
+      const nurse = ctx.def.track === "emergency";
+      return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { ...(nurse ? { speaker: "nurse" } : {}), settled: true } }], generated: { "0": nurse ? "Okay, doctor. What next?" : "Okay, doctor." } };
     }
     const intents = resolveIntents(text, rctx);
     // "Ya", "yes", "ok" after someone in the room asked a question: they hear it and go along.

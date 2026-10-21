@@ -324,7 +324,15 @@ function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEff
     }
     const own = changed.filter((k) => mine.has(k));
     const other = changed.filter((k) => !mine.has(k));
-    const moving = better || worse;
+    // "Looks better" is never said beside a sign that got worse (a fever back up, a falling pressure).
+    const num = (v: string | undefined) => parseFloat(v ?? "");
+    const gotWorse = (k: VitalKey) => {
+      const a = num(w.before[k]), b = num(now[k].value);
+      if (!(a > 0) || !(b > 0)) return false;
+      return (k === "temp" && b > a && b > 99.5) || (k === "hr" && b > a && b > 100) || (k === "rr" && b > a && b > 20) || (k === "spo2" && b < a && b < 95) || (k === "bp" && b < a && b < 100) || (k === "gcs" && b < a);
+    };
+    const contradicted = better && changed.some(gotWorse);
+    const moving = (better && !contradicted) || worse;
     if (!own.length && !feel && !(moving && mineCourse) && !last) continue;
     // Already told: the last look adds only what's new.
     if (last && w.told && !own.length && !feel && !moving && !other.length) continue;
@@ -1878,16 +1886,33 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
     // Oxytocin is given 10 IU, then 20–40 IU in a bag of fluid.
     || (drug.id === "oxytocin" && dose?.unit === "units" && dose.amount !== undefined && dose.amount <= 40);
   if (!inRange && !loading && dose?.multiple !== undefined && dose.multiple >= 3 && !drug.fluid && !drug.classes.some((c) => ownRules.includes(c)) && !["table-salt", "potassium-chloride", "methotrexate"].includes(drug.id)) return `That's about ${Math.round(dose.multiple)} times the usual dose.`;
-  // Drugs for the womb, given to someone without one in use: a man, a child — or a woman still pregnant.
+  // Drugs for the womb, given to someone without one in use: a man, a child — or a woman still pregnant, or not near a birth.
   if (drug.classes.includes("uterotonic")) {
     if (def.patient.sex === "Male") return "It acts on the womb — it has no use in a man.";
     if (def.patient.age < 12) return "It acts on the womb — it has no use in a child.";
     if (def.profile?.pregnant) return "She's still pregnant — it can bring on contractions or a miscarriage.";
+    if (def.specialty !== "OBGYN") return "It acts on the womb — it's used only around childbirth or a miscarriage.";
   }
+  // Status-epilepticus doses of a benzodiazepine for someone who isn't fitting.
+  const fitting = /seiz|convuls|fits?\b|status epilepticus|eclampsia|tetanus|agitat|withdrawal/i.test(`${def.briefing} ${def.opening.map((o) => o.text).join(" ")} ${hidden.hazards.map((a) => a.label).join(" ")}`);
+  if (!fitting && dose?.route === "IV" && dose.amount !== undefined && dose.unit === "mg" && ((drug.id === "lorazepam" && dose.amount >= 4) || (drug.id === "diazepam" && dose.amount >= 10))) {
+    return "That's a dose for status epilepticus — in someone who isn't fitting it can stop the breathing.";
+  }
+  // Once dengue is confirmed, or the platelets are known to be low: no NSAIDs or aspirin, and no injections into muscle.
+  const rowsSeen = hidden.investigations.filter((i) => i.delivered).flatMap((i) => (i.result.rows ?? []).map((r) => ({ test: `${i.defId} ${i.name}`, ...r })));
+  const dengue = rowsSeen.some((r) => /dengue/i.test(r.test) && /ns1|igm/i.test(r.analyte) && /positive|reactive|detected/i.test(r.value) && !/\bnon|\bnot\b|negative/i.test(r.value));
+  const lowPlatelets = rowsSeen.some((r) => /platelet/i.test(r.analyte) && (r.flag === "low" || r.flag === "critical"));
+  const why = dengue ? "With dengue" : "With the platelets low";
+  if ((dengue || lowPlatelets) && (drug.classes.includes("nsaid") || drug.classes.includes("salicylate") || drug.classes.includes("antiplatelet"))) return `${why}, ${drug.classes.includes("antiplatelet") && !drug.classes.includes("nsaid") ? "an antiplatelet drug" : "an NSAID or aspirin"} can cause bleeding.`;
+  if ((dengue || lowPlatelets) && dose?.route === "IM") return `${why}, an injection into the muscle can bleed into it — can it be given another way?`;
   if (def.profile?.pregnant && drug.classes.includes("teratogen")) return "She's pregnant — this drug can harm the baby.";
   // A diuretic when the pressure is already low.
   const sbp = parseFloat(vitalsNow(hidden).bp.value);
-  if (drug.classes.includes("loop-diuretic") && sbp > 0 && sbp < 100) return `The BP is ${vitalsNow(hidden).bp.value} — a diuretic could drop it further.`;
+  // Anything that lowers the pressure, when it's already low.
+  const lowers = ["loop-diuretic", "thiazide", "antihypertensive", "ccb", "arb", "acei", "arni", "beta-blocker", "nitrate", "vasodilator", "mra", "pde5"];
+  if (sbp > 0 && sbp < 100 && dose?.route !== "TOP" && dose?.route !== "OD-eye" && drug.classes.some((c) => lowers.includes(c))) {
+    return `The BP is ${vitalsNow(hidden).bp.value} — ${drug.classes.includes("loop-diuretic") ? "a diuretic" : "this"} could drop it further.`;
+  }
   // A child: the dose for their weight.
   if (def.patient.age < 16) {
     const kg = parseFloat(vitalsNow(hidden).weight.value) || 0;
@@ -2144,6 +2169,14 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   return fx;
 }
 
+/** A drug that only eases symptoms, never the illness itself. */
+const symptomatic = (drug: FormularyDrug) =>
+  drug.classes.some((c) => ["analgesic", "antipyretic", "antihistamine", "sedating-antihistamine", "antiemetic", "antispasmodic"].includes(c))
+  && !drug.classes.some((c) => ["antibiotic", "antifungal", "antiviral", "antimalarial", "anthelminthic", "scabicide", "steroid-systemic", "topical-steroid", "insulin", "hypoglycaemic", "antihypertensive"].includes(c));
+
+/** The steps that treat the illness itself: the definitive treatment and the first ideal step. */
+const core = (def: ClinicalCaseDefinition) => new Set([...(def.rubric.definitiveTreatment?.ids ?? []), ...(def.rubric.idealTreatment[0] ?? [])]);
+
 /** After a prescribed course: what the patient noticed, if anything. */
 function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, duration: string | undefined, before: PatientStatus): TurnEffect[] {
   const name = drug.generic.toLowerCase();
@@ -2157,6 +2190,8 @@ function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: For
   const harms = rule?.appropriateness === "harmful";
   let says: string;
   if (STATUS_RANK[now] > STATUS_RANK[before] || harms) says = "It hasn't helped, doctor — if anything I feel worse.";
+  // (A drug that only eases symptoms — paracetamol, an antihistamine — eases them; it doesn't clear the illness.)
+  else if (fits && duration && symptomatic(drug) && !core(def).has(rule!.id) && !(STATUS_RANK[now] < STATUS_RANK[before])) says = relief ? `${relief} But the main problem is still there.` : "It eased things a little, doctor, but the main problem is still there.";
   else if (STATUS_RANK[now] < STATUS_RANK[before] || (fits && duration)) says = relief ? `${relief} I feel much better overall.` : "It's much better, doctor — the problem is clearing up.";
   else if (relief) says = `${relief} But the main problem is still there.`;
   else says = "No real change, doctor. I feel about the same.";
@@ -2363,6 +2398,16 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       return askAbout(ctx, { kind: "confirm", targetId: "measure:intubation", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
     }
   }
+  // The ICU for someone stable: the nurse checks first — an ICU bed is for the critically ill.
+  if (m.id === "admit" && /\bicu|intensive\b/i.test(intent.phrase) && !intent.payload?.confirmed && STATUS_RANK[hidden.status] <= STATUS_RANK.stable) {
+    const v = vitalsNow(hidden);
+    const n = (k: VitalKey) => parseFloat(v[k]?.value ?? "");
+    const unstable = n("bp") < 90 || n("spo2") < 94 || n("hr") > 120 || n("rr") > 28 || n("gcs") < 15;
+    if (!unstable) {
+      const question = `Doctor — the ICU? They're stable${v.bp?.value ? ` (BP ${v.bp.value}${v.spo2?.value ? `, SpO₂ ${v.spo2.value}%` : ""})` : ""}. Do you still want an ICU bed rather than the ward?`;
+      return askAbout(ctx, { kind: "confirm", targetId: "measure:admit", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
+    }
+  }
   // Sending home someone who is unwell: the nurse checks first (once).
   if (m.id === "discharge" && !intent.payload?.confirmed) {
     const question = dischargeQuestion(ctx);
@@ -2544,6 +2589,10 @@ function handleAction(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
 function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
+  // An emergency patient who is still unwell isn't booked to come back next week: they're admitted, referred or sent home first.
+  if (def.track === "emergency" && !hidden.discharged && STATUS_RANK[hidden.status] >= STATUS_RANK.guarded && days >= 1) {
+    return [{ type: "message", role: "nurse", kind: "speech", text: "Doctor, they're still here in emergency and not better yet — admit, refer or send them home first, then we can book a follow-up." }];
+  }
   const span = days * 1440;
   hidden.followUps.push({ at: hidden.clock, days });
   fx.push({ type: "timeline", label: `Follow-up planned — ${describeSpan(span)}`, category: "followup" });

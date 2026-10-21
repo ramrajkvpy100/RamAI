@@ -94,7 +94,8 @@ describe("AI-invented patients", () => {
     expect(sessionInfo(start.token).generated).toBe(true);
     expect(start.state.patient).toMatchObject({ age: 34, sex: "Male" });
     expect(prompts.filter((p) => p.includes("Outline one case"))).toHaveLength(1);
-    expect(prompts.some((p) => p.includes("most common conditions"))).toBe(true);
+    // An easy case: a common condition (from the curated list, or the model's) with a classic presentation.
+    expect(prompts.some((p) => /most common conditions|classic, textbook presentation/.test(p))).toBe(true);
 
     // The X-ray's picture: a reference only — what it shows never reaches the browser.
     expect(await pictureFor(start.token, "gen-1", "p1")).toBeNull();

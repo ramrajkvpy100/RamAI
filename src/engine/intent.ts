@@ -427,7 +427,8 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
       const typed = tk.slice(hit.start, hit.end).join(" ");
       const end = at >= 0 ? at + hit.phrase.length : segment.indexOf(typed) >= 0 ? segment.indexOf(typed) + typed.length : -1;
       const after = end >= 0 ? segment.slice(end) : "";
-      const bare = after.match(/^\s*(\d+(?:\.\d+)?)(?!\s*(?:%|x|×|days?|weeks?|months?|hours?|hrs?|h\b|min|mins|minutes|times|ml|l\b|litres?|drops?|puffs?|tabs?|tablets?|caps?|\/|-\s*\d))/i);
+      // (The whole number, never part of it: "150 weekly" is 150 — not "15" because "150 weeks" would be a duration.)
+      const bare = after.match(/^\s*(\d+(?:\.\d+)?)(?![\d.])(?!\s*(?:%|x\b|×|days?\b|weeks?\b|months?\b|hours?\b|hrs?\b|h\b|min\b|mins\b|minutes\b|times\b|ml\b|l\b|litres?\b|drops?\b|puffs?\b|tabs?\b|tablets?\b|caps?\b|\/|-\s*\d))/i);
       if (usual && bare) {
         const n = parseFloat(bare[1]!);
         const ref = parseFloat(usual[1]!.replace(",", ""));
@@ -478,13 +479,20 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
   return out;
 }
 
+/** Any test's name, as a whole phrase. */
+const TEST_PHRASE_RE = new RegExp(`\\b(?:${[...new Set(INVESTIGATIONS.flatMap((i) => i.match).filter((m) => m.length >= 4))].map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`);
+
 function actionCandidates(rawClause: string, tk: string[], ctx: IntentContext): Candidate[] {
   const out: Candidate[] = [];
   // Case-specific therapeutic rules expressed as phrases (procedures, counselling…).
   for (const rule of ctx.def.therapeutics) {
     if (!rule.match) continue;
+    // A drug step is reached through the drug ordered, never its words ("aspirin" gives aspirin, not "Give aspirin — done").
+    if (rule.kind === "drug" && (rule.drugIds?.length || rule.drugClasses?.length)) continue;
     for (const hit of allHits(tk, rule.match)) {
       if (precededBy(tk, hit.start, ["dont", "do not", "no need", "not"], 2)) continue;
+      // Nor does a step fire on a test's name ("blood culture" is the test, not "Send cultures… — done").
+      if (TEST_PHRASE_RE.test(hit.phrase.toLowerCase())) continue;
       out.push({ hit, priority: 7, intent: { kind: "action", targetId: rule.id, phrase: rawClause, matched: true } });
     }
   }
