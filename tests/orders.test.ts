@@ -392,7 +392,7 @@ describe("Random erratic-doctor audit, round five (replies)", () => {
   const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
   it("doesn't deny a diagnosis it can't know, and denies a risk it wasn't given", () => {
     const { turns } = play(emAdhf, ["is this dengue?", "suicidal thoughts?"]);
-    expect(turns[0]!.record.intents[0]?.targetId).toBe("fallback:open");
+    expect(turns[0]!.record.intents[0]?.targetId).toBe("answer:diagnosis");
     expect(turns[1]!.record.intents[0]?.targetId).toBe("fallback:yesno");
     expect(said(turns)).not.toMatch(/say that once more/);
   });
@@ -485,5 +485,24 @@ describe("Random erratic-doctor audit, round nine", () => {
     const text = said(play(phone, ["discharge"]).turns);
     expect(text).toMatch(/look after them at home/);
     expect(text).not.toMatch(/Discharged home/);
+  });
+});
+
+describe("Random erratic-doctor audit, round ten", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("'is this dengue?' gets an honest 'I don't know'", () => {
+    expect(said(play(emAdhf, ["is this dengue?"]).turns)).toMatch(/I don't know, doctor — you tell me/);
+  });
+  it("a named limb is examined as named; 'local exam' is the case's local finding", async () => {
+    const { emViperPhc } = await import("@/engine/cases/em-viper-phc");
+    expect(said(play(emAdhf, ["knee exam"]).turns)).toMatch(/Knee: no swelling/);
+    expect(play(emViperPhc, ["local exam"]).turns[0]!.record.intents[0]?.targetId).toBe("local");
+  });
+  it("a step bundling measures does only the one named", () => {
+    const def = structuredClone(emAdhf);
+    def.therapeutics.push({ id: "bundle", kind: "supportive", measureIds: ["iv-access", "monitor", "catheter"], label: "Lines and monitoring", appropriateness: "acceptable" });
+    const text = said(play(def, ["catheterise"]).turns);
+    expect(text).toMatch(/Foley catheter inserted/);
+    expect(text).not.toMatch(/IV access secured|Multipara monitor/);
   });
 });

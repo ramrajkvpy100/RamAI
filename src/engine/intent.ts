@@ -624,7 +624,7 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     if (exam.length > 0) return done(resolveOverlaps(exam));
     // "Is this dengue?", "could it be TB?" — the patient can't know, and a "No, doctor" would mislead.
     if (/^(?:is|could|can|might|would) (?:this|it|that) (?:be )?|^(?:does|do) (?:he|she|i|you|they) have\b|^(?:is|are) (?:he|she|you|they) (?:having|suffering from)\b/.test(norm)) {
-      return done([{ kind: "history", targetId: "fallback:open", phrase: rawClause, matched: false }]);
+      return done([{ kind: "history", targetId: "answer:diagnosis", phrase: rawClause, matched: true }]);
     }
     // A short question about a symptom or a risk ("suicidal thoughts?", "fits?") is asked to be denied or confirmed.
     const yesNo = /^(do|does|did|is|are|was|were|have|has|had|any|can|could|ever|will|would)\b/.test(norm) || /\bany\b/.test(norm)
@@ -738,6 +738,19 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   if (/^(?:please\s+)?(?:shift|take|send|move|wheel|post)\s+(?:him|her|them|the patient|patient\s+)?\s*(?:to\s+)?(?:the\s+)?(?:ot|o t|operation theatre|operating theatre|theatre|surgery)(?:\s+(?:now|urgently|stat|immediately))?$/.test(plain)) {
     const own = resolveClause(raw, ctx).filter((i) => i.kind === "action" && i.matched && i.targetId && ctx.def.therapeutics.some((r) => r.id === i.targetId));
     return own.length ? own : [{ kind: "action", targetId: "procedure:ot", phrase: raw, matched: true }];
+  }
+  // "Local examination": the case's own local finding (the bite, the rash, the ankle) — or, naming a part, the entry about it.
+  if (/^(?:do |please )?(?:a |the )?(?:local|regional)\s+exam(?:ination)?$|^exam(?:ine|ination of)?\s+(?:the\s+)?(?:local\s+)?(?:part|site|area)$/.test(plain)) {
+    const local = ctx.def.exam.find((e) => e.group === "local-exam");
+    if (local) return [{ kind: "exam", targetId: local.id, phrase: raw, matched: true }];
+  }
+  const part = plain.match(/^(?:examine |exam(?:ination)? of |check |look at |feel )?(?:the )?(?:(?:right|left|both) )?(knees?|ankles?|hips?|shoulders?|elbows?|wrists?|hands?|feet|foot|back|spine|neck|legs?|arms?)(?: exam(?:ination)?)?$/);
+  if (part) {
+    const word = part[1]!.replace(/s$/, "").replace(/^feet$/, "foot");
+    const own = ctx.def.exam.find((e) => new RegExp(`\\b${word}`, "i").test(`${e.label} ${e.match.join(" ")}`));
+    if (own) return [{ kind: "exam", targetId: own.id, phrase: raw, matched: true }];
+    // (Feet have their own catalogue examination; anything else is examined as named.)
+    return [{ kind: "exam", targetId: word === "foot" ? "feet" : "generic", phrase: raw, matched: true }];
   }
   // A bare "fundus": the eye's — or, in pregnancy or after a birth, the womb's (the case's own examination if it has one).
   if (/^(?:check |examine |see |feel |look at )?(?:the )?(?:fundus|fundal height)\??$/.test(plain)) {

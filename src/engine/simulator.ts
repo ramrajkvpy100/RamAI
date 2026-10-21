@@ -18,7 +18,7 @@ import { childDoseConcern, hasChildDose, confirmQuestion, graveHazards, drugNeed
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { saltGrams } from "./toxicity";
-import { capitalise, describeSpan, hash, pick } from "./text";
+import { capitalise, describeSpan, findPhrase, hash, normalise, pick, tokens } from "./text";
 import type {
   ActionRecord,
   Auscultation,
@@ -999,6 +999,8 @@ export function getPatientResponse(def: ClinicalCaseDefinition, hidden: HiddenSt
       return { text: howDoYouFeel(def, hidden) || "(No response.)", role };
     }
     case "fallback:yesno": return { text: pick(YES_NO_FALLBACK, seed), role };
+    // "Is this dengue?" — the patient can't know; they ask back.
+    case "answer:diagnosis": return { text: "I don't know, doctor — you tell me. Is it something serious?", role };
     case "fallback:diet": return { text: "Just normal home food, doctor. Nothing special.", role };
     default: return { text: pick(OPEN_FALLBACK, seed), role };
   }
@@ -1149,6 +1151,13 @@ function handleVitals(ctx: TurnContext, keysIn: VitalKey[], announce = true): Tu
   return fx;
 }
 
+const PART_RE = /\b(?:(right|left|both)\s+)?(knees?|ankles?|hips?|shoulders?|elbows?|wrists?|hands?|feet|foot|back|spine|neck|legs?|arms?|thighs?|calf|calves|fingers?|toes?)\b/i;
+/** The limb or joint named in an examination request ("right knee exam" → "right knee"). */
+function namedPart(phrase: string): string | null {
+  const m = phrase.match(PART_RE);
+  return m ? `${m[1] ? `${m[1].toLowerCase()} ` : ""}${m[2]!.toLowerCase()}` : null;
+}
+
 function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
@@ -1226,6 +1235,14 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     } else {
       finding = cat.finding;
     }
+  } else if (namedPart(intent.phrase)) {
+    // A limb or joint the case says nothing about ("knee exam" for a chest infection): examined, and normal.
+    const named = namedPart(intent.phrase)!;
+    label = `${capitalise(named)} examination`;
+    group = "local-exam";
+    finding = /back|spine|neck/.test(named)
+      ? `${capitalise(named)}: no deformity or tenderness; full, painless range of movement.`
+      : `${capitalise(named)}: no swelling, redness, tenderness or deformity; full, painless range of movement; distal pulses and sensation normal.`;
   } else {
     // "Examine", or an examination we don't recognise: never "no abnormality" — the patient's general examination,
     // and which system next.
@@ -2182,7 +2199,11 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
     record(hidden, rule.id);
     if (rule.appropriateness === "ideal" || rule.appropriateness === "acceptable") hidden.firstTreatmentAt ??= hidden.clock;
     // On the phone, an admission is the family bringing the patient in — the ward's measures come later.
-    const measures = def.track === "phone" && rule.measureIds.includes("admit") ? ["admit"] : rule.measureIds;
+    // A step that bundles several measures ("IV line, monitor and catheter") does only those the doctor named, when they named any:
+    // "catheterise" puts in a catheter, "admit" admits — neither sends a referral or a monitor along with it.
+    const asked = intent ? rule.measureIds.filter((m) => (catalogMeasure(m)?.match ?? []).some((p) => findPhrase(tokens(normalise(intent.phrase)), p))) : [];
+    const chosen = asked.length > 0 && asked.length < rule.measureIds.length ? asked : rule.measureIds;
+    const measures = def.track === "phone" && chosen.includes("admit") ? ["admit"] : chosen;
     for (const m of measures) fx.push(...handleMeasure(ctx, m, intent ?? { kind: "action", targetId: `measure:${m}`, phrase: rule.label, matched: true }));
     if (rule.kind === "discharge") hidden.discharged = true;
     for (const r of rule.response ?? []) fx.push({ type: "message", role: r.role, kind: r.kind, text: r.text });

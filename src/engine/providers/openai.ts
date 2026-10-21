@@ -165,6 +165,9 @@ const escapeRe = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const DRUG_NAME_RE = new RegExp(`\\b(?:${DRUG_NAMES.map(escapeRe).join("|")})\\b`);
 const namesDrug = (phrase: string) => DRUG_NAME_RE.test(phrase.toLowerCase());
 
+/** A "value" that is no result at all — the lab must report the test, never decline it. */
+const NO_VALUE = /\b(not (?:obtained|measured|done|performed|available|tested|reported)|pending|awaited|n\/a)\b/i;
+
 const BEDSIDE_TEST = /\b(visual acuity|snellen|\bva\b|fluorescein|pinhole|near vision|colou?r vision|confrontation|20 ?wbct|whole blood clotting|clotting time|bleeding time|dipstick|urine dip|glucometer|capillary glucose|peak flow|pefr|pulse oximetry|tuning fork|rinne|weber|otoscopy|schober|single breath count|bedside)\b/i;
 
 /** Shorthand, typos and Hinglish spelled out ("kab se hai" → "since when"), as a hint beside the doctor's own words. */
@@ -576,7 +579,9 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
   // A step that isn't a drug never fires on a drug's name ("ciprofloxacin" can't run "empiric antibiotics — done"): that's an order.
   // A step that isn't a drug never fires on a drug's name ("ciprofloxacin" can't run "empiric antibiotics — done"): that's an order.
   const keep = (t: { kind: string }, phrase: string) => !testWords.has(phrase.toLowerCase().trim()) && (t.kind === "drug" || !namesDrug(phrase));
-  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)), match: (t.match ?? []).filter((x) => keep(t, x)) }));
+  // A step that names drugs ("an oral NSAID") is a drug step — so ordering ibuprofen gives ibuprofen, not "… — done".
+  // (Advice keeps its kind: "avoid NSAIDs" is counselling about a drug.)
+  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, ...(t.kind !== "drug" && t.kind !== "counsel" && (t.drugIds.some((x) => DRUG_IDS.has(x)) || t.drugClasses.length > 0) ? { kind: "drug" as const } : {}), drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)), match: (t.match ?? []).filter((x) => keep(t, x)) }));
   const known = new Set(therapeutics.map((t) => t.id));
   const named = [concept.diagnosis, ...m.rubric.diagnosisAccept].map((x) => x.toLowerCase().trim()).filter((x) => x.length > 3);
   const giveaway = (text: string) => named.some((x) => text.toLowerCase().includes(x));
@@ -811,7 +816,7 @@ async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): P
       [
         {
           role: "system",
-          content: `You are the laboratory and radiology department of a hospital in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}. You report results for one patient — exactly what a real patient with this condition, at this point in the illness and after the treatment so far, would show — consistent with every value already known. A value the condition wouldn't change is normal. Radiology reports state findings and an impression in one to three sentences, with no advice. Every test asked for was done: never say it wasn't performed, isn't available or has no findings — a test this condition wouldn't change is reported normal. Output JSON only. Each test reports its own specimen only: a urine test gives urine values (urine glucose and ketones as Nil/Trace/+ to ++++, urine pH 4.5–8), never a blood glucose, blood pH or blood-gas value; CSF and body fluids likewise.`,
+          content: `You are the laboratory and radiology department of a hospital in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}. You report results for one patient — exactly what a real patient with this condition, at this point in the illness and after the treatment so far, would show — consistent with every value already known. A value the condition wouldn't change is normal. Radiology reports state findings and an impression in one to three sentences, with no advice. Every test asked for was done and every value is a real result (never "not obtained", "not measured" or "pending"): never say it wasn't performed, isn't available or has no findings — a test this condition wouldn't change is reported normal. Output JSON only. Each test reports its own specimen only: a urine test gives urine values (urine glucose and ketones as Nil/Trace/+ to ++++, urine pH 4.5–8), never a blood glucose, blood pH or blood-gas value; CSF and body fluids likewise.`,
         },
         {
           role: "user",
@@ -836,7 +841,7 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
       if (!r) continue;
       if (g.adhoc) {
         const free = (r.rows ?? [])
-          .filter((x) => typeof x.analyte === "string" && (typeof x.value === "string" || typeof x.value === "number"))
+          .filter((x) => typeof x.analyte === "string" && (typeof x.value === "string" || typeof x.value === "number") && !NO_VALUE.test(String(x.value)))
           .slice(0, 12)
           .map((x) => flagFromRange({ analyte: String(x.analyte).slice(0, 60), value: String(x.value).slice(0, 24), unit: x.unit?.slice(0, 20), reference: x.reference?.slice(0, 40), flag: ["normal", "high", "low", "critical"].includes(String(x.flag)) ? (x.flag as "normal") : "normal" }));
         const said = typeof r.report === "string" ? r.report.trim().slice(0, 600) : undefined;
@@ -846,7 +851,7 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
       const rows = g.analytes
         .map((a) => {
           const got = r.rows?.find((x) => typeof x.analyte === "string" && x.analyte.toLowerCase().replace(/[^a-z0-9]/g, "") === a.analyte.toLowerCase().replace(/[^a-z0-9]/g, ""));
-          if (!got || (typeof got.value !== "string" && typeof got.value !== "number")) return null;
+          if (!got || (typeof got.value !== "string" && typeof got.value !== "number") || NO_VALUE.test(String(got.value))) return null;
           const flag = ["normal", "high", "low", "critical"].includes(String(got.flag)) ? (got.flag as "normal") : "normal";
           return flagFromRange({ analyte: a.analyte, value: String(got.value).slice(0, 24), unit: a.unit, reference: a.reference, flag });
         })
