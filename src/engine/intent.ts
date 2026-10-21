@@ -420,7 +420,11 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
     // when it's a sensible amount of it (not a time, a frequency or a volume).
     if (details.amount === undefined && details.volumeMl === undefined) {
       const usual = drug.dose?.match(/^([\d.,]+)\s*(mg|mcg|g|units|iu|meq|mmol)\b/i);
-      const after = segment.slice(segment.indexOf(hit.phrase) + hit.phrase.length);
+      // (A misspelt name, matched as its nearest drug, is found by the word the doctor typed.)
+      const at = segment.indexOf(hit.phrase);
+      const typed = tk.slice(hit.start, hit.end).join(" ");
+      const end = at >= 0 ? at + hit.phrase.length : segment.indexOf(typed) >= 0 ? segment.indexOf(typed) + typed.length : -1;
+      const after = end >= 0 ? segment.slice(end) : "";
       const bare = after.match(/^\s*(\d+(?:\.\d+)?)(?!\s*(?:%|x|×|days?|weeks?|months?|hours?|hrs?|h\b|min|mins|minutes|times|ml|l\b|litres?|drops?|puffs?|tabs?|tablets?|caps?|\/|-\s*\d))/i);
       if (usual && bare) {
         const n = parseFloat(bare[1]!);

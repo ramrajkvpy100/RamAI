@@ -449,3 +449,27 @@ describe("Random erratic-doctor audit, round seven", () => {
     expect(text).not.toMatch(/say that once more|what would you like me to do/);
   });
 });
+
+describe("Random erratic-doctor audit, round eight", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("asks before shocking someone with a pulse in sinus rhythm", async () => {
+    const { emViperPhc } = await import("@/engine/cases/em-viper-phc");
+    const { turns, hidden } = play(emViperPhc, ["shock 200 j"]);
+    expect(said(turns)).toMatch(/shock\? They have a pulse/);
+    expect(hidden.actions["measure:defib"]).toBeUndefined();
+  });
+  it("keeps the dose of a misspelt drug, and doesn't call normal doses overdoses", () => {
+    const { turns } = play(surgAppendicitis, ["inj diclofenec 75 im", "allopurinol 300 mg od x 30 days", "glimepiride 4 mg od x 30 days"]);
+    expect(turns[0]!.record.intents[0]?.payload?.amount).toBe(75);
+    expect(said(turns)).not.toMatch(/times the usual dose/);
+  });
+  it("on the phone, any test gets the same answer", () => {
+    const phone = ALL_PHONE[0];
+    if (!phone) return;
+    expect(said(play(phone, ["xray knee"]).turns)).toMatch(/Tests can't be done during a phone call/);
+  });
+  it("a patient who came in guarded and hasn't been treated isn't 'a little better'", async () => {
+    const { emViperPhc } = await import("@/engine/cases/em-viper-phc");
+    expect(said(play(emViperPhc, ["how are you feeling"]).turns)).not.toMatch(/A little better/);
+  });
+});

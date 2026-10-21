@@ -1026,7 +1026,8 @@ function howDoYouFeel(def: ClinicalCaseDefinition, hidden: HiddenState): string 
   switch (hidden.status) {
     case "improving":
     case "recovered": return "Better than before, doctor.";
-    case "guarded": return "A little better, I think.";
+    // "Guarded" on arrival is how they came in; only someone pulled back from worse feels better.
+    case "guarded": return hidden.responded || hidden.hazards.some((a) => a.rescuedAt !== undefined) ? "A little better, I think." : "About the same, doctor.";
     case "deteriorating": return "I'm feeling worse, doctor.";
     case "critical": return "(Too unwell to answer.)";
     case "deceased": return "";
@@ -1643,6 +1644,12 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
       return [{ type: "message", role: "system", kind: "finding", text: `${last.name} — showing the result again.`, attachmentIds: [last.instanceId] }];
     }
   }
+  // On the phone nothing can be sent — whatever the test, said once.
+  if (def.track === "phone" && !payload.reshow) {
+    if (ctx.notices.includes("no-tests")) return [];
+    ctx.notices.push("no-tests");
+    return [{ type: "message", role: "system", kind: "status", text: "Tests can't be done during a phone call — advise the caller where to go." }];
+  }
   // A pregnancy test for a man or a young child isn't sent.
   if (requested === "upt" && def.track !== "phone" && (def.patient.sex === "Male" || def.patient.age < 9) && !def.investigations.some((i) => i.id === "upt" && i.priority !== "unnecessary")) {
     return [{ type: "message", role: "nurse", kind: "speech", text: def.patient.sex === "Male" ? `Doctor, he's a ${def.patient.age < 15 ? "boy" : "man"} — a pregnancy test isn't needed.` : "Doctor, she's a young child — a pregnancy test isn't needed." }];
@@ -1783,7 +1790,7 @@ const LOADING_MAX_MG: Record<string, number> = {
   aspirin: 325, clopidogrel: 600, ticagrelor: 180, prasugrel: 60, atorvastatin: 80, rosuvastatin: 40,
   ceftriaxone: 2000, azithromycin: 500, amoxicillin: 1000, "amoxicillin-clavulanate": 1000, metronidazole: 500,
   amiodarone: 300, paracetamol: 1000, ondansetron: 8, pantoprazole: 80, omeprazole: 40, furosemide: 80,
-  prednisolone: 60, dexamethasone: 10, hydrocortisone: 200, magnesium: 4000, "magnesium-sulphate": 10000, "tranexamic-acid": 2000,
+  prednisolone: 60, dexamethasone: 10, hydrocortisone: 200, magnesium: 4000, "magnesium-sulphate": 10000, "tranexamic-acid": 2000, allopurinol: 300, glimepiride: 4,
   levetiracetam: 3000, valproate: 2000, phenytoin: 1500, fluconazole: 400, acyclovir: 800, doxycycline: 200,
   artesunate: 240, "calcium-gluconate": 3000, salbutamol: 5, ipratropium: 0.5,
 };
@@ -1864,11 +1871,14 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   return null;
 }
 
-function findDrugRule(def: ClinicalCaseDefinition, drug: FormularyDrug): TherapeuticRule | undefined {
+function findDrugRule(def: ClinicalCaseDefinition, drug: FormularyDrug, route?: string): TherapeuticRule | undefined {
   const drugRules = def.therapeutics.filter((r) => r.kind === "drug");
+  // Drops or a cream of a drug usually taken by mouth or vein ("ciprofloxacin ear drops") aren't the case's systemic
+  // "antibiotics" step — only a rule naming the drug itself covers them.
+  const local = (route === "TOP" || route === "OD-eye") && drug.route !== "TOP" && drug.route !== "OD-eye";
   return (
     drugRules.find((r) => r.drugIds?.includes(drug.id)) ??
-    drugRules.find((r) => r.drugClasses?.some((c) => drug.classes.includes(c as never)))
+    (local ? undefined : drugRules.find((r) => r.drugClasses?.some((c) => drug.classes.includes(c as never))))
   );
 }
 
@@ -1954,7 +1964,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   hidden.clock += minutes;
   fx.push({ type: "advance_time", minutes });
 
-  const rule = findDrugRule(def, drug);
+  const rule = findDrugRule(def, drug, route);
   const appropriateness: Appropriateness = rule?.appropriateness ?? (drug.classes.includes("fluid") && mode === "given" ? "neutral" : "unnecessary");
   let doseError = false;
   if (rule?.doseRange && amount !== undefined && (!unit || unit === rule.doseRange.unit)) {
@@ -2166,7 +2176,9 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
   if (rule.measureIds?.length) {
     record(hidden, rule.id);
     if (rule.appropriateness === "ideal" || rule.appropriateness === "acceptable") hidden.firstTreatmentAt ??= hidden.clock;
-    for (const m of rule.measureIds) fx.push(...handleMeasure(ctx, m, intent ?? { kind: "action", targetId: `measure:${m}`, phrase: rule.label, matched: true }));
+    // On the phone, an admission is the family bringing the patient in — the ward's measures come later.
+    const measures = def.track === "phone" && rule.measureIds.includes("admit") ? ["admit"] : rule.measureIds;
+    for (const m of measures) fx.push(...handleMeasure(ctx, m, intent ?? { kind: "action", targetId: `measure:${m}`, phrase: rule.label, matched: true }));
     if (rule.kind === "discharge") hidden.discharged = true;
     for (const r of rule.response ?? []) fx.push({ type: "message", role: r.role, kind: r.kind, text: r.text });
     if (rule.settingAfter && rule.settingAfter !== hidden.setting) {
@@ -2287,6 +2299,16 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
     }
     if (["oxygen", "niv", "intubation", "iv-access", "catheter", "dialysis", "ryles", "monitor", "defib", "stop-fluids"].includes(m.id)) {
       return [{ type: "message", role: "attendant", kind: "speech", text: "Doctor, we're at home — we can't do that here. Should we bring them to the hospital?" }];
+    }
+  }
+  // A shock for someone with a pulse and an ordinary rhythm: the nurse checks first.
+  if (m.id === "defib" && !intent.payload?.confirmed && hidden.status !== "deceased") {
+    const rhythm = monitorRhythm(ctx.def);
+    const lib = hazardLibrary(ctx.def);
+    const arrhythmia = ["vt", "svt", "afib", "aflutter"].includes(rhythm) || hidden.hazards.some((a) => a.manifestedAt !== undefined && !a.superseded && a.rescuedAt === undefined && /\b(vt|vf|ventricular|arrhythm\w*|fibrillation|torsade\w*|tachyarrhythm\w*|cardiac arrest|pulseless)\b/i.test(`${a.label} ${JSON.stringify(lib.get(a.id)?.stages ?? [])}`));
+    if (!arrhythmia) {
+      const question = `Doctor — shock? They have a pulse, and the monitor shows ${rhythm === "sinus" ? "sinus rhythm" : `a ${rhythm} rhythm`}. Do you still want to shock?`;
+      return askAbout(ctx, { kind: "confirm", targetId: "measure:defib", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
     }
   }
   // Intubating someone awake and breathing well: the nurse checks first.

@@ -159,6 +159,12 @@ ${recent ? `Conversation so far:\n${recent}` : ""}`;
 }
 
 /** For a question the rules couldn't place: what did the doctor mean, and (if it was a question) what does the patient say? */
+/** Every name a stocked drug goes by (four letters or more, so "pan" or "rl" don't catch ordinary words). */
+const DRUG_NAMES = [...new Set(FORMULARY.flatMap((d) => [d.id, d.generic, ...(d.aliases ?? []), ...d.brands].map((x) => x.toLowerCase())))].filter((w) => w.length > 3);
+const escapeRe = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const DRUG_NAME_RE = new RegExp(`\\b(?:${DRUG_NAMES.map(escapeRe).join("|")})\\b`);
+const namesDrug = (phrase: string) => DRUG_NAME_RE.test(phrase.toLowerCase());
+
 const BEDSIDE_TEST = /\b(visual acuity|snellen|\bva\b|fluorescein|pinhole|near vision|colou?r vision|confrontation|20 ?wbct|whole blood clotting|clotting time|bleeding time|dipstick|urine dip|glucometer|capillary glucose|peak flow|pefr|pulse oximetry|tuning fork|rinne|weber|otoscopy|schober|single breath count|bedside)\b/i;
 
 /** Shorthand, typos and Hinglish spelled out ("kab se hai" → "since when"), as a hint beside the doctor's own words. */
@@ -515,7 +521,7 @@ function managementPrompt(opts: StartOptions, concept: Concept, brief: Brief): C
 { "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why" (one line — and the guideline it follows, e.g. WHO, ICMR, NICE or AHA, where one applies), "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
   "reasoning": [{ "stage": "History", "text" }, { "stage": "Examination", "text" }, { "stage": "Investigation", "text" }, { "stage": "Diagnosis", "text" }],
   "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": [], "diagnosisWrong": ["words that make an otherwise-close diagnosis wrong, e.g. the wrong type, side or organism"], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
-  "followUp": [{ "when": "ideal"|"acceptable"|"harmful"|"untreated"|"any", "status": "recovered"|"improving"|"stable"|"guarded"|"deteriorating"|"critical", "lines": [{ "role", "kind", "text" }] }] }
+  "followUp": [{ "when": "ideal"|"acceptable"|"harmful"|"untreated"|"any", "status": "recovered"|"improving"|"stable"|"guarded"|"deteriorating"|"critical", "lines": [{ "role", "kind", "text" }] }] } — follow-up lines are what the patient or family say and what is seen or measured; never name the diagnosis or a complication
 therapeutics: 5–10 — the right treatments and common wrong or harmful ones. drugIds only from: ${FORMULARY.map((d) => d.id).join(", ")}. measureIds only from: ${MEASURES.map((m) => m.id).join(", ")}.`,
     },
   ];
@@ -567,8 +573,13 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
   const unique = <T extends { id: string }>(xs: T[]) => xs.filter((x, i) => x.id && xs.findIndex((y) => y.id === x.id) === i);
   // A treatment's trigger words never include a test's name ("urine", "urine r/m", "ecg"): ordering the test isn't the treatment.
   const testWords = new Set(INVESTIGATIONS.flatMap((i) => i.match.map((x) => x.toLowerCase())).concat(["urine", "blood", "bloods", "test", "tests", "report", "reports"]));
-  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)), match: (t.match ?? []).filter((x) => !testWords.has(x.toLowerCase().trim())) }));
+  // A step that isn't a drug never fires on a drug's name ("ciprofloxacin" can't run "empiric antibiotics — done"): that's an order.
+  // A step that isn't a drug never fires on a drug's name ("ciprofloxacin" can't run "empiric antibiotics — done"): that's an order.
+  const keep = (t: { kind: string }, phrase: string) => !testWords.has(phrase.toLowerCase().trim()) && (t.kind === "drug" || !namesDrug(phrase));
+  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)), match: (t.match ?? []).filter((x) => keep(t, x)) }));
   const known = new Set(therapeutics.map((t) => t.id));
+  const named = [concept.diagnosis, ...m.rubric.diagnosisAccept].map((x) => x.toLowerCase().trim()).filter((x) => x.length > 3);
+  const giveaway = (text: string) => named.some((x) => text.toLowerCase().includes(x));
   return {
     id: `gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     pictures,
@@ -595,7 +606,8 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     // Only drugs and measures the engine knows: anything else could never be matched.
     therapeutics: therapeutics as ClinicalCaseDefinition["therapeutics"],
     hazards: [],
-    followUp: m.followUp as ClinicalCaseDefinition["followUp"],
+    // A follow-up shows what's seen and said — a line naming the diagnosis ("the acute kidney injury remains") would give it away.
+    followUp: m.followUp.map((f) => ({ ...f, lines: f.lines.filter((l) => !(l.role === "system" && giveaway(l.text))).map((l) => (l.role === "system" && l.kind === "speech" ? { ...l, kind: "finding" } : l)) })) as ClinicalCaseDefinition["followUp"],
     truth: {
       diagnosis: concept.diagnosis,
       qualifier: concept.qualifier,
