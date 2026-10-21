@@ -1,0 +1,59 @@
+plugins {
+    id "com.android.application"
+}
+
+// The site the app opens. The app is the site, full screen, verified by /.well-known/assetlinks.json.
+def site = "ram-ai-liard.vercel.app"
+
+// The upload key lives outside the repository, in ~/.ramai-android (or where RAMAI_KEYSTORE_PROPERTIES points).
+def keyProps = new Properties()
+def keyFile = new File(System.getenv("RAMAI_KEYSTORE_PROPERTIES") ?: "${System.getProperty("user.home")}/.ramai-android/keystore.properties")
+if (keyFile.exists()) keyFile.withInputStream { keyProps.load(it) }
+
+android {
+    namespace "com.ramai.app"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.ramai.app"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+
+        manifestPlaceholders = [
+            hostName: site,
+            defaultUrl: "https://${site}/?source=android",
+        ]
+        resValue "string", "app_name", "RamAI"
+        // (Quotes escaped: Android's resource compiler strips bare ones, which would break the JSON.)
+        resValue "string", "asset_statements", """[{ \\"relation\\": [\\"delegate_permission/common.handle_all_urls\\"], \\"target\\": { \\"namespace\\": \\"web\\", \\"site\\": \\"https://${site}\\" } }]"""
+    }
+
+    signingConfigs {
+        release {
+            if (keyFile.exists()) {
+                storeFile new File(keyProps["storeFile"])
+                storePassword keyProps["storePassword"]
+                keyAlias keyProps["keyAlias"]
+                keyPassword keyProps["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.7.4"
+}

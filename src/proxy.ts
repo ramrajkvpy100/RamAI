@@ -6,7 +6,7 @@ import { ACCESS_COOKIE, inviteOnly, validAccessCookie } from "@/lib/server/acces
 import { authCookieOptions, hasAuthCookie, supabaseConfig } from "@/lib/server/supabase-env";
 
 /** Pages anyone may open: the invite page, signing in, the legal pages and shared result cards. */
-const OPEN_PATHS = /^\/(invite|login|signup|verify-email|forgot-password|reset-password|auth|privacy|terms|disclaimer|refund-policy|shipping-policy|contact|about|s|models|radiology\/[^/]+\/)(\/|$|\?)|^\/(radiology\/.+\.(jpg|png)|.*\.(png|jpg|svg|webmanifest|txt|xml|ico))$/;
+const OPEN_PATHS = /^\/(invite|login|signup|verify-email|forgot-password|reset-password|auth|privacy|terms|disclaimer|refund-policy|shipping-policy|delete-account|pricing|contact|about|s|models|radiology\/[^/]+\/)(\/|$|\?)|^\/(radiology\/.+\.(jpg|png)|.*\.(png|jpg|svg|webmanifest|txt|xml|ico))$/;
 
 /**
  * Keeps a Supabase session alive: its access token lasts an hour, so an

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
+import { NotInAndroidApp } from "@/components/app/android-app";
 import { CountryPicker } from "@/components/app/country-picker";
 import { InstallButton } from "@/components/app/install-button";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -46,12 +47,14 @@ export function LandingNav() {
           <Link href="/community" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
             Community
           </Link>
-          <Link href="/pricing" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
-            Pricing
-          </Link>
-          <Link href="/support" aria-label="Donate to RamAI" className="flex h-8 items-center gap-1.5 rounded-full bg-rose-500/10 px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-500/15 dark:text-rose-400">
-            <span aria-hidden>♥</span><span className="hidden min-[400px]:inline">Donate</span>
-          </Link>
+          <NotInAndroidApp>
+            <Link href="/pricing" className="hidden rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg sm:block">
+              Pricing
+            </Link>
+            <Link href="/support" aria-label="Donate to RamAI" className="flex h-8 items-center gap-1.5 rounded-full bg-rose-500/10 px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-500/15 dark:text-rose-400">
+              <span aria-hidden>♥</span><span className="hidden min-[400px]:inline">Donate</span>
+            </Link>
+          </NotInAndroidApp>
           <Link href="/login" className="rounded-lg px-3 py-2 text-[13.5px] font-medium text-fg-2 hover:text-fg">
             Log in
           </Link>

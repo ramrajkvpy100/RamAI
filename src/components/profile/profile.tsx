@@ -15,6 +15,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { ProgressBar } from "@/components/ui/primitives";
 import { levelMeta, trackLabel } from "@/engine/levels";
 import { BADGE_LIST, nextRank, RANKS, rankFor, rankProgress } from "@/engine/progression";
+import { NotInAndroidApp } from "@/components/app/android-app";
 import { cn } from "@/lib/cn";
 import { caseLabel, xp } from "@/lib/format";
 import { useMe, type Me } from "@/lib/me-store";
@@ -88,9 +89,11 @@ export function Profile({ initial }: { initial: Me }) {
               ) : (
                 <>
                   <span className="rounded-full bg-surface-3 px-2.5 py-0.5 font-medium text-fg-2">Free plan</span>
-                  <Link href="/pricing" className="font-semibold text-accent-text hover:underline">
-                    Go Pro
-                  </Link>
+                  <NotInAndroidApp>
+                    <Link href="/pricing" className="font-semibold text-accent-text hover:underline">
+                      Go Pro
+                    </Link>
+                  </NotInAndroidApp>
                 </>
               )}
             </p>

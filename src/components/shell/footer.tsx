@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ShopLinks } from "@/components/app/android-app";
 import { Wordmark } from "@/components/brand/wordmark";
 import { LEGAL_LINKS } from "@/lib/site";
 
@@ -19,12 +20,7 @@ export function Footer() {
             <Link href="/suggestions" className="hover:text-fg">
               Suggestions
             </Link>
-            <Link href="/pricing" className="hover:text-fg">
-              Pricing
-            </Link>
-            <Link href="/support" className="hover:text-fg">
-              Donate
-            </Link>
+            <ShopLinks />
           </span>
         </div>
         <nav aria-label="Company and policies" className="flex flex-wrap gap-x-5 gap-y-2">

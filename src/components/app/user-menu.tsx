@@ -17,6 +17,7 @@ import { rankFor } from "@/engine/progression";
 import { cn } from "@/lib/cn";
 import { disableReminders } from "@/lib/app-install";
 import { logout } from "@/lib/engine-client";
+import { useInAndroidApp } from "@/lib/in-app";
 import { clearMe, type Me } from "@/lib/me-store";
 import { specialtyLabel } from "@/lib/specialty";
 import { useThemePref, type ThemePref } from "@/lib/theme";
@@ -25,6 +26,7 @@ import { setSfxEnabled, useSfxEnabled } from "@/lib/sfx";
 
 export function UserMenu({ me }: { me: Me }) {
   const sfx = useSfxEnabled();
+  const inApp = useInAndroidApp();
   const [open, setOpen] = useState(false);
   const [more, setMore] = useState(false);
   const [pref, setPref] = useThemePref();
@@ -78,7 +80,7 @@ export function UserMenu({ me }: { me: Me }) {
               <div className="font-medium">{rank.label}</div>
               <div className="text-fg-2">{me.user.plan === "pro" ? "RamAI Pro" : PRO_FOR_EVERYONE ? "Pro · free for now" : "Free plan"}</div>
             </div>
-            {me.user.plan !== "pro" && !PRO_FOR_EVERYONE && (
+            {me.user.plan !== "pro" && !PRO_FOR_EVERYONE && !inApp && (
               <Link href="/pricing" onClick={() => setOpen(false)} className="bg-ai rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-white">
                 Upgrade
               </Link>
@@ -130,9 +132,9 @@ export function UserMenu({ me }: { me: Me }) {
                 <Link role="menuitem" href="/suggestions" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3 disabled:opacity-60">
                   <span aria-hidden className="text-[18px]">💡</span>Suggest
                 </Link>
-                <Link role="menuitem" href="/support" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3 disabled:opacity-60">
+                {!inApp && <Link role="menuitem" href="/support" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3 disabled:opacity-60">
                   <span aria-hidden className="text-[18px]">❤️</span>Support
-                </Link>
+                </Link>}
                 {me.admin && (
                   <Link role="menuitem" href="/admin/suggestions" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3 disabled:opacity-60 relative">
                     <span aria-hidden className="text-[18px]">🛡️</span>Admin

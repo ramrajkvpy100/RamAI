@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
+import { useInAndroidApp } from "@/lib/in-app";
 import { useMe } from "@/lib/me-store";
 import { PLANS, priceFor } from "@/lib/plans";
 
@@ -11,6 +12,7 @@ import type { Gate } from "./use-launcher";
 
 export function UpgradeSheet({ gate, onClose }: { gate: Gate | null; onClose: () => void }) {
   const country = useMe()?.user.country ?? "IN";
+  const inApp = useInAndroidApp();
   if (gate?.code === "SIGNUP_REQUIRED") return <SignupSheet gate={gate} onClose={onClose} />;
   const daily = gate?.code === "DAILY_LIMIT";
   return (
@@ -28,9 +30,9 @@ export function UpgradeSheet({ gate, onClose }: { gate: Gate | null; onClose: ()
             </li>
           ))}
         </ul>
-        <Link href="/pricing" className="shine mt-6 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-semibold text-white shadow-glow">
+        {!inApp && <Link href="/pricing" className="shine mt-6 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-semibold text-white shadow-glow">
           Go Pro — {priceFor(country, "monthly").label}/month
-        </Link>
+        </Link>}
         <button type="button" onClick={onClose} className="mt-2 h-10 text-[13.5px] font-medium text-fg-2 hover:text-fg">
           Not now
         </button>

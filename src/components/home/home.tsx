@@ -16,6 +16,7 @@ import { hydrate, useCase } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
 import { prepareCase, type LibraryInfo } from "@/lib/engine-client";
 import { caseLabel, xp } from "@/lib/format";
+import { useInAndroidApp } from "@/lib/in-app";
 import { useMe, type Me } from "@/lib/me-store";
 import { planFor } from "@/lib/plans";
 import { useStartingMessage } from "@/lib/use-starting-message";
@@ -43,6 +44,7 @@ const GUIDE_SKIP_KEY = "ramai.guided.skip";
 
 export function Home({ initial, library }: { initial: Me; library: LibraryInfo }) {
   const me = useMe(initial) ?? initial;
+  const inApp = useInAndroidApp();
   const snap = useCase();
   const { launch, starting, gate, setGate, closeGate, error } = useLauncher();
   const [showMore, setShowMore] = useState(false);
@@ -285,9 +287,9 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
                   <span key={i} className={cn("h-1.5 flex-1 rounded-full", i < limit - left ? "bg-surface-3" : "bg-ai")} />
                 ))}
               </div>
-              <Link href={me.user.isGuest ? "/signup" : "/pricing"} className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-accent-text hover:underline">
+              {(me.user.isGuest || !inApp) && <Link href={me.user.isGuest ? "/signup" : "/pricing"} className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-accent-text hover:underline">
                 {me.user.isGuest ? "Sign up free — keep your progress" : "Unlimited cases with Pro"} <Icon name="arrow-right" size={13} />
-              </Link>
+              </Link>}
             </div>
           )}
         </section>

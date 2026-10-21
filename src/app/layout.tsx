@@ -1,5 +1,6 @@
 import { RefCapture } from "@/components/app/ref-capture";
 import type { Metadata, Viewport } from "next";
+import { AndroidAppMarker } from "@/components/app/android-app";
 import { VersionCheck } from "@/components/app/version-check";
 import { CopyGuard } from "@/components/app/copy-guard";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -25,7 +26,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "RamAI", statusBarStyle: "default" },
   // Vitals and doses aren't phone numbers.
   formatDetection: { telephone: false },
-  robots: { index: false, follow: false },
+  // Public pages can be found in search; the invite page, the app's own pages and the API say no themselves (and in robots.txt).
+  robots: { index: true, follow: true },
+  alternates: { canonical: "./" },
+  openGraph: { type: "website", siteName: "RamAI", url: SITE.url },
 };
 
 export const viewport: Viewport = {
@@ -52,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-dvh bg-bg text-fg antialiased">
         {children}
         <RefCapture />
+        <AndroidAppMarker />
         <StartingOverlay />
         <ServiceWorker />
         <VersionCheck />

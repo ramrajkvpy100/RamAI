@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { NotInAndroidApp, NotSoldInApp } from "@/components/app/android-app";
 import { PublicPage } from "@/components/shell/public-page";
 import { Donate } from "@/components/support/donate";
 import { SITE } from "@/lib/site";
@@ -15,6 +16,7 @@ export default async function Support() {
   const billing = billingStatus();
   return (
     <PublicPage>
+      <NotInAndroidApp instead={<NotSoldInApp />}>
       <div className="mx-auto w-full max-w-2xl">
         <section className="panel p-5 sm:p-7" aria-labelledby="support-heading">
           <h1 id="support-heading" className="text-[26px] font-semibold tracking-[-0.02em]">
@@ -26,6 +28,7 @@ export default async function Support() {
           <Donate available={billing.available} testMode={billing.mode === "test"} name={user && !user.isGuest ? user.name : undefined} />
         </section>
       </div>
+      </NotInAndroidApp>
     </PublicPage>
   );
 }

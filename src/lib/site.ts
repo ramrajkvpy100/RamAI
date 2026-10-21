@@ -33,6 +33,7 @@ export const LEGAL_LINKS = [
   { href: "/contact", label: "Contact" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
+  { href: "/delete-account", label: "Delete account" },
   { href: "/refund-policy", label: "Refunds" },
   { href: "/shipping-policy", label: "Shipping & delivery" },
   { href: "/disclaimer", label: "Disclaimer" },
