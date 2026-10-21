@@ -1771,12 +1771,22 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
 }
 
 /** The patient's own reason this drug is dangerous, as the nurse would say it — or null. */
+/** Standard single loading or high doses (adult, mg) — above the everyday dose, but right. */
+const LOADING_MAX_MG: Record<string, number> = {
+  aspirin: 325, clopidogrel: 600, ticagrelor: 180, prasugrel: 60, atorvastatin: 80, rosuvastatin: 40,
+  ceftriaxone: 2000, azithromycin: 500, amoxicillin: 1000, "amoxicillin-clavulanate": 1000, metronidazole: 500,
+  amiodarone: 300, paracetamol: 1000, ondansetron: 8, pantoprazole: 80, omeprazole: 40, furosemide: 80,
+  prednisolone: 60, dexamethasone: 10, hydrocortisone: 200, magnesium: 4000, "magnesium-sulphate": 10000, "tranexamic-acid": 2000,
+  levetiracetam: 3000, valproate: 2000, phenytoin: 1500, fluconazole: 400, acyclovir: 800, doxycycline: 200,
+  artesunate: 240, "calcium-gluconate": 3000, salbutamol: 5, ipratropium: 0.5,
+};
+
 /** The fastest a drug may safely go into a vein, in mg a minute. */
 const MAX_IV_RATE: Record<string, { mgPerMin: number; why: string }> = {
   phenytoin: { mgPerMin: 50, why: "Phenytoin faster than 50 mg a minute can stop the heart." },
   fosphenytoin: { mgPerMin: 150, why: "Fosphenytoin faster than 150 mg PE a minute can stop the heart." },
   vancomycin: { mgPerMin: 10, why: "Vancomycin that fast causes red-man syndrome and low blood pressure — it goes over at least an hour." },
-  "magnesium-sulfate": { mgPerMin: 1000, why: "Magnesium that fast can stop the breathing and the heart." },
+  "magnesium-sulphate": { mgPerMin: 1000, why: "Magnesium that fast can stop the breathing and the heart." },
   amiodarone: { mgPerMin: 30, why: "Amiodarone that fast drops the pressure — it goes over 20–60 minutes." },
 };
 
@@ -1811,7 +1821,18 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   // (Not where high doses are a regimen — pulse steroids — nor where the drug's own hazards judge the dose: fluids, insulin,
   // opioids, sedatives, potassium, salt.)
   const ownRules = ["fluid", "crystalloid", "colloid", "blood-product", "insulin", "opioid", "benzodiazepine", "corticosteroid", "steroid", "steroid-systemic", "immunosuppressant", "vasopressor", "glucose", "vaccine"];
-  if (dose?.multiple !== undefined && dose.multiple >= 3 && !drug.fluid && !drug.classes.some((c) => ownRules.includes(c)) && !["table-salt", "potassium-chloride", "methotrexate"].includes(drug.id)) return `That's about ${Math.round(dose.multiple)} times the usual dose.`;
+  // (Not a dose the case itself calls right — a loading dose of aspirin, say.)
+  const range = findDrugRule(def, drug)?.doseRange;
+  const MASS: Record<string, number> = { mcg: 0.001, mg: 1, g: 1000 };
+  const inUnit = range && dose?.amount !== undefined && dose.unit
+    ? dose.unit === range.unit ? dose.amount : MASS[dose.unit] && MASS[range.unit] ? dose.amount * MASS[dose.unit]! / MASS[range.unit]! : undefined
+    : undefined;
+  const inRange = range && inUnit !== undefined && inUnit >= range.min * 0.9 && inUnit <= range.max * 1.1;
+  const toMg = dose?.amount === undefined ? undefined : dose.unit === "g" ? dose.amount * 1000 : dose.unit === "mg" ? dose.amount : undefined;
+  const loading = (toMg !== undefined && LOADING_MAX_MG[drug.id] !== undefined && toMg <= LOADING_MAX_MG[drug.id]!)
+    // Oxytocin is given 10 IU, then 20–40 IU in a bag of fluid.
+    || (drug.id === "oxytocin" && dose?.unit === "units" && dose.amount !== undefined && dose.amount <= 40);
+  if (!inRange && !loading && dose?.multiple !== undefined && dose.multiple >= 3 && !drug.fluid && !drug.classes.some((c) => ownRules.includes(c)) && !["table-salt", "potassium-chloride", "methotrexate"].includes(drug.id)) return `That's about ${Math.round(dose.multiple)} times the usual dose.`;
   // A child: the dose for their weight.
   if (def.patient.age < 16) {
     const kg = parseFloat(vitalsNow(hidden).weight.value) || 0;
@@ -1898,7 +1919,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // out on a copy of the case, and only if the doctor says so again does it happen.
   // A prescription is checked too — the pharmacist would query it. (Not on the phone: no nurse or pharmacist there.)
   const challenge =
-    def.track !== "phone" && p.confirmed !== true && !ctx.challenged.includes(drug.id) && !SURE_RE.test(ctx.record.raw)
+    p.confirmed !== true && !ctx.challenged.includes(drug.id) && !SURE_RE.test(ctx.record.raw)
       ? structuredClone(hidden)
       : undefined;
 
@@ -1984,14 +2005,16 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
     Object.assign(hidden, challenge);
     const what = `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}`;
-    const question = `Doctor — ${what}? ${contextual} Do you still want it ${mode === "prescribed" ? "prescribed" : "given"}?`;
+    const question = def.track === "phone" ? `Doctor, ${what.replace(/ (PO|IV|IM|SC)$/, "")}? ${contextual} Are you sure we should give it?` : `Doctor — ${what}? ${contextual} Do you still want it ${mode === "prescribed" ? "prescribed" : "given"}?`;
     return askAbout(ctx, { kind: "confirm", targetId: drug.id, payload: { ...p, mode, question }, phrase: intent.phrase, needs: [] }, question, mode);
   }
   if (challenge && grave.length > 0) {
     for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
     Object.assign(hidden, challenge);
     const what = `${drug.generic.toLowerCase()}${dose ? ` ${dose}` : ""} ${route}${overMin && route === "IV" && !rateMlH ? ` over ${describeSpan(overMin)}` : ""}`;
-    const question = confirmQuestion(what, grave, def.patient.sex).replace(/given\?$/, mode === "prescribed" ? "prescribed?" : "given?");
+    const asked = confirmQuestion(what, grave, def.patient.sex).replace(/given\?$/, mode === "prescribed" ? "prescribed?" : "given?");
+    // On the phone it's the relative who checks: "Doctor, … Are you sure we should give it?"
+    const question = def.track === "phone" ? asked.replace(/^Doctor — /, "Doctor, ").replace(/Do you still want it (?:given|prescribed)\?$/, "Are you sure we should give it?") : asked;
     return askAbout(ctx, { kind: "confirm", targetId: drug.id, payload: { ...p, mode, question }, phrase: intent.phrase, needs: [] }, question, mode);
   }
   // Fluid overload starts when the infusion crosses into it, not when the bag is hung.

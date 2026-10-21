@@ -19,13 +19,14 @@ import { grAip } from "./gr-aip";
 import { idDengue } from "./id-dengue";
 import { medPad } from "./med-pad";
 import { medSleApex } from "./med-sle-apex";
+import { obgPphChc } from "./obg-pph-chc";
 import { phAcs } from "./ph-acs";
 import { surgAppendicitis } from "./surg-appendicitis";
 import { tutHypoglycaemia } from "./tut-hypoglycaemia";
 
 export const CASE_LIBRARY: readonly ClinicalCaseDefinition[] = [
   dermAcne, dermMelasma, dermTinea, dermPsoriasis, medPad, idDengue, surgAppendicitis, emAdhf,
-  phAcs, emViperPhc, medSleApex, grAip,
+  phAcs, emViperPhc, medSleApex, grAip, obgPphChc,
 ];
 
 /** The guided demo case — outside the library, so it's never picked at random or counted. */

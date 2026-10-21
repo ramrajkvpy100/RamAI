@@ -62,7 +62,7 @@ describe("countries — case content", () => {
     expect(ids("US")).not.toContain("em-viper-phc-01");
     expect(ids("UK")).not.toContain("em-viper-phc-01");
     const count = (a: ReturnType<typeof libraryAvailability>) => Object.values(a.tracks).reduce((x, y) => x + (y ?? 0), 0);
-    expect(count(libraryAvailability("IN")) - count(libraryAvailability("UK"))).toBe(1);
+    expect(count(libraryAvailability("IN")) - count(libraryAvailability("UK"))).toBe(2); // the viper bite and the CHC PPH
   });
 });
 

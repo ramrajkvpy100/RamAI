@@ -305,3 +305,28 @@ describe("several studies in one line", () => {
     expect(names).not.toMatch(/usg chest|ct chest/);
   });
 });
+
+describe("Obstetric emergencies (CHC PPH)", () => {
+  it("reads an oxytocin infusion as IV, and doesn't query the usual PPH doses", async () => {
+    const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
+    const { turns, hidden } = play(obgPphChc, ["oxytocin 40 units in 1 litre rl over 4 hours", "tranexamic acid 1 g iv over 10 min"]);
+    const said = turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+    expect(said).not.toMatch(/IM or IV|times the usual dose/);
+    expect(hidden.drugs.find((d) => d.drugId === "oxytocin")?.route).toBe("IV");
+  });
+
+  it("queries a tenfold carboprost and a magnesium push", async () => {
+    const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
+    const { turns } = play(obgPphChc, ["carboprost 2.5 mg im", "no", "magnesium sulphate 4 g iv over 1 min"]);
+    const said = turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+    expect(said).toMatch(/carboprost[^\n]*far above the usual dose/i);
+    expect(said).toMatch(/Magnesium that fast/);
+  });
+
+  it("improves once a uterotonic is in", async () => {
+    const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
+    const { hidden } = play(obgPphChc, ["massage the uterus", "oxytocin 10 units iv", "ringer lactate 1 litre over 30 min", "wait 30 min"]);
+    expect(hidden.status).toBe("improving");
+    expect(hidden.hazards.some((h) => h.died)).toBe(false);
+  });
+});

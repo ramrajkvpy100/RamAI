@@ -825,4 +825,40 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
     "He had another low at night, doctor. We gave him sugar and brought him in.":
       "Raat ko phir sugar gir gayi thi, doctor. Humne cheeni di aur le aaye.",
   },
+  "obg-pph-chc-01": {
+    "The bleeding feels less, doctor. I'm still very tired.":
+      "Khoon ab kam lag raha hai, doctor. Par abhi bhi bahut thakaan hai.",
+    "Doctor, I feel very weak… and cold. Everything is going round.":
+      "Doctor, bahut kamzori lag rahi hai… aur thand bhi. Sab ghoom raha hai.",
+    "The bleeding started soon after the placenta came out, doctor. Big clots too. Two full pads and the sheet are soaked.":
+      "Aanval (placenta) nikalne ke thodi der baad hi khoon shuru ho gaya, doctor. Bade-bade thakke bhi. Do pad poore bhar gaye aur chaadar bhi geeli ho gayi.",
+    "The pains were on from yesterday afternoon, almost 14 hours. They put a drip to make the pains strong. The baby came normally; he is big — 3.6 kilo.":
+      "Kal dopahar se dard chal rahe the, lagbhag 14 ghante. Dard badhane ke liye drip lagayi thi. Baccha normal hua; bada hai — 3.6 kilo.",
+    "Sister gave an injection in the thigh as soon as the baby came. The placenta came out after ten minutes; sister says it was complete.":
+      "Baccha hote hi sister ne jaangh mein injection lagaya tha. Aanval das minute baad nikla; sister keh rahi thi poora nikla.",
+    "This is her second baby. The first, a girl, was born normally two years ago at home. No operation.":
+      "Ye iska doosra baccha hai. Pehli beti do saal pehle ghar pe normal hui thi. Koi operation nahi hua.",
+    "She went for check-ups four times. They said her blood was low, 9-point-something, and gave iron tablets. BP was always normal, no sugar. Only one baby.":
+      "Chaar baar check-up ke liye gayi thi. Bole khoon kam hai, 9 point kuch, aur iron ki goliyan di thi. BP hamesha normal tha, sugar nahi. Ek hi baccha tha.",
+    "So thirsty… my heart is racing, and when I lift my head everything goes dark.":
+      "Bahut pyaas lag rahi hai… dil zor-zor se dhadak raha hai, aur sir uthaun to aankhon ke aage andhera chha jaata hai.",
+    "Only a little ache below. Not much pain.":
+      "Bas neeche thoda sa dard hai. Zyada nahi.",
+    "No allergy, doctor. No asthma.":
+      "Koi allergy nahi, doctor. Dama bhi nahi hai.",
+    "Only the iron and calcium tablets from the hospital.":
+      "Bas hospital wali iron aur calcium ki goliyan.",
+    "(winces) It's sore when you press, doctor.":
+      "(karahte hue) Dabaane pe dard hota hai, doctor.",
+    "Doctor… I can't see properly… so thirsty.":
+      "Doctor… theek se dikh nahi raha… bahut pyaas lagi hai.",
+    "I feel a little better, doctor. Can I feed the baby?":
+      "Ab thoda theek lag raha hai, doctor. Bacche ko doodh pila sakti hoon?",
+    "I'm feeling better, doctor. The baby is feeding well.":
+      "Ab behtar lag raha hai, doctor. Baccha achhe se doodh pee raha hai.",
+    "They gave her three bottles of blood here, doctor. She's talking now and holding the baby.":
+      "Yahan unhone teen bottle khoon chadhaya, doctor. Ab baat kar rahi hai aur bacche ko god mein liya hai.",
+    "They had to take her to the operation theatre, doctor. They say she's still very serious.":
+      "Unhe operation theatre le jaana pada, doctor. Keh rahe hain abhi bhi bahut serious hai.",
+  },
 };

@@ -29,7 +29,7 @@ export type DrugClass =
   | "antiepileptic" | "benzodiazepine" | "ssri" | "tca" | "antipsychotic" | "gabapentinoid" | "vitamin"
   | "thyroid" | "antithyroid" | "iron" | "calcium" | "estrogen" | "ocp" | "prothrombotic" | "antifibrinolytic"
   | "electrolyte" | "fluid" | "crystalloid" | "colloid" | "blood-product" | "vaccine" | "uricosuric" | "smoking-cessation"
-  | "antivenom" | "haem" | "barbiturate" | "benzodiazepine-antagonist" | "antidote"
+  | "antivenom" | "uterotonic" | "haem" | "barbiturate" | "benzodiazepine-antagonist" | "antidote"
   /** Known to precipitate acute porphyria attacks (NAPOS / EPNet "porphyrinogenic"). */
   | "porphyrinogenic";
 
@@ -130,6 +130,10 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "isotretinoin", generic: "Isotretinoin", brands: ["Isotroin", "Sotret", "Tretiva"], aliases: ["roaccutane", "absorica", "claravis", "accutane", "isotret"], classes: ["retinoid-systemic", "teratogen"], route: "PO", dose: "20 mg", frequency: "OD after food" },
   { id: "hydroquinone", generic: "Hydroquinone 2% cream", brands: ["Eukroma", "Melalite"], aliases: ["hydroquinone", "hq"], classes: ["depigmenting"], route: "TOP", dose: "thin layer to patches", frequency: "HS" },
   { id: "triple-combination", generic: "Triple combination cream (hydroquinone + tretinoin + corticosteroid)", brands: ["Melacare", "Triluma"], aliases: ["triple combination", "kligman", "kligmans", "modified kligman", "tcc"], classes: ["depigmenting", "topical-steroid", "steroid-combination", "retinoid-topical"], route: "TOP", dose: "pea-sized amount to patches", frequency: "HS" },
+  { id: "oxytocin", generic: "Oxytocin", brands: ["Pitocin", "Syntocinon"], aliases: ["oxytocin infusion", "pitocin drip", "oxytocin drip"], classes: ["uterotonic"], route: "IM", dose: "10 units", frequency: "stat" },
+  { id: "misoprostol", generic: "Misoprostol", brands: ["Cytolog", "Misoprost"], aliases: ["miso", "cytotec"], classes: ["uterotonic"], route: "SL", dose: "800 mcg", frequency: "stat" },
+  { id: "methylergometrine", generic: "Methylergometrine", brands: ["Methergin", "Mergin"], aliases: ["methergine", "ergometrine", "methylergonovine", "ergonovine", "ergot"], classes: ["uterotonic"], route: "IM", dose: "0.2 mg", frequency: "stat, may repeat after 15 min" },
+  { id: "carboprost", generic: "Carboprost (15-methyl PGF2α)", brands: ["Prostodin", "Hemabate"], aliases: ["pgf2 alpha", "pgf2a", "15 methyl pgf2", "prostodin"], classes: ["uterotonic"], route: "IM", dose: "250 mcg", frequency: "every 15 min, max 8 doses" },
   { id: "tranexamic-acid", generic: "Tranexamic acid", brands: ["Pause 250", "Trapic"], aliases: ["lysteda", "cyklokapron", "tranexamic", "txa"], classes: ["antifibrinolytic", "prothrombotic"], route: "PO", dose: "250 mg", frequency: "BD" },
   { id: "kojic-acid", generic: "Kojic acid 2% cream", brands: ["Kojivit"], aliases: ["kojic acid", "kojic"], classes: ["depigmenting"], route: "TOP", dose: "thin layer", frequency: "BD" },
   { id: "sunscreen", generic: "Broad-spectrum sunscreen SPF 50, PA+++ (tinted)", brands: ["La Shield", "Suncros", "Photostable Gold"], aliases: ["sunscreen", "sun screen", "sunblock", "sun block", "spf", "spf 50", "spf 30", "tinted sunscreen", "photoprotection"], classes: ["sunscreen"], route: "TOP", dose: "two-finger rule for face and neck", frequency: "every morning, reapply every 3 h outdoors" },
@@ -328,6 +332,7 @@ const ROUTE_OPTIONS: Record<string, DrugRoute[]> = {
   lorazepam: ["IV", "IM", "PO"], midazolam: ["IV", "IM", "IN"], diazepam: ["IV", "PR", "PO"],
   olanzapine: ["PO", "IM"], haloperidol: ["IM", "IV", "PO"], thiamine: ["IV", "IM", "PO"], methylcobalamin: ["PO", "IM"],
   cyclophosphamide: ["IV", "PO"], "tranexamic-acid": ["PO", "IV"],
+  oxytocin: ["IM", "IV"], misoprostol: ["SL", "PO", "PR"], methylergometrine: ["IM", "IV"], carboprost: ["IM"],
 };
 
 /** The routes this drug is given by — its usual one first. */
@@ -365,6 +370,8 @@ export function drugMatchPhrases(drug: FormularyDrug): string[] {
 
 const ROUTE_PATTERNS: [RegExp, DrugRoute][] = [
   [/\b(iv|intravenous(?:ly)?|i v|infusion|bolus|drip)\b/, "IV"],
+  // Added to a bag of fluid: "40 units in 1 litre RL", "in 500 ml NS".
+  [/\bin (?:a |one |1 )?(?:\d+(?:\.\d+)?\s*(?:ml|l|litres?|liters?|pints?)\b|bag|pint|ns|rl|dns|normal saline|saline|ringer|d5|dextrose)/, "IV"],
   [/\b(im|intramuscular(?:ly)?|i m)\b/, "IM"],
   [/\b(sc|s c|subcut(?:aneous(?:ly)?)?|sub cutaneous)\b/, "SC"],
   [/\b(sl|sublingual(?:ly)?|under (?:the|his|her|your|their) tongue)\b/, "SL"],
@@ -440,7 +447,7 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
   // Counted forms: "2 tablets", "one respule", "2 puffs".
   const count = dose || out.amount !== undefined ? null : t.match(/\b(\d+(?:\.\d+)?|one|two|three|four|half|a|an)\s*(tabs?|tablets?|caps?|capsules?|respules?|puffs?|sachets?|ampoules?|amps?|drops?)\b/);
   if (dose?.[1] && dose[2]) {
-    const unit = dose[2].replace(/^(gm|grams?)$/, "g").replace(/^(ug|µg)$/, "mcg").replace(/^u$/, "units").replace(/^unit$/, "units").replace(/^vial$/, "vials");
+    const unit = dose[2].replace(/^(gm|grams?)$/, "g").replace(/^(ug|µg)$/, "mcg").replace(/^(u|iu)$/, "units").replace(/^unit$/, "units").replace(/^vial$/, "vials");
     out.amount = parseFloat(dose[1].replace(",", ""));
     out.unit = unit;
     const n = parseFloat(dose[1].replace(",", ""));

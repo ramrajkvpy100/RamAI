@@ -307,7 +307,7 @@ function investigationCandidates(rawClause: string, tk: string[], ctx: IntentCon
 /** Splits a clause between consecutive drug mentions, at the conjunction separating them. */
 function boundary(text: string, a: number, b: number): number {
   const between = text.slice(a, b);
-  const joins = [...between.matchAll(/,|;|\+|\band\b|\bwith\b|\bplus\b|\balong with\b/g)];
+  const joins = [...between.matchAll(/,|;|\+|\band\b|\bwith\b|\bplus\b|\balong with\b|\bin\b(?=\s+(?:a |one )?(?:\d|bag|pint|ns\b|rl\b|dns\b|normal saline|saline|ringer|d5|dextrose))/g)];
   const last = joins[joins.length - 1];
   return last?.index !== undefined ? a + last.index : Math.round((a + b) / 2);
 }
@@ -359,6 +359,9 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
   kept.forEach(({ drug, hit }, n) => {
     const segment = segments[n] ?? lower;
     const details = parseOrderDetails(segment, { weightKg: ctx.weightKg });
+    // Added to the bag that follows ("oxytocin 40 units in 1 litre RL"): it goes in IV.
+    const next = kept[n + 1];
+    if (!details.route && next?.drug.fluid && !drug.fluid && /\bin\s*$/.test(lower.slice(positions[n]!, positions[n + 1]!).replace(/\s*(?:a|one|\d+(?:\.\d+)?\s*(?:ml|l|litres?|liters?)?)\s*$/, "").trimEnd() + " ")) details.route = "IV";
     if (precededBy(tk, hit.start, NEGATIONS, 3)) {
       const stopping = precededBy(tk, hit.start, ["stop", "hold", "withhold", "discontinue", "cease"], 3);
       out.push({
