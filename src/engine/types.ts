@@ -20,6 +20,7 @@ import type { Country } from "./countries";
 /* -------------------------------------------------------------------------- */
 
 export type Specialty =
+  | "General Practice"
   | "Medicine"
   | "Dermatology"
   | "Surgery"

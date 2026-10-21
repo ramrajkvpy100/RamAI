@@ -24,7 +24,7 @@ export const RANKS: Rank[] = [
 export const CORE_SPECIALTIES: Specialty[] = ["Dermatology", "Medicine", "Emergency", "Surgery"];
 
 export const ALL_SPECIALTIES: Specialty[] = [
-  "Medicine", "Dermatology", "Surgery", "Pediatrics", "OBGYN", "Emergency", "Cardiology", "Neurology",
+  "General Practice", "Medicine", "Dermatology", "Surgery", "Pediatrics", "OBGYN", "Emergency", "Cardiology", "Neurology",
   "Respiratory", "Gastroenterology", "Nephrology", "Endocrinology", "Psychiatry", "ENT", "Ophthalmology",
   "Orthopedics", "Urology", "Infectious Disease",
 ];

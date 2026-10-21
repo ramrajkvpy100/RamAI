@@ -40,13 +40,13 @@ const ADVANCED = new Set([
 
 /** Which specialty each question belongs to — a doctor's own come first. */
 const OWNER: Record<string, string[]> = {
-  "algo-vf": ["Cardiology", "Emergency", "Medicine"], "algo-asystole": ["Cardiology", "Emergency"], "algo-anaphylaxis": ["Emergency", "Medicine"],
+  "algo-vf": ["Cardiology", "Emergency", "Medicine"], "algo-asystole": ["Cardiology", "Emergency"], "algo-anaphylaxis": ["Emergency", "Medicine", "General Practice"],
   "algo-dka": ["Endocrinology", "Medicine", "Emergency"], "algo-status": ["Neurology", "Emergency", "Pediatrics"], "algo-hyperk": ["Nephrology", "Medicine"],
-  "algo-pph": ["OBGYN"], "algo-tension": ["Surgery", "Emergency", "Respiratory"], "algo-sepsis": ["Infectious Disease", "Medicine", "Emergency", "Urology"],
+  "algo-pph": ["OBGYN"], "algo-tension": ["Surgery", "Emergency", "Respiratory"], "algo-sepsis": ["Infectious Disease", "Medicine", "Emergency", "Urology", "General Practice"],
   "algo-stroke": ["Neurology", "Emergency"],
   "antidote-snake": ["Emergency", "Medicine"], "antidote-organophosphate": ["Emergency", "Medicine"], "antidote-paracetamol": ["Emergency", "Gastroenterology"],
   "antidote-iron": ["Pediatrics"], "antidote-warfarin": ["Cardiology", "Medicine"], "antidote-heparin": ["Cardiology", "Surgery"], "antidote-isoniazid": ["Infectious Disease", "Respiratory"],
-  "calc-pcm": ["Pediatrics"], "calc-curb": ["Respiratory", "Medicine"], "calc-gcs": ["Neurology", "Emergency", "Surgery"], "calc-crcl": ["Nephrology"], "calc-ag": ["Nephrology", "Endocrinology"],
+  "calc-pcm": ["Pediatrics", "General Practice"], "calc-curb": ["Respiratory", "Medicine", "General Practice"], "calc-gcs": ["Neurology", "Emergency", "Surgery"], "calc-crcl": ["Nephrology"], "calc-ag": ["Nephrology", "Endocrinology"],
   "calc-na": ["Endocrinology"], "calc-hs": ["Gastroenterology"],
 };
 

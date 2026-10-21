@@ -5,6 +5,7 @@ import type { Country } from "./countries";
  * doesn't, the specialty's guideline body for the country — and always the standard textbook — stand in.
  */
 const GUIDELINES: Record<string, { IN: string; INTL: string }> = {
+  "General Practice": { IN: "ICMR Standard Treatment Guidelines; MoHFW Standard Treatment Guidelines for primary care", INTL: "NICE Clinical Knowledge Summaries; WHO primary care guidance" },
   Pediatrics: { IN: "IAP (Indian Academy of Pediatrics) guidelines; IAP Standard Treatment Guidelines", INTL: "AAP / NICE paediatric guidelines; WHO IMCI" },
   OBGYN: { IN: "FOGSI guidelines; MoHFW / NHM maternal health guidelines", INTL: "ACOG / RCOG guidelines; WHO maternal care guidance" },
   Cardiology: { IN: "CSI guidance; ESC and ACC/AHA guidelines", INTL: "ACC/AHA and ESC guidelines" },
@@ -27,6 +28,7 @@ const GUIDELINES: Record<string, { IN: string; INTL: string }> = {
 
 /** The standard textbook for each specialty. */
 export const TEXTBOOK: Record<string, string> = {
+  "General Practice": "Murtagh's General Practice",
   Pediatrics: "Nelson Textbook of Pediatrics",
   OBGYN: "Williams Obstetrics",
   Cardiology: "Braunwald's Heart Disease",
