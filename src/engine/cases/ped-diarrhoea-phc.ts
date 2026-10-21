@@ -29,7 +29,7 @@ export const pedDiarrhoeaPhc: ClinicalCaseDefinition = {
 
   history: [
     { id: "cc", group: "complaint", label: "Loose stools", importance: "essential", abnormal: true, speaker: "attendant",
-      match: ["what happened", "what is the problem", "whats the problem", "chief complaint", "loose motions", "loose stools", "diarrhoea", "how many times", "stools", "potty"],
+      match: ["what happened", "what is the problem", "whats the problem", "chief complaint", "loose motions", "loose stools", "diarrhoea", "how many times", "stools", "potty", "how long", "since when", "how many days", "when did it start", "started"],
       reply: "Since yesterday morning, about eight or nine times — watery, yellow, like water.",
       fact: "Watery stools ×8–9 in 24 h, since yesterday" },
     { id: "blood", group: "hpi", label: "Blood or mucus", importance: "essential", speaker: "attendant",
@@ -44,6 +44,14 @@ export const pedDiarrhoeaPhc: ClinicalCaseDefinition = {
       match: ["fever", "temperature", "hot", "bukhar"],
       reply: "A little warm yesterday, not high.",
       fact: "Low-grade warmth only" },
+    { id: "breathing", group: "systemic", label: "Cough & breathing", importance: "minor", speaker: "attendant",
+      match: ["cough", "breathing", "breathless", "fast breathing", "cold", "running nose"],
+      reply: "No cough, doctor. His breathing is normal.",
+      fact: "No cough or fast breathing" },
+    { id: "pain", group: "hpi", label: "Pain", importance: "minor", speaker: "attendant",
+      match: ["pain", "where is the pain", "tummy pain", "crying with pain", "abdominal pain", "dard"],
+      reply: "He doesn't seem to have pain — he cries for water, not holding his tummy.",
+      fact: "No apparent abdominal pain" },
     { id: "urine", group: "systemic", label: "Urine", importance: "useful", abnormal: true, speaker: "attendant",
       match: ["urine", "wet nappy", "nappy", "diaper", "passed urine", "peshab"],
       reply: "He passed very little urine since last night — the cloth was only a little wet in the morning.",

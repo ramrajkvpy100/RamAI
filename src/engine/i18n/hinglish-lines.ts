@@ -862,6 +862,10 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "Unhe operation theatre le jaana pada, doctor. Keh rahe hain abhi bhi bahut serious hai.",
   },
   "gp-uti-phc-01": {
+    "Only a heaviness here, low in my tummy above the bone. And it burns at the end when I pass urine.":
+      "Bas yahan pet ke neeche haddi ke upar bhaaripan hai. Aur peshab ke aakhir mein jalan hoti hai.",
+    "No one at home has kidney trouble or sugar. My mother has BP.":
+      "Ghar mein kisi ko kidney ki problem ya sugar nahi hai. Meri maa ko BP hai.",
     "Doctor, it burns badly when I pass urine, and I keep running to the toilet. Since two days.":
       "Doctor, peshab karte waqt bahut jalan hoti hai, aur baar-baar toilet bhaagna padta hai. Do din se.",
     "It burns when I pass urine, and I have to go every half hour — only a little comes each time. It started two days ago.":
@@ -900,6 +904,10 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "Ab kal raat se bukhaar hai, doctor, aur kamar ki daayi taraf dard ho raha hai.",
   },
   "ped-diarrhoea-phc-01": {
+    "No cough, doctor. His breathing is normal.":
+      "Khaansi nahi hai, doctor. Saans normal chal rahi hai.",
+    "He doesn't seem to have pain — he cries for water, not holding his tummy.":
+      "Lagta nahi ki dard hai — paani ke liye rota hai, pet nahi pakadta.",
     "Doctor, he's had loose motions since yesterday — so many times. Now he's very thirsty and crying.":
       "Doctor, kal se isko dast lage hain — kitni baar. Ab bahut pyaas lag rahi hai aur ro raha hai.",
     "Since yesterday morning, about eight or nine times — watery, yellow, like water.":

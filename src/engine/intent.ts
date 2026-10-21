@@ -216,6 +216,15 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
   // "Family history?", "travel history", "any contact with TB?" — the same, by topic.
   if (/^\s*history of\b/i.test(normalise(rawClause)) || /^(?:any |what is (?:the |your |his |her )?|tell me (?:the |your |about )?)?(?:family|travel|contact|surgical|operation|blood transfusion|transfusion|immuni[sz]ation|vaccination|birth|developmental|personal|addiction|sexual|occupational|drug|treatment) history(?: of)?\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:yesno", phrase: rawClause, matched: false }];
 
+  // "Tell me everything", "tell me more": the story — the chief complaint, or how it began.
+  if (/^(?:please\s+)?tell me (?:everything|all|more|about it|about this|about the problem|what happened|your problem)\b/.test(normalise(rawClause))) {
+    const story = ctx.def.history.find((h) => h.group === "hpi") ?? ctx.def.history.find((h) => h.group === "complaint");
+    if (story) return [{ kind: "history", targetId: story.id, phrase: rawClause, matched: true }];
+  }
+  // Periods or pregnancy asked of a man, a boy or a little girl: there's nothing to tell.
+  if (/\b(lmp|last period|periods?|menses|menstru\w*|pregnan\w*)\b/.test(normalise(rawClause)) && (ctx.def.patient.sex === "Male" || ctx.def.patient.age < 9)) {
+    return [{ kind: "history", targetId: "answer:no-periods", phrase: rawClause, matched: true }];
+  }
   // "What do you eat?" with no diet in the case: ordinary food.
   if (/\b(?:what do (?:you|they|he|she) (?:eat|have for (?:breakfast|lunch|dinner))|diet|eating habits|food habits)\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:diet", phrase: rawClause, matched: false }];
   for (const id of IDENTITY) {
@@ -646,7 +655,7 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     }
     // A short question about a symptom or a risk ("suicidal thoughts?", "fits?") is asked to be denied or confirmed.
     const yesNo = /^(do|does|did|is|are|was|were|have|has|had|any|can|could|ever|will|would)\b/.test(norm) || /\bany\b/.test(norm)
-      || (!/^(what|when|where|why|how|which|who|tell)\b/.test(norm) && /\b(suicid\w*|self harm|harm\w* (?:your|him|her|them)sel\w*|thoughts?|fever|fits?|seizures?|convulsions?|faint\w*|bleed\w*|blood|vomit\w*|cough\w*|rash\w*|itch\w*|weight loss|night sweats|smok\w*|alcohol|drink\w*|tobacco|allerg\w*|surgery|operation|injury|fall|trauma|travel\w*|contact|diabetes|hypertension|tuberculosis|asthma|similar)\b/.test(norm));
+      || (!/^(what|when|where|why|how|which|who|tell)\b/.test(norm) && /\b(suicid\w*|self harm|harm\w* (?:your|him|her|them)sel\w*|thoughts?|fever|fits?|seizures?|convulsions?|faint\w*|bleed\w*|blood|vomit\w*|cough\w*|rash\w*|itch\w*|pain|breathless\w*|discharge|weight loss|night sweats|smok\w*|alcohol|drink\w*|tobacco|allerg\w*|surgery|operation|injury|fall|trauma|travel\w*|contact|diabetes|hypertension|tuberculosis|asthma|similar)\b/.test(norm));
     return done([{ kind: "history", targetId: yesNo ? "fallback:yesno" : "fallback:open", phrase: rawClause, matched: false }]);
   }
 

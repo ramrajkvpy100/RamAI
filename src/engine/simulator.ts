@@ -1009,6 +1009,7 @@ export function getPatientResponse(def: ClinicalCaseDefinition, hidden: HiddenSt
     case "fallback:yesno": return { text: pick(YES_NO_FALLBACK, seed), role };
     // "Is this dengue?" — the patient can't know; they ask back.
     case "answer:diagnosis": return { text: "I don't know, doctor — you tell me. Is it something serious?", role };
+    case "answer:no-periods": return { text: def.patient.sex === "Male" ? (role === "attendant" ? `He's a ${def.patient.age < 15 ? "little boy" : "man"}, doctor.` : "I'm a man, doctor.") : "She's only a little girl, doctor — no periods yet.", role };
     case "fallback:diet": return { text: "Just normal home food, doctor. Nothing special.", role };
     default: return { text: pick(OPEN_FALLBACK, seed), role };
   }
@@ -2352,7 +2353,12 @@ function dischargeQuestion(ctx: TurnContext): string | null {
     num("spo2") < 92 ? `SpO₂ ${num("spo2")}%` : null,
     num("hr") > 130 ? `pulse ${num("hr")}` : null,
   ].filter(Boolean);
-  return worries.length ? `Doctor — send them home? They're ${worries.join(", ")}. Do you still want to discharge?` : null;
+  if (!worries.length) return null;
+  // "They're critical (BP 76/52, pulse 144)" — a state in words, the numbers beside it.
+  const states = worries.filter((w) => !/^(GCS|BP|SpO₂|pulse)/.test(w!));
+  const signs = worries.filter((w) => /^(GCS|BP|SpO₂|pulse)/.test(w!));
+  const said = states.length ? `They're ${states.join(", ")}${signs.length ? ` (${signs.join(", ")})` : ""}.` : `${capitalise(signs.join(", "))}.`;
+  return `Doctor — send them home? ${said} Do you still want to discharge?`;
 }
 
 function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedIntent): TurnEffect[] {

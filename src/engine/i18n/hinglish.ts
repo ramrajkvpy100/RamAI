@@ -16,6 +16,10 @@ const GLOBAL = CASE_LINES["global-templates"] ?? {};
 const FIXED: Record<string, string> = {
   "No, doctor.": "Nahi, doctor.",
   "Okay, doctor.": "Theek hai, doctor.",
+  "I'm a man, doctor.": "Main aadmi hoon, doctor.",
+  "He's a little boy, doctor.": "Ye to chhota ladka hai, doctor.",
+  "He's a man, doctor.": "Ye aadmi hain, doctor.",
+  "She's only a little girl, doctor — no periods yet.": "Ye to abhi chhoti bachchi hai, doctor — periods abhi nahi aaye.",
   "I don't know, doctor — you tell me. Is it something serious?": "Mujhe nahi pata, doctor — aap hi bataiye. Kuch serious hai kya?",
   "No, nothing like that.": "Nahi, aisa kuch nahi.",
   "Not that I've noticed.": "Maine toh dhyan nahi diya.",

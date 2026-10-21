@@ -30,7 +30,7 @@ export const gpUtiPhc: ClinicalCaseDefinition = {
 
   history: [
     { id: "cc", group: "complaint", label: "Burning & frequency", importance: "essential", abnormal: true,
-      match: ["what happened", "what brings you", "what is the problem", "whats the problem", "chief complaint", "burning", "pain while passing urine", "dysuria", "frequency", "urine problem", "toilet"],
+      match: ["what happened", "what brings you", "what is the problem", "whats the problem", "chief complaint", "burning", "pain while passing urine", "dysuria", "frequency", "urine problem", "toilet", "urine", "passing urine", "urine ok", "urination"],
       reply: "It burns when I pass urine, and I have to go every half hour — only a little comes each time. It started two days ago.",
       fact: "Dysuria, frequency and urgency × 2 days; small volumes" },
     { id: "onset", group: "hpi", label: "Onset & duration", importance: "useful",
@@ -53,6 +53,14 @@ export const gpUtiPhc: ClinicalCaseDefinition = {
       match: ["lmp", "last period", "periods", "menses", "pregnant", "pregnancy", "missed period", "chance of pregnancy", "contraception", "family planning"],
       reply: "My period came on time, it finished ten days ago. We use condoms. I have one son, he's four.",
       fact: "LMP ~2 weeks ago, regular; condoms; one child aged 4" },
+    { id: "pain", group: "hpi", label: "Pain", importance: "minor",
+      match: ["pain", "where is the pain", "tummy pain", "abdominal pain", "lower abdomen", "pain below", "dard"],
+      reply: "Only a heaviness here, low in my tummy above the bone. And it burns at the end when I pass urine.",
+      fact: "Suprapubic heaviness; terminal dysuria" },
+    { id: "family", group: "family", label: "Family history", importance: "minor",
+      match: ["family", "family history", "anyone at home", "mother", "father"],
+      reply: "No one at home has kidney trouble or sugar. My mother has BP.",
+      fact: "Mother hypertensive; no family renal disease or diabetes" },
     { id: "past", group: "past", label: "Past history", importance: "useful",
       match: ["diabetes", "sugar", "bp", "kidney", "stones", "past history", "medical history", "illness", "any disease", "operation", "surgery", "h o", "history of"],
       reply: "No sugar, no BP, no kidney stones. No operations except my delivery — it was normal.",
