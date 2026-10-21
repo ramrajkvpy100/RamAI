@@ -22,7 +22,7 @@ import type { ClinicalProvider, InterpretContext } from "./types";
 
 const AFFIRM = /^(y+a+|yes+|yeah|yep|ok(ay)?|haan|ha|sure|go ahead|do it|please do|of course|correct|right)[.!]*$/i;
 
-const EXAM_VERB = /\b(examine|palpate|auscultate|listen|inspect|percuss|check|look|feel|elicit|see)\b/i;
+const EXAM_VERB = /\b(exam|examination|examine|palpate|auscultate|listen|inspect|percuss|check|look|feel|elicit|see)\b/i;
 /** Intents that are clearly something else, not an answer to the question about an order. */
 const ELSEWHERE: ResolvedIntent["kind"][] = ["investigation", "action", "diagnosis", "differential", "followup", "wait", "reassess", "close", "results", "vitals"];
 

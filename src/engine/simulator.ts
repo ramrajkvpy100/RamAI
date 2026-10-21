@@ -2261,6 +2261,8 @@ function dischargeQuestion(ctx: TurnContext): string | null {
   const num = (k: VitalKey) => parseFloat(v[k]?.value ?? "");
   const worries = [
     STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating ? (hidden.status === "critical" ? "critical" : "getting worse") : null,
+    // An emergency patient not yet improving (a snakebite with clotting still to settle) isn't sent home on a quiet look.
+    (ctx.def.track === "emergency" && hidden.status === "guarded" && !hidden.responded) ? "still unwell — not yet responding to treatment" : null,
     num("gcs") < 15 ? `GCS ${num("gcs")}` : null,
     num("bp") < 90 ? `BP ${v.bp.value}` : null,
     num("spo2") < 92 ? `SpO₂ ${num("spo2")}%` : null,

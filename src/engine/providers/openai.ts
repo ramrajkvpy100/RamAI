@@ -83,8 +83,12 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
     const passing = (err instanceof TypeError && /fetch failed|network|socket|ECONNRESET/i.test(`${err.message} ${String((err as { cause?: unknown }).cause ?? "")}`))
       || (err instanceof UpstreamError && err.status !== undefined && (err.status >= 500 || err.status === 429));
     const left = limit - (Date.now() - started);
-    if (!passing || left < 8_000) throw err;
-    console.warn("[ramai] AI call failed in passing; trying once more:", err instanceof Error ? err.message : err);
+    const cause = (err as { cause?: { code?: string; message?: string } }).cause;
+    if (!passing || left < 8_000) {
+      if (passing) console.warn(`[ramai] AI call failed in passing with no time left to retry (${Date.now() - started} ms): ${cause?.code ?? cause?.message ?? ""}`);
+      throw err;
+    }
+    console.warn(`[ramai] AI call failed in passing after ${Date.now() - started} ms (${cause?.code ?? cause?.message ?? (err instanceof Error ? err.message : String(err))}); trying once more`);
     await new Promise((r) => setTimeout(r, 800));
     return chatJSONOnce(messages, maxTokens, careful, left - 800);
   }
@@ -155,6 +159,8 @@ ${recent ? `Conversation so far:\n${recent}` : ""}`;
 }
 
 /** For a question the rules couldn't place: what did the doctor mean, and (if it was a question) what does the patient say? */
+const BEDSIDE_TEST = /\b(visual acuity|snellen|\bva\b|fluorescein|pinhole|near vision|colou?r vision|confrontation|20 ?wbct|whole blood clotting|clotting time|bleeding time|dipstick|urine dip|glucometer|capillary glucose|peak flow|pefr|pulse oximetry|tuning fork|rinne|weber|otoscopy|schober|single breath count|bedside)\b/i;
+
 /** Shorthand, typos and Hinglish spelled out ("kab se hai" → "since when"), as a hint beside the doctor's own words. */
 function plainEnglish(clause: string): string {
   const plain = normalise(clause);
@@ -456,7 +462,7 @@ function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
     { role: "system", content: authoring(country.id) },
     {
       role: "user",
-      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : `Choose a realistic condition that fits; vary it — not always the most common one. ${["phc", "chc", "district"].includes(brief.level) ? "At this level, choose a condition commonly seen at such a facility — common or important presentations, no rare diseases (no rare syndromes, inborn errors, eosinophilic or genetic disorders)." : brief.level === "college" ? "Uncommon conditions are fine, rare ones occasionally." : "Rare and complex conditions are expected here."}`} patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
+      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : `Choose a realistic condition that fits; vary it — not always the most common one. ${["phc", "chc", "district"].includes(brief.level) ? "At this level, choose a condition commonly seen at such a facility — common or important presentations, no rare diseases (no rare syndromes, inborn errors, eosinophilic or genetic disorders)." : brief.level === "college" ? "Uncommon conditions are fine, rare ones occasionally." : "Rare and complex conditions are expected here."}`} The condition and its cause must occur where the patient lives (${country.name}) — never a disease, organism or venomous animal found only elsewhere in the world (Sin Nombre hantavirus, Lyme disease, coccidioidomycosis or rattlesnakes in India, say) unless recent travel is part of the story. patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
 Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
     },
   ];
@@ -566,7 +572,8 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
   return {
     id: `gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     pictures,
-    specialty: concept.specialty,
+    // The specialty the doctor chose (the outline sometimes names a neighbour: "Medicine" for an eye case).
+    specialty: brief.specialty,
     track: brief.track,
     level: brief.level,
     setting: brief.track === "phone" ? "Teleconsult" : brief.track === "emergency" ? "ER" : "OPD",
@@ -583,7 +590,8 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     profile: d.profile,
     history: unique(d.history).filter((h) => h.match.length > 0) as ClinicalCaseDefinition["history"],
     exam: unique(f.exam).map((e) => ({ ...e, media: mediaOf(e.media, pictures) })) as ClinicalCaseDefinition["exam"],
-    investigations: unique(f.investigations).map((i) => ({ ...i, rows: i.rows.length ? i.rows : undefined, media: mediaOf(i.media, pictures) })) as ClinicalCaseDefinition["investigations"],
+    // A bedside test (visual acuity, fluorescein, 20WBCT, dipstick) needs no lab: it can be done at any level.
+    investigations: unique(f.investigations).map((i) => ({ ...i, rows: i.rows.length ? i.rows : undefined, media: mediaOf(i.media, pictures), ...(i.category === "bedside" || BEDSIDE_TEST.test(`${i.id} ${i.name ?? ""}`) ? { minLevel: "phc" as const } : {}) })) as ClinicalCaseDefinition["investigations"],
     // Only drugs and measures the engine knows: anything else could never be matched.
     therapeutics: therapeutics as ClinicalCaseDefinition["therapeutics"],
     hazards: [],

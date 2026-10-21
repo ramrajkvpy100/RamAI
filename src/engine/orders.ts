@@ -470,7 +470,7 @@ export function completeOrder(pending: PendingOrder, clause: string, weightKg: n
   }
   if (pending.kind === "investigation") {
     // An examination ("chest auscultation") or another part than the one asked about is a new request, not the answer.
-    if (/\b(auscultat\w*|examin\w*|palpat\w*|listen|percuss\w*|inspect\w*|look at|feel)\b/i.test(clause)) return null;
+    if (/\b(auscultat\w*|exam\w*|palpat\w*|listen|percuss\w*|inspect\w*|look at|feel)\b/i.test(clause)) return null;
     const d = parseImaging(clause);
     if (d.region && typeof pending.payload.region === "string" && d.region !== pending.payload.region && !pending.needs.includes("region")) return null;
     const found: Payload = {};
