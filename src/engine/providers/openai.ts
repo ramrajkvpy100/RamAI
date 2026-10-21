@@ -787,7 +787,10 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
       generated[String(index)] = message;
       return true;
     };
+    // A question to the patient ("urine ok?") is never an order: a test the model read into it is dropped.
+    const askedOnly = /\?\s*$/.test(text.trim()) && !/\b(order|send|do|get|check|test|repeat|report|result)\b/i.test(text);
     for (const i of parsed.data.intents) {
+      if (askedOnly && (i.kind === "investigation" || i.kind === "drug")) continue;
       const intent: ResolvedIntent = { kind: i.kind, targetId: i.targetId, phrase: i.phrase || text, matched: i.kind !== "unknown", payload: i.payload };
       if (i.kind === "history" && (!i.targetId || i.targetId === "generated" || !ctx.def.history.some((h) => h.id === i.targetId))) {
         intent.targetId = "generated";
