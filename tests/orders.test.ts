@@ -297,3 +297,11 @@ describe("bad-doctor audit, round three", () => {
     expect(said(turns[1]!)).toMatch(/gone home/);
   });
 });
+
+describe("several studies in one line", () => {
+  it("'xray chest usg abdomen ct abdomen' — each study its own part", async () => {
+    const { hidden } = await converse(getCase("surg-appendicitis-01")!, ["cbc xray chest usg abdomen ct abdomen with contrast"]);
+    const names = hidden.investigations.map((i) => i.name.toLowerCase()).join(" | ");
+    expect(names).not.toMatch(/usg chest|ct chest/);
+  });
+});

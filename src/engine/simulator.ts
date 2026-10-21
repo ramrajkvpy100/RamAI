@@ -1486,12 +1486,33 @@ interface Study {
 
 const str = (x: unknown) => (typeof x === "string" ? x : "");
 
+const STUDY_WORD: Record<ImagingKind, RegExp> = {
+  xray: /\b(x ?-?ray|xray|cxr|axr|radiograph\w*)\b/i,
+  usg: /\b(usg|ultrasound|sonograph\w*)\b/i,
+  ct: /\b(ct|cect|ncct|hrct|ctpa|cta)\b/i,
+  mri: /\b(mri)\b/i,
+};
+/** The words that belong to this kind of study in a sentence naming several: from its word to the next study's. */
+function studyWindow(phrase: string, kind: ImagingKind): string {
+  const at = phrase.search(STUDY_WORD[kind]);
+  if (at < 0) return phrase;
+  const rest = phrase.slice(at);
+  const first = rest.match(STUDY_WORD[kind])![0].length;
+  const next = Object.values(STUDY_WORD).map((re) => { const i = rest.slice(first).search(re); return i < 0 ? Infinity : i + first; }).reduce((a, b) => Math.min(a, b), Infinity);
+  // Words before it that describe it ("chest X-ray", "abdominal ultrasound") count too.
+  let before = phrase.slice(Math.max(0, at - 14), at).split(/[,;]|\band\b/).pop() ?? "";
+  if (Object.values(STUDY_WORD).some((re) => re.test(before)) || /\b(cbc|lft|rft|r\/m|rm|electrolytes|profile)\b/i.test(before)) before = "";
+  return `${before}${rest.slice(0, next === Infinity ? rest.length : next)}`;
+}
+
 /** Which study an order is — and what it still needs said: the part, the view, contrast or not. */
 function settleStudy(def: ClinicalCaseDefinition, idIn: string, phrase: string, payload: Record<string, unknown>): Study {
   const override = def.investigations.find((i) => i.id === idIn);
   const generic = GENERIC_STUDY.has(idIn);
   const kind = generic ? (idIn as ImagingKind) : imagingKind(idIn, override?.name ?? investigationEntry(idIn)?.name ?? "");
   if (!kind) return { id: idIn, kind: null, needs: [] };
+  // "X-ray chest, USG abdomen, CT abdomen": each study takes the part named with it, not the first part in the sentence.
+  phrase = studyWindow(phrase, kind);
   const said = parseImaging(`${phrase} ${str(payload.region)} ${str(payload.side)} ${str(payload.view)} ${str(payload.contrast)}`);
   const region = str(payload.region) || said.region || (CATALOG_PARTS[idIn]?.length === 1 ? CATALOG_PARTS[idIn]![0] : undefined);
   const needs = imagingNeeds(kind, idIn, override?.name ?? "", phrase, { ...(payload as Record<string, string>), ...(region ? { region } : {}) });
