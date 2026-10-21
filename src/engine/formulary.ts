@@ -29,7 +29,7 @@ export type DrugClass =
   | "antiepileptic" | "benzodiazepine" | "ssri" | "tca" | "antipsychotic" | "gabapentinoid" | "vitamin"
   | "thyroid" | "antithyroid" | "iron" | "calcium" | "estrogen" | "ocp" | "prothrombotic" | "antifibrinolytic"
   | "electrolyte" | "fluid" | "crystalloid" | "colloid" | "blood-product" | "vaccine" | "uricosuric" | "smoking-cessation"
-  | "antivenom" | "uterotonic" | "haem" | "barbiturate" | "benzodiazepine-antagonist" | "antidote"
+  | "antivenom" | "uterotonic" | "mood-stabiliser" | "antigout" | "haem" | "barbiturate" | "benzodiazepine-antagonist" | "antidote"
   /** Known to precipitate acute porphyria attacks (NAPOS / EPNet "porphyrinogenic"). */
   | "porphyrinogenic";
 
@@ -84,7 +84,7 @@ export const FORMULARY: FormularyDrug[] = [
 
   // Antibiotics
   { id: "amoxicillin", generic: "Amoxicillin", brands: ["Novamox", "Mox"], aliases: ["amoxycillin"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "500 mg", frequency: "TDS" },
-  { id: "amox-clav", generic: "Amoxicillin–clavulanate", brands: ["Augmentin", "Clavam", "Moxikind-CV"], aliases: ["amoxiclav", "co amoxiclav", "amoxicillin clavulanate", "amoxycillin clavulanate"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "625 mg", frequency: "BD" },
+  { id: "amox-clav", generic: "Amoxicillin–clavulanate", brands: ["Augmentin", "Clavam", "Moxikind-CV"], aliases: ["amoxiclav", "amoxyclav", "co amoxiclav", "amoxicillin clavulanate", "amoxycillin clavulanate"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "625 mg", frequency: "BD" },
   { id: "azithromycin", generic: "Azithromycin", brands: ["Azithral", "Azee"], aliases: ["zithromax", "z pak", "zpak", "azithro"], classes: ["antibiotic", "macrolide"], route: "PO", dose: "500 mg", frequency: "OD" },
   { id: "doxycycline", generic: "Doxycycline", brands: ["Doxy-1 L-DR Forte", "Doxt-SL"], aliases: ["doryx", "vibramycin", "doxy"], classes: ["antibiotic", "tetracycline"], route: "PO", dose: "100 mg", frequency: "BD" },
   { id: "minocycline", generic: "Minocycline", brands: ["Minoz"], classes: ["antibiotic", "tetracycline"], route: "PO", dose: "50 mg", frequency: "BD" },
@@ -130,6 +130,16 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "isotretinoin", generic: "Isotretinoin", brands: ["Isotroin", "Sotret", "Tretiva"], aliases: ["roaccutane", "absorica", "claravis", "accutane", "isotret"], classes: ["retinoid-systemic", "teratogen"], route: "PO", dose: "20 mg", frequency: "OD after food" },
   { id: "hydroquinone", generic: "Hydroquinone 2% cream", brands: ["Eukroma", "Melalite"], aliases: ["hydroquinone", "hq"], classes: ["depigmenting"], route: "TOP", dose: "thin layer to patches", frequency: "HS" },
   { id: "triple-combination", generic: "Triple combination cream (hydroquinone + tretinoin + corticosteroid)", brands: ["Melacare", "Triluma"], aliases: ["triple combination", "kligman", "kligmans", "modified kligman", "tcc"], classes: ["depigmenting", "topical-steroid", "steroid-combination", "retinoid-topical"], route: "TOP", dose: "pea-sized amount to patches", frequency: "HS" },
+  { id: "benzylpenicillin", generic: "Benzylpenicillin (crystalline penicillin G)", brands: ["Pentids", "Crystapen"], aliases: ["penicillin", "penicillin g", "crystalline penicillin", "benzyl penicillin", "crystapen", "cpg"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "IV", dose: "2 million units", frequency: "every 4 h" },
+  { id: "benzathine-penicillin", generic: "Benzathine penicillin G", brands: ["Penidure LA", "Pencom"], aliases: ["benzathine", "benzathine penicillin", "bpg", "penidure", "long acting penicillin", "la penicillin"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "IM", dose: "1.2 million units", frequency: "single dose (every 3–4 weeks for rheumatic fever prophylaxis)" },
+  { id: "albendazole", generic: "Albendazole", brands: ["Zentel", "Bandy"], aliases: ["albenza"], classes: ["anthelminthic"], route: "PO", dose: "400 mg", frequency: "single dose" },
+  { id: "pralidoxime", generic: "Pralidoxime (PAM)", brands: ["Pam-A", "Lyphe"], aliases: ["pam", "2 pam", "2-pam", "oxime", "pralidoxim"], classes: ["antidote"], route: "IV", dose: "2 g", frequency: "over 30 min, then 8 mg/kg/h infusion" },
+  { id: "labetalol", generic: "Labetalol", brands: ["Labebet", "Lobet"], aliases: ["trandate"], classes: ["beta-blocker", "beta-blocker-nonselective", "antihypertensive"], route: "IV", dose: "20 mg", frequency: "over 2 min, repeat 40–80 mg every 10 min (max 300 mg)" },
+  { id: "timolol", generic: "Timolol 0.5% eye drops", brands: ["Iotim", "Glucomol"], aliases: ["timolol drops", "timolol eye drops"], classes: ["beta-blocker-nonselective"], route: "OD-eye", dose: "1 drop", frequency: "BD" },
+  { id: "lithium", generic: "Lithium carbonate", brands: ["Licab", "Lithosun SR"], aliases: ["lithium carbonate", "lithium"], classes: ["mood-stabiliser"], route: "PO", dose: "450 mg", frequency: "BD (by serum level 0.6–1.0 mmol/L)" },
+  { id: "colchicine", generic: "Colchicine", brands: ["Zycolchin", "Goutnil"], aliases: ["colchicum"], classes: ["antigout"], route: "PO", dose: "0.5 mg", frequency: "BD–TDS" },
+  { id: "zinc", generic: "Zinc sulphate", brands: ["Zinconia", "Z&D"], aliases: ["zinc", "zinc sulphate", "zinc sulfate", "zinc tablet", "zinc syrup", "zinc dispersible"], classes: ["vitamin"], route: "PO", dose: "20 mg", frequency: "OD for 14 days (10 mg under 6 months)" },
+  { id: "iron-sucrose", generic: "Iron sucrose", brands: ["Orofer S", "Venofer"], aliases: ["iron sucrose", "iv iron sucrose", "venofer", "ironsucrose"], classes: ["iron"], route: "IV", dose: "200 mg", frequency: "in 100 mL NS over 20 min, alternate days" },
   { id: "oxytocin", generic: "Oxytocin", brands: ["Pitocin", "Syntocinon"], aliases: ["oxytocin infusion", "pitocin drip", "oxytocin drip"], classes: ["uterotonic"], route: "IM", dose: "10 units", frequency: "stat" },
   { id: "misoprostol", generic: "Misoprostol", brands: ["Cytolog", "Misoprost"], aliases: ["miso", "cytotec"], classes: ["uterotonic"], route: "SL", dose: "800 mcg", frequency: "stat" },
   { id: "methylergometrine", generic: "Methylergometrine", brands: ["Methergin", "Mergin"], aliases: ["methergine", "ergometrine", "methylergonovine", "ergonovine", "ergot"], classes: ["uterotonic"], route: "IM", dose: "0.2 mg", frequency: "stat, may repeat after 15 min" },
@@ -245,7 +255,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "glucagon", generic: "Glucagon", brands: ["GlucaGen"], classes: ["glucose"], route: "IM", dose: "1 mg", frequency: "stat" },
   { id: "potassium-chloride", generic: "Potassium chloride", brands: ["KCl"], aliases: ["potassium chloride", "kcl", "potassium supplement"], classes: ["electrolyte"], route: "IV", dose: "20 mEq", frequency: "over 2 h" },
   { id: "calcium-gluconate", generic: "Calcium gluconate 10%", brands: ["Calcium gluconate"], aliases: ["calcium gluconate"], classes: ["electrolyte", "calcium"], route: "IV", dose: "10 mL", frequency: "over 10 min" },
-  { id: "sodium-bicarbonate", generic: "Sodium bicarbonate 8.4%", brands: ["Sodabicarb"], aliases: ["sodium bicarbonate", "bicarbonate", "soda bicarb"], classes: ["electrolyte"], route: "IV", dose: "50 mEq", frequency: "stat" },
+  { id: "sodium-bicarbonate", generic: "Sodium bicarbonate 8.4%", brands: ["Sodabicarb"], aliases: ["sodium bicarbonate", "bicarbonate", "soda bicarb", "sodium bicarb", "bicarb", "nahco3", "soda bicarbonate"], classes: ["electrolyte"], route: "IV", dose: "50 mEq", frequency: "stat" },
   { id: "magnesium-sulphate", generic: "Magnesium sulphate", brands: ["MgSO4"], aliases: ["magnesium sulphate", "magnesium sulfate", "mgso4", "magnesium"], classes: ["electrolyte"], route: "IV", dose: "2 g", frequency: "over 20 min" },
 
   // Respiratory
@@ -275,6 +285,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "pregabalin", generic: "Pregabalin", brands: ["Lyrica", "Pregalin"], classes: ["gabapentinoid"], route: "PO", dose: "75 mg", frequency: "HS" },
   { id: "gabapentin", generic: "Gabapentin", brands: ["Gabapin"], classes: ["gabapentinoid"], route: "PO", dose: "300 mg", frequency: "HS" },
   { id: "methylcobalamin", generic: "Methylcobalamin", brands: ["Nurokind", "Mecobal"], aliases: ["mecobalamin", "vitamin b12 supplement"], classes: ["vitamin"], route: "PO", dose: "1500 µg", frequency: "OD" },
+  { id: "vitamin-k", generic: "Vitamin K1 (phytomenadione)", brands: ["Kenadion", "K-Vit"], aliases: ["vit k", "vitamin k", "vit k1", "vitamin k1", "phytonadione", "phytomenadione", "kenadion"], classes: ["vitamin", "prothrombotic"], route: "IV", dose: "10 mg", frequency: "slowly over 15–30 min (newborn: 1 mg IM once)" },
   { id: "thiamine", generic: "Thiamine", brands: ["Benfomet"], aliases: ["vitamin b1"], classes: ["vitamin"], route: "IV", dose: "100 mg", frequency: "TDS" },
 
   // Endocrine, haematinics, women's health
@@ -332,6 +343,7 @@ const ROUTE_OPTIONS: Record<string, DrugRoute[]> = {
   lorazepam: ["IV", "IM", "PO"], midazolam: ["IV", "IM", "IN"], diazepam: ["IV", "PR", "PO"],
   olanzapine: ["PO", "IM"], haloperidol: ["IM", "IV", "PO"], thiamine: ["IV", "IM", "PO"], methylcobalamin: ["PO", "IM"],
   cyclophosphamide: ["IV", "PO"], "tranexamic-acid": ["PO", "IV"],
+  labetalol: ["IV", "PO"], "vitamin-k": ["IV", "IM", "PO", "SC"], "benzylpenicillin": ["IV", "IM"], pralidoxime: ["IV"],
   oxytocin: ["IM", "IV"], misoprostol: ["SL", "PO", "PR"], methylergometrine: ["IM", "IV"], carboprost: ["IM"],
 };
 
@@ -408,7 +420,9 @@ export function wordToNumber(token: string): number | undefined {
 /** Extracts dose, route, frequency, duration and fluid volume from an order. */
 export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}): ParsedDose {
   // A number glued to letters is part of a name ("d10", "d25", "b12", "ns1"), not an amount.
-  const t = ` ${text.toLowerCase()} `.replace(/\b([a-z]+)\d+\b/g, (w) => w.replace(/\d/g, "§"));
+  const t = ` ${text.toLowerCase()} `.replace(/\b([a-z]+)\d+\b/g, (w) => w.replace(/\d/g, "§"))
+    // Penicillin's "2.4 million units", "12 lakh units", "1.2 MU": counted in units.
+    .replace(/(\d+(?:\.\d+)?)\s*(million|mega|mu|lakhs?|lacs?)\s*(?:units?|iu|u)?\b/g, (_, n: string, w: string) => ` ${Math.round(parseFloat(n) * (/^l/.test(w) ? 1e5 : 1e6))} units `);
   const out: ParsedDose = {};
 
   // Fluid volume: litres, millilitres, ml/kg, pints.
@@ -452,6 +466,7 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     out.unit = unit;
     const n = parseFloat(dose[1].replace(",", ""));
     out.text = `${dose[1].replace(",", "")} ${n === 1 && /s$/.test(unit) && unit !== "units" ? unit : n === 1 && unit === "units" ? "unit" : unit}`;
+    if (unit === "units" && n >= 100_000) out.text = `${+(n / 1e6).toFixed(2)} million units`;
   } else if (count?.[1] && count[2]) {
     const n = wordToNumber(count[1]) ?? 1;
     const unit = count[2].replace(/^tabs?$|^tablets$/, "tablet").replace(/^caps?$|^capsules$/, "capsule").replace(/s$/, "").replace(/^amp$/, "ampoule");

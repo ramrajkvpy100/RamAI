@@ -188,8 +188,11 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
   const best = matchHistory(tk, ctx.def)[0];
   if (best) return [{ kind: "history", targetId: best.id, phrase: rawClause, matched: true }];
   // "H/o fever", "history of TB": a history question even when the case doesn't list that topic — the patient answers.
-  if (/^\s*history of\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:yesno", phrase: rawClause, matched: false }];
+  // "Family history?", "travel history", "any contact with TB?" — the same, by topic.
+  if (/^\s*history of\b/i.test(normalise(rawClause)) || /^(?:any |what is (?:the |your |his |her )?|tell me (?:the |your |about )?)?(?:family|travel|contact|surgical|operation|blood transfusion|transfusion|immuni[sz]ation|vaccination|birth|developmental|personal|addiction|sexual|occupational|drug|treatment) history(?: of)?\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:yesno", phrase: rawClause, matched: false }];
 
+  // "What do you eat?" with no diet in the case: ordinary food.
+  if (/\b(?:what do (?:you|they|he|she) (?:eat|have for (?:breakfast|lunch|dinner))|diet|eating habits|food habits)\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:diet", phrase: rawClause, matched: false }];
   for (const id of IDENTITY) {
     if (!hasAny(tk, id.phrases)) continue;
     // "age" alone is too loose unless the clause is short.
@@ -227,7 +230,12 @@ function examCandidates(rawClause: string, tk: string[], ctx: IntentContext, req
   // Words like "face" or "pimples" appear in counselling too — only an examination verb makes them an examination.
   // Auscultation's words ("heart sounds", "breath sounds") can only mean the stethoscope, verb or not.
   for (const e of ctx.def.exam) {
-    if (requireVerb && !verb) break;
+    // Without a verb, only the catalogue's unmistakable words for this examination ("cns", "per abdomen").
+    if (requireVerb && !verb) {
+      const c = EXAMS.find((x) => x.id === e.id);
+      for (const hit of allHits(tk, [...(c?.selfEvident ?? []), ...(c?.bare ?? [])])) out.push({ hit, priority: 4, intent: { kind: "exam", targetId: e.id, phrase: rawClause, matched: true } });
+      continue;
+    }
     // A case's own version of a catalogue exam answers to the catalogue's phrases as well as its own
     // ("examine the patient" still means the general examination when the case writes that one itself).
     // "Vitals" and "vital signs" are the measured vital signs — never a case's examination that happens to mention them.
@@ -581,9 +589,18 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     if (vitals.length > 0 && (tk.length <= 4 || hasAny(tk, ["what is the", "whats the", "what is his", "what is her", "how much is"]))) {
       return done(resolveOverlaps(vitals));
     }
-    const exam = examCandidates(rawClause, tk, ctx, false).filter((c) => c.priority >= 4);
+    // A symptom question ("chest pain on walking?", "swelling since when?") is history, even when it names a part of the body.
+    const symptom = /\b(pains?|aches?|hurts?|cough\w*|fever|vomit\w*|bleed\w*|swell\w*|itch\w*|burn\w*|walking|exertion|stairs|night|since|how long|when|feel|numb\w*|tingl\w*|weak\w*)\b/.test(norm);
+    const exam = symptom ? [] : examCandidates(rawClause, tk, ctx, false).filter((c) => c.priority >= 4);
     if (exam.length > 0) return done(resolveOverlaps(exam));
-    return done([{ kind: "history", targetId: /^(do|does|did|is|are|was|were|have|has|had|any|can|could|ever|will|would)\b/.test(norm) || /\bany\b/.test(norm) ? "fallback:yesno" : "fallback:open", phrase: rawClause, matched: false }]);
+    // "Is this dengue?", "could it be TB?" — the patient can't know, and a "No, doctor" would mislead.
+    if (/^(?:is|could|can|might|would) (?:this|it|that) (?:be )?|^(?:does|do) (?:he|she|i|you|they) have\b|^(?:is|are) (?:he|she|you|they) (?:having|suffering from)\b/.test(norm)) {
+      return done([{ kind: "history", targetId: "fallback:open", phrase: rawClause, matched: false }]);
+    }
+    // A short question about a symptom or a risk ("suicidal thoughts?", "fits?") is asked to be denied or confirmed.
+    const yesNo = /^(do|does|did|is|are|was|were|have|has|had|any|can|could|ever|will|would)\b/.test(norm) || /\bany\b/.test(norm)
+      || (!/^(what|when|where|why|how|which|who|tell)\b/.test(norm) && /\b(suicid\w*|self harm|harm\w* (?:your|him|her|them)sel\w*|thoughts?|fever|fits?|seizures?|convulsions?|faint\w*|bleed\w*|blood|vomit\w*|cough\w*|rash\w*|itch\w*|weight loss|night sweats|smok\w*|alcohol|drink\w*|tobacco|allerg\w*|surgery|operation|injury|fall|trauma|travel\w*|contact|diabetes|hypertension|tuberculosis|asthma|similar)\b/.test(norm));
+    return done([{ kind: "history", targetId: yesNo ? "fallback:yesno" : "fallback:open", phrase: rawClause, matched: false }]);
   }
 
   // Everything else: collect concrete targets across all categories.
@@ -595,8 +612,9 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     ...actionCandidates(rawClause, tk, ctx),
   ];
 
-  // A history-style statement ("tell me about your diet") with no clinical target.
-  if (cands.length === 0) {
+  // A history-style statement ("tell me about your diet") with no clinical target — not advice ("explain to the relatives")
+  // and not an examination ("knee exam").
+  if (cands.length === 0 && !/^(?:please\s+)?(?:explain|counsel|advise|reassure|educate|inform)\b/.test(norm) && !hasAny(tk, EXAM_VERBS)) {
     const hx = resolveHistory(rawClause, tk, ctx);
     if (hx.length > 0) return done(hx);
   }
@@ -640,6 +658,8 @@ const DEPARTMENTS: [RegExp, string][] = [
 export function consultDepartment(raw: string): string | null {
   const t = raw.toLowerCase().trim();
   if (/^(?:get |call |ask for )?(?:a |an )?(?:consult(?:ation)?|opinion|specialist)(?: please)?$/.test(t)) return "";
+  // "Call my senior", "inform the consultant": a senior's opinion — whose is asked.
+  if (/^(?:please\s+)?(?:call|inform|page|get|ask|discuss with|talk to)\s+(?:my |the |a |our |your )?(?:senior(?:s| resident| doctor)?|consultant|registrar|sr|hod|unit head|chief|attending|boss)(?:\s+(?:please|now|sir|madam|urgently))?$/.test(t)) return "";
   const hit = DEPARTMENTS.find(([re]) => re.test(t));
   if (!hit) return null;
   // "cardiology consult", "opinion from surgery", "call ortho", "call the paediatrician".
@@ -649,7 +669,11 @@ export function consultDepartment(raw: string): string | null {
 
 export function resolveIntents(input: string, ctx: IntentContext): ResolvedIntent[] {
   // "over 1 hr", "24 hr urine": hours — never the heart rate.
-  const raw = input.replace(/(\d+(?:\.\d+)?)\s*hrs?\b/gi, "$1 hours").replace(/\b(per|an|a|each|every|half an?)\s+hrs?\b/gi, "$1 hour");
+  const raw = input.replace(/(\d+(?:\.\d+)?)\s*hrs?\b/gi, "$1 hours").replace(/\b(per|an|a|each|every|half an?)\s+hrs?\b/gi, "$1 hour")
+    // "Platelets 6 units", "give 4 bags of platelets": a transfusion — never the platelet count.
+    .replace(/\bplatelets?\s+(\d+)\s*(?:units?|bags?|packs?|pints?|pools?)\b/gi, "platelet transfusion $1 units")
+    .replace(/\b(give|transfuse|start|arrange)\s+(\d+)\s*(?:units?|bags?|packs?|pints?)\s+(?:of\s+)?(?:rdp\s+|sdp\s+)?platelets?\b/gi, "$1 platelet transfusion $2 units")
+    .replace(/\b(give|transfuse|start|arrange)\s+platelets?\b/gi, "$1 platelet transfusion");
   // Plain instructions to the patient ("stand up", "take a deep breath") — answered at once, no AI needed —
   // unless the case has its own step for them (sitting a breathless patient up is treatment).
   const instruction = /^\s*(?:please\s+|can you\s+|could you\s+|make (?:him|her|them|the patient)\s+)?(?:stand(?: up)?|get up|sit(?: (?:him|her|them|the patient))?(?: up| down| upright)?|prop (?:him|her|them|the patient) up|lie (?:down|flat)|lie on (?:your|the|his|her) (?:back|side|left|right)|turn (?:over|to (?:your|the|his|her) (?:left|right|side))|walk(?: a few steps| for me| around)?|take a (?:deep )?breath|breathe (?:in|deeply)|hold your breath|open your mouth|say (?:aa+h|ahh+)|stick out your tongue|show (?:me )?your tongue|relax|cough)\b[^?]{0,30}$/i.test(raw);
@@ -660,15 +684,26 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   if (consult !== null) return [{ kind: "consult", targetId: consult || undefined, phrase: raw, matched: true }];
   // "Currently taking any tab?", "on any medicines?": a question about their medicines — never an order (no dose, no drug named).
   const plain = normalise(raw);
+  // "Have you taken anything for it?", "tried any medicine?": what they've had so far.
+  if (/\b(?:taken|took|tried|had|given|used)\s+(?:anything|any ?thing|something|any (?:medicines?|treatment|home remed\w+))\b/.test(plain) && !/\d/.test(plain)) {
+    const meds = ctx.def.history.find((h) => h.group === "medication");
+    return [{ kind: "history", targetId: meds?.id ?? "fallback:open", phrase: raw, matched: !!meds }];
+  }
   if (/\b(currently|presently|regularly|already|any|are you|is (?:he|she)|r u|do you|does (?:he|she)|taking|on)\b/i.test(plain) && /\b(tab|tabs|tablets?|medicines?|medications?|meds|drugs?|pills?|treatment)\b/i.test(plain) && !/\d/.test(plain) && !/\b(give|start|inj|prescribe|stop|hold)\b/i.test(plain) && !/\ballerg/i.test(plain)) {
     const meds = ctx.def.history.find((h) => h.group === "medication");
     return [{ kind: "history", targetId: meds?.id ?? "fallback:open", phrase: raw, matched: !!meds }];
   }
   // "Start antibiotics", "give steroids", "something for the pain": an order for a kind of drug — which one is asked.
-  const drugClass = plain.match(/\b(?:start|give|begin|put (?:him|her|them) on|prescribe|add|cover with|need)\b.{0,20}?\b(antibiotics?|steroids?|painkillers?|pain ?killers?|analgesics?|antiemetics?|antipyretics?|antihypertensives?|sedatives?|something for (?:the )?(pain|fever|vomiting|nausea|sleep|cough))\b/);
+  const drugClass = plain.match(/\b(?:start|give|begin|put (?:him|her|them) on|prescribe|add|cover with|need)\b.{0,20}?\b(antibiotics?|steroids?|painkillers?|pain ?killers?|analgesics?|antiemetics?|antipyretics?|antihypertensives?|sedatives?|something for (?:the )?(pain|fever|vomiting|nausea|sleep|cough))\b/)
+    // "IV antibiotics", "oral steroids", "broad-spectrum antibiotics" said on their own.
+    ?? plain.match(/^(?:inj |injection |iv |im |oral |po |broad spectrum |empirical |empiric )?(antibiotics?|steroids?|painkillers?|pain ?killers?|analgesics?|antiemetics?|antipyretics?|antihypertensives?|sedatives?)(?: please| now| stat)?$/);
   if (drugClass && !resolveClause(raw, ctx).some((i) => i.kind === "drug" && i.targetId && i.targetId !== "unknown")) {
     const said = drugClass[2] ? { pain: "painkiller", fever: "antipyretic", vomiting: "antiemetic", nausea: "antiemetic", sleep: "sedative", cough: "cough medicine" }[drugClass[2]] ?? "medicine" : drugClass[1]!.replace(/s$/, "").replace(/pain ?killer/, "painkiller");
     return [{ kind: "drug", targetId: "unknown", phrase: raw, matched: false, payload: { drugClass: said } }];
+  }
+  // "Double the dose", "change to IV", "cancel that", "same as before": an order changed without naming it — the nurse asks for it in full.
+  if (/^(?:ok |okay |no |then )?(?:cancel (?:that|it|this|the last (?:order|one))|same as (?:before|last time|earlier)|repeat (?:the )?(?:last|previous|same) (?:order|dose|one)|repeat (?:it|that|the same)|(?:double|halve|half|increase|reduce|decrease|lower|raise) (?:the |that |this |its )?dose|(?:change|switch|convert) (?:it |that |this |him |her )?to (?:iv|oral|po|im|sc|tablets?|injections?)|make it (?:iv|oral|po|im|sc|tablets?|injections?)|give (?:it|that) (?:again|iv|orally|im))$/.test(plain)) {
+    return [{ kind: "drug", targetId: "unknown", phrase: raw, matched: false, payload: { modify: true } }];
   }
   // "Order all tests", "do every investigation": the lab needs to know which — and a scattergun costs the family.
   if (/\b(?:all|every) (?:the |possible |available )?(?:tests|investigations|labs|bloods|blood tests)\b|\b(?:order|do|send) everything\b|\bfull work ?up\b/i.test(plain)) {

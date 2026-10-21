@@ -211,7 +211,7 @@ export const ManagementSchema = z.object({
       measureIds: strs(6, 40),
       concernsDrugs: strs(6, 40),
       match: strs(10, 60),
-      label: str(80),
+      label: str(140),
       appropriateness: z.enum(["ideal", "acceptable", "neutral", "unnecessary", "harmful", "dangerous"]).catch("acceptable"),
       note: optStr(300),
       critique: Miss.optional().catch(undefined),

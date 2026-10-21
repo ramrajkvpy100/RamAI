@@ -34,7 +34,7 @@ import { levelMeta, trackLabel } from "../levels";
 import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Specialty } from "../types";
 import { CARE_LEVELS, CASE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
-import { mockProvider } from "./mock";
+import { mockProvider, NoCaseError } from "./mock";
 import type { z } from "zod";
 
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
@@ -911,16 +911,25 @@ export function createOpenAIProvider(): ClinicalProvider {
         return { kind: "generated", def };
       } catch (err) {
         console.error("[ramai] couldn't invent a patient; using a written case", err instanceof Error ? err.message : err);
-        // A written case for this choice — or, if none fits it, any written case: never an error for the doctor.
-        return mockProvider.createCase(opts).catch(() => mockProvider.createCase({ ...opts, specialty: undefined, track: undefined, level: undefined }));
+        // A written case for this choice — or one in the same specialty. Never another specialty's patient: an eye
+        // doctor handed a skin case would be misled, so then the doctor is asked to try again.
+        return mockProvider.createCase(opts)
+          .catch(() => mockProvider.createCase({ ...opts, track: undefined, level: undefined }))
+          .catch(() => {
+            throw new NoCaseError(`We couldn't prepare a new ${opts.specialty ?? ""} case just now — please press Start again.`.replace("  ", " "));
+          });
       }
     },
 
     async teach(def) {
       try {
         // Written in the background, so it can take the time to reason carefully.
-        const parsed = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 3600, true, 50_000));
-        return parsed.success ? parsed.data : undefined;
+        // (The model thinks before it writes: too little room and the reply comes back cut off or empty.)
+        const parsed = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 9000, true, 60_000));
+        if (parsed.success && parsed.data.teaching.drugs.length > 0) return parsed.data;
+        console.warn("[ramai] teaching came back incomplete; asking once more", parsed.success ? "no drugs" : parsed.error.issues.slice(0, 3).map((i) => i.path.join(".")).join(", "));
+        const again = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 9000, false, 45_000));
+        return again.success ? again.data : parsed.success ? parsed.data : undefined;
       } catch (err) {
         console.error("[ramai] teaching unavailable", err instanceof Error ? err.message : err);
         return undefined;

@@ -74,8 +74,14 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     if (!group.some(did)) {
       const key = group.find((id) => misses[id]) ?? group[0]!;
       const rule = def.therapeutics.find((r) => r.id === key);
-      const label = (rule?.label ?? key).replace(/[.…]+$/, "");
-      missed.push(misses[key] ?? { what: `Missed: ${label.charAt(0).toLowerCase()}${label.slice(1)}.`, why: "This is a core part of treatment for this condition.", better: `${label}.`, severity: "major" });
+      // A label cut short keeps its "…" — never a full stop after a dangling word ("manage oedema with.").
+      const raw = rule?.label ?? key;
+      const end = /…$/.test(raw) ? "…" : ".";
+      const label = raw.replace(/[.…]+$/, "");
+      // Drugs and procedures that treat the illness matter most; advice, referral and supportive steps less.
+      const definitive = def.rubric.definitiveTreatment?.ids.some((id) => group.includes(id));
+      const severity = definitive || rule?.kind === "drug" || rule?.kind === "procedure" || !rule ? "major" : rule.kind === "counsel" || rule.kind === "discharge" ? "minor" : "moderate";
+      missed.push(misses[key] ?? { what: `Missed: ${label.charAt(0).toLowerCase()}${label.slice(1)}${end}`, why: "This is a core part of treatment for this condition.", better: `${label}${end}`, severity });
     }
   }
   for (const r of def.therapeutics) {

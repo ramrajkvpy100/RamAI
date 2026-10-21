@@ -7,7 +7,10 @@ import { phAcs } from "@/engine/cases/ph-acs";
 import { surgAppendicitis } from "@/engine/cases/surg-appendicitis";
 import { toHinglish } from "@/engine/i18n/hinglish";
 
+import { ALL_CASES } from "@/engine/cases";
 import { converse, messagesOf, play } from "./helpers";
+
+const ALL_PHONE = ALL_CASES.filter((c) => c.track === "phone");
 
 const said = (turn: { effects: Parameters<typeof messagesOf>[0] }) => messagesOf(turn.effects).join(" | ");
 
@@ -328,5 +331,80 @@ describe("Obstetric emergencies (CHC PPH)", () => {
     const { hidden } = play(obgPphChc, ["massage the uterus", "oxytocin 10 units iv", "ringer lactate 1 litre over 30 min", "wait 30 min"]);
     expect(hidden.status).toBe("improving");
     expect(hidden.hazards.some((h) => h.died)).toBe(false);
+  });
+});
+
+describe("Random erratic-doctor audit, round five", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+
+  it("reads vitamin K, bicarbonate and platelet transfusions as orders, not tests", () => {
+    const { turns } = play(emAdhf, ["vit k 10 mg iv", "sodium bicarb 50 meq iv over 10 min", "platelets 2 units"]);
+    const ids = turns.flatMap((t) => t.record.intents.map((i) => `${i.kind}:${i.targetId}`));
+    expect(ids).toContain("drug:vitamin-k");
+    expect(ids).toContain("drug:sodium-bicarbonate");
+    expect(ids).toContain("drug:platelet-transfusion");
+    expect(ids.some((x) => x.startsWith("investigation:"))).toBe(false);
+  });
+
+  it("keeps short forms whole: 'S. electrolytes', 'Inj. Ceftriaxone'", () => {
+    const { turns } = play(emAdhf, ["s. electrolytes", "Inj. Ceftriaxone 1 g IV"]);
+    expect(turns[0]!.record.intents.map((i) => i.kind)).toEqual(["investigation"]);
+    expect(turns[1]!.record.intents.map((i) => `${i.kind}:${i.targetId}`)).toEqual(["drug:ceftriaxone"]);
+  });
+
+  it("answers exam shorthands and a symptom question correctly", () => {
+    const { turns } = play(dermAcne, ["cns", "per abdomen", "jvp", "chest pain on walking?"]);
+    expect(turns.slice(0, 3).map((t) => t.record.intents[0]?.kind)).toEqual(["exam", "exam", "exam"]);
+    expect(turns[3]!.record.intents[0]?.kind).toBe("history");
+  });
+
+  it("asks which medicine when an order is changed without naming it", () => {
+    const { turns } = play(emAdhf, ["double the dose", "change to iv", "cancel that"]);
+    expect(said(turns)).toMatch(/Which medicine do you mean, doctor\?/);
+    expect(said(turns)).not.toMatch(/say that once more|withheld/);
+  });
+
+  it("checks before sending an unstable patient home", () => {
+    const { turns, hidden } = play(emAdhf, ["discharge"]);
+    expect(said(turns)).toMatch(/send them home\? They're/);
+    expect(hidden.discharged).toBeFalsy();
+  });
+
+  it("queries a uterotonic for a man, a pregnancy test for a man, and a diuretic in low BP", async () => {
+    const { emViperPhc } = await import("@/engine/cases/em-viper-phc");
+    const man = play(emViperPhc, ["misoprostol 800 mcg sl", "no", "upt"]);
+    expect(said(man.turns)).toMatch(/no use in a man/);
+    expect(said(man.turns)).toMatch(/he's a man — a pregnancy test isn't needed/);
+    const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
+    expect(said(play(obgPphChc, ["furosemide 40 mg iv"]).turns)).toMatch(/BP is 94\/60 — a diuretic could drop it further/);
+  });
+
+  it("the phone: no ICU, no drip to stop", () => {
+    const phone = ALL_PHONE[0];
+    if (!phone) return;
+    const { turns } = play(phone, ["admit in icu", "stop the drip"]);
+    expect(said(turns)).toMatch(/bring them to the hospital/);
+    expect(said(turns)).not.toMatch(/Admitted to the ICU|IV fluids stopped/);
+  });
+});
+
+describe("Random erratic-doctor audit, round five (replies)", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("doesn't deny a diagnosis it can't know, and denies a risk it wasn't given", () => {
+    const { turns } = play(emAdhf, ["is this dengue?", "suicidal thoughts?"]);
+    expect(turns[0]!.record.intents[0]?.targetId).toBe("fallback:open");
+    expect(turns[1]!.record.intents[0]?.targetId).toBe("fallback:yesno");
+    expect(said(turns)).not.toMatch(/say that once more/);
+  });
+  it("an examination isn't the answer to an X-ray's question", () => {
+    const { turns } = play(surgAppendicitis, ["xray knee", "chest auscultation"]);
+    expect(turns[1]!.record.intents[0]?.kind).toBe("exam");
+  });
+  it("reads 'wat hapnd' and keeps advice and examinations out of the history", () => {
+    const { turns } = play(emAdhf, ["wat hapnd", "explain to relatives", "knee exam"]);
+    expect(turns[0]!.record.intents[0]?.kind).toBe("history");
+    expect(turns[0]!.record.intents[0]?.targetId).not.toMatch(/^fallback/);
+    expect(turns[1]!.record.intents[0]?.kind).toBe("action");
+    expect(turns[2]!.record.intents[0]?.kind).toBe("exam");
   });
 });

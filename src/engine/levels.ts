@@ -78,8 +78,8 @@ export function trackLabel(track: CaseTrack, country: Country = "IN"): string {
 /* Facility capability                                                         */
 /* -------------------------------------------------------------------------- */
 
-const PHC = ["cbc", "urine-rm", "urine-dip", "upt", "malaria", "dengue", "widal", "fbs", "ppbs", "stool-rm", "viral-markers", "peripheral-smear"];
-const CHC = [...PHC, "lft", "rft", "electrolytes", "hba1c", "lipid", "crp", "esr", "koh", "ecg", "cxr", "xray-abdomen", "blood-group", "coag", "uric-acid", "calcium", "tzanck"];
+const PHC = ["cbc", "urine-rm", "urine-dip", "upt", "malaria", "dengue", "widal", "fbs", "ppbs", "stool-rm", "viral-markers", "peripheral-smear", "sputum-afb"];
+const CHC = [...PHC, "lft", "rft", "electrolytes", "hba1c", "lipid", "crp", "esr", "koh", "ecg", "cxr", "xray-abdomen", "blood-group", "coag", "uric-acid", "calcium", "tzanck", "cbnaat"];
 const DISTRICT = [
   ...CHC, "usg-abdomen", "echo", "troponin", "abg", "tft", "rf", "blood-culture", "urine-culture", "pus-culture", "ct-head", "ct-abdomen", "csf",
   "amylase-lipase", "amylase", "lipase", "d-dimer", "iron", "vit-b12", "skin-biopsy", "fungal-culture", "spirometry", "arterial-doppler",

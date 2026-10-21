@@ -14,7 +14,7 @@ import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, Therapeutic
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
-import { childDoseConcern, confirmQuestion, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
+import { childDoseConcern, hasChildDose, confirmQuestion, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { saltGrams } from "./toxicity";
@@ -920,6 +920,8 @@ function armHazard(def: ClinicalCaseDefinition, hidden: HiddenState, id: string,
   }
   // Rescued before, and given again: it starts over.
   if (hidden.hazards.some((a) => a.id === id && (a.died || prescribed))) return;
+  // A harm that builds over a course (a clot after weeks of tranexamic acid with the pill) doesn't follow one dose in the clinic.
+  if (!prescribed && (h.prescribedOnsetMin ?? 0) >= 1440) return;
   const onset = prescribed ? h.prescribedOnsetMin ?? 0 : 0;
   const armed: ArmedHazard = {
     id, label: h.label, triggeredAt: from, armedAt: from + onset, trigger, stageIdx: -1, recoveryIdx: -1, died: false, responses: [],
@@ -997,6 +999,7 @@ export function getPatientResponse(def: ClinicalCaseDefinition, hidden: HiddenSt
       return { text: howDoYouFeel(def, hidden) || "(No response.)", role };
     }
     case "fallback:yesno": return { text: pick(YES_NO_FALLBACK, seed), role };
+    case "fallback:diet": return { text: "Just normal home food, doctor. Nothing special.", role };
     default: return { text: pick(OPEN_FALLBACK, seed), role };
   }
 }
@@ -1640,6 +1643,10 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
       return [{ type: "message", role: "system", kind: "finding", text: `${last.name} — showing the result again.`, attachmentIds: [last.instanceId] }];
     }
   }
+  // A pregnancy test for a man or a young child isn't sent.
+  if (requested === "upt" && def.track !== "phone" && (def.patient.sex === "Male" || def.patient.age < 9) && !def.investigations.some((i) => i.id === "upt" && i.priority !== "unnecessary")) {
+    return [{ type: "message", role: "nurse", kind: "speech", text: def.patient.sex === "Male" ? `Doctor, he's a ${def.patient.age < 15 ? "boy" : "man"} — a pregnancy test isn't needed.` : "Doctor, she's a young child — a pregnancy test isn't needed." }];
+  }
   // "All resources": a test the catalogue doesn't have is done as named.
   if (adhocTest(def, requested) && !def.investigations.some((i) => i.id === requested)) return orderAdhoc(ctx, requested);
   // An imaging order: which part, which view, contrast or not — asked when not said.
@@ -1833,12 +1840,26 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
     // Oxytocin is given 10 IU, then 20–40 IU in a bag of fluid.
     || (drug.id === "oxytocin" && dose?.unit === "units" && dose.amount !== undefined && dose.amount <= 40);
   if (!inRange && !loading && dose?.multiple !== undefined && dose.multiple >= 3 && !drug.fluid && !drug.classes.some((c) => ownRules.includes(c)) && !["table-salt", "potassium-chloride", "methotrexate"].includes(drug.id)) return `That's about ${Math.round(dose.multiple)} times the usual dose.`;
+  // Drugs for the womb, given to someone without one in use: a man, a child — or a woman still pregnant.
+  if (drug.classes.includes("uterotonic")) {
+    if (def.patient.sex === "Male") return "It acts on the womb — it has no use in a man.";
+    if (def.patient.age < 12) return "It acts on the womb — it has no use in a child.";
+    if (def.profile?.pregnant) return "She's still pregnant — it can bring on contractions or a miscarriage.";
+  }
+  if (def.profile?.pregnant && drug.classes.includes("teratogen")) return "She's pregnant — this drug can harm the baby.";
+  // A diuretic when the pressure is already low.
+  const sbp = parseFloat(vitalsNow(hidden).bp.value);
+  if (drug.classes.includes("loop-diuretic") && sbp > 0 && sbp < 100) return `The BP is ${vitalsNow(hidden).bp.value} — a diuretic could drop it further.`;
   // A child: the dose for their weight.
   if (def.patient.age < 16) {
     const kg = parseFloat(vitalsNow(hidden).weight.value) || 0;
     // From 40 kg a young person takes adult doses.
     const concern = kg > 0 && kg < 40 ? childDoseConcern(drug.id, dose?.amount, dose?.unit, kg) : null;
     if (concern) return concern;
+    // No per-kg dose known: a full adult dose for a small child is still checked.
+    const systemic = ["PO", "IV", "IM", "SC", "SL", "PR"].includes(String(dose?.route ?? drug.route));
+    const sameAtAnyAge = ["zinc", "albendazole", "ors", "vitamin-a", "permethrin"].includes(drug.id) || drug.fluid || drug.classes.some((c) => ["vaccine", "fluid", "blood-product", "emollient", "sunscreen", "ors"].includes(c));
+    if (kg > 0 && kg < 25 && systemic && !inRange && !sameAtAnyAge && !hasChildDose(drug.id) && dose?.multiple !== undefined && dose.multiple >= 0.9) return `That's a full adult dose for a ${Math.round(kg)}-kg child.`;
   }
   return null;
 }
@@ -1883,6 +1904,10 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   if (!drug) {
     // "Start antibiotics", "give steroids": the nurse asks which one.
     const kind = typeof intent.payload?.drugClass === "string" ? intent.payload.drugClass : null;
+    if (intent.payload?.modify) {
+      fx.push({ type: "message", role: def.track === "phone" ? "attendant" : "nurse", kind: "speech", text: def.track === "phone" ? "Which medicine do you mean, doctor? Please tell me again — the name, how much and how to give it." : "Which medicine do you mean, doctor? Please give me the new order in full — the drug, dose and route." });
+      return fx;
+    }
     fx.push(kind
       ? { type: "message", role: def.track === "phone" ? "attendant" : "nurse", kind: "speech", text: `Which ${kind}, what dose and by which route, doctor?` }
       : { type: "message", role: "system", kind: "action", text: "Which medicine, dose and route?" });
@@ -2231,6 +2256,32 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
     const asked = askOxygen(ctx, intent, "measure:oxygen");
     if (asked) return asked;
   }
+  // On the phone the patient is at home: hospital care means coming in.
+  if (ctx.def.track === "phone") {
+    if (m.id === "admit") {
+      record(hidden, "measure:admit");
+      return [{ type: "message", role: "attendant", kind: "speech", text: "Okay, doctor — we'll bring them to the hospital now." }];
+    }
+    if (["oxygen", "niv", "intubation", "iv-access", "catheter", "dialysis", "ryles", "monitor", "defib", "stop-fluids"].includes(m.id)) {
+      return [{ type: "message", role: "attendant", kind: "speech", text: "Doctor, we're at home — we can't do that here. Should we bring them to the hospital?" }];
+    }
+  }
+  // Sending home someone who is unwell: the nurse checks first (once).
+  if (m.id === "discharge" && !intent.payload?.confirmed && !hidden.discharged) {
+    const v = vitalsNow(hidden);
+    const num = (k: VitalKey) => parseFloat(v[k]?.value ?? "");
+    const worries = [
+      STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating ? (hidden.status === "critical" ? "critical" : "getting worse") : null,
+      num("gcs") < 15 ? `GCS ${num("gcs")}` : null,
+      num("bp") < 90 ? `BP ${v.bp.value}` : null,
+      num("spo2") < 92 ? `SpO₂ ${num("spo2")}%` : null,
+      num("hr") > 130 ? `pulse ${num("hr")}` : null,
+    ].filter(Boolean);
+    if (worries.length) {
+      const question = `Doctor — send them home? They're ${worries.join(", ")}. Do you still want to discharge?`;
+      return askAbout(ctx, { kind: "confirm", targetId: "measure:discharge", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
+    }
+  }
   const fx: TurnEffect[] = [];
   record(hidden, `measure:${m.id}`);
   hidden.clock += m.durationMin;
@@ -2327,7 +2378,11 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
         const live = hidden.hazards.some((a) => a.id.startsWith("fluid-") && !a.superseded && !a.died && a.rescuedAt === undefined);
         if (tier > 0 && !live) armHazard(ctx.def, hidden, tier === 3 ? "fluid-catastrophe" : tier === 2 ? "fluid-flood" : "fluid-overload", "IV fluid beyond the deficit", false, hidden.clock, running[0] ? orderKey(running[0].drugId, running[0].at) : undefined);
       }
-      fx.push({ type: "message", role: actor, kind: "action", text: running.length ? `IV fluids stopped — ${running.map((d) => `${d.volumeMl} mL of the ${d.generic.toLowerCase()} had gone in`).join("; ")}.` : "IV fluids stopped." });
+      const anyDrip = hidden.drugs.some((d) => formularyDrug(d.drugId)?.fluid && d.route === "IV" && d.mode === "given");
+      fx.push(running.length
+        ? { type: "message", role: actor, kind: "action", text: `IV fluids stopped — ${running.map((d) => `${d.volumeMl} mL of the ${d.generic.toLowerCase()} had gone in`).join("; ")}.` }
+        : anyDrip ? { type: "message", role: actor, kind: "action", text: "IV fluids stopped — the last bag had already run through." }
+        : { type: "message", role: "nurse", kind: "speech", text: "There's no drip running, doctor." });
       fx.push({ type: "timeline", label: "IV fluids stopped", category: "treatment" });
       break;
     }

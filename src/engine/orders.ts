@@ -181,6 +181,9 @@ export function childDoseConcern(drugId: string, amount: number | undefined, uni
   return `For a ${round(weightKg)}-kg child that's ${round(perKg)} ${r.unit}/kg — the usual is about ${r.perKg} ${r.unit}/kg (${round(usual)} ${r.unit}).`;
 }
 
+/** Whether a standard per-kg dose is known for this drug. */
+export const hasChildDose = (drugId: string) => PER_KG[drugId] !== undefined;
+
 /** A child's weight-based dose of this drug, if there's a standard one: { amount, unit, dose text }. */
 export function childDose(drugId: string, weightKg: number): { amount: number; unit: string; dose: string } | null {
   const r = PER_KG[drugId];
@@ -466,7 +469,10 @@ export function completeOrder(pending: PendingOrder, clause: string, weightKg: n
     return { ...pending.payload, ...found, ...(usual ? { usual: true } : {}) };
   }
   if (pending.kind === "investigation") {
+    // An examination ("chest auscultation") or another part than the one asked about is a new request, not the answer.
+    if (/\b(auscultat\w*|examin\w*|palpat\w*|listen|percuss\w*|inspect\w*|look at|feel)\b/i.test(clause)) return null;
     const d = parseImaging(clause);
+    if (d.region && typeof pending.payload.region === "string" && d.region !== pending.payload.region && !pending.needs.includes("region")) return null;
     const found: Payload = {};
     if (d.region) found.region = d.region;
     if (d.side) found.side = d.side;
@@ -484,7 +490,7 @@ export function completeOrder(pending: PendingOrder, clause: string, weightKg: n
 export function completedIntent(pending: PendingOrder, payload: Payload, words: string): { kind: "drug" | "investigation" | "action"; targetId: string; phrase: string; matched: true; payload: Payload } {
   const phrase = `${pending.phrase} — ${words}`.slice(0, 400);
   if (pending.kind === "oxygen") return { kind: "action", targetId: "measure:oxygen", phrase, matched: true, payload: { ...payload, completes: true } };
-  if (pending.kind === "confirm") return { kind: "drug", targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
+  if (pending.kind === "confirm") return { kind: pending.targetId.startsWith("measure:") ? "action" : "drug", targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
   return { kind: pending.kind, targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
 }
 
@@ -561,6 +567,7 @@ export interface QuickReply {
 
 /** Buttons for what an order is waiting on — the usual dose, the routes it can go by, how often, how long. */
 export function orderReplies(p: PendingOrder): QuickReply[] {
+  if (p.kind === "confirm" && p.targetId === "measure:discharge") return [{ text: "Yes, discharge", send: true }, { text: "No, keep them here", send: true }];
   if (p.kind === "confirm") return [{ text: "Yes, give it", send: true }, { text: "No, hold it", send: true }];
   if (p.kind === "oxygen") return ["Nasal prongs 2 L/min", "Face mask 6 L/min", "Non-rebreather mask 15 L/min"].map((text) => ({ text, send: true }));
   if (p.kind === "investigation") {

@@ -8,6 +8,9 @@
 
 /** Common misspellings and everyday Hindi/Hinglish clinic words, read as the English the rules know. */
 const EVERYDAY: [RegExp, string][] = [
+  [/\bkya hua\b|\bkya ho gaya\b|\bkya taklee?f\b/g, " what happened "],
+  [/\bkaise ho\b|\bkaisa lag raha\b|\bkaisi ho\b/g, " how are you feeling "],
+  [/\btheek ho ja(?:oge|ogi|yenge|enge|yega|egi|ega)\b|\bchinta mat karo\b|\bghabrao mat\b|\bdaro mat\b/g, " reassure "],
   [/\bfe+v[ae]?r\b|\bfevr\b|\bfvr\b/g, " fever "],
   [/\bvomit+i?ng\b|\bvomitng\b|\bvommiting\b/g, " vomiting "],
   [/\bcoff\b|\bcaugh\b/g, " cough "],
@@ -57,6 +60,9 @@ const ABBREVIATIONS: [RegExp, string][] = [
   [/(?<![\d.]\s?)\bu\b(?!\s*\/)/g, " you "],
   [/\bur\b/g, " your "],
   [/\bhw\b/g, " how "],
+  [/\bwen\b|\bwhn\b/g, " when "],
+  [/\bhap+e?n+d\b|\bhap+ene?d\b|\bhppnd\b|\bhapen\b/g, " happened "],
+  [/\bwer\b|\bwhr\b/g, " where "],
   [/\bwh?at\b|\bwht\b/g, " what "],
   [/\bdr\.?\s/g, " doctor "],
   [/\bhrs\b/g, " hours "],
@@ -165,7 +171,8 @@ export function bestHit(textTokens: string[], phrases: readonly string[]): Phras
 export function splitClauses(raw: string): string[] {
   return raw
     .replace(/\r/g, "")
-    .split(/\n+|;|(?<=\?)\s+|(?<=[a-z0-9)\]])\.\s+(?=[a-z])|\b(?:and then|after that)\b/i)
+    // A full stop ends a sentence — not one after a short form: "Inj. Ceftriaxone", "Tab. PCM", "S. electrolytes", "Dr. Rao".
+    .split(/\n+|;|(?<=\?)\s+|(?<=[a-z0-9)\]])(?<!(?:^|[\s(])(?:[a-z]|inj|tab|tabs|cap|caps|syp|syr|dr|mr|mrs|vs|approx|amp|vit|oint|susp))\.\s+(?=[a-z])|\b(?:and then|after that)\b/i)
     .map((c) => (c ?? "").trim())
     .filter((c) => c.length > 0);
 }

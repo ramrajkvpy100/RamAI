@@ -13,8 +13,8 @@ import type { ResolvedIntent } from "../types";
 
 /** No case in the library matches the requested mode / level / specialty. */
 export class NoCaseError extends Error {
-  constructor() {
-    super("No cases match that choice yet.");
+  constructor(message = "No cases match that choice yet.") {
+    super(message);
     this.name = "NoCaseError";
   }
 }
