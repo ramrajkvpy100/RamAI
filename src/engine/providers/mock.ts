@@ -94,6 +94,11 @@ export const mockProvider: ClinicalProvider = {
     if (queried && DECLINE_RE.test(text) && splitClauses(text).length === 1) {
       return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: "nurse" } }], generated: { "0": "Okay, doctor — I'll hold it." } };
     }
+    // "No", "cancel", "don't" when the nurse asked about an order's details: that order is dropped, not given.
+    const open = ctx.hidden.pendingOrders?.[0];
+    if (open && DECLINE_RE.test(text.trim()) && splitClauses(text).length === 1 && text.trim().split(/\s+/).length <= 4) {
+      return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: ctx.def.track === "phone" ? "attendant" : "nurse", settled: true } }], generated: { "0": "Okay, doctor — I'll leave that order." } };
+    }
     // An order waiting on its details: these words may be the answer.
     const answer = answerPending(text, ctx, rctx);
     if (answer) return { intents: answer };

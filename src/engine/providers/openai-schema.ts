@@ -75,6 +75,8 @@ const optStr = (max: number) => str(max).optional().catch(undefined);
 /** A list from whatever arrived: an array, one value, or a semicolon-separated string. */
 const strs = (maxItems: number, maxLen = 220) =>
   z.unknown().optional().transform((v) => (Array.isArray(v) ? v : typeof v === "string" ? v.split(/;\s*|\n/) : v == null ? [] : [v]).map((x) => String(x).trim().slice(0, maxLen)).filter(Boolean).slice(0, maxItems));
+/** Text that may be missing: an empty string then, never a reason to drop the whole item. */
+const soft = (max: number) => optStr(max).transform((v) => v ?? "");
 /** A list of objects: items that don't fit are dropped, the rest kept. */
 const listOf = <T extends z.ZodType>(item: T, maxItems: number) =>
   z.unknown().optional().transform((v) =>
@@ -238,7 +240,8 @@ export const TeachingSchema = z.object({
   teaching: z.object({
     patientBand: optStr(40),
     severityBands: listOf(z.object({ id: str(40), label: str(80), recognition: strs(6), investigation: strs(6), treatment: strs(6), followUp: strs(6) }), 5),
-    drugs: listOf(z.object({ generic: str(80), brand: optStr(80), dose: str(80), route: z.enum(["PO", "IV", "IM", "SC", "SL", "PR", "TOP", "INH", "NEB", "OD-eye", "IN"]).catch("PO"), frequency: str(60), duration: str(60), indication: str(160), mechanism: str(200), whyItWorks: str(200), avoidWhen: strs(5), adverseEffects: strs(6), monitoring: strs(5) }), 6),
+    // A drug missing a minor field (its duration, its mechanism) is kept — only its name and dose are essential.
+    drugs: listOf(z.object({ generic: str(80), brand: optStr(80), dose: str(80), route: z.enum(["PO", "IV", "IM", "SC", "SL", "PR", "TOP", "INH", "NEB", "OD-eye", "IN"]).catch("PO"), frequency: soft(60), duration: soft(60), indication: soft(160), mechanism: soft(200), whyItWorks: soft(200), avoidWhen: strs(5), adverseEffects: strs(6), monitoring: strs(5) }), 6),
     routines: listOf(z.object({ label: str(80), steps: listOf(z.object({ order: z.coerce.number(), step: str(200), note: optStr(200) }), 8), avoid: strs(5).optional(), improvementTimeline: optStr(200) }), 3),
     followUp: z.object({ interval: str(60), reassess: strs(6), redFlags: strs(6), whenToEscalate: strs(6) }).catch({ interval: "", reassess: [], redFlags: [], whenToEscalate: [] }),
     treatmentFailure: z.object({ steps: strs(6) }).catch({ steps: [] }),

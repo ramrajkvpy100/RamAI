@@ -180,7 +180,8 @@ export function childDoseConcern(drugId: string, amount: number | undefined, uni
   const usual = Math.min(r.max, r.perKg * weightKg);
   if (inUnit <= usual * 2 && inUnit <= r.max * 1.1) return null;
   const perKg = inUnit / weightKg;
-  const round = (n: number) => (n >= 10 ? Math.round(n) : Math.round(n * 10) / 10);
+  // Two significant figures for small doses: 0.025 mg/kg, never "0 mg/kg".
+  const round = (n: number) => (n >= 10 ? Math.round(n) : n >= 1 ? Math.round(n * 10) / 10 : Number(n.toPrecision(2)));
   return `For a ${round(weightKg)}-kg child that's ${round(perKg)} ${r.unit}/kg — the usual is about ${r.perKg} ${r.unit}/kg (${round(usual)} ${r.unit}).`;
 }
 

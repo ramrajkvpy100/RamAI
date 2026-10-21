@@ -177,6 +177,10 @@ const SYMPTOM_WORDS: [string, RegExp][] = [
 ];
 
 function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): ResolvedIntent[] {
+  // Periods or pregnancy asked of a man, a boy or a little girl: there's nothing to tell.
+  if (/\b(lmp|last period|periods?|menses|menstru\w*|pregnan\w*)\b/.test(normalise(rawClause)) && (ctx.def.patient.sex === "Male" || ctx.def.patient.age < 9)) {
+    return [{ kind: "history", targetId: "answer:no-periods", phrase: rawClause, matched: true }];
+  }
   // An allergy question is about allergies — even when it says "drug" ("any drug allergy?") and the
   // case's medicines entry matches "drugs" too.
   if (/\ballerg/i.test(rawClause) && rawClause.trim().split(/\s+/).length <= 7 && !/,/.test(rawClause)) {
@@ -220,10 +224,6 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
   if (/^(?:please\s+)?tell me (?:everything|all|more|about it|about this|about the problem|what happened|your problem)\b/.test(normalise(rawClause))) {
     const story = ctx.def.history.find((h) => h.group === "hpi") ?? ctx.def.history.find((h) => h.group === "complaint");
     if (story) return [{ kind: "history", targetId: story.id, phrase: rawClause, matched: true }];
-  }
-  // Periods or pregnancy asked of a man, a boy or a little girl: there's nothing to tell.
-  if (/\b(lmp|last period|periods?|menses|menstru\w*|pregnan\w*)\b/.test(normalise(rawClause)) && (ctx.def.patient.sex === "Male" || ctx.def.patient.age < 9)) {
-    return [{ kind: "history", targetId: "answer:no-periods", phrase: rawClause, matched: true }];
   }
   // "What do you eat?" with no diet in the case: ordinary food.
   if (/\b(?:what do (?:you|they|he|she) (?:eat|have for (?:breakfast|lunch|dinner))|diet|eating habits|food habits)\b/i.test(normalise(rawClause))) return [{ kind: "history", targetId: "fallback:diet", phrase: rawClause, matched: false }];

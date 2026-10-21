@@ -41,7 +41,7 @@ import type { z } from "zod";
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
 import { normalise } from "../text";
-import { labGap, vitalsNow } from "../simulator";
+import { aboutThem, labGap, vitalsNow } from "../simulator";
 import { noteUsage } from "./usage";
 import type { CaseSource, ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
@@ -216,7 +216,7 @@ Map to existing ids whenever the meaning matches — the game answers those itse
 Understand the doctor the way a thoughtful, experienced colleague would in a real conversation: typos, abbreviations (c/o, h/o, o/e, BD, TDS, stat), shorthand, Hinglish or Hindi, half-sentences and several requests in one message — handle every request, in the order given, each as its own intent. Use the whole conversation to work out what "it", "that", "same", "again" and short replies refer to.
 Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${def.unlimited ? `
 This hospital has every resource: any test can be done. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
-For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}.
+For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}. A relative speaking about a child (or about a patient who can't speak) speaks of them in the third person — "he hasn't had a fever", never "I haven't".
 Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
 For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient (in ${language(country, lang)}); the relative only when spoken to directly, or when the patient is a young child or can't speak. The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
 
@@ -503,7 +503,7 @@ function dialoguePrompt(opts: StartOptions, concept: Concept, brief: Brief): Cha
   "triageVitals": ["vitals already on the board on arrival"],
   "profile": { "allergies": [], "currentDrugs": [], "pregnancyPossible"?, "asthma"?, "ckd"?, "heartFailure"?, "volume": "depleted"|"normal"|"overloaded" (the patient's fluid state now), "fluidDeficitMlPerKg"?: how much fluid they are short of, mL/kg — e.g. 30 for moderate dehydration or septic shock, 70–100 for DKA or severe cholera; 0 if not depleted },
   "history": [{ "id": "short_snake_case", "group": "complaint"|"hpi"|"past"|"medication"|"allergy"|"family"|"social"|"diet"|"sexual"|"obstetric"|"systemic", "label", "match": ["3–8 short lowercase phrases a doctor might type"], "reply": "what the patient says, lay words", "fact": "the fact in clinical shorthand", "abnormal"?, "importance": "essential"|"useful"|"minor", "speaker"?: "attendant" }] }
-history: 8–12 entries — the presenting complaint, its course, relevant positives and negatives, past history, medicines and allergies. Every positive in the case must be here.`,
+history: 8–12 entries — the presenting complaint, its course, relevant positives and negatives, past history, medicines and allergies. Every positive in the case must be here. The complaint's reply says how long it has been going on, and its match includes "how long", "since when" and "kab se"; when a relative answers for a child, they speak of the child as he or she.`,
     },
   ];
 }
@@ -773,7 +773,12 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
     const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx), 800, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
-    const { message, speaker } = parsed.data;
+    const { speaker } = parsed.data;
+    // A parent answering for a small child in the child's voice ("I haven't had a fever"): put back in the third person.
+    const firstPerson = /^(?:no,?\s+|yes,?\s+)?(?:doctor,?\s+)?I(?:'ve| have|'m| am| feel| haven't| don't| sleep| slept| had| was)\b/i;
+    const message = parsed.data.message && speaker === "attendant" && ctx.def.patient.age < 12 && firstPerson.test(parsed.data.message) && !/\b(he|she|him|her|his|my (?:son|daughter|child|baby))\b/i.test(parsed.data.message)
+      ? aboutThem(parsed.data.message, ctx.def.patient.sex)
+      : parsed.data.message;
     const intents: ResolvedIntent[] = [];
     const generated: Record<string, string> = {};
     // The one reply goes to the first intent that needs words: a question the case file doesn't cover, or anything no id covers.
@@ -962,7 +967,7 @@ export function createOpenAIProvider(): ClinicalProvider {
         }
         const impossible = sanityProblems(concept, d.baselineVitals);
         if (impossible.length) throw new UpstreamError(`the case failed its sanity checks: ${impossible.join("; ")}`);
-        let def = withUntreatedCourse(toDefinition(concept, d, f, m, brief, opts), brief.track === "emergency");
+        let def = withUntreatedCourse(toDefinition(concept, d, f, m, brief, opts), brief.track === "emergency" && brief.specialty !== "General Practice");
         // The whole case, read at once by a senior. What they find is sent back to the part reviewers to correct — the
         // case is repaired, not thrown away — and only then used. (The model thinks before answering: give it room, or the
         // reply comes back empty.) If the senior can't answer at all, the case stands on its parts' reviews.
@@ -985,7 +990,7 @@ export function createOpenAIProvider(): ClinicalProvider {
           ]);
           const still = sanityProblems(concept, d.baselineVitals);
           if (still.length) throw new UpstreamError(`the repaired case failed its sanity checks: ${still.join("; ")}`);
-          def = withUntreatedCourse(toDefinition(concept, d, f, m, brief, opts), brief.track === "emergency");
+          def = withUntreatedCourse(toDefinition(concept, d, f, m, brief, opts), brief.track === "emergency" && brief.specialty !== "General Practice");
         }
         return { kind: "generated", def };
       };
@@ -1018,8 +1023,9 @@ export function createOpenAIProvider(): ClinicalProvider {
         const parsed = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 9000, true, 60_000));
         if (parsed.success && parsed.data.teaching.drugs.length > 0) return parsed.data;
         console.warn("[ramai] teaching came back incomplete; asking once more", parsed.success ? "no drugs" : parsed.error.issues.slice(0, 3).map((i) => i.path.join(".")).join(", "));
-        const again = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 9000, false, 45_000));
-        return again.success ? again.data : parsed.success ? parsed.data : undefined;
+        // (If the second try fails too, the first answer's other teaching is kept rather than lost.)
+        const again = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 9000, false, 45_000).catch(() => null));
+        return again.success && again.data.teaching.drugs.length > 0 ? again.data : parsed.success ? parsed.data : again.success ? again.data : undefined;
       } catch (err) {
         console.error("[ramai] teaching unavailable", err instanceof Error ? err.message : err);
         return undefined;

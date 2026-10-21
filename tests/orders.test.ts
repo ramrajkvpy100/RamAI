@@ -522,7 +522,7 @@ describe("Focus audit, round one", () => {
   });
   it("asks before an ICU bed for a stable patient, and won't book a week's follow-up in the ER while unwell", async () => {
     const { gpUtiPhc } = await import("@/engine/cases/gp-uti-phc");
-    expect(said(play(gpUtiPhc, ["admit in icu"]).turns)).toMatch(/the ICU\? They're stable/);
+    expect(said(play(gpUtiPhc, ["admit in icu"]).turns)).toMatch(/the ICU\? They aren't critically ill/);
     const { obgPphChc } = await import("@/engine/cases/obg-pph-chc");
     expect(said(play(obgPphChc, ["follow up 1 week"]).turns)).toMatch(/still here in emergency/);
   });
@@ -536,5 +536,34 @@ describe("Focus audit, round one", () => {
   it("a child's heparin is checked by weight", async () => {
     const { pedDiarrhoeaPhc } = await import("@/engine/cases/ped-diarrhoea-phc");
     expect(said(play(pedDiarrhoeaPhc, ["heparin 5000 units iv"]).turns)).toMatch(/10-kg child/);
+  });
+});
+
+describe("Focus audit, round two", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("a small child's dose is shown to two figures, never '0 mg/kg'", async () => {
+    const { pedDiarrhoeaPhc } = await import("@/engine/cases/ped-diarrhoea-phc");
+    const text = said(play(pedDiarrhoeaPhc, ["adrenaline 0.5 mg im"]).turns);
+    expect(text).not.toMatch(/ 0 mg\/kg/);
+  });
+  it("'tab ceftriaxone' — it comes only as an injection", () => {
+    expect(said(play(emAdhf, ["tab ceftriaxone 1 g"]).turns)).toMatch(/comes only as an injection/);
+  });
+  it("'no' to an order's question drops the order", async () => {
+    const { turns, hidden } = await converse(emAdhf, ["pcm 1 g", "no"]);
+    expect(said(turns)).toMatch(/I'll leave that order/);
+    expect(hidden.drugs.some((d) => d.drugId === "paracetamol")).toBe(false);
+  });
+  it("periods asked of a man get a plain answer, whatever the case's own history matches", () => {
+    expect(play(surgAppendicitis, ["lmp?"]).turns[0]!.record.intents[0]?.targetId).toBe("answer:no-periods");
+  });
+  it("repeat vitals gives the full routine set", () => {
+    const text = said(play(emAdhf, ["spo2", "repeat vitals"]).turns);
+    expect(text).toMatch(/BP .* mmHg/);
+  });
+  it("a relative speaks of a child in the third person", async () => {
+    const { aboutThem } = await import("@/engine/simulator");
+    expect(aboutThem("No, I haven't had any trouble breathing. I sleep okay. My chest is fine.", "Male")).toBe("No, he hasn't had any trouble breathing. I sleep okay. His chest is fine.");
+    expect(aboutThem("It hasn't helped, doctor — if anything I feel worse.", "Male")).toBe("It hasn't helped, doctor — if anything he seems worse.");
   });
 });

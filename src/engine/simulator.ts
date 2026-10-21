@@ -14,7 +14,7 @@ import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, Therapeutic
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, routesFor, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
-import { childDoseConcern, hasChildDose, confirmQuestion, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
+import { childDoseConcern, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
 import { saltGrams } from "./toxicity";
@@ -1990,6 +1990,19 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // A child's usual dose is by weight.
   const child = def.patient.age < 13 ? { weightKg: parseFloat(hidden.vitals.weight.value) || 0 } : undefined;
   const p = intent.payload?.usual === true ? usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined) : intent.payload ?? {};
+  // A route this drug doesn't come in ("tab ceftriaxone", "IV metformin"): the nurse says so and asks again.
+  const routes = routesFor(drug);
+  const asked = typeof p.route === "string" ? (p.route as DrugRoute) : undefined;
+  if (asked && !drug.fluid && !routes.includes(asked) && !["TOP", "OD-eye", "INH", "NEB"].includes(asked) && !routes.some((r) => ["TOP", "OD-eye"].includes(r))) {
+    const name = (drug.generic.split(/\s[(]/)[0] ?? drug.generic).trim();
+    const injectable = routes.every((r) => ["IV", "IM", "SC"].includes(r));
+    const question = injectable
+      ? `${name} comes only as an injection, doctor — ${routes.map((r) => ROUTE_WORDS[r] ?? r).join(" or ")}?`
+      : `${name} isn't given ${ROUTE_WORDS[asked] ?? asked} here, doctor — ${routes.map((r) => ROUTE_WORDS[r] ?? r).join(" or ")}?`;
+    const { route: _drop, ...rest } = p;
+    void _drop;
+    return askAbout(ctx, { kind: "drug", targetId: drug.id, payload: { ...rest, mode }, phrase: intent.phrase, needs: ["route", ...drugNeeds(drug, rest, mode).filter((n) => n !== "route")] }, question, mode);
+  }
   const needs = drugNeeds(drug, p, mode);
   if (needs.length > 0) {
     const question = def.track === "phone" ? phoneDrugQuestion(drug, needs) : drugQuestion(drug, needs, p, askerRole(ctx, mode) !== "system");
@@ -2206,14 +2219,22 @@ function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: For
 }
 
 /** "I feel much better" → "He seems much better", for a relative speaking of the patient. */
-function aboutThem(text: string, sex?: string): string {
-  const he = sex === "Female" ? "She" : sex === "Male" ? "He" : "They";
-  const seems = he === "They" ? "seem" : "seems";
-  return text
-    .replace(/\bI feel\b/g, `${he} ${seems}`)
-    .replace(/\bif anything I feel\b/g, `if anything ${he.toLowerCase()} ${seems}`)
-    .replace(/\bI(?:'m| am)\b/g, `${he} ${he === "They" ? "are" : "is"}`)
-    .replace(/\bmy\b/gi, he === "She" ? "her" : he === "He" ? "his" : "their");
+export function aboutThem(text: string, sex?: string): string {
+  const he = sex === "Female" ? "she" : sex === "Male" ? "he" : "they";
+  const they = he === "they";
+  const his = he === "she" ? "her" : he === "he" ? "his" : "their";
+  const him = he === "she" ? "her" : he === "he" ? "him" : "them";
+  // First person to third, verb by verb: "I feel worse" → "he seems worse", "I haven't" → "he hasn't".
+  const VERBS: [RegExp, string, string][] = [
+    [/\bI feel\b/g, "seems", "seem"], [/\bI(?:'m| am)\b/g, "is", "are"], [/\bI've\b/g, "has", "have"], [/\bI have\b/g, "has", "have"],
+    [/\bI haven't\b/g, "hasn't", "haven't"], [/\bI had\b/g, "had", "had"], [/\bI was\b/g, "was", "were"], [/\bI don't\b/g, "doesn't", "don't"],
+    [/\bI didn't\b/g, "didn't", "didn't"], [/\bI can't\b/g, "can't", "can't"], [/\bI get\b/g, "gets", "get"], [/\bI keep\b/g, "keeps", "keep"],
+  ];
+  let out = text;
+  for (const [re, one, many] of VERBS) out = out.replace(re, `${he} ${they ? many : one}`);
+  out = out.replace(/\bmy\b/g, his).replace(/\bMy\b/g, his).replace(/\bme\b/g, him);
+  // A capital only where a sentence starts.
+  return out.replace(/(^|[.!?]\s+)(she|he|they|her|his|their)\b/g, (_, lead: string, w: string) => `${lead}${w[0]!.toUpperCase()}${w.slice(1)}`);
 }
 
 /** "I'm sure", "I know", "deliberately": said with the order, the nurse doesn't query it. */
@@ -2410,7 +2431,7 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
     const n = (k: VitalKey) => parseFloat(v[k]?.value ?? "");
     const unstable = n("bp") < 90 || n("spo2") < 94 || n("hr") > 120 || n("rr") > 28 || n("gcs") < 15;
     if (!unstable) {
-      const question = `Doctor — the ICU? They're stable${v.bp?.value ? ` (BP ${v.bp.value}${v.spo2?.value ? `, SpO₂ ${v.spo2.value}%` : ""})` : ""}. Do you still want an ICU bed rather than the ward?`;
+      const question = `Doctor — the ICU? They aren't critically ill${v.bp?.value ? ` (BP ${v.bp.value}${v.spo2?.value ? `, SpO₂ ${v.spo2.value}%` : ""})` : ""}. Do you still want an ICU bed rather than the ward?`;
       return askAbout(ctx, { kind: "confirm", targetId: "measure:admit", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
     }
   }
@@ -2596,7 +2617,7 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
   // An emergency patient who is still unwell isn't booked to come back next week: they're admitted, referred or sent home first.
-  if (def.track === "emergency" && !hidden.discharged && STATUS_RANK[hidden.status] >= STATUS_RANK.guarded && days >= 1) {
+  if (!hidden.discharged && days >= 1 && ((def.track === "emergency" && STATUS_RANK[hidden.status] >= STATUS_RANK.guarded) || STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating)) {
     return [{ type: "message", role: "nurse", kind: "speech", text: "Doctor, they're still here in emergency and not better yet — admit, refer or send them home first, then we can book a follow-up." }];
   }
   const span = days * 1440;
@@ -2757,8 +2778,9 @@ function handleWait(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
 function handleReassess(ctx: TurnContext): TurnEffect[] {
   const { def, hidden } = ctx;
   hidden.reassessments.push(hidden.clock);
-  const keys = hidden.measured.filter((k) => !["height", "weight", "bmi"].includes(k));
-  const fx = handleVitals(ctx, keys.length ? keys : ROUTINE_VITALS, true);
+  // The routine set every time, plus anything else already being followed (sugar, GCS, pain).
+  const keys = [...new Set([...ROUTINE_VITALS, ...hidden.measured.filter((k) => !["height", "weight", "bmi"].includes(k))])];
+  const fx = handleVitals(ctx, keys, true);
   const feel = howDoYouFeel(def, hidden);
   if (feel) fx.push({ type: "message", role: patientRole(def), kind: "speech", text: feel });
   fx.push({ type: "timeline", label: "Patient reassessed", category: "monitor" });
