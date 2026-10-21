@@ -11,7 +11,7 @@ import type { DrugRoute } from "./types";
 
 export type DrugClass =
   | "analgesic" | "antipyretic" | "nsaid" | "cox2" | "opioid" | "salicylate"
-  | "ppi" | "h2-blocker" | "antiemetic" | "antispasmodic" | "laxative" | "ors"
+  | "ppi" | "h2-blocker" | "antiemetic" | "antispasmodic" | "antidiarrhoeal" | "laxative" | "ors"
   | "antibiotic" | "penicillin" | "beta-lactam" | "cephalosporin" | "macrolide" | "tetracycline"
   | "fluoroquinolone" | "nitroimidazole" | "carbapenem" | "glycopeptide" | "lincosamide" | "aminoglycoside" | "sulfonamide"
   | "antifungal" | "azole" | "allylamine" | "antifungal-topical"
@@ -74,6 +74,8 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "ondansetron", generic: "Ondansetron", brands: ["Emeset", "Ondem", "Vomikind"], aliases: ["zofran"], classes: ["antiemetic"], route: "IV", dose: "4 mg", frequency: "stat" },
   { id: "domperidone", generic: "Domperidone", brands: ["Domstal"], classes: ["antiemetic"], route: "PO", dose: "10 mg", frequency: "TDS" },
   { id: "metoclopramide", generic: "Metoclopramide", brands: ["Perinorm"], classes: ["antiemetic"], route: "IV", dose: "10 mg", frequency: "stat" },
+  { id: "loperamide", generic: "Loperamide", brands: ["Eldoper", "Imodium"], aliases: ["imodium", "eldoper", "lomotil"], classes: ["antidiarrhoeal"], route: "PO", dose: "2 mg", frequency: "after each loose stool (max 8 mg/day); never in young children" },
+  { id: "racecadotril", generic: "Racecadotril", brands: ["Redotil", "Hidrasec"], aliases: ["redotil"], classes: ["antidiarrhoeal"], route: "PO", dose: "100 mg", frequency: "TDS (child 1.5 mg/kg TDS)" },
   { id: "drotaverine", generic: "Drotaverine", brands: ["Drotin"], classes: ["antispasmodic"], route: "PO", dose: "80 mg", frequency: "TDS" },
   { id: "hyoscine", generic: "Hyoscine butylbromide", brands: ["Buscopan"], aliases: ["hyoscine"], classes: ["antispasmodic", "anticholinergic"], route: "IV", dose: "20 mg", frequency: "stat" },
   { id: "sucralfate", generic: "Sucralfate", brands: ["Sucrafil"], classes: ["ppi"], route: "PO", dose: "1 g", frequency: "TDS" },
@@ -99,6 +101,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "meropenem", generic: "Meropenem", brands: ["Meronem", "Merotrol"], aliases: ["mero"], classes: ["antibiotic", "carbapenem", "beta-lactam"], route: "IV", dose: "1 g", frequency: "TDS" },
   { id: "vancomycin", generic: "Vancomycin", brands: ["Vancocin"], aliases: ["vanco"], classes: ["antibiotic", "glycopeptide"], route: "IV", dose: "1 g", frequency: "BD" },
   { id: "nitrofurantoin", generic: "Nitrofurantoin", brands: ["Niftran", "Martifur"], classes: ["antibiotic"], route: "PO", dose: "100 mg", frequency: "BD" },
+  { id: "fosfomycin", generic: "Fosfomycin trometamol", brands: ["Fosirol", "Monurol"], aliases: ["fosfomycin sachet", "fosirol", "monurol"], classes: ["antibiotic"], route: "PO", dose: "3 g", frequency: "single dose at bedtime" },
   { id: "clindamycin", generic: "Clindamycin", brands: ["Dalacin C"], classes: ["antibiotic", "lincosamide"], route: "PO", dose: "300 mg", frequency: "TDS" },
   { id: "clindamycin-topical", generic: "Clindamycin 1% gel", brands: ["Clindac-A", "Faceclin"], aliases: ["clindamycin gel", "topical clindamycin", "clindamycin topical", "clindac"], classes: ["topical-antimicrobial", "lincosamide"], route: "TOP", dose: "thin layer", frequency: "BD" },
   { id: "linezolid", generic: "Linezolid", brands: ["Lizolid"], classes: ["antibiotic"], route: "PO", dose: "600 mg", frequency: "BD" },

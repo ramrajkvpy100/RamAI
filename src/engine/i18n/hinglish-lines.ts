@@ -861,4 +861,88 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
     "They had to take her to the operation theatre, doctor. They say she's still very serious.":
       "Unhe operation theatre le jaana pada, doctor. Keh rahe hain abhi bhi bahut serious hai.",
   },
+  "gp-uti-phc-01": {
+    "Doctor, it burns badly when I pass urine, and I keep running to the toilet. Since two days.":
+      "Doctor, peshab karte waqt bahut jalan hoti hai, aur baar-baar toilet bhaagna padta hai. Do din se.",
+    "It burns when I pass urine, and I have to go every half hour — only a little comes each time. It started two days ago.":
+      "Peshab mein jalan hoti hai, aur har aadhe ghante jaana padta hai — har baar thoda sa hi aata hai. Do din pehle shuru hua.",
+    "Two days now. It came on suddenly. It happened once before, about two years ago, and got better with tablets.":
+      "Ab do din ho gaye. Achanak shuru hua. Do saal pehle bhi ek baar hua tha, goliyon se theek ho gaya tha.",
+    "No fever, no shivering. No back pain. I'm not vomiting. Only a little heaviness low in my tummy.":
+      "Bukhaar nahi, kaanpna nahi. Kamar mein dard nahi. Ulti nahi ho rahi. Bas pet ke neeche thoda bhaaripan hai.",
+    "It smells strong and looks a bit cloudy. Once I saw a little pink at the end.":
+      "Bahut tez badboo aati hai aur thoda dhundhla lagta hai. Ek baar aakhir mein thoda gulabi sa dikha.",
+    "No discharge, no itching down there. I'm married — nothing unusual.":
+      "Neeche koi discharge nahi, khujli nahi. Meri shaadi ho chuki hai — kuch alag nahi hai.",
+    "My period came on time, it finished ten days ago. We use condoms. I have one son, he's four.":
+      "Period time pe aaya tha, das din pehle khatam hua. Hum condom use karte hain. Ek beta hai, chaar saal ka.",
+    "No sugar, no BP, no kidney stones. No operations except my delivery — it was normal.":
+      "Sugar nahi, BP nahi, pathri nahi. Delivery ke alawa koi operation nahi — wo bhi normal hui thi.",
+    "Nothing, doctor. I drank some barley water at home.":
+      "Kuch nahi, doctor. Ghar pe thoda jau ka paani piya.",
+    "No allergies that I know of.":
+      "Jitna mujhe pata hai, koi allergy nahi hai.",
+    "I sit at the machine all day and drink very little water — there's no proper toilet near the shop, so I hold it.":
+      "Din bhar machine pe baithti hoon aur paani bahut kam peeti hoon — dukaan ke paas theek toilet nahi hai, isliye rok ke rakhti hoon.",
+    "Okay, doctor. I'll keep a water bottle at the machine and go when I need to.":
+      "Theek hai doctor. Machine ke paas paani ki bottle rakhungi aur zaroorat pe chali jaungi.",
+    "If I get fever or back pain, or it isn't better in two days, I'll come back.":
+      "Agar bukhaar ya kamar mein dard hua, ya do din mein theek nahi hua, to wapas aaungi.",
+    "I'll finish all the tablets even if I feel better.":
+      "Theek lagne pe bhi saari goliyan poori khaungi.",
+    "The burning stopped on the second day, doctor. I'm drinking more water now and I don't hold it at work.":
+      "Doosre din jalan band ho gayi, doctor. Ab zyada paani peeti hoon aur kaam pe rokti nahi.",
+    "Much better, doctor. A little burning on the first day, then fine.":
+      "Bahut behtar hai, doctor. Pehle din thodi jalan thi, phir theek.",
+    "The burning is still there, doctor, maybe a little less.":
+      "Jalan abhi bhi hai, doctor, shayad thodi kam.",
+    "Now I have fever since last night, doctor, and my right side of the back hurts.":
+      "Ab kal raat se bukhaar hai, doctor, aur kamar ki daayi taraf dard ho raha hai.",
+  },
+  "ped-diarrhoea-phc-01": {
+    "Doctor, he's had loose motions since yesterday — so many times. Now he's very thirsty and crying.":
+      "Doctor, kal se isko dast lage hain — kitni baar. Ab bahut pyaas lag rahi hai aur ro raha hai.",
+    "Since yesterday morning, about eight or nine times — watery, yellow, like water.":
+      "Kal subah se, aath-nau baar — patle, peele, paani jaise.",
+    "No blood, doctor. No jelly. Just water.":
+      "Khoon nahi, doctor. Chikna sa kuch nahi. Bas paani.",
+    "He vomited twice yesterday, not since this morning. Now he drinks water very fast whenever I give it.":
+      "Kal do baar ulti hui thi, aaj subah se nahi. Ab jab bhi paani do, jaldi-jaldi peeta hai.",
+    "A little warm yesterday, not high.":
+      "Kal thoda garam tha, zyada nahi.",
+    "He passed very little urine since last night — the cloth was only a little wet in the morning.":
+      "Kal raat se bahut kam peshab kiya — subah kapda bas thoda sa geela tha.",
+    "He's cranky and won't settle, but he's awake and looks at me. No fits.":
+      "Chidchida hai, chup nahi hota, par jaag raha hai aur mujhe dekhta hai. Daura nahi pada.",
+    "I still breastfeed him, and he eats khichdi and dal at home. Since yesterday he only wants water. I stopped his milk because of the loose motions.":
+      "Abhi bhi doodh pilati hoon, aur ghar pe khichdi-dal khaata hai. Kal se bas paani maang raha hai. Dast ki wajah se maine doodh band kar diya.",
+    "We drink handpump water. We don't boil it.":
+      "Hum handpump ka paani peete hain. Ubaalte nahi.",
+    "He has had all the injections at the anganwadi — here is the card. The last was at sixteen months.":
+      "Anganwadi mein saare teeke lag chuke hain — ye raha card. Aakhri wala solah mahine pe laga tha.",
+    "The chemist gave a syrup to stop the loose motions, but I haven't given it yet.":
+      "Chemist ne dast rokne ka syrup diya hai, par abhi tak diya nahi.",
+    "No allergies.":
+      "Koi allergy nahi hai.",
+    "(Whimpering, too tired to cry.)":
+      "(Sisak raha hai, rone ki bhi taakat nahi.)",
+    "So I should keep feeding him and give milk too? Okay, doctor — I thought milk makes it worse.":
+      "To khilana bhi hai aur doodh bhi dena hai? Theek hai doctor — mujhe laga doodh se badh jaata hai.",
+    "If he can't drink, gets very sleepy, or there's blood in the stool, I'll bring him back straight away.":
+      "Agar pee na paaye, bahut neend mein rahe, ya potty mein khoon aaye, to turant le aaungi.",
+    "Okay, I won't give that syrup.":
+      "Theek hai, wo syrup nahi dungi.",
+    "I'll boil the drinking water and wash his hands and mine with soap.":
+      "Peene ka paani ubaalungi aur iske aur apne haath sabun se dhoungi.",
+    "The loose motions stopped on the third day, doctor. He's eating and playing again. I'm still giving the zinc.":
+      "Teesre din dast band ho gaye, doctor. Phir se khaa raha hai aur khel raha hai. Zinc abhi bhi de rahi hoon.",
+    "He's better, doctor — fewer loose motions, and he's passing urine well.":
+      "Behtar hai, doctor — dast kam hain, aur peshab theek kar raha hai.",
+    "The loose motions are still coming, doctor, and his tummy got swollen after the medicine.":
+      "Dast abhi bhi ho rahe hain, doctor, aur dawai ke baad pet phool gaya.",
+    "Doctor, he became very sleepy at night and wouldn't drink. We had to take him to the district hospital.":
+      "Doctor, raat ko bahut neend mein chala gaya aur kuch pee nahi raha tha. Zila hospital le jaana pada.",
+    "(Smiles and reaches for the cup.)":
+      "(Muskurata hai aur cup ki taraf haath badhata hai.)",
+  },
 };

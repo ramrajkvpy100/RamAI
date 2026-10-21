@@ -135,6 +135,7 @@ const PER_KG: Record<string, { perKg: number; unit: string; max: number; round: 
   gentamicin: { perKg: 5, unit: "mg", max: 400, round: 5 },
   metronidazole: { perKg: 7.5, unit: "mg", max: 500, round: 5 },
   ondansetron: { perKg: 0.15, unit: "mg", max: 4, round: 0.5 },
+  racecadotril: { perKg: 1.5, unit: "mg", max: 100, round: 5 },
   dexamethasone: { perKg: 0.15, unit: "mg", max: 8, round: 0.5 },
   prednisolone: { perKg: 1, unit: "mg", max: 40, round: 5 },
   adrenaline: { perKg: 0.01, unit: "mg", max: 0.5, round: 0.05 },

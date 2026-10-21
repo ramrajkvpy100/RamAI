@@ -12,7 +12,7 @@ import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } 
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
-import { formularyDrug, type FormularyDrug } from "./formulary";
+import { formularyDrug, routesFor, type FormularyDrug } from "./formulary";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, hasChildDose, confirmQuestion, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
@@ -1845,6 +1845,16 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
       return `That's ${dose.volumeMl >= 1000 ? `${+(dose.volumeMl / 1000).toFixed(1)} L` : `${dose.volumeMl} mL`} in ${Math.round(dose.overMin)} minutes${old ? ` for a ${def.patient.age}-year-old` : ""} — far faster than a bolus.`;
     }
   }
+  // A child: more than 40 mL/kg within an hour (a shock bolus is 20 mL/kg), or over 100 mL/kg in one order.
+  if (drug.fluid && dose?.route !== "PO" && dose?.volumeMl !== undefined && def.patient.age < 16) {
+    const kg = parseFloat(vitalsNow(hidden).weight.value) || 0;
+    if (kg > 0 && kg < 40) {
+      const perKg = dose.volumeMl / kg;
+      if (perKg > 100 || (perKg > 40 && (dose.overMin ?? 60) <= 60)) {
+        return `For a ${Math.round(kg)}-kg child that's ${Math.round(perKg)} mL/kg${dose.overMin !== undefined ? ` in ${dose.overMin >= 60 ? `${+(dose.overMin / 60).toFixed(1)} h` : `${Math.round(dose.overMin)} min`}` : ""} — a bolus is 20 mL/kg, and severe dehydration is 100 mL/kg over 3–6 hours.`;
+      }
+    }
+  }
   // Too fast into a vein.
   const rate = MAX_IV_RATE[drug.id];
   if (rate && dose?.route === "IV" && dose.amount !== undefined) {
@@ -1959,7 +1969,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const question = def.track === "phone" ? phoneDrugQuestion(drug, needs) : drugQuestion(drug, needs, p, askerRole(ctx, mode) !== "system");
     return askAbout(ctx, { kind: "drug", targetId: drug.id, payload: { ...p, mode }, phrase: intent.phrase, needs }, question, mode);
   }
-  const route = (p.route as DrugRoute) ?? drug.route;
+  // A take-home prescription with no route said is by mouth when the drug comes as tablets (metronidazole, not "IV").
+  const route = (p.route as DrugRoute) ?? (mode === "prescribed" && drug.route !== "PO" && routesFor(drug).includes("PO") ? "PO" : drug.route);
   const amount = typeof p.amount === "number" ? p.amount : undefined;
   const unit = typeof p.unit === "string" ? p.unit : undefined;
   let dose = (p.dose as string | undefined) ?? drug.dose;

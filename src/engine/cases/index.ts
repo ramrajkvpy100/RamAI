@@ -19,14 +19,16 @@ import { grAip } from "./gr-aip";
 import { idDengue } from "./id-dengue";
 import { medPad } from "./med-pad";
 import { medSleApex } from "./med-sle-apex";
+import { gpUtiPhc } from "./gp-uti-phc";
 import { obgPphChc } from "./obg-pph-chc";
+import { pedDiarrhoeaPhc } from "./ped-diarrhoea-phc";
 import { phAcs } from "./ph-acs";
 import { surgAppendicitis } from "./surg-appendicitis";
 import { tutHypoglycaemia } from "./tut-hypoglycaemia";
 
 export const CASE_LIBRARY: readonly ClinicalCaseDefinition[] = [
   dermAcne, dermMelasma, dermTinea, dermPsoriasis, medPad, idDengue, surgAppendicitis, emAdhf,
-  emViperPhc, medSleApex, grAip, obgPphChc,
+  emViperPhc, medSleApex, grAip, obgPphChc, gpUtiPhc, pedDiarrhoeaPhc,
 ];
 
 /** Retired cases (phone consults): never offered, but sessions already started with them still replay. */

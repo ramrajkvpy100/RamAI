@@ -453,7 +453,10 @@ function drugCandidates(rawClause: string, tk: string[], ctx: IntentContext): Ca
       // On a phone call, "take" / "put under the tongue" is done at home, now.
       (ctx.setting === "Teleconsult" && /\b(take|swallow|put|place|keep)\b/.test(lower)) ||
       ["IV", "IM", "NEB"].includes(route) ||
-      (route === "SC" && /\b(stat|now|give)\b/.test(lower));
+      (route === "SC" && /\b(stat|now|give)\b/.test(lower)) ||
+      // Given over a set time with no course ("ORS 750 mL over 4 hours"): done here, now — not a take-home prescription.
+      (details.overMin !== undefined && !details.frequency && !details.duration) ||
+      /\b(here|in the clinic|in clinic|in the opd|in the ward)\b/.test(lower);
     const prescribing =
       /\b(prescribe|rx|advise|send home|discharge on|continue|for \d+ (?:day|week|month)s?|x \d+)\b/.test(segment) ||
       !!details.duration;
@@ -542,7 +545,8 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
   }
   const dx = rawClause.match(DIAGNOSIS_RE) ?? rawClause.match(OPINION_RE);
   if (dx?.[1] && !rawClause.trim().endsWith("?") && !/^(you|he|she|they|the patient)\b/i.test(dx[1].trim())) {
-    return done([{ kind: "diagnosis", phrase: rawClause, matched: true, payload: { text: dx[1].replace(/[.\s]+$/, "") } }]);
+    // ("dx pyelonephritis close" — the closing word isn't part of the diagnosis; the case close is read separately.)
+    return done([{ kind: "diagnosis", phrase: rawClause, matched: true, payload: { text: dx[1].replace(/[.\s]+$/, "").replace(/[\s,.;-]+(?:and\s+)?(?:close|end|finish|done)(?:\s+(?:the\s+)?case)?$/i, "").trim() } }]);
   }
 
   const tk = tokens(norm);
@@ -554,6 +558,12 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
   // Nothing but punctuation ("?"): nothing to act on.
   if (tk.length === 0) return done([{ kind: "unknown", phrase: rawClause, matched: false, payload: { empty: true } }]);
 
+  // "Come back if he can't drink", "return if fever": advice on when to return — not a booked visit.
+  const safetyNet = /\b(?:come back|return|review|bring (?:him|her|them|the child)(?: back)?|report back|see (?:me|us|a doctor))\b.{0,25}\b(?:if|in case|whenever)\b|\b(?:if|in case)\b.{0,60}\b(?:come back|return|bring (?:him|her|them)(?: back)?)\b|\b(?:danger|warning) signs?\b|\bred flags?\b/.test(norm);
+  if (safetyNet && !question) {
+    const own = resolveOverlaps(actionCandidates(rawClause, tk, ctx)).filter((i) => i.kind === "action" && i.targetId && ctx.def.therapeutics.some((r) => r.id === i.targetId && r.kind === "counsel"));
+    return done(own.length ? own : [{ kind: "action", targetId: "counsel:generic", phrase: rawClause, matched: true }]);
+  }
   // Follow-up scheduling.
   if (hasAny(tk, ["follow up", "review", "come back", "revisit", "see you", "see him", "see her", "next visit", "recall"]) && !question) {
     let days: number | null = null;
