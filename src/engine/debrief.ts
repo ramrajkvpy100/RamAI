@@ -176,7 +176,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     reasoning: def.truth.reasoning,
     didWell: [...new Set(didWell)].slice(0, 8),
     // What the doctor missed — never a remark about how the case was written ("The case summary does not document…").
-    missed: missed.filter((m) => !/\b(the case(?: summary)?|case (?:file|text|record)) (?:does not|doesn't|did not|identifies|states|lacks|omits)\b|\bis not documented\b|\bnot documented in the case\b/i.test(`${m.what} ${m.better}`)).slice(0, 10),
+    missed: missed.filter((m) => !/\b(the case(?: summary)?|case (?:file|text|record)) (?:does not|doesn't|did not|identifies|states|lacks|omits)\b|\b(?:is|are) not documented\b|\bno action is documented\b|\blisted as (?:essential|required)\b|\bnot documented in the case\b|\bthe summary\b/i.test(m.what)).slice(0, 10),
     severityBands: def.teaching.severityBands,
     patientBand: def.teaching.patientBand,
     treatmentByBand: def.teaching.treatmentByBand,

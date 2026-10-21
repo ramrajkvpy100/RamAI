@@ -102,7 +102,8 @@ export const mockProvider: ClinicalProvider = {
     }
     const intents = resolveIntents(text, rctx);
     // "Ya", "yes", "ok" after someone in the room asked a question: they hear it and go along.
-    const last = [...ctx.transcript].reverse().find((m) => m.role !== "doctor" && m.role !== "system");
+    // (The last thing said must be that question — not an older one, nor the ward's "Which medicine?")
+    const last = [...ctx.transcript].reverse().find((m) => m.role !== "doctor");
     if (intents.length === 1 && intents[0]!.kind === "unknown" && AFFIRM.test(text.trim()) && last && /\?\s*$/.test(last.text) && (last.role === "patient" || last.role === "attendant" || last.role === "nurse")) {
       return { intents: [{ ...intents[0]!, payload: { ...intents[0]!.payload, speaker: last.role } }], generated: { "0": last.role === "nurse" ? "Right away, doctor." : "Okay, doctor." } };
     }

@@ -1759,7 +1759,7 @@ const MAX_IV_RATE: Record<string, { mgPerMin: number; why: string }> = {
   amiodarone: { mgPerMin: 30, why: "Amiodarone that fast drops the pressure — it goes over 20–60 minutes." },
 };
 
-function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, rbs: number, dose?: { amount?: number; unit?: string; multiple?: number; overMin?: number; route?: string; mode?: string }): string | null {
+function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, rbs: number, dose?: { amount?: number; unit?: string; multiple?: number; overMin?: number; route?: string; mode?: string; volumeMl?: number }): string | null {
   const them = def.patient.sex === "Female" ? "She" : def.patient.sex === "Male" ? "He" : "They";
   const is = them === "They" ? "are" : "is";
   // An allergy the doctor asked about is on the chart, so the nurse knows it; one never asked about, nobody knows — as at a real bedside.
@@ -1772,6 +1772,13 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   if (allergies.some((a) => a.includes("penicillin")) && drug.classes.includes("cephalosporin")) return `${them} ${is} allergic to penicillin — a cephalosporin can cross-react.`;
   if (allergies.some((a) => a.includes("sulfa") || a.includes("sulpha")) && /sulfa|sulpha|cotrimoxazole/.test(name)) return `${them} ${is} allergic to sulfa drugs.`;
   if (drug.classes.includes("insulin") && rbs < 90) return `The sugar is ${Math.round(rbs)} mg/dL — insulin now could drop it dangerously.`;
+  // A big bolus fast — a nurse checks, whatever the fluid's own hazards later decide.
+  if (drug.fluid && dose?.route !== "PO" && dose?.volumeMl !== undefined && dose.overMin !== undefined && def.patient.age >= 16) {
+    const old = def.patient.age >= 65;
+    if ((old && dose.volumeMl >= 500 && dose.overMin <= 15) || dose.volumeMl / Math.max(dose.overMin, 1) > (old ? 33 : 40) && dose.volumeMl >= 1000) {
+      return `That's ${dose.volumeMl >= 1000 ? `${+(dose.volumeMl / 1000).toFixed(1)} L` : `${dose.volumeMl} mL`} in ${Math.round(dose.overMin)} minutes${old ? ` for a ${def.patient.age}-year-old` : ""} — far faster than a bolus.`;
+    }
+  }
   // Too fast into a vein.
   const rate = MAX_IV_RATE[drug.id];
   if (rate && dose?.route === "IV" && dose.amount !== undefined) {
@@ -1787,7 +1794,8 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   // A child: the dose for their weight.
   if (def.patient.age < 16) {
     const kg = parseFloat(vitalsNow(hidden).weight.value) || 0;
-    const concern = childDoseConcern(drug.id, dose?.amount, dose?.unit, kg);
+    // From 40 kg a young person takes adult doses.
+    const concern = kg > 0 && kg < 40 ? childDoseConcern(drug.id, dose?.amount, dose?.unit, kg) : null;
     if (concern) return concern;
   }
   return null;
@@ -1831,7 +1839,11 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const fx: TurnEffect[] = [];
   const drug = intent.targetId ? formularyDrug(intent.targetId) : undefined;
   if (!drug) {
-    fx.push({ type: "message", role: "system", kind: "action", text: "Which medicine, dose and route?" });
+    // "Start antibiotics", "give steroids": the nurse asks which one.
+    const kind = typeof intent.payload?.drugClass === "string" ? intent.payload.drugClass : null;
+    fx.push(kind
+      ? { type: "message", role: def.track === "phone" ? "attendant" : "nurse", kind: "speech", text: `Which ${kind}, what dose and by which route, doctor?` }
+      : { type: "message", role: "system", kind: "action", text: "Which medicine, dose and route?" });
     return fx;
   }
   const mode = (intent.payload?.mode as "given" | "prescribed") ?? "prescribed";
@@ -1946,7 +1958,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const triggered = globalTriggers(def, { drug, mode, route, frequency, amount, unit, volumeMl, multiple, overMin }, snap);
   const grave = graveHazards(triggered);
   // What the nurse knows about this patient that makes the order dangerous: an allergy to it (or its family), insulin for a low sugar.
-  const contextual = challenge ? contextualRisk(def, hidden, drug, snap.rbs, { amount, unit, multiple, overMin, route, mode }) : null;
+  const contextual = challenge ? contextualRisk(def, hidden, drug, snap.rbs, { amount, unit, multiple, overMin, route, mode, volumeMl }) : null;
   if (challenge && contextual && grave.length === 0) {
     for (const k of Object.keys(hidden)) delete (hidden as unknown as Record<string, unknown>)[k];
     Object.assign(hidden, challenge);
@@ -2542,6 +2554,15 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     if (hidden.status === "deceased" && !["diagnosis", "differential", "close"].includes(intent.kind) && !(intent.kind === "action" && intent.targetId === "measure:cpr")) {
       if (!fx.some((e) => e.type === "message" && e.text.startsWith("The patient has died"))) {
         fx.push({ type: "message", role: "system", kind: "status", text: "The patient has died. End the case to review the encounter." });
+      }
+      return;
+    }
+    // Discharged: the patient has gone home — bedside orders can't be carried out (and an admission can't undo it).
+    const bedside = ["exam", "investigation", "vitals", "reassess"].includes(intent.kind) || (intent.kind === "drug" && intent.payload?.mode === "given") || (intent.kind === "action" && !/refer|discharge|follow|counsel|review/.test(intent.targetId ?? ""));
+    if (hidden.discharged && bedside && def.track !== "phone") {
+      if (!fx.some((e) => e.type === "message" && e.text.includes("gone home"))) {
+        const them = def.patient.sex === "Female" ? "She" : def.patient.sex === "Male" ? "He" : "They";
+        fx.push({ type: "message", role: "system", kind: "status", text: `${them} ${them === "They" ? "have" : "has"} gone home — discharged. Record your diagnosis and close the case.` });
       }
       return;
     }

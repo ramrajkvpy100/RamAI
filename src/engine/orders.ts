@@ -325,6 +325,7 @@ export function imagingKind(id: string, name = ""): ImagingKind | null {
   const s = ` ${id} ${name} `.toLowerCase();
   if (/\b(usg|ultrasound|sonograph\w*)\b/.test(s)) return "usg";
   if (/\bmri\b/.test(s)) return "mri";
+  if (/\b(pet|pet-ct|petct)\b/.test(s)) return null; // a PET-CT is its own study, not "a CT of which part"
   if (/\b(ct|cect|ncct|hrct|ctpa|cta)\b/.test(s)) return "ct";
   if (/\b(x ?-?ray|xray|cxr|axr|radiograph\w*)\b/.test(s)) return "xray";
   return null;
@@ -545,7 +546,8 @@ export function isConfirmation(text: string): boolean {
 }
 
 /** "No", "cancel", "hold it": the queried order isn't given. */
-export const DECLINE_RE = /^\s*(?:no+|nope|nahi|na|cancel(?: it| that)?|stop|hold(?: it| on| off)?|don'?t|do not|leave it|skip it|scrap that|actually no|my mistake|sorry|wait)\b/i;
+// ("Wait" alone declines; "wait 30 min" is a wait. "Stop" alone declines; "stop all medicines" is an order of its own.)
+export const DECLINE_RE = /^\s*(?:(?:no+|nope|nahi|na|cancel(?: it| that)?|hold(?: it| on| off)?|don'?t|do not|leave it|skip it|scrap that|actually no|my mistake|sorry)\b|(?:stop|wait)(?: it)?\s*[.!]*\s*$)/i;
 
 /* -------------------------------------------------------------------------- */
 /* Ready-made answers                                                          */

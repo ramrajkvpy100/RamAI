@@ -390,14 +390,14 @@ const drugToxicity: GlobalHazardTemplate = {
     stages: [
       {
         afterMin: 10, status: "deteriorating",
-        vitals: [{ key: "hr", value: "118" }, { key: "bp", value: "152/94" }, { key: "rr", value: "24" }],
-        observation: { role: "nurse", text: "Doctor, the patient is vomiting, agitated and sweating." },
+        vitals: [], shift: { hr: 16, rr: 4 },
+        observation: { role: "nurse", text: "Doctor, the patient is vomiting and unwell since that dose." },
         patientSays: "I feel terrible… I keep throwing up.",
       },
       {
         afterMin: 40, status: "critical",
-        vitals: [{ key: "hr", value: "132" }, { key: "gcs", value: "11" }],
-        observation: { role: "nurse", text: "Now confused and twitching." },
+        vitals: [], shift: { hr: 12, gcs: -3, sbp: -10, dbp: -6 },
+        observation: { role: "nurse", text: "Now drowsy and confused." },
         patientSays: "(Confused.)",
       },
     ],
@@ -429,7 +429,7 @@ const drugToxicitySevere: GlobalHazardTemplate = {
     stages: [
       {
         afterMin: 5, status: "deteriorating",
-        vitals: [{ key: "hr", value: "124" }, { key: "bp", value: "158/96" }, { key: "rr", value: "26" }],
+        vitals: [], shift: { hr: 22, rr: 6 },
         observation: { role: "nurse", text: "Doctor, the patient is vomiting, agitated and drenched in sweat." },
         patientSays: "Something's very wrong… I feel awful.",
       },

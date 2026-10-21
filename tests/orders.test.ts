@@ -276,3 +276,24 @@ describe("bad-doctor audit, round two", () => {
     expect(said(turns[0]!)).not.toMatch(/No abnormality detected on that examination/);
   });
 });
+
+describe("bad-doctor audit, round three", () => {
+  it("the nurse queries phenytoin pushed, morphine 50 mg and 3× doses", async () => {
+    const { turns } = await converse(getCase("id-dengue-01")!, ["phenytoin 1 g iv push", "no", "morphine 50 mg iv", "no", "ondansetron 20 mg iv"]);
+    expect(said(turns[0]!)).toMatch(/50 mg a minute/);
+    expect(said(turns[2]!)).toMatch(/opioid could stop the breathing/);
+    expect(said(turns[4]!)).toMatch(/times the usual dose/);
+  });
+  it("'wait 30 min' is a wait, not 'hold it'", async () => {
+    const { turns } = await converse(getCase("id-dengue-01")!, ["phenytoin 1 g iv push", "wait 30 min"]);
+    expect(said(turns[1]!)).not.toMatch(/hold it/);
+  });
+  it("'start antibiotics' asks which antibiotic", async () => {
+    const { turns } = await converse(getCase("id-dengue-01")!, ["start antibiotics"]);
+    expect(said(turns[0]!)).toMatch(/Which antibiotic/);
+  });
+  it("once discharged, bedside orders aren't carried out", async () => {
+    const { turns } = await converse(getCase("id-dengue-01")!, ["discharge the patient", "cbc"]);
+    expect(said(turns[1]!)).toMatch(/gone home/);
+  });
+});

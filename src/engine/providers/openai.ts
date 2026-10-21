@@ -534,7 +534,9 @@ const NO_TEACHING: ClinicalCaseDefinition["teaching"] = { severityBands: [], tre
 function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.infer<typeof FindingsSchema>, m: z.infer<typeof ManagementSchema>, brief: Brief, opts: StartOptions): ClinicalCaseDefinition {
   const pictures: NonNullable<ClinicalCaseDefinition["pictures"]> = {};
   const unique = <T extends { id: string }>(xs: T[]) => xs.filter((x, i) => x.id && xs.findIndex((y) => y.id === x.id) === i);
-  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)) }));
+  // A treatment's trigger words never include a test's name ("urine", "urine r/m", "ecg"): ordering the test isn't the treatment.
+  const testWords = new Set(INVESTIGATIONS.flatMap((i) => i.match.map((x) => x.toLowerCase())).concat(["urine", "blood", "bloods", "test", "tests", "report", "reports"]));
+  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)), match: (t.match ?? []).filter((x) => !testWords.has(x.toLowerCase().trim())) }));
   const known = new Set(therapeutics.map((t) => t.id));
   return {
     id: `gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,

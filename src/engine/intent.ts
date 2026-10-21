@@ -262,6 +262,20 @@ const GENERIC_STUDIES: [string, string[]][] = [
 /** "Send bloods" — which ones is asked. */
 const GENERIC_BLOODS = ["blood tests", "blood test", "bloods", "blood work", "bloodwork", "routine bloods", "routine blood tests", "routine investigations", "basic investigations", "basic labs", "labs", "lab tests", "baseline investigations"];
 
+const REGION_WORDS: [RegExp, string][] = [
+  [/\b(chest|thorax|thoracic|lungs?|cxr|hrct|ctpa)\b/, "chest"],
+  [/\b(abdomen|abdominal|abdo|belly|kub|pelvis|pelvic|liver|gallbladder|renal|kidneys?)\b/, "abdomen"],
+  [/\b(head|brain|skull|cranial)\b/, "head"],
+  [/\b(neck|thyroid|cervical)\b/, "neck"],
+  [/\b(spine|spinal|lumbar|lumbosacral|dorsal)\b/, "spine"],
+  [/\b(knee|hip|ankle|wrist|hand|elbow|shoulder|leg|arm|femur|foot)\b/, "limb"],
+  [/\b(heart|cardiac|echo)\b/, "heart"],
+];
+function regionsIn(text: string): Set<string> {
+  const t = text.toLowerCase().replace(/[-_]/g, " ");
+  return new Set(REGION_WORDS.filter(([re]) => re.test(t)).map(([, r]) => r));
+}
+
 function investigationCandidates(rawClause: string, tk: string[], ctx: IntentContext): Candidate[] {
   const out: Candidate[] = [];
   const payload = hasAny(tk, SHOW_WORDS) ? { reshow: true } : undefined;
@@ -271,7 +285,11 @@ function investigationCandidates(rawClause: string, tk: string[], ctx: IntentCon
   const bloods = allHits(tk, GENERIC_BLOODS);
   for (const inv of ctx.def.investigations) {
     if (!inv.match) continue;
+    const own = regionsIn(`${inv.id} ${inv.name ?? ""} ${inv.short ?? ""}`);
     for (const hit of allHits(tk, inv.match)) {
+      // "USG abdomen" isn't the case's "USG chest": a different part named right after it is another study.
+      const said = regionsIn(tk.slice(hit.end, hit.end + 3).join(" "));
+      if (said.size && own.size && ![...said].some((r) => own.has(r))) continue;
       out.push({ hit, priority: 5, intent: { kind: "investigation", targetId: inv.id, phrase: rawClause, matched: true, payload } });
     }
   }
@@ -642,6 +660,12 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   if (/\b(currently|presently|regularly|already|any|are you|is (?:he|she)|r u|do you|does (?:he|she)|taking|on)\b/i.test(plain) && /\b(tab|tabs|tablets?|medicines?|medications?|meds|drugs?|pills?|treatment)\b/i.test(plain) && !/\d/.test(plain) && !/\b(give|start|inj|prescribe|stop|hold)\b/i.test(plain) && !/\ballerg/i.test(plain)) {
     const meds = ctx.def.history.find((h) => h.group === "medication");
     return [{ kind: "history", targetId: meds?.id ?? "fallback:open", phrase: raw, matched: !!meds }];
+  }
+  // "Start antibiotics", "give steroids", "something for the pain": an order for a kind of drug — which one is asked.
+  const drugClass = plain.match(/\b(?:start|give|begin|put (?:him|her|them) on|prescribe|add|cover with|need)\b.{0,20}?\b(antibiotics?|steroids?|painkillers?|pain ?killers?|analgesics?|antiemetics?|antipyretics?|antihypertensives?|sedatives?|something for (?:the )?(pain|fever|vomiting|nausea|sleep|cough))\b/);
+  if (drugClass && !resolveClause(raw, ctx).some((i) => i.kind === "drug" && i.targetId && i.targetId !== "unknown")) {
+    const said = drugClass[2] ? { pain: "painkiller", fever: "antipyretic", vomiting: "antiemetic", nausea: "antiemetic", sleep: "sedative", cough: "cough medicine" }[drugClass[2]] ?? "medicine" : drugClass[1]!.replace(/s$/, "").replace(/pain ?killer/, "painkiller");
+    return [{ kind: "drug", targetId: "unknown", phrase: raw, matched: false, payload: { drugClass: said } }];
   }
   // "Order all tests", "do every investigation": the lab needs to know which — and a scattergun costs the family.
   if (/\b(?:all|every) (?:the |possible |available )?(?:tests|investigations|labs|bloods|blood tests)\b|\b(?:order|do|send) everything\b|\bfull work ?up\b/i.test(plain)) {
