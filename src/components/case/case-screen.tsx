@@ -217,7 +217,7 @@ function Workspace() {
                 state.guided
                   ? () => {
                       abandonCase();
-                      router.push("/");
+                      router.push("/cases");
                     }
                   : undefined
               }
@@ -334,7 +334,7 @@ function NoCase({ onStart, starting, error }: { onStart: () => void; starting: b
             <button type="button" onClick={onStart} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">
               {starting ? startingLabel : "Start case"}
             </button>
-            <Link href="/" className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium text-fg-2 hover:text-fg">
+            <Link href="/cases" className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium text-fg-2 hover:text-fg">
               Home
             </Link>
           </div>

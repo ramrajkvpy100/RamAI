@@ -58,7 +58,7 @@ export function Achievements({ initial }: { initial: Me }) {
         </h2>
         {unlocked.length === 0 ? (
           <p className="panel p-5 text-[14px] text-fg-2">
-            None yet — <Link href="/" className="font-medium text-accent-text hover:underline">play a case</Link> to unlock your first.
+            None yet — <Link href="/cases" className="font-medium text-accent-text hover:underline">play a case</Link> to unlock your first.
           </p>
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">

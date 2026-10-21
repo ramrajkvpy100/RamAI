@@ -17,13 +17,15 @@ import { UserMenu } from "./user-menu";
 
 /** The main places — always in sight: across the top on a computer, as a tab bar at the bottom on a phone. */
 const NAV = [
-  { href: "/", label: "Cases", icon: "pulse" },
+  { href: "/", label: "Home", icon: "home" },
+  { href: "/cases", label: "Cases", icon: "pulse" },
   { href: "/practice", label: "Skills Lab", icon: "target" },
   { href: "/leaderboard", label: "Leaderboard", icon: "trophy" },
   { href: "/community", label: "Community", icon: "users" },
   { href: "/progress", label: "Progress", icon: "award" },
 ] as const;
-const PHONE_NAV = [NAV[0], NAV[1], { href: "/exams", label: "Exams", icon: "file" }, NAV[2], NAV[3]] as const;
+// (Five fit a phone: the leaderboard is a big tile on Home, and in the menu.)
+const PHONE_NAV = [NAV[0], NAV[1], NAV[2], { href: "/exams", label: "Exams", icon: "file" }, NAV[4]] as const;
 
 export function AppHeader({ initial }: { initial: Me }) {
   const me = useMe(initial) ?? initial;
@@ -37,7 +39,7 @@ export function AppHeader({ initial }: { initial: Me }) {
         </Link>
         <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} prefetch className={cn("rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}>
+            <Link key={n.href} href={n.href} prefetch className={cn("rounded-lg px-3 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}>
               {n.label}
             </Link>
           ))}

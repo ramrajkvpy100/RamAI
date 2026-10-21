@@ -289,7 +289,7 @@ export function ProgressView({ detail, report }: { detail: ProgressDetail; repor
             </ul>
           ) : (
             <p className="text-[13.5px] leading-6 text-fg-2">
-              Answer the exam questions after your cases — topics you get wrong show up here. <Link href="/" className="font-medium text-accent-text hover:underline">Play a case</Link>
+              Answer the exam questions after your cases — topics you get wrong show up here. <Link href="/cases" className="font-medium text-accent-text hover:underline">Play a case</Link>
             </p>
           )}
         </Panel>

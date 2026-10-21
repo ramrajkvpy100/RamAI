@@ -356,7 +356,7 @@ export function DebriefView({
       <Portal>
       <div className="material-bar fixed inset-x-0 bottom-0 z-20 border-t border-[var(--material-stroke)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6">
-          <Link href="/" onClick={onHome} aria-label="Home" className="flex shrink-0 items-center gap-1.5 text-[13.5px] font-medium text-fg-2 hover:text-fg">
+          <Link href="/cases" onClick={onHome} aria-label="Cases" className="flex shrink-0 items-center gap-1.5 text-[13.5px] font-medium text-fg-2 hover:text-fg">
             <Icon name="home" size={16} /> <span className="hidden sm:inline">Home</span>
           </Link>
           {guest ? (
