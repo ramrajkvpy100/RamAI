@@ -1,4 +1,5 @@
-import { inviteOnly } from "@/lib/server/access-cookie";
+import { ACCESS_COOKIE, inviteOnly, validAccessCookie } from "@/lib/server/access-cookie";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import type { Country } from "@/engine/countries";
@@ -13,8 +14,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const blocked = crossSite(req) ?? rateLimited(req, 5);
   if (blocked) return blocked;
-  // Invite-only: no guest play — invited doctors sign up.
-  if (inviteOnly()) return apiError(403, "INVITE", "RamAI is invite-only — sign up with your invite code.");
+  // Invite-only: guest play only for a browser that has redeemed an invite code (Google Play's reviewers, a doctor
+  // trying it first) — everyone else signs up with a code.
+  if (inviteOnly() && !(await validAccessCookie((await cookies()).get(ACCESS_COOKIE)?.value))) return apiError(403, "INVITE", "RamAI is invite-only — enter your invite code first.");
   try {
   if (await overLimit(`guest:${clientIp(req)}`, 20, 3600000)) return apiError(429, "RATE_LIMITED", "Too many demo sessions from this network. Please try again later.");
     const current = await getCurrentUser();
