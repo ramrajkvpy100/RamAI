@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
+import { useInAndroidApp } from "@/lib/in-app";
 import { promptInstall, useInstallRoute } from "@/lib/app-install";
 
 import { InstallSheet } from "./install-sheet";
@@ -16,6 +17,9 @@ import { InstallSheet } from "./install-sheet";
 export function InstallButton({ className, label = "Get the app" }: { className?: string; label?: string }) {
   const route = useInstallRoute();
   const [howTo, setHowTo] = useState(false);
+  // Inside the Android app it is installed already.
+  const inApp = useInAndroidApp();
+  if (inApp) return null;
   if (route !== "prompt" && route !== "ios" && route !== "mac-safari") return null;
   return (
     <>
