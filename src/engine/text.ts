@@ -30,7 +30,7 @@ const EVERYDAY: [RegExp, string][] = [
   [/\bkahan\b|\bkaha\b/g, " where "],
   [/\bkitne din\b|\bkitne dino se\b/g, " how many days "],
   [/\bkoi\b/g, " any "],
-  [/\bpain where\b|\bwhere pain\b/g, " where is the pain "],
+  [/\bpain\s+where\b|\bwhere\s+pain\b/g, " where is the pain "],
   // Hindi sentence endings and particles carry no clinical meaning.
   [/\s(?:hai|hain|he|ho|kya|na|ji|bhai|aap|aapko|tumko|tum|ko)(?=\s)/g, " "],
   [/\blete ho\b|\ble rahe ho\b|\bkhate ho\b|\bkhaate ho\b/g, " taking "],

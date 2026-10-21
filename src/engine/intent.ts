@@ -165,6 +165,17 @@ export function matchHistory(tk: string[], def: ClinicalCaseDefinition): { id: s
   return scored.sort((a, b) => b.score - a.score);
 }
 
+/** Symptoms a question can name — and the words a case would use for each. */
+const SYMPTOM_WORDS: [string, RegExp][] = [
+  ["fever", /\b(fever\w*|febrile|temperature|chills|rigors?|feverish|hot)\b/],
+  ["cough", /\bcough\w*\b/],
+  ["vomiting", /\b(vomit\w*|throwing up|threw up)\b/],
+  ["diarrhoea", /\b(diarr\w*|loose (?:motions?|stools?)|watery stools?)\b/],
+  ["headache", /\bheadaches?\b/],
+  ["bleeding", /\b(bleed\w*|blood\w*)\b/],
+  ["breathlessness", /\b(breathless\w*|short(?:ness)? of breath|breathing difficulty|difficulty (?:in )?breathing)\b/],
+];
+
 function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): ResolvedIntent[] {
   // An allergy question is about allergies — even when it says "drug" ("any drug allergy?") and the
   // case's medicines entry matches "drugs" too.
@@ -186,6 +197,18 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
     if (ids.length > 1) return ids.slice(0, 4).map((id) => ({ kind: "history", targetId: id, phrase: rawClause, matched: true }));
   }
   const best = matchHistory(tk, ctx.def)[0];
+  // "Fever since when?" where the patient has no fever: the timing words mustn't pull in another complaint's onset.
+  const symptom = SYMPTOM_WORDS.find(([, words]) => words.test(normalise(rawClause)));
+  if (best && symptom) {
+    const about = (h: (typeof ctx.def.history)[number]) => symptom[1].test(`${h.label} ${h.reply} ${h.fact ?? ""} ${h.match.join(" ")}`.toLowerCase());
+    const entry = ctx.def.history.find((h) => h.id === best.id);
+    if (entry && !about(entry)) {
+      // The entry that does speak of it answers; if none does, and the patient never mentioned it, they haven't had it.
+      const other = ctx.def.history.find(about);
+      if (other) return [{ kind: "history", targetId: other.id, phrase: rawClause, matched: true }];
+      if (!ctx.def.opening.some((o) => symptom[1].test(o.text.toLowerCase()))) return [{ kind: "history", targetId: "fallback:yesno", phrase: rawClause, matched: false }];
+    }
+  }
   if (best) return [{ kind: "history", targetId: best.id, phrase: rawClause, matched: true }];
   // "H/o fever", "history of TB": a history question even when the case doesn't list that topic — the patient answers.
   // "Family history?", "travel history", "any contact with TB?" — the same, by topic.

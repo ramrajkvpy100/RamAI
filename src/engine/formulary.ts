@@ -381,6 +381,9 @@ export function drugMatchPhrases(drug: FormularyDrug): string[] {
 /* -------------------------------------------------------------------------- */
 
 const ROUTE_PATTERNS: [RegExp, DrugRoute][] = [
+  // Drops in the eye (atropine 1%, timolol, moxifloxacin): never asked "IV or IM?". Ear drops are topical.
+  [/\b(ear drops?|ear drop|otic)\b/, "TOP"],
+  [/\b(eye drops?|eye drop|e\/d|eye ointment|ophthalmic|instil\w*|in (?:the|both|right|left|each) eyes?)\b/, "OD-eye"],
   [/\b(iv|intravenous(?:ly)?|i v|infusion|bolus|drip)\b/, "IV"],
   // Added to a bag of fluid: "40 units in 1 litre RL", "in 500 ml NS".
   [/\bin (?:a |one |1 )?(?:\d+(?:\.\d+)?\s*(?:ml|l|litres?|liters?|pints?)\b|bag|pint|ns|rl|dns|normal saline|saline|ringer|d5|dextrose)/, "IV"],
@@ -433,7 +436,8 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
   const wordLitre = t.match(/\b(one|two|three|four|half|a)\s*(?:l|litre|litres|liter|liters)\b/);
   // A drip's rate: "100 mL/h", "30 drops a minute" (a standard set: 20 drops a mL).
   const perHour = t.match(/(\d+(?:\.\d+)?)\s*(?:ml|cc)\s*(?:\/|per|an?|each)\s*(?:h|hr|hrs|hour)\b/);
-  const drops = t.match(/(\d+)\s*(?:drops?|dpm)\s*(?:\/|per|a|each)?\s*(?:min|minute)?\b/);
+  // (Only drops counted per minute — "2 drops in each eye" is a dose, not a rate.)
+  const drops = t.match(/(\d+)\s*(?:dpm\b|drops?\s*(?:\/|per|a|each)\s*(?:min|minute)\b)/) ?? t.match(/\bat\s+(\d+)\s*drops?\b/);
   if (perHour?.[1]) out.rateMlH = parseFloat(perHour[1]);
   else if (drops?.[1] && /drop|dpm/.test(drops[0])) out.rateMlH = parseFloat(drops[1]) * 3;
   if (mlPerKg?.[1]) out.volumeMl = Math.round(parseFloat(mlPerKg[1]) * (opts.weightKg ?? 60));

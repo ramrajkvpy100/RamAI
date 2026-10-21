@@ -39,6 +39,7 @@ import type { z } from "zod";
 
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
+import { normalise } from "../text";
 import { labGap, vitalsNow } from "../simulator";
 import { noteUsage } from "./usage";
 import type { ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
@@ -72,7 +73,24 @@ export function openAIConfig() {
 }
 
 /** One request to the configured model. `careful` allows a little reasoning; otherwise the lightest setting. */
+/** One call — tried again once, straight away, if the connection drops or OpenAI has a passing fault (5xx, 429). */
 export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful = false, timeout?: number): Promise<unknown> {
+  const limit = timeout ?? openAIConfig().timeoutMs;
+  const started = Date.now();
+  try {
+    return await chatJSONOnce(messages, maxTokens, careful, limit);
+  } catch (err) {
+    const passing = (err instanceof TypeError && /fetch failed|network|socket|ECONNRESET/i.test(`${err.message} ${String((err as { cause?: unknown }).cause ?? "")}`))
+      || (err instanceof UpstreamError && err.status !== undefined && (err.status >= 500 || err.status === 429));
+    const left = limit - (Date.now() - started);
+    if (!passing || left < 8_000) throw err;
+    console.warn("[ramai] AI call failed in passing; trying once more:", err instanceof Error ? err.message : err);
+    await new Promise((r) => setTimeout(r, 800));
+    return chatJSONOnce(messages, maxTokens, careful, left - 800);
+  }
+}
+
+async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful: boolean, timeout: number): Promise<unknown> {
   const { key, model, baseUrl } = openAIConfig();
   const timeoutMs = timeout ?? openAIConfig().timeoutMs;
   const controller = new AbortController();
@@ -137,6 +155,13 @@ ${recent ? `Conversation so far:\n${recent}` : ""}`;
 }
 
 /** For a question the rules couldn't place: what did the doctor mean, and (if it was a question) what does the patient say? */
+/** Shorthand, typos and Hinglish spelled out ("kab se hai" → "since when"), as a hint beside the doctor's own words. */
+function plainEnglish(clause: string): string {
+  const plain = normalise(clause);
+  const raw = clause.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  return plain && plain !== raw ? `\n(In plain words: "${plain}")` : "";
+}
+
 function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: InterpretContext): ChatMessage[] {
   const { country, lang } = ctx;
   const history = def.history.map((h) => `${h.id} | ${h.label} | patient says: ${h.reply}`).join("\n");
@@ -179,7 +204,7 @@ For history questions with no matching entry, use kind "history", targetId "gene
 Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
 For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient (in ${language(country, lang)}); the relative only when spoken to directly, or when the patient is a young child or can't speak. The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
 
-The doctor said: """${clause}"""`,
+The doctor said: """${clause}"""${plainEnglish(clause)}`,
     },
   ];
 }
@@ -602,7 +627,7 @@ Items in the case (id, what, importance): ${items.join("; ")}
 
 Return JSON:
 { "teaching": { "patientBand": "the id of this patient's severity band", "severityBands": [{ "id", "label", "recognition": [], "investigation": [], "treatment": [], "followUp": [] }] (2–4 bands), "drugs": [{ "generic", "brand", "dose", "route": "PO"|"IV"|"IM"|"SC"|"SL"|"PR"|"TOP"|"INH"|"NEB"|"IN", "frequency", "duration", "indication", "mechanism", "whyItWorks", "avoidWhen": [], "adverseEffects": [], "monitoring": [] }] (1–4), "routines": [], "followUp": { "interval", "reassess": [], "redFlags": [], "whenToEscalate": [] }, "treatmentFailure": { "steps": [] }, "pearl": "one memorable teaching point", "sources": ["1–3 real, widely recognised sources this treatment follows, in this order: the current guideline for this exact condition where one exists (e.g. 'National Snakebite Management Protocol (MoHFW, 2017)', 'GINA 2024', 'Surviving Sepsis Campaign 2021'), else the specialty body's guideline (e.g. 'IAP Standard Treatment Guidelines'), and the standard textbook (e.g. 'Nelson Textbook of Pediatrics'); every drug and dose in this teaching must agree with them; no page numbers, never invent a title or a year"] },
-  "misses": { "<id of an essential or useful item>": { "what": "what the doctor didn't do", "why": "why it matters here, in one line — naming the guideline (WHO, ICMR, NICE, AHA…) where one applies", "better": "the better approach", "severity": "minor"|"moderate"|"major" } },
+  "misses": { "<id of an essential or useful item>": { "what": "what the doctor didn't do, said to them (\"Didn't check renal function\") — never about the case notes or the record", "why": "why it matters here, in one line — naming the guideline (WHO, ICMR, NICE, AHA…) where one applies", "better": "the better approach", "severity": "minor"|"moderate"|"major" } },
   "strengths": { "<id>": "what doing it well shows" } }
 misses and strengths: one for each essential item and the most useful ones; keys must be ids from the list.`,
     },
@@ -766,7 +791,7 @@ async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): P
       [
         {
           role: "system",
-          content: `You are the laboratory and radiology department of a hospital in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}. You report results for one patient — exactly what a real patient with this condition, at this point in the illness and after the treatment so far, would show — consistent with every value already known. A value the condition wouldn't change is normal. Radiology reports state findings and an impression in one to three sentences, with no advice. Output JSON only. Each test reports its own specimen only: a urine test gives urine values (urine glucose and ketones as Nil/Trace/+ to ++++, urine pH 4.5–8), never a blood glucose, blood pH or blood-gas value; CSF and body fluids likewise.`,
+          content: `You are the laboratory and radiology department of a hospital in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}. You report results for one patient — exactly what a real patient with this condition, at this point in the illness and after the treatment so far, would show — consistent with every value already known. A value the condition wouldn't change is normal. Radiology reports state findings and an impression in one to three sentences, with no advice. Every test asked for was done: never say it wasn't performed, isn't available or has no findings — a test this condition wouldn't change is reported normal. Output JSON only. Each test reports its own specimen only: a urine test gives urine values (urine glucose and ketones as Nil/Trace/+ to ++++, urine pH 4.5–8), never a blood glucose, blood pH or blood-gas value; CSF and body fluids likewise.`,
         },
         {
           role: "user",
@@ -854,7 +879,13 @@ export function createOpenAIProvider(): ClinicalProvider {
       const started = Date.now();
       const left = () => CASE_DEADLINE_MS - (Date.now() - started);
       try {
-        const outline = ConceptSchema.safeParse(await chatJSON(outlinePrompt(opts, brief), 900, false, OUTLINE_TIMEOUT_MS));
+        // The outline is quick; if it times out (a slow moment upstream) it's asked for once more.
+        const outlineRaw = await chatJSON(outlinePrompt(opts, brief), 900, false, OUTLINE_TIMEOUT_MS).catch((err) => {
+          if (left() < 85_000) throw err;
+          console.warn("[ramai] the outline didn't come back in time; asking once more:", err instanceof Error ? err.message : err);
+          return chatJSON(outlinePrompt(opts, brief), 900, false, OUTLINE_TIMEOUT_MS);
+        });
+        const outline = ConceptSchema.safeParse(outlineRaw);
         if (!outline.success || !outline.data.diagnosis) throw new UpstreamError("the outline failed its checks");
         if (outline.data.patient.age === null) throw new UpstreamError("the outline gave no readable age");
         // A child's specialty must have a child.

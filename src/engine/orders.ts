@@ -490,7 +490,7 @@ export function completeOrder(pending: PendingOrder, clause: string, weightKg: n
 export function completedIntent(pending: PendingOrder, payload: Payload, words: string): { kind: "drug" | "investigation" | "action"; targetId: string; phrase: string; matched: true; payload: Payload } {
   const phrase = `${pending.phrase} — ${words}`.slice(0, 400);
   if (pending.kind === "oxygen") return { kind: "action", targetId: "measure:oxygen", phrase, matched: true, payload: { ...payload, completes: true } };
-  if (pending.kind === "confirm") return { kind: pending.targetId.startsWith("measure:") ? "action" : "drug", targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
+  if (pending.kind === "confirm") return { kind: formularyDrug(pending.targetId) ? "drug" : "action", targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
   return { kind: pending.kind, targetId: pending.targetId, phrase, matched: true, payload: { ...payload, completes: true } };
 }
 
@@ -567,7 +567,8 @@ export interface QuickReply {
 
 /** Buttons for what an order is waiting on — the usual dose, the routes it can go by, how often, how long. */
 export function orderReplies(p: PendingOrder): QuickReply[] {
-  if (p.kind === "confirm" && p.targetId === "measure:discharge") return [{ text: "Yes, discharge", send: true }, { text: "No, keep them here", send: true }];
+  if (p.kind === "confirm" && p.targetId === "measure:intubation") return [{ text: "Yes, intubate", send: true }, { text: "No, wait", send: true }];
+  if (p.kind === "confirm" && !formularyDrug(p.targetId)) return [{ text: "Yes, discharge", send: true }, { text: "No, keep them here", send: true }];
   if (p.kind === "confirm") return [{ text: "Yes, give it", send: true }, { text: "No, hold it", send: true }];
   if (p.kind === "oxygen") return ["Nasal prongs 2 L/min", "Face mask 6 L/min", "Non-rebreather mask 15 L/min"].map((text) => ({ text, send: true }));
   if (p.kind === "investigation") {

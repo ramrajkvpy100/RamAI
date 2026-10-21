@@ -78,8 +78,10 @@ describe("OpenAI in the simulation — the model words it, the backend decides i
     const spoken = turn.state.messages.filter((m) => m.role === "patient" || m.role === "attendant").at(-1);
     expect(spoken?.text).toBeTruthy();
     expect(spoken?.text).not.toMatch(/^\[/);
-    expect(calls).toHaveLength(1);
-    expect(calls[0]!.model).toBe("gpt-6-luna");
+    // A passing fault is tried once more — with the same model, never another.
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    expect(calls.length).toBeLessThanOrEqual(2);
+    expect(calls.every((c) => c.model === "gpt-6-luna")).toBe(true);
     const closed = await submitDoctorAction(turn.token, "End case", "ai-2");
     expect(closed.debrief).toBeDefined();
     expect(closed.debrief?.coach).toBeUndefined();

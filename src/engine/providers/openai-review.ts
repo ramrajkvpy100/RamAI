@@ -197,10 +197,15 @@ export function flagFromRange<R extends { value: string; reference?: string; fla
 }
 
 /** Every flag agrees with its value and range — a "normal" flag on an out-of-range value (or the reverse) is corrected. "critical" is the author's call. */
+/** Words that begin advice, not a finding. */
+const INSTRUCTION = /^(?:obtain|send|arrange|assess|perform|order|check|consider|request|repeat|start|give|collect|take|ensure|recommend|should)\b/i;
+
 export function checkLabFlags(f: Findings): { part: Findings; fixes: string[] } {
   const fixes: string[] = [];
   const investigations = f.investigations.map((i) => ({
     ...i,
+    // A "report" that is really advice ("Obtain cultures… send blood for crossmatch") is no result: dropped, so the lab writes one.
+    ...(i.report && INSTRUCTION.test(i.report.trim()) ? (fixes.push(`${i.id}: report was an instruction, dropped`), { report: undefined }) : {}),
     rows: i.rows.map((row) => {
       const value = number(row.value);
       const range = parseRange(row.reference);

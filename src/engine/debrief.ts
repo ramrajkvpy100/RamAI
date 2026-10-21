@@ -17,6 +17,9 @@ import { systemFinding, type HiddenState } from "./simulator";
 import { describeSpan } from "./text";
 import type { CaseDebrief, CaseState, DebriefMiss, InvestigationTeaching, RescueEpisode } from "./types";
 
+/** Words about the case notes rather than to the doctor. */
+const CASE_TALK = /\b(the case(?: summary)?|case (?:file|text|record)) (?:does not|doesn't|did not|identifies|states|lacks|omits)\b|\b(?:is|are|was|were) not (?:documented|recorded|provided)\b|\b(?:is|are|was|were) (?:provided|recorded|documented)\b|\bnot documented\b|\bno action is documented\b|\blisted as (?:essential|required)\b|\bthe (?:summary|record)\b|\bin the actions recorded\b|^if not (?:checked|obtained|established|done|asked)\b/i;
+
 const SEVERITY_ORDER = { major: 0, moderate: 1, minor: 2 } as const;
 
 export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState, state: CaseState): CaseDebrief {
@@ -53,21 +56,27 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   const missed: DebriefMiss[] = [];
   const hints = hidden.actions.hint?.length ?? 0;
   if (hints && !def.guided) missed.push({ what: `Used ${hints} hint${hints === 1 ? "" : "s"}.`, why: "Hints point to the next step an expert would take.", better: "Next time, try working through history, examination and investigations before asking.", severity: "minor" });
+  // A miss written about the case notes ("No renal-function result is provided", "Not documented whether…") is put
+  // to the doctor instead, in the plain words for what they didn't do — the why and the better way are kept.
+  const own = (id: string, plain: DebriefMiss): DebriefMiss => {
+    const m = def.rubric.misses[id];
+    return !m ? plain : CASE_TALK.test(m.what) ? { ...m, what: plain.what } : m;
+  };
   const misses = def.rubric.misses;
   for (const h of def.history) {
     if (h.importance === "essential" && hidden.history[h.id] === undefined) {
-      missed.push(misses[h.id] ?? { what: `Did not ask about ${h.label.toLowerCase()}.`, why: "This was a key part of the history in this case.", better: `Ask about ${h.label.toLowerCase()} early in the encounter.`, severity: "moderate" });
+      missed.push(own(h.id, { what: `Did not ask about ${h.label.toLowerCase()}.`, why: "This was a key part of the history in this case.", better: `Ask about ${h.label.toLowerCase()} early in the encounter.`, severity: "moderate" }));
     }
   }
   for (const e of def.exam) {
     if (e.importance === "essential" && hidden.exams[e.id] === undefined) {
-      missed.push(misses[e.id] ?? { what: `Did not do the ${e.label.toLowerCase().replace(/ examination$/, "")} examination.`, why: "The key physical sign in this case was here.", better: `Examine the ${e.label.toLowerCase().replace(/ examination$/, "")} — the sign was there to find.`, severity: "moderate" });
+      missed.push(own(e.id, { what: `Did not do the ${e.label.toLowerCase().replace(/ examination$/, "")} examination.`, why: "The key physical sign in this case was here.", better: `Examine the ${e.label.toLowerCase().replace(/ examination$/, "")} — the sign was there to find.`, severity: "moderate" }));
     }
   }
   for (const i of def.investigations) {
     if (i.priority === "essential" && !ordered.has(i.id)) {
       const name = i.short ?? catalogInvestigation(i.id)?.short ?? i.name ?? i.id;
-      missed.push(misses[i.id] ?? { what: `Did not order ${name}.`, why: i.teaching.whatItTellsYou, better: i.teaching.whenToOrder, severity: "moderate" });
+      missed.push(own(i.id, { what: `Did not order ${name}.`, why: i.teaching.whatItTellsYou, better: i.teaching.whenToOrder, severity: "moderate" }));
     }
   }
   for (const group of def.rubric.idealTreatment) {
@@ -80,8 +89,10 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
       const label = raw.replace(/[.…]+$/, "");
       // Drugs and procedures that treat the illness matter most; advice, referral and supportive steps less.
       const definitive = def.rubric.definitiveTreatment?.ids.some((id) => group.includes(id));
-      const severity = definitive || rule?.kind === "drug" || rule?.kind === "procedure" || !rule ? "major" : rule.kind === "counsel" || rule.kind === "discharge" ? "minor" : "moderate";
-      missed.push(misses[key] ?? { what: `Missed: ${label.charAt(0).toLowerCase()}${label.slice(1)}${end}`, why: "This is a core part of treatment for this condition.", better: `${label}${end}`, severity });
+      // (Getting the patient to hospital is the treatment on a phone call or in an emergency.)
+      const urgentMove = (rule?.kind === "referral" || rule?.kind === "admit") && def.track !== "opd";
+      const severity = definitive || urgentMove || rule?.kind === "drug" || rule?.kind === "procedure" || !rule ? "major" : rule.kind === "counsel" || rule.kind === "discharge" ? "minor" : "moderate";
+      missed.push(own(key, { what: `Missed: ${label.charAt(0).toLowerCase()}${label.slice(1)}${end}`, why: "This is a core part of treatment for this condition.", better: `${label}${end}`, severity }));
     }
   }
   for (const r of def.therapeutics) {
@@ -182,7 +193,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     reasoning: def.truth.reasoning,
     didWell: [...new Set(didWell)].slice(0, 8),
     // What the doctor missed — never a remark about how the case was written ("The case summary does not document…").
-    missed: missed.filter((m) => !/\b(the case(?: summary)?|case (?:file|text|record)) (?:does not|doesn't|did not|identifies|states|lacks|omits)\b|\b(?:is|are) not documented\b|\bno action is documented\b|\blisted as (?:essential|required)\b|\bnot documented in the case\b|\bthe summary\b/i.test(m.what)).slice(0, 10),
+    missed: missed.filter((m) => !CASE_TALK.test(m.what)).slice(0, 10),
     severityBands: def.teaching.severityBands,
     patientBand: def.teaching.patientBand,
     treatmentByBand: def.teaching.treatmentByBand,

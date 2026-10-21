@@ -408,3 +408,26 @@ describe("Random erratic-doctor audit, round five (replies)", () => {
     expect(turns[2]!.record.intents[0]?.kind).toBe("exam");
   });
 });
+
+describe("Random erratic-doctor audit, round six", () => {
+  const said = (turns: { effects: Parameters<typeof messagesOf>[0] }[]) => turns.flatMap((t) => messagesOf(t.effects)).join("\n");
+  it("eye drops go in the eye; drops in an eye aren't a drip rate", async () => {
+    const { parseOrderDetails } = await import("@/engine/formulary");
+    expect(parseOrderDetails("atropine 1% eye drops").route).toBe("OD-eye");
+    expect(parseOrderDetails("timolol 1 drop in both eyes bd").rateMlH).toBeUndefined();
+    expect(parseOrderDetails("ns 1 litre at 30 drops per minute").rateMlH).toBe(90);
+  });
+  it("asks before intubating someone awake and saturating well, and says what a PHC has", async () => {
+    const { emViperPhc } = await import("@/engine/cases/em-viper-phc");
+    const { turns } = await converse(emViperPhc, ["intubate", "yes"]);
+    expect(said(turns)).toMatch(/intubate\? They're awake/);
+    expect(said(turns)).toMatch(/no ventilator here/);
+    expect(said(turns)).not.toMatch(/capnography/);
+  });
+  it("a discharge the nurse queried goes ahead on 'yes', and waits on 'no'", async () => {
+    const yes = await converse(emAdhf, ["discharge", "yes"]);
+    expect(yes.hidden.discharged).toBe(true);
+    const no = await converse(emAdhf, ["discharge", "no"]);
+    expect(no.hidden.discharged).toBeFalsy();
+  });
+});

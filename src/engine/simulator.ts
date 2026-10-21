@@ -2151,6 +2151,11 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
     watch(hidden, { label: rule.label.toLowerCase(), at: hidden.clock, checks: [hidden.clock], keys: (rule.vitalsAfter ?? []).map((v) => v.key) });
   }
 
+  // The case's own discharge step: the same check as any discharge.
+  if ((rule.kind === "discharge" || rule.measureIds?.includes("discharge")) && !intent?.payload?.confirmed) {
+    const question = dischargeQuestion(ctx);
+    if (question) return askAbout(ctx, { kind: "confirm", targetId: rule.id, payload: { question }, phrase: intent?.phrase ?? rule.label, needs: [] }, question, "given");
+  }
   // Oxygen without a device or flow is asked about before anything is done.
   if (rule.measureIds?.includes("oxygen") && intent) {
     const asked = askOxygen(ctx, intent, rule.id);
@@ -2248,6 +2253,22 @@ function askOxygen(ctx: TurnContext, intent: ResolvedIntent, targetId: string): 
   return askAbout(ctx, { kind: "oxygen", targetId, payload: { ...(intent.payload ?? {}) }, phrase: intent.phrase, needs }, oxygenQuestion(o, needs, askerRole(ctx, "given") !== "system"), "given");
 }
 
+/** The nurse's question before an unwell patient is sent home — or null when they're fit to go. */
+function dischargeQuestion(ctx: TurnContext): string | null {
+  const { hidden } = ctx;
+  if (hidden.discharged || ctx.def.track === "phone") return null;
+  const v = vitalsNow(hidden);
+  const num = (k: VitalKey) => parseFloat(v[k]?.value ?? "");
+  const worries = [
+    STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating ? (hidden.status === "critical" ? "critical" : "getting worse") : null,
+    num("gcs") < 15 ? `GCS ${num("gcs")}` : null,
+    num("bp") < 90 ? `BP ${v.bp.value}` : null,
+    num("spo2") < 92 ? `SpO₂ ${num("spo2")}%` : null,
+    num("hr") > 130 ? `pulse ${num("hr")}` : null,
+  ].filter(Boolean);
+  return worries.length ? `Doctor — send them home? They're ${worries.join(", ")}. Do you still want to discharge?` : null;
+}
+
 function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedIntent): TurnEffect[] {
   const { hidden } = ctx;
   const m = catalogMeasure(measureId);
@@ -2266,21 +2287,21 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       return [{ type: "message", role: "attendant", kind: "speech", text: "Doctor, we're at home — we can't do that here. Should we bring them to the hospital?" }];
     }
   }
-  // Sending home someone who is unwell: the nurse checks first (once).
-  if (m.id === "discharge" && !intent.payload?.confirmed && !hidden.discharged) {
+  // Intubating someone awake and breathing well: the nurse checks first.
+  if (m.id === "intubation" && !intent.payload?.confirmed && hidden.status !== "deceased") {
     const v = vitalsNow(hidden);
-    const num = (k: VitalKey) => parseFloat(v[k]?.value ?? "");
-    const worries = [
-      STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating ? (hidden.status === "critical" ? "critical" : "getting worse") : null,
-      num("gcs") < 15 ? `GCS ${num("gcs")}` : null,
-      num("bp") < 90 ? `BP ${v.bp.value}` : null,
-      num("spo2") < 92 ? `SpO₂ ${num("spo2")}%` : null,
-      num("hr") > 130 ? `pulse ${num("hr")}` : null,
-    ].filter(Boolean);
-    if (worries.length) {
-      const question = `Doctor — send them home? They're ${worries.join(", ")}. Do you still want to discharge?`;
-      return askAbout(ctx, { kind: "confirm", targetId: "measure:discharge", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
+    const gcs = parseFloat(v.gcs?.value ?? "") || 15;
+    const spo2 = parseFloat(v.spo2.value) || 98;
+    const rr = parseFloat(v.rr.value) || 16;
+    if (gcs >= 13 && spo2 >= 92 && rr < 35 && STATUS_RANK[hidden.status] < STATUS_RANK.critical) {
+      const question = `Doctor — intubate? They're awake (GCS ${gcs}) and saturating ${spo2}% on their own. Do you still want to intubate?`;
+      return askAbout(ctx, { kind: "confirm", targetId: "measure:intubation", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
     }
+  }
+  // Sending home someone who is unwell: the nurse checks first (once).
+  if (m.id === "discharge" && !intent.payload?.confirmed) {
+    const question = dischargeQuestion(ctx);
+    if (question) return askAbout(ctx, { kind: "confirm", targetId: "measure:discharge", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
   }
   const fx: TurnEffect[] = [];
   record(hidden, `measure:${m.id}`);
@@ -2395,7 +2416,8 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       fx.push({ type: "timeline", label: "Resuscitation", category: "procedure" });
       break;
     default:
-      fx.push({ type: "message", role: actor, kind: "action", text: m.note });
+      // A PHC or CHC has a laryngoscope and a bag — not capnography or a ventilator.
+      fx.push({ type: "message", role: actor, kind: "action", text: m.id === "intubation" && ["phc", "chc"].includes(ctx.def.level) ? "Intubated; tube position confirmed by chest rise and equal air entry on both sides. Bagging by hand — there's no ventilator here." : m.note });
       fx.push({ type: "timeline", label: m.label, category: m.kind === "procedure" ? "procedure" : "treatment" });
   }
   noteResponse(hidden, m.label);
