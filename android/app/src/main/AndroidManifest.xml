@@ -8,6 +8,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
         android:theme="@style/Theme.RamAI">
 
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
@@ -36,6 +37,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="${hostName}" />
             </intent-filter>
+        </activity>
+
+        <!-- "Site settings" (clear data, notifications) for the app's site; the launcher adds a shortcut to it on first run. -->
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
+            android:exported="false">
+            <meta-data android:name="android.support.customtabs.trusted.MANAGE_SPACE_URL" android:value="${defaultUrl}" />
         </activity>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
