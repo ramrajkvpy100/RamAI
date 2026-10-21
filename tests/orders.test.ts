@@ -579,3 +579,29 @@ describe("Case reports, 22 Oct", () => {
     expect(turns.at(-1)!.effects.some((e) => e.type === "investigation_resulted" || (e.type === "message" && /result|ultrasound|usg/i.test(e.text)))).toBe(true);
   });
 });
+
+describe("General Practice audit, 22 Oct (10 AI cases, a bad doctor)", () => {
+  it("a cream is applied — not timed like an injection, and no check-back later", async () => {
+    const { getCase } = await import("@/engine/cases");
+    const { converse, messagesOf } = await import("./helpers");
+    const { turns } = await converse(getCase("em-adhf-01")!, ["clobetasol cream bd", "wait 2 hours"]);
+    const said = turns.flatMap((t) => messagesOf(t.effects)).join(" | ");
+    expect(said).not.toMatch(/clobetasol[^|]*Full effect/i);
+    expect(said).not.toMatch(/after the clobetasol/i);
+  });
+
+  it("a long effect is shown an hour on, and says so", async () => {
+    const { getCase } = await import("@/engine/cases");
+    const { converse, messagesOf } = await import("./helpers");
+    const { turns } = await converse(getCase("em-adhf-01")!, ["hydrocortisone 100 mg iv"]);
+    const said = messagesOf(turns[0]!.effects).join(" ");
+    expect(said).toMatch(/Full effect by about 4 h — here's how things are an hour on/);
+  });
+
+  it("after discharge, history questions get 'gone home', not an answer", async () => {
+    const { getCase } = await import("@/engine/cases");
+    const { converse, messagesOf } = await import("./helpers");
+    const { turns } = await converse(getCase("gp-uti-phc-01")!, ["discharge home", "any fever?"]);
+    expect(messagesOf(turns.at(-1)!.effects).join(" ")).toMatch(/gone home/);
+  });
+});

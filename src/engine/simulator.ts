@@ -2081,7 +2081,11 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const k = kineticsFor(drug, route);
     const full = Math.max(k.peak, overMinOf(p) ?? 0);
     const rate = drug.fluid && overMin && !rateMlH ? ` over ${describeSpan(overMin)}` : "";
-    fx.push({ type: "message", role: "system", kind: "action", text: `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. Full effect by about ${describeSpan(full)} — here's how things are then.` });
+    // A cream is applied, not timed like an injection; a long effect is shown at the hour (time moves on at most an hour).
+    const text = route === "TOP"
+      ? `${drug.generic}${dose ? ` ${dose}` : ""} — applied.`
+      : `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. Full effect by about ${describeSpan(full)} — ${full > 60 ? "here's how things are an hour on" : "here's how things are then"}.`;
+    fx.push({ type: "message", role: "system", kind: "action", text });
   } else {
     fx.push({ type: "message", role: "system", kind: "action", text: `Prescribed — ${prescriptionLine({ generic: drug.generic, dose, route, frequency, duration })}` });
   }
@@ -2154,8 +2158,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     }
     hidden.scheduled.push({ at: hidden.clock + peak, patches: rule.vitalsAfter ?? [], status: rule.statusAfter });
   }
-  // Watched from when it went in: at its onset and its peak, what changed is said.
-  if (mode === "given") {
+  // Watched from when it went in: at its onset and its peak, what changed is said. (Not a cream: it acts slowly, on the skin.)
+  if (mode === "given" && route !== "TOP") {
     const k = kineticsFor(drug, route);
     const peak = Math.max(k.peak, overMin ?? 0);
     const acts = Object.keys(profileFor(drug)?.effects ?? {}).map((e) => EFFECT_VITAL[e as EffectKey]);
@@ -2860,7 +2864,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       return;
     }
     // Discharged: the patient has gone home — bedside orders can't be carried out (and an admission can't undo it).
-    const bedside = ["exam", "investigation", "vitals", "reassess"].includes(intent.kind) || (intent.kind === "drug" && intent.payload?.mode === "given") || (intent.kind === "action" && !/refer|discharge|follow|counsel|review/.test(intent.targetId ?? ""));
+    const bedside = ["exam", "investigation", "vitals", "reassess", "history", "instruct"].includes(intent.kind) || (intent.kind === "drug" && intent.payload?.mode === "given") || (intent.kind === "action" && !/refer|discharge|follow|counsel|review/.test(intent.targetId ?? ""));
     if (hidden.discharged && bedside && def.track !== "phone") {
       if (!fx.some((e) => e.type === "message" && e.text.includes("gone home"))) {
         const them = def.patient.sex === "Female" ? "She" : def.patient.sex === "Male" ? "He" : "They";

@@ -147,7 +147,10 @@ function withEmoji(text: string): string {
   let h = 0;
   for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
   if (h % 10 >= 6) return text;
-  const hit = EMOJI.find(([re]) => re.test(text));
+  // A denial ("No, I haven't had a fever") gets no symptom emoji; "it eased, but it's still there" gets no smile.
+  const denies = /^\s*no\b|\b(?:haven'?t|hasn'?t|don'?t|doesn'?t|didn'?t|not|never|no)\b/i.test(text);
+  const stillBad = /\b(?:still|but|worse)\b/i.test(text);
+  const hit = EMOJI.find(([re, e]) => re.test(text) && !(denies && /[🤒🤢😷😖😣😴]/u.test(e)) && !(e === "🙂" && stillBad));
   return hit ? `${text} ${hit[1]}` : text;
 }
 
