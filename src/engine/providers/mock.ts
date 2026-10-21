@@ -113,6 +113,9 @@ export const mockProvider: ClinicalProvider = {
       return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { ...(nurse ? { speaker: "nurse" } : {}), settled: true } }], generated: { "0": nurse ? "Okay, doctor. What next?" : "Okay, doctor." } };
     }
     const intents = resolveIntents(text, rctx);
+    // A reply the rules wrote themselves (the nurse, to a question about a medicine): said as written.
+    const written = intents.findIndex((i) => typeof i.payload?.reply === "string");
+    if (written >= 0) return { intents, generated: { [String(written)]: String(intents[written]!.payload!.reply) } };
     // "Ya", "yes", "ok" after someone in the room asked a question: they hear it and go along.
     // (The last thing said must be that question — not an older one, nor the ward's "Which medicine?")
     const last = [...ctx.transcript].reverse().find((m) => m.role !== "doctor");

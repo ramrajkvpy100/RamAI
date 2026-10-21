@@ -117,7 +117,7 @@ describe("what the stethoscope picks up", () => {
       const exams = play(def, ["Examine CVS", "Examine the chest", "Examine abdomen"]).state.messages.filter((m) => m.stethoscope);
       for (const m of exams) expect(m.text.replace(/(Heart|Breath|Bowel) sounds: listen with the stethoscope\./g, ""), def.id).not.toMatch(SOUND_WORDS);
     }
-  });
+  }, 20_000); // every case, six examinations each: slow on a busy machine
 });
 
 describe("through the engine — the browser gets a stethoscope, not a description", () => {

@@ -41,7 +41,7 @@ import type { z } from "zod";
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
 import { normalise } from "../text";
-import { aboutThem, labGap, vitalsNow } from "../simulator";
+import { aboutThem, labGap, systemFinding, vitalsNow } from "../simulator";
 import { noteUsage } from "./usage";
 import type { CaseSource, ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
 
@@ -75,7 +75,9 @@ export function openAIConfig() {
 
 /** One request to the configured model. `careful` allows a little reasoning; otherwise the lightest setting. */
 /** One call — tried again once, straight away, if the connection drops or OpenAI has a passing fault (5xx, 429). */
-export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful = false, timeout?: number): Promise<unknown> {
+/** How hard the model thinks: false = the lightest setting, true = low, "medium" = medium (measured: no more accurate than low for reading the doctor, and seconds slower). */
+type Effort = boolean | "medium";
+export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful: Effort = false, timeout?: number): Promise<unknown> {
   const limit = timeout ?? openAIConfig().timeoutMs;
   const started = Date.now();
   try {
@@ -95,7 +97,7 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
   }
 }
 
-async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful: boolean, timeout: number): Promise<unknown> {
+async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful: Effort, timeout: number): Promise<unknown> {
   const { key, model, baseUrl } = openAIConfig();
   const timeoutMs = timeout ?? openAIConfig().timeoutMs;
   const controller = new AbortController();
@@ -104,7 +106,7 @@ async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful:
   // RAMAI_TRACE=1: how long each call took (what it was for, from its first words) — for tuning timeouts.
   if (process.env.RAMAI_TRACE) controller.signal.addEventListener("abort", () => console.info(`[ramai] trace: aborted after ${Date.now() - started} ms (limit ${timeoutMs}) — ${String(messages[messages.length - 1]?.content ?? "").slice(0, 60)}`));
   try {
-    const effort = careful ? (/^gpt-6/.test(model) ? { reasoning_effort: "low" } : lightReasoning(model)) : lightReasoning(model);
+    const effort = careful ? (/^gpt-6/.test(model) ? { reasoning_effort: careful === "medium" ? "medium" : "low" } : lightReasoning(model)) : lightReasoning(model);
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -144,6 +146,34 @@ Absolute rules while a case is active:
 - Positive findings must come only from the case file. If the case file does not mention something, the honest answer is a plausible negative.
 - Output JSON only.`;
 
+/**
+ * What the doctor has actually found so far — asked, examined, resulted — with values and units, plus what's
+ * still pending. The model reasons from this; anything not here is unknown (not negative) and must not be stated.
+ */
+export function knownSoFar(ctx: InterpretContext): string {
+  const { def, hidden } = ctx;
+  const asked = Object.keys(hidden.history).map((id) => def.history.find((h) => h.id === id)).filter((h): h is NonNullable<typeof h> => !!h).map((h) => `${h.label}: ${(h.fact ?? h.reply).slice(0, 160)}`);
+  const examined = Object.keys(hidden.exams).map((id) => {
+    const label = def.exam.find((e) => e.id === id)?.label ?? id;
+    const finding = systemFinding(def, hidden, id).replace(/(Heart|Breath|Bowel) sounds[^.]*\./g, "").trim();
+    return finding ? `${label}: ${finding.slice(0, 220)}` : "";
+  }).filter(Boolean);
+  const back = hidden.investigations.filter((i) => i.delivered).map((i) => {
+    const rows = (i.result.rows ?? []).map((r) => `${r.analyte} ${r.value}${r.unit ? ` ${r.unit}` : ""}${r.flag && r.flag !== "normal" ? ` (${r.flag})` : ""}`).join(", ");
+    return `${i.name}: ${[rows, i.result.report?.slice(0, 240)].filter(Boolean).join(" | ")}`;
+  });
+  const pending = hidden.investigations.filter((i) => !i.delivered).map((i) => `${i.name} (due in about ${Math.max(1, Math.round(i.resultAt - hidden.clock))} min)`);
+  const meds = hidden.drugs.slice(-12).map((d) => `${d.generic}${d.dose ? ` ${d.dose}` : ""} ${d.route}${d.mode === "prescribed" ? ` — prescribed${d.frequency ? ` ${d.frequency}` : ""}${d.duration ? ` × ${d.duration}` : ""}` : ` — given at minute ${Math.round(d.at)}`}`);
+  return [
+    `WHAT THE DOCTOR HAS FOUND SO FAR (only this is known in the room — anything else is not yet asked, examined or tested: unknown, not negative):`,
+    `History obtained: ${asked.length ? asked.join("; ") : "nothing yet"}.`,
+    `Examination done: ${examined.length ? examined.join("; ") : "none yet"}.`,
+    `Results back: ${back.length ? back.join("; ") : "none"}.`,
+    `Pending: ${pending.length ? pending.join("; ") : "none"}.`,
+    `Medicines given or prescribed: ${meds.length ? meds.join("; ") : "none"}.`,
+  ].join("\n");
+}
+
 /** Where the encounter stands — so replies fit the moment, and follow-ups ("in 2 seconds", "same again") read in context. */
 function stateNote(ctx: InterpretContext): string {
   const h = ctx.hidden;
@@ -156,6 +186,7 @@ function stateNote(ctx: InterpretContext): string {
     .join("\n");
   return `Minute ${Math.round(h.clock)} of the encounter. The patient is ${h.status}${h.patientSays ? ` and says "${h.patientSays}"` : ""}. Vitals: HR ${v.hr.value}, BP ${v.bp.value}, RR ${v.rr.value}, SpO2 ${v.spo2.value}, temperature ${v.temp.value}.
 Given so far: ${given.length ? given.join("; ") : "nothing"}.
+${knownSoFar(ctx)}
 ${recent ? `Conversation so far:\n${recent}` : ""}`;
 }
 
@@ -171,6 +202,17 @@ const NO_VALUE = /\b(not (?:obtained|measured|done|performed|available|tested|re
 
 const BEDSIDE_TEST = /\b(visual acuity|snellen|\bva\b|fluorescein|pinhole|near vision|colou?r vision|confrontation|20 ?wbct|whole blood clotting|clotting time|bleeding time|dipstick|urine dip|glucometer|capillary glucose|peak flow|pefr|pulse oximetry|tuning fork|rinne|weber|otoscopy|schober|single breath count|bedside)\b/i;
 
+/**
+ * Does a reply written by the model name the diagnosis (or an accepted synonym) that nothing in the room has said yet?
+ * Such a reply is never shown during the case — the scripted words stand instead.
+ */
+export function leaksDiagnosis(def: ClinicalCaseDefinition, reply: string, alreadySaid: string): boolean {
+  const said = alreadySaid.toLowerCase();
+  const text = reply.toLowerCase();
+  const terms = [def.truth.diagnosis, ...def.rubric.diagnosisAccept].map((t) => t.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim()).filter((t) => t.length >= 4);
+  return terms.some((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text) && !said.includes(t));
+}
+
 /** Shorthand, typos and Hinglish spelled out ("kab se hai" → "since when"), as a hint beside the doctor's own words. */
 function plainEnglish(clause: string): string {
   const plain = normalise(clause);
@@ -178,7 +220,7 @@ function plainEnglish(clause: string): string {
   return plain && plain !== raw ? `\n(In plain words: "${plain}")` : "";
 }
 
-function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: InterpretContext): ChatMessage[] {
+function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: InterpretContext, guess = ""): ChatMessage[] {
   const { country, lang } = ctx;
   const history = def.history.map((h) => `${h.id} | ${h.label} | patient says: ${h.reply}`).join("\n");
   const exams = [...def.exam.map((e) => `${e.id} | ${e.label}`), ...EXAMS.map((e) => `${e.id} | ${e.label}`)].join("\n");
@@ -220,7 +262,7 @@ For history questions with no matching entry, use kind "history", targetId "gene
 Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
 For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient (in ${language(country, lang)}); the relative only when spoken to directly, or when the patient is a young child or can't speak. The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
 
-The doctor said: """${clause}"""${plainEnglish(clause)}`,
+The doctor said: """${clause}"""${plainEnglish(clause)}${guess ? `\n(A quick keyword reading took it as: ${guess}. Keep it if it is what the doctor meant; correct it if not — a question is never an order, history is not examination, and asking for results is not a new test.)` : ""}`,
     },
   ];
 }
@@ -244,7 +286,7 @@ function voicePrompt(def: ClinicalCaseDefinition, items: VoiceItem[], said: stri
       content: `You voice patients and their relatives in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}.
 Rules:
 - Speak as a lay person, briefly (one to three sentences per reply), warmly and naturally, in ${language(ctx.country, ctx.lang)}.
-- Convey exactly the facts given for each reply: no new symptoms, numbers, findings or history, and nothing left out that matters.
+- Convey the facts given for each reply — no new symptoms, numbers, findings or history, and nothing left out that matters — but say them the way this person would: answer the question actually asked first, in their own words, remembering what was said earlier (don't repeat yourself word for word), with the feelings that fit (worry, pain, relief, impatience).
 - Never name a diagnosis, never give medical advice, never hint at what the doctor should do.
 - The patient speaks in the first person; a relative speaks about the patient ("he", "she"). Call the doctor "doctor" now and then.
 - Match how unwell the patient is right now.
@@ -254,7 +296,8 @@ Rules:
       role: "user",
       content: `Patient: ${p.age}-year-old ${p.sex}${p.occupation ? `, ${p.occupation}` : ""}, ${p.city}.
 Scene: ${def.briefing}
-How the patient is now: ${ctx.hidden.status}.${def.persona ? `\nThe patient is ${def.persona} — let it show.` : ""}
+How the patient is now: ${ctx.hidden.status}${ctx.hidden.patientSays ? ` — "${ctx.hidden.patientSays}"` : ""}.${def.persona ? `\nThe patient is ${def.persona} — let it show.` : ""}
+Treatment so far: ${ctx.hidden.drugs.filter((d) => d.mode === "given").slice(-6).map((d) => `${d.generic} (minute ${Math.round(d.at)})`).join(", ") || "none yet"}.
 ${recent ? `Recent conversation:\n${recent}\n` : ""}
 The doctor said: """${said}"""
 
@@ -770,12 +813,19 @@ function shuffleOptions<T extends { options: string[]; answer: number }>(q: T, r
 /** The rules couldn't place it: ask the model what the doctor meant. */
 async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[]): Promise<Interpretation> {
   try {
-    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx), 800, true);
+    // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
+    const guess = ruled.filter((i) => i.kind !== "unknown").map((i) => `${i.kind}${i.targetId ? `:${i.targetId}` : ""}${i.payload && Object.keys(i.payload).length ? ` ${JSON.stringify(i.payload)}` : ""}`).join("; ");
+    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx, guess), 2400, true, 25_000);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
     const { speaker } = parsed.data;
     // A parent answering for a small child in the child's voice ("I haven't had a fever"): put back in the third person.
     const firstPerson = /^(?:no,?\s+|yes,?\s+)?(?:doctor,?\s+)?I(?:'ve| have|'m| am| feel| haven't| don't| sleep| slept| had| was)\b/i;
+    const roomSoFar = `${ctx.def.history.map((h) => h.reply).join(" ")} ${ctx.transcript.map((m) => m.text).join(" ")}`;
+    if (parsed.data.message && leaksDiagnosis(ctx.def, parsed.data.message, roomSoFar)) {
+      console.warn("[ramai] a model reply named the diagnosis; the rules' reading stands");
+      return { intents: ruled };
+    }
     const message = parsed.data.message && speaker === "attendant" && ctx.def.patient.age < 12 && firstPerson.test(parsed.data.message) && !/\b(he|she|him|her|his|my (?:son|daughter|child|baby))\b/i.test(parsed.data.message)
       ? aboutThem(parsed.data.message, ctx.def.patient.sex)
       : parsed.data.message;
@@ -899,14 +949,19 @@ async function voice(text: string, ctx: InterpretContext, ruled: ResolvedIntent[
   try {
     const raw = await chatJSON(
       voicePrompt(ctx.def, items.map((x) => ({ speaker: x.entry.speaker === "attendant" ? "attendant" : "patient", facts: x.entry.reply })), text, ctx),
-      120 + 120 * items.length,
+      // (No reasoning: measured, a little thinking made each turn about a second slower for wording no better.)
+      700 + 250 * items.length,
+      false,
+      20_000,
     );
     const parsed = VoiceSchema.safeParse(raw);
     if (!parsed.success || parsed.data.replies.length !== items.length) return { intents: ruled };
     const generated: Record<string, string> = {};
+    const roomSoFar = `${items.map((x) => x.entry.reply).join(" ")} ${ctx.transcript.map((m) => m.text).join(" ")}`;
     items.forEach((x, k) => {
       const reply = parsed.data.replies[k]?.trim();
-      if (reply) generated[String(x.index)] = reply;
+      // (A reply naming the diagnosis is dropped: the scripted words are said instead.)
+      if (reply && !leaksDiagnosis(ctx.def, reply, roomSoFar)) generated[String(x.index)] = reply;
     });
     return { intents: ruled, generated };
   } catch (err) {
@@ -1067,7 +1122,9 @@ export function createOpenAIProvider(): ClinicalProvider {
       // Several requests in one message, or a long one the rules only partly placed: the model reads all of it, as ChatGPT would.
       const clauses = text.split(/[.?!;\n]+|\band\b|\balso\b|\bthen\b|,/i).filter((c) => c.trim().split(/\s+/).length >= 2).length;
       const partly = text.trim().split(/\s+/).length > 6 && clauses > ruled.filter((i) => i.kind !== "unknown").length;
-      const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
+      // A question the rules turned into an order ("can we give aspirin?", "cbc normal?") is checked by the model too.
+      const questionAsOrder = /\?\s*$/.test(text.trim()) && ruled.some((i) => ["drug", "investigation", "action"].includes(i.kind) && i.payload?.reshow !== true);
+      const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || questionAsOrder || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
       const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : voice(text, ctx, ruled);
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;

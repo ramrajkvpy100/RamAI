@@ -75,6 +75,8 @@ const ABBREVIATIONS: [RegExp, string][] = [
   [/\bloc\b/g, " loss of consciousness "],
   [/\bhtn\b/g, " hypertension "],
   [/\bt2dm\b|\bdm2\b|\bdm\b/g, " diabetes "],
+  // "sugar problems", "sugar ki bimari", "history of sugar" are the disease, not a fingerstick.
+  [/\bsugar (?:problems?|issues?|disease|ki bimari|ka problem|ki problem|patient)\b|\b(?:history of|h\/o|had|have|has) sugar\b/g, " diabetes "],
   [/\bcad\b|\bihd\b/g, " heart disease "],
   [/\bckd\b/g, " kidney disease "],
   [/\btb\b/g, " tuberculosis "],

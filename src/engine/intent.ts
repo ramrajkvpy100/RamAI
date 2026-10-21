@@ -172,6 +172,7 @@ const SYMPTOM_WORDS: [string, RegExp][] = [
   ["vomiting", /\b(vomit\w*|throwing up|threw up)\b/],
   ["diarrhoea", /\b(diarr\w*|loose (?:motions?|stools?)|watery stools?)\b/],
   ["headache", /\bheadaches?\b/],
+  ["chest pain", /\bchest (?:pain|discomfort|tightness)\b/],
   ["bleeding", /\b(bleed\w*|blood\w*)\b/],
   ["breathlessness", /\b(breathless\w*|short(?:ness)? of breath|breathing difficulty|difficulty (?:in )?breathing)\b/],
 ];
@@ -231,6 +232,8 @@ function resolveHistory(rawClause: string, tk: string[], ctx: IntentContext): Re
     if (!hasAny(tk, id.phrases)) continue;
     // "age" alone is too loose unless the clause is short.
     if (id.id === "identity:age" && !hasAny(tk, ["how old", "your age", "what is your age"]) && tk.length > 3) continue;
+    // "How is this affecting your work?" asks what the illness does to them, not what their job is.
+    if (id.id === "identity:occupation" && /\b(affect\w*|impact\w*|cope|coping|manag\w*|able to|miss\w*|stopp?\w*|leave|interfer\w*)\b/.test(normalise(rawClause))) continue;
     if (id.id === "identity:complaint") {
       const cc = ctx.def.history.find((h) => h.group === "complaint");
       if (cc) return [{ kind: "history", targetId: cc.id, phrase: rawClause, matched: true }];
@@ -635,6 +638,10 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
   if (feelingQuestion) return done([{ kind: "history", targetId: "identity:feeling", phrase: rawClause, matched: true }]);
 
   // Questions addressed to the patient go to history first — except the stethoscope's words ("heart sounds?").
+  // "Is this dengue?", "do you think it is heart failure?" — the patient can't know (asked before any history match).
+  if (question && /^(?:is|could|can|might|would) (?:this|it|that) (?:be )?(?:a |an )?[a-z]|^(?:do|did) you think (?:it|this|that|she|he|they|i) (?:is|has|could|might|was)\b/.test(norm) && !/\b(pain|painful|hurt|sore|itchy|swollen|getting worse|better|worse)\b/.test(norm)) {
+    return done([{ kind: "history", targetId: "answer:diagnosis", phrase: rawClause, matched: true }]);
+  }
   if (question && !clinicianDirected) {
     const stethoscope = examCandidates(rawClause, tk, ctx, false).filter((c) => c.priority >= 5);
     if (stethoscope.length > 0) return done(resolveOverlaps(stethoscope));
@@ -650,7 +657,7 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     const exam = symptom ? [] : examCandidates(rawClause, tk, ctx, false).filter((c) => c.priority >= 4);
     if (exam.length > 0) return done(resolveOverlaps(exam));
     // "Is this dengue?", "could it be TB?" — the patient can't know, and a "No, doctor" would mislead.
-    if (/^(?:is|could|can|might|would) (?:this|it|that) (?:be )?|^(?:does|do) (?:he|she|i|you|they) have\b|^(?:is|are) (?:he|she|you|they) (?:having|suffering from)\b/.test(norm)) {
+    if (/^(?:is|could|can|might|would) (?:this|it|that) (?:be )?|^(?:does|do) (?:he|she|i|you|they) have\b|^(?:is|are) (?:he|she|you|they) (?:having|suffering from)\b|^(?:do|did) you think (?:it|this|that|she|he|they|i) (?:is|has|could|might|was)\b/.test(norm)) {
       return done([{ kind: "history", targetId: "answer:diagnosis", phrase: rawClause, matched: true }]);
     }
     // A short question about a symptom or a risk ("suicidal thoughts?", "fits?") is asked to be denied or confirmed.
@@ -749,6 +756,28 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
     const meds = ctx.def.history.find((h) => h.group === "medication");
     return [{ kind: "history", targetId: meds?.id ?? "fallback:open", phrase: raw, matched: !!meds }];
   }
+  // Questions about a named medicine — never orders (and never a "No, doctor" from the patient):
+  const named = drugCandidates(raw.toLowerCase(), tokens(plain), ctx).map((c) => c.intent).filter((i) => i.kind === "drug" && i.targetId && i.targetId !== "unknown");
+  if (named.length > 0) {
+    // "Is she on aspirin?", "does he take metformin?": her medicines.
+    if (/^(?:is|are|was) (?:he|she|they|the patient|patient|you|baby|the child) (?:on|taking|using)\b|^(?:does|do|did) (?:he|she|they|you|the patient) (?:take|use|still take)\b|^(?:already|currently) (?:on|taking)\b/.test(plain)) {
+      const meds = ctx.def.history.find((h) => h.group === "medication");
+      return [{ kind: "history", targetId: meds?.id ?? "fallback:yesno", phrase: raw, matched: !!meds }];
+    }
+    // "Is aspirin indicated?", "should I give aspirin?", "what dose of furosemide?": the doctor's own decision — the nurse waits for an order.
+    if (/^(?:is|are|would|will|isn't|wouldn't)\b.*\b(?:indicated|needed|required|necessary|safe|ok|okay|good|appropriate|contraindicated|useful|helpful|right|allowed)\b|^(?:should|shall|must|may|do) (?:i|we)\b.*\b(?:give|start|use|add|prescribe|continue|stop)\b|^what(?:s| is)? (?:the )?(?:right |correct |usual )?dose (?:of|for)\b|^how much \w+ (?:should|do|can)\b/.test(plain)) {
+      return [{ kind: "unknown", phrase: raw, matched: false, payload: { speaker: "nurse", settled: true, reply: "That's your decision, doctor. If you want it, tell me the dose and the route and I'll give it." } }];
+    }
+    // "Lasix 40 iv or 80?", "aspirin 75 or 150?": two doses offered — the nurse asks which (the order waits).
+    if (/\d+(?:\.\d+)?\s*(?:mg|mcg|g|units?|iu|ml)?\s*(?:iv|im|po|sc|oral)?\s+or\s+\d+(?:\.\d+)?/.test(plain)) {
+      const chosen = resolveClause(raw.replace(/(\d+(?:\.\d+)?)\s*(mg|mcg|g|units?|iu|ml)?\s*(iv|im|po|sc|oral)?\s+or\s+\d+(?:\.\d+)?\s*(mg|mcg|g|units?|iu|ml)?/i, "$3").replace(/\?/g, ""), ctx).filter((i) => i.kind === "drug" && i.targetId === named[0]!.targetId);
+      if (chosen[0]) {
+        const { amount: _a, unit: _u, dose: _d, ...rest } = chosen[0].payload ?? {};
+        void _a; void _u; void _d;
+        return [{ ...chosen[0], phrase: raw, payload: rest }];
+      }
+    }
+  }
   // "Start antibiotics", "give steroids", "something for the pain": an order for a kind of drug — which one is asked.
   const drugClass = plain.match(/\b(?:start|give|begin|put (?:him|her|them) on|prescribe|add|cover with|need)\b.{0,20}?\b(antibiotics?|steroids?|painkillers?|pain ?killers?|analgesics?|antiemetics?|antipyretics?|antihypertensives?|sedatives?|something for (?:the )?(pain|fever|vomiting|nausea|sleep|cough))\b/)
     // "IV antibiotics", "oral steroids", "broad-spectrum antibiotics" said on their own.
@@ -784,6 +813,17 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
     const own = ctx.def.exam.find((e) => e.match.some((m) => /\bfund(?:us|al)\b/i.test(m)));
     const womb = ctx.def.specialty === "OBGYN" || ctx.def.profile?.pregnant || /\bfundal\b/.test(plain);
     return [{ kind: "exam", targetId: own?.id ?? (womb ? "abdomen" : "eyes"), phrase: raw, matched: true }];
+  }
+  // "What did the ECG show?", "CBC findings?": what's back — never a new order.
+  const shown = plain.match(/^what (?:did|does|do) (?:the )?(.+?) (?:show|shows|say|reveal|tell)\b|^(?:the )?(.+?) (?:findings|showed|show what)\??$/);
+  if (shown) {
+    const named = resolveClause(shown[1] ?? shown[2] ?? "", ctx).filter((i) => i.kind === "investigation");
+    if (named.length) return named.map((i) => ({ ...i, phrase: raw, payload: { ...i.payload, reshow: true, report: true } }));
+  }
+  // "Bp?", "pulse?", "spo2?": the measurement — not a history question about blood pressure.
+  if (/^(?:bp|blood pressure|pulse|hr|heart rate|spo2|sats|saturation|temp|temperature|rr|resp rate|gcs)\s*\??$/.test(plain)) {
+    const v = resolveClause(raw.replace(/\?/g, ""), ctx).filter((i) => i.kind === "vitals");
+    if (v.length) return v;
   }
   // "Order all tests", "do every investigation": the lab needs to know which — and a scattergun costs the family.
   if (/\b(?:all|every) (?:the |possible |available )?(?:tests|investigations|labs|bloods|blood tests)\b|\b(?:order|do|send) everything\b|\bfull work ?up\b/i.test(plain)) {
