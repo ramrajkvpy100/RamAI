@@ -32,7 +32,7 @@ import { COUNTRY, type Country } from "../countries";
 import { FORMULARY } from "../formulary";
 import { levelMeta, trackLabel } from "../levels";
 import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Specialty } from "../types";
-import { CARE_LEVELS, CASE_TRACKS } from "../types";
+import { CARE_LEVELS, PLAYABLE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
 import { mockProvider, NoCaseError } from "./mock";
 import type { z } from "zod";
@@ -396,7 +396,8 @@ const pickOne = <T>(xs: readonly T[], random = Math.random): T => xs[Math.floor(
 
 /** What to ask for: the player's choices, and otherwise a varied mix — a new kind of patient each time. */
 function caseBrief(opts: StartOptions) {
-  const track: CaseTrack = opts.track ?? (opts.easy ? "opd" : pickOne(["opd", "opd", "opd", "emergency", "emergency", "phone"] as const));
+  // (Phone consults are no longer offered: a request for one is played in the clinic.)
+  const track: CaseTrack = opts.track && opts.track !== "phone" ? opts.track : opts.easy ? "opd" : pickOne(["opd", "opd", "opd", "emergency", "emergency"] as const);
   const levels = (opts.allowedLevels ?? CARE_LEVELS).filter((l) => !opts.easy || l === "phc" || l === "chc");
   const level: CareLevel = opts.level ?? pickOne(levels.length ? levels : (opts.allowedLevels ?? CARE_LEVELS));
   const common: Specialty[] = ["Medicine", "Medicine", "Dermatology", "Dermatology", "Surgery", "Pediatrics", "OBGYN", "Cardiology", "Respiratory", "Gastroenterology", "Infectious Disease", "Infectious Disease", "Endocrinology", "Neurology", "ENT", "Ophthalmology", "Orthopedics", "Nephrology", "Urology", "Psychiatry"];
@@ -471,14 +472,14 @@ function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
     { role: "system", content: authoring(country.id) },
     {
       role: "user",
-      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}${brief.track === "phone" ? " — the caller is the patient or a family member at home (never a hospital, a health centre or another doctor), so nothing can be examined, tested or injected" : ""}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : `Choose a realistic condition that fits; vary it — not always the most common one. ${["phc", "chc", "district"].includes(brief.level) ? "At this level, choose a condition commonly seen at such a facility — common or important presentations, no rare diseases (no rare syndromes, inborn errors, eosinophilic or genetic disorders)." : brief.level === "college" ? "Uncommon conditions are fine, rare ones occasionally." : "Rare and complex conditions are expected here."}`} The condition and its cause must occur where the patient lives (${country.name}) — never a disease, organism or venomous animal found only elsewhere in the world (Sin Nombre hantavirus, Lyme disease, coccidioidomycosis or rattlesnakes in India, say) unless recent travel is part of the story. patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
+      content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${opts.disease ? `The condition is ${opts.disease} (the doctor chose to practise it; never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.disease ? "" : `${seasonNote(country.id)} Often (not always) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${opts.disease ? "Give it a presentation typical of this setting." : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : `Choose a realistic condition that fits; vary it — not always the most common one. ${["phc", "chc", "district"].includes(brief.level) ? "At this level, choose a condition commonly seen at such a facility — common or important presentations, no rare diseases (no rare syndromes, inborn errors, eosinophilic or genetic disorders)." : brief.level === "college" ? "Uncommon conditions are fine, rare ones occasionally." : "Rare and complex conditions are expected here."}`} The condition and its cause must occur where the patient lives (${country.name}) — never a disease, organism or venomous animal found only elsewhere in the world (Sin Nombre hantavirus, Lyme disease, coccidioidomycosis or rattlesnakes in India, say) unless recent travel is part of the story. patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
 Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
     },
   ];
 }
 
 const partHead = (concept: Concept, brief: Brief) =>
-  `THE CASE (every part must agree with it):\n${JSON.stringify({ ...concept, setting: brief.track === "phone" ? "Teleconsult" : brief.track === "emergency" ? "ER" : "OPD" })}\n\n`;
+  `THE CASE (every part must agree with it):\n${JSON.stringify({ ...concept, setting: brief.track === "emergency" ? "ER" : "OPD" })}\n\n`;
 
 function dialoguePrompt(opts: StartOptions, concept: Concept, brief: Brief): ChatMessage[] {
   return [
@@ -501,7 +502,7 @@ function findingsPrompt(opts: StartOptions, concept: Concept, brief: Brief): Cha
     { role: "system", content: authoring(opts.country ?? "IN") },
     {
       role: "user",
-      content: `${partHead(concept, brief)}Write what the doctor finds.${brief.track === "phone" ? " This is a phone call: the exam entries are what the caller can see and describe at home in plain words (the colour, the swelling, how the breathing looks) — no measured signs, no examination only a clinician could do; the investigations are those the doctor would ask the patient to have done afterwards." : ""} Return JSON:
+      content: `${partHead(concept, brief)}Write what the doctor finds. Return JSON:
 { "exam": [{ "id", "group": "general-exam"|"systemic-exam"|"local-exam", "label", "match": [], "finding": "what is seen, felt and heard, objectively", "fact", "abnormal"?, "importance", "media"? }],
   "investigations": [{ "id", "name", "short", "category": "lab"|"bedside"|"ecg"|"imaging"|"photo"|"micro"|"histopath"|"function", "match": ["phrases a doctor might type"], "cost" (INR), "rows"?: [{ "analyte", "value", "unit", "reference", "flag": "normal"|"low"|"high"|"critical" }], "report"?: "findings only — never an impression or diagnosis", "media"?, "priority": "essential"|"useful"|"situational"|"unnecessary", "teaching": { "whenToOrder", "whatItTellsYou" } }] }
 media = { "spec": { …ECG or PICTURE fields… }, "alt": "what it is a picture of, without interpreting it", "caption": "acquisition details only, e.g. 'PA erect', 'Left cheek · close-up'" }
@@ -592,19 +593,15 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     specialty: brief.specialty,
     track: brief.track,
     level: brief.level,
-    setting: brief.track === "phone" ? "Teleconsult" : brief.track === "emergency" ? "ER" : "OPD",
+    setting: brief.track === "emergency" ? "ER" : "OPD",
     weight: 1,
     difficulty: (opts.easy ? 1 : concept.difficulty) as 1 | 2 | 3,
     ...(opts.country ? { countries: [opts.country] } : {}),
     ...(brief.persona ? { persona: brief.persona } : {}),
-    patient: { name: concept.patient.name, age: concept.patient.age, sex: concept.patient.sex, city: concept.patient.city, occupation: concept.patient.occupation, context: brief.track === "emergency" ? "Emergency" : brief.track === "phone" ? "Phone" : "OPD" } as ClinicalCaseDefinition["patient"],
+    patient: { name: concept.patient.name, age: concept.patient.age, sex: concept.patient.sex, city: concept.patient.city, occupation: concept.patient.occupation, context: brief.track === "emergency" ? "Emergency" : "OPD" } as ClinicalCaseDefinition["patient"],
     arrivalMinuteOfDay: 8 * 60 + Math.floor(Math.random() * 10 * 60),
     briefing: concept.briefing,
-    // A phone call has no nurse at the bedside: only the patient and family speak.
-    opening: (() => {
-      const lines = brief.track === "phone" ? d.opening.filter((o) => o.role !== "nurse") : d.opening;
-      return lines.length ? lines : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }];
-    })() as ClinicalCaseDefinition["opening"],
+    opening: (d.opening.length ? d.opening : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }]) as ClinicalCaseDefinition["opening"],
     baselineVitals: Object.fromEntries(Object.entries({ bp: "122/78", hr: "84", rr: "16", temp: "98.4", spo2: "98", weight: "62", ...cleanVitals(d.baselineVitals) }).map(([k, v]) => [k, { key: k, value: v }])) as ClinicalCaseDefinition["baselineVitals"],
     triageVitals: d.triageVitals as ClinicalCaseDefinition["triageVitals"],
     profile: d.profile,
@@ -1028,7 +1025,7 @@ export function createOpenAIProvider(): ClinicalProvider {
     /** Any specialty, mode or level can be invented. */
     async availability() {
       const all = <K extends string>(keys: readonly K[]) => Object.fromEntries(keys.map((k) => [k, 999])) as Partial<Record<K, number>>;
-      return { specialties: all(ALL_SPECIALTIES), tracks: all(CASE_TRACKS), levels: all(CARE_LEVELS) };
+      return { specialties: all(ALL_SPECIALTIES), tracks: all(PLAYABLE_TRACKS), levels: all(CARE_LEVELS) };
     },
 
     async interpret(text, ctx): Promise<Interpretation> {

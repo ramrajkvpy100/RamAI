@@ -53,6 +53,8 @@ export type CareLevel = "phc" | "chc" | "district" | "college" | "apex" | "grand
 
 export const CARE_LEVELS: readonly CareLevel[] = ["phc", "chc", "district", "college", "apex", "grandrounds"] as const;
 export const CASE_TRACKS: readonly CaseTrack[] = ["opd", "phone", "emergency"] as const;
+/** The modes offered and invented now. (Phone consults were retired; old phone sessions still replay.) */
+export const PLAYABLE_TRACKS: readonly CaseTrack[] = ["opd", "emergency"] as const;
 
 /* -------------------------------------------------------------------------- */
 /* Vitals & observations                                                       */

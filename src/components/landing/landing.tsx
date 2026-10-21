@@ -18,7 +18,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { countryFromLocale, type Country } from "@/engine/countries";
 import { levelMeta, trackLabel } from "@/engine/levels";
 import { RANKS } from "@/engine/progression";
-import { CARE_LEVELS, CASE_TRACKS } from "@/engine/types";
+import { CARE_LEVELS, PLAYABLE_TRACKS, type CaseTrack } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { INVITE_ONLY, PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
 
@@ -261,18 +261,17 @@ function Ladder({ country, onCountry }: { country: Country; onCountry: (country:
   );
 }
 
-const MODE_COPY: Record<(typeof CASE_TRACKS)[number], string> = {
+const MODE_COPY: Partial<Record<CaseTrack, string>> = {
   opd: "Walk-in patients. History, examination, the right test and the right prescription — at local prices.",
-  phone: "A worried caller and no examination. Triage, advise, and know when to send them in.",
   emergency: "Unstable patients and a ticking clock. Wrong orders have consequences — and a window to rescue.",
 };
 
 function Modes({ country }: { country: Country }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-      <SectionHead eyebrow="Three modes" title="Every way patients reach you." />
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {CASE_TRACKS.map((t) => (
+      <SectionHead eyebrow="Two modes" title="Every way patients reach you." />
+      <div className="mt-10 grid gap-4 md:grid-cols-2">
+        {PLAYABLE_TRACKS.map((t) => (
           <Tilt key={t} max={7}>
             <div className="panel h-full p-6 transition-transform duration-300 ease-out [transform:rotateX(var(--rx,0deg))_rotateY(var(--ry,0deg))]">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent-text">

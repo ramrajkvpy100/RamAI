@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
 import { levelMeta, trackLabel } from "@/engine/levels";
 import { ALL_SPECIALTIES } from "@/engine/progression";
-import { CARE_LEVELS, CASE_TRACKS, type CareLevel, type CaseTrack, type Specialty } from "@/engine/types";
+import { CARE_LEVELS, PLAYABLE_TRACKS, type CareLevel, type CaseTrack, type Specialty } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import type { CaseChoice, LibraryInfo } from "@/lib/engine-client";
 import { caseLabel } from "@/lib/format";
@@ -150,8 +150,8 @@ export function CasePicker({
         {more && (
           <>
         <Group label="Mode">
-          <div className="grid grid-cols-4 gap-1.5 rounded-xl bg-surface-3 p-1">
-            {[undefined, ...CASE_TRACKS].map((t) => {
+          <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-surface-3 p-1">
+            {[undefined, ...PLAYABLE_TRACKS].map((t) => {
               const none = t !== undefined && !(library.tracks[t] ?? 0);
               return (
                 <button

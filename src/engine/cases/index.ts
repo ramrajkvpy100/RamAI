@@ -26,14 +26,17 @@ import { tutHypoglycaemia } from "./tut-hypoglycaemia";
 
 export const CASE_LIBRARY: readonly ClinicalCaseDefinition[] = [
   dermAcne, dermMelasma, dermTinea, dermPsoriasis, medPad, idDengue, surgAppendicitis, emAdhf,
-  phAcs, emViperPhc, medSleApex, grAip, obgPphChc,
+  emViperPhc, medSleApex, grAip, obgPphChc,
 ];
+
+/** Retired cases (phone consults): never offered, but sessions already started with them still replay. */
+const RETIRED_CASES: readonly ClinicalCaseDefinition[] = [phAcs];
 
 /** The guided demo case — outside the library, so it's never picked at random or counted. */
 export const TUTORIAL_CASE: ClinicalCaseDefinition = tutHypoglycaemia;
 
 /** Every case the engine can replay. */
-export const ALL_CASES: readonly ClinicalCaseDefinition[] = [...CASE_LIBRARY, TUTORIAL_CASE];
+export const ALL_CASES: readonly ClinicalCaseDefinition[] = [...CASE_LIBRARY, ...RETIRED_CASES, TUTORIAL_CASE];
 
 export function getCase(id: string): ClinicalCaseDefinition | undefined {
   return ALL_CASES.find((c) => c.id === id);

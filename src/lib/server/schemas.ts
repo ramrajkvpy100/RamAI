@@ -19,7 +19,8 @@ export const StartSchema = z.object({
   daily: z.boolean().optional(),
   /** "any": every specialty this time, whatever the doctor's own. */
   specialty: z.union([Specialty, z.literal("any")]).optional(),
-  track: z.enum(CASE_TRACKS as unknown as [string, ...string[]]).optional(),
+  // An old page asking for a phone consult gets any mode instead (phone consults were retired).
+  track: z.enum(CASE_TRACKS as unknown as [string, ...string[]]).optional().transform((t) => (t === "phone" ? undefined : t)),
   level: z.enum(CARE_LEVELS as unknown as [string, ...string[]]).optional(),
   /** "All resources": every test and treatment available. */
   unlimited: z.boolean().optional(),
