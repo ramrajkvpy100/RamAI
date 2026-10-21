@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { isScraper } from "@/lib/server/scrapers";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { ACCESS_COOKIE, inviteOnly, validAccessCookie } from "@/lib/server/access-cookie";
+import { ACCESS_COOKIE, inviteOnly, makeAccessCookie, validAccessCookie } from "@/lib/server/access-cookie";
 import { authCookieOptions, hasAuthCookie, supabaseConfig } from "@/lib/server/supabase-env";
 
 /** Pages anyone may open: the invite page, signing in, the legal pages and shared result cards. */
@@ -72,6 +72,16 @@ export async function proxy(request: NextRequest) {
   if (process.env.VERCEL_ENV === "production" && live && host.endsWith(".vercel.app") && host !== live) {
     const to = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${live}`);
     return NextResponse.redirect(to, 308);
+  }
+
+  // The Android app (our Play testers) is let in without a code: its first page is opened with an
+  // android-app://com.ramai.app referrer, and that browser gets the same pass an invite code gives.
+  const fromApp = (request.headers.get("referer") ?? "").startsWith("android-app://com.ramai.app") || request.nextUrl.searchParams.get("source") === "android";
+  if (inviteOnly() && fromApp && !hasAuthCookie(request.cookies.getAll().map((c) => c.name)) && !(await validAccessCookie(request.cookies.get(ACCESS_COOKIE)?.value))) {
+    const pass = await makeAccessCookie();
+    const res = NextResponse.redirect(request.nextUrl);
+    res.cookies.set(ACCESS_COOKIE, pass.value, { httpOnly: true, secure: https, sameSite: "lax", path: "/", maxAge: pass.maxAge });
+    return res;
   }
 
   // Invite-only: a visitor with neither an invite pass nor a signed-in session sees the invite page.

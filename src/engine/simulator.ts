@@ -2664,7 +2664,6 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
  * A nudge towards the next thing an expert would do — the area, never the answer. Each is counted
  * and shown in the debrief.
  */
-const HINT_LIMIT = 5;
 
 /** "Stand up", "lie down", "take a deep breath": the patient does it (if well enough), in a line. */
 function handleInstruct(ctx: TurnContext, phrase: string): TurnEffect[] {
@@ -2704,7 +2703,7 @@ const HISTORY_WHY: Partial<Record<string, string>> = {
 function handleHint(ctx: TurnContext): TurnEffect[] {
   const { def, hidden } = ctx;
   // Asking your senior: one clear next step, why it matters, and a button that does it. Counted in the debrief.
-  if ((hidden.actions.hint?.length ?? 0) >= HINT_LIMIT) return [{ type: "message", role: "system", kind: "status", text: `Your senior has helped ${HINT_LIMIT} times this case — try the rest yourself. You can do it.` }];
+  // As often as asked: it is for learning (each one is counted in the debrief).
   record(hidden, "hint");
   const history = def.history.find((h) => h.importance === "essential" && hidden.history[h.id] === undefined);
   const exam = def.exam.find((e) => e.importance === "essential" && hidden.exams[e.id] === undefined);
