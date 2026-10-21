@@ -21,10 +21,11 @@ import { findRealImage, type Credit } from "./real-images";
 /** Pictures kept per diagnosis. */
 const PER_ITEM = 3;
 
-const TYPE: Record<Modality, PictureType> = { ecg: "photo", xray: "xray", ct: "ct", usg: "usg", smear: "slide" };
+const TYPE: Record<Modality, PictureType> = { ecg: "photo", xray: "xray", ct: "ct", usg: "usg", smear: "slide", clinical: "photo" };
 const STYLE: Partial<Record<Modality, string>> = {
   ecg: "A real 12-lead ECG printed on standard pink-red grid paper at 25 mm/s and 10 mm/mV, photographed flat or scanned: crisp black traces, lead labels only, true electrophysiology.",
   usg: "An original, unannotated ultrasound frame as a radiologist sees it on the scanner: no text labels, arrows or captions naming any structure or finding (machine overlays such as depth scale and calipers are fine). Reject any image whose text names the diagnosis or a finding.",
+  clinical: "A real clinical photograph of a patient's skin, eye, mouth, nails or body, as a doctor sees it at the bedside: no text, arrows, labels or captions naming the condition. Reject any image whose text names the diagnosis, and any illustration or drawing.",
   smear: "A real thin peripheral blood smear under oil-immersion light microscopy (×1000), Leishman or Giemsa stain: pink red cells, purple-staining nuclei, true cell sizes and morphology.",
 };
 
@@ -52,7 +53,7 @@ interface Row {
 
 function brief(modality: Modality, item: PracticeItem): PictureBrief {
   const m = MODALITIES[modality];
-  return { type: TYPE[modality], view: m.kind, describe: `A teaching ${m.kind} showing ${item.describe}. It must clearly show the classic features: ${item.key}`, topic: item.label, ...(STYLE[modality] ? { style: STYLE[modality] } : {}) };
+  return { type: TYPE[modality], view: m.kind, describe: modality === "clinical" ? `A real clinical photograph showing ${item.describe}. It must be recognisable as ${item.label} to a doctor; the exact body site and severity don't matter.` : `A teaching ${m.kind} showing ${item.describe}. It must clearly show the classic features: ${item.key}`, topic: item.label, ...(STYLE[modality] ? { style: STYLE[modality] } : {}) };
 }
 
 /** Finds (or makes) one more picture of a diagnosis, checked against it, and keeps it. */
@@ -66,7 +67,9 @@ export async function addPicture(modality: Modality, itemId: string): Promise<bo
   const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = MODALITIES[modality].kind;
   let found: { mime: string; base64: string; credit?: Credit; source: "commons" } | null = null;
-  const real = await findRealImage([...item.search, `${item.label} ${kind}`], accept, 25_000, used);
+  // Clinical photos: the plain name first — Commons finds far more for "psoriasis" than for a long phrase.
+  const plainName = item.label.replace(/\s*\(.*\)$/, "");
+  const real = await findRealImage(modality === "clinical" ? [plainName, ...item.search] : [...item.search, `${item.label} ${kind}`], accept, 25_000, used);
   if (real) found = { ...real, source: "commons" };
   // Practice uses real images only — never AI-made ones. (ECGs RamAI can draw exactly have their tracing besides.)
   if (!found) return false;

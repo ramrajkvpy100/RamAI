@@ -54,7 +54,7 @@ function writerPrompt(exam: ExamId, subject: string, style: ExamStyle, avoid: st
 Style: ${e.style}.
 Cover different high-yield topics — no two questions on the same fact. ${focus}${pyq} A spread of difficulty: about a third easy, half medium, the rest hard.${avoid.length ? `\nTopics already in recent sets — choose others: ${avoid.slice(0, 40).join("; ")}.` : ""}
 Exactly one best answer each; plausible, homogeneous distractors; no "all of the above" or "none of the above". In explanations, refer to options by their content, never by letter or position.
-Each question: {"stem","options":[${e.options} options],"answer": the 0-based index of the best answer,"explanation":"why it's right, and briefly why each other option isn't","topic":"a short tag, e.g. 'Brachial plexus — Erb palsy'","difficulty":"easy"|"medium"|"hard"${style === "pyq" ? ',"pattern"' : ""}}
+Each question: {"stem","options":[${e.options} options],"answer": the 0-based index of the best answer,"explanation":"short lines (one point per line, separated by \\n, key words in **bold**): why it's right, then one line per other option saying why it isn't","topic":"a short tag, e.g. 'Brachial plexus — Erb palsy'","difficulty":"easy"|"medium"|"hard"${style === "pyq" ? ',"pattern"' : ""}}
 Return {"pearls":[],"mcqs":[…]}`,
     },
   ];

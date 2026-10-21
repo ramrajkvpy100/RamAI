@@ -1,12 +1,10 @@
 /** Low-data mode: pictures (AI drawings, portraits) load only when tapped. Remembered on this device. */
 const KEY = "ramai.lowdata";
 
+/** (The low-data switch was removed: pictures always load.) */
 export function isLowData(): boolean {
-  try {
-    return localStorage.getItem(KEY) === "1";
-  } catch {
-    return false;
-  }
+  void KEY;
+  return false;
 }
 
 export function setLowDataPref(on: boolean) {

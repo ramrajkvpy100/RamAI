@@ -106,18 +106,6 @@ export function Hub({ initial }: { initial: Me }) {
         </Link>
       </section>
 
-      {/* The daily case */}
-      <Link href="/cases" className="panel group relative flex items-center gap-4 overflow-hidden p-4 sm:p-5">
-        <span aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-orange-400 to-rose-500" />
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 text-white shadow-sm">
-          <Icon name="calendar" size={22} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[16px] font-semibold">Daily case #{dailyNumber(day)}</span>
-          <span className="block text-[13px] leading-5 text-fg-2">The same patient for every doctor today — see where you rank.</span>
-        </span>
-        <Icon name="arrow-right" size={18} className="shrink-0 text-fg-3 transition-transform group-hover:translate-x-0.5" />
-      </Link>
 
       {/* Everything, as tiles */}
       <section aria-labelledby="hub-places">
@@ -144,6 +132,19 @@ export function Hub({ initial }: { initial: Me }) {
           ))}
         </div>
       </section>
+
+      {/* The daily case — last on the page */}
+      <Link href="/cases" className="panel group relative flex items-center gap-4 overflow-hidden p-4 sm:p-5">
+        <span aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-orange-400 to-rose-500" />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 text-white shadow-sm">
+          <Icon name="calendar" size={22} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[16px] font-semibold">Daily case #{dailyNumber(day)}</span>
+          <span className="block text-[13px] leading-5 text-fg-2">The same patient for every doctor today — see where you rank.</span>
+        </span>
+        <Icon name="arrow-right" size={18} className="shrink-0 text-fg-3 transition-transform group-hover:translate-x-0.5" />
+      </Link>
     </div>
   );
 }

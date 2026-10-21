@@ -63,7 +63,10 @@ export async function POST(req: Request) {
     // Students get classic presentations; everyone else after their first few cases gets the full range.
     const stage = (await db.get<{ stage: string }>("SELECT stage FROM user_prefs WHERE user_id = ?", user.id).catch(() => undefined))?.stage;
     // The first three cases are always easy and winnable — even ones picked from the menu; students and interns keep classic cases.
-    const easy = !tutorial && !daily && (total < 3 || (!picked && (user.isGuest || stage === "student" || stage === "intern")));
+    // The doctor's own choice of difficulty wins; without one, newcomers and students get easy cases.
+    const difficulty = body.difficulty;
+    const easy = !tutorial && !daily && (difficulty ? difficulty === "easy" : total < 3 || (!picked && (user.isGuest || stage === "student" || stage === "intern")));
+    const hard = !tutorial && !daily && difficulty === "hard";
     // Their own specialty, unless they chose one (or "any") for this case. "mixed" (or not said): every specialty.
     const own = user.specialty && user.specialty !== "mixed" ? user.specialty : undefined;
     const specialty = body.specialty === "any" ? undefined : ((body.specialty as Specialty | undefined) ?? own);
@@ -93,7 +96,8 @@ export async function POST(req: Request) {
       if (host) duelId = newDuelId();
     }
     // Free first: the other doctor's case, one written ahead for this doctor, or one from the bank they haven't met.
-    const fresh = tutorial || daily || body.disease || shared;
+    // (A hard case is always written fresh: the ready ones are easy or standard.)
+    const fresh = tutorial || daily || body.disease || shared || hard;
     const pooled = fresh ? null : await takeReady(user.id, choice).catch(() => null);
     const banked = fresh || pooled ? null : await takeFromBank(user.id, choice).catch(() => null);
     const ready = shared ?? pooled ?? banked;
@@ -102,6 +106,7 @@ export async function POST(req: Request) {
       ready,
       userId: user.id,
       easy,
+      hard,
       caseNumber: total + 1,
       specialty,
       track: body.track as CaseTrack | undefined,

@@ -199,6 +199,8 @@ export interface StartCaseOptions {
   tutorial?: boolean;
   /** A newcomer: an easy, classic case. */
   easy?: boolean;
+  /** The doctor asked for a hard case. */
+  hard?: boolean;
   /** Where the player practises; fixed for the life of the case. */
   country?: Country;
   /** Today's daily case (IST day key) instead of a pick from the library. */

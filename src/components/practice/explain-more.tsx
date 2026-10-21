@@ -1,5 +1,6 @@
 "use client";
 
+import { RichLines } from "@/components/ui/rich-lines";
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
@@ -45,7 +46,7 @@ export function ExplainMore({ drill, question, options, answer, explanation }: {
             <ul className="mt-1 flex flex-col gap-1">
               {teaching.others.map((o) => (
                 <li key={o.option}>
-                  <b className="font-semibold">{o.option}:</b> {o.why}
+                  <b className="font-semibold">{o.option}:</b> <RichLines text={o.why} className="inline" />
                 </li>
               ))}
             </ul>
@@ -77,7 +78,7 @@ function Part({ title, text }: { title: string; text: string }) {
   return (
     <div>
       <h4 className="text-[12px] font-semibold tracking-wide text-fg-3 uppercase">{title}</h4>
-      <p className="mt-1 whitespace-pre-line">{text}</p>
+      <RichLines text={text} className="mt-1" />
     </div>
   );
 }

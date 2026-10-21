@@ -322,9 +322,10 @@ function feedbackPrompt({ def, transcript, debrief }: FeedbackInput): ChatMessag
 Rules:
 - The score has already been decided by fixed marking rules. Never change it, re-score it, or contradict it.
 - Comment on their clinical reasoning: what they prioritised, the order of their steps, what they missed and why it matters for this patient.
-- Be specific to what they actually did. Plain language, no markdown, no headings.
+- Be specific to what they actually did. Plain language, no headings.
+- Short lines, never paragraphs: each point on its own line (separate lines with \n), under 15 words, with its key words wrapped in **double asterisks** for bold.
 - When the patient was a difficult one (anxious, reluctant, low health literacy), say in the reasoning how well the doctor communicated: explaining simply, reassuring, checking understanding, showing empathy.
-- Output JSON only: {"summary":"two or three sentences on how it went","reasoning":"two or three sentences on their clinical reasoning","nextTime":["two to four short, concrete tips"]}`,
+- Output JSON only: {"summary":"two or three short lines on how it went","reasoning":"two or three short lines on their clinical reasoning","nextTime":["two to four short, concrete tips"]}`,
     },
     {
       role: "user",
@@ -521,7 +522,11 @@ function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
   const chosen = opts.disease ?? brief.condition;
   const country = COUNTRY[opts.country ?? "IN"];
   const level = levelMeta(brief.level, country.id);
-  const difficulty = opts.easy ? "1 — EASY: a common, classic presentation with clear findings and a straightforward plan, for a doctor's first cases — the patient stays stable while the doctor works, with no sudden deterioration, so a careful beginner can win it" : "matched to the setting (1 easy, 2 moderate, 3 hard)";
+  const difficulty = opts.easy
+    ? "1 — VERY EASY: one of the commonest conditions, with a classic textbook presentation — the key symptom is volunteered, the findings are clear and typical, one or two simple tests confirm it, and the treatment is a standard first-line one. The patient stays stable while the doctor works, with no sudden deterioration, no misleading clues and no complications, so a careful beginner wins it"
+    : opts.hard
+      ? "3 — HARD: a less common condition or an atypical presentation, with a reasonable differential to work through, findings that need looking for, and a patient who may deteriorate if the doctor is slow or wrong — still fair and solvable from the history, examination and tests"
+      : "2 — MEDIUM: a common condition with a typical presentation, a short differential, and a clear plan once the key test is back";
   return [
     { role: "system", content: authoring(country.id) },
     {
@@ -649,7 +654,7 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     level: brief.level,
     setting: brief.track === "emergency" ? "ER" : "OPD",
     weight: 1,
-    difficulty: (opts.easy ? 1 : concept.difficulty) as 1 | 2 | 3,
+    difficulty: (opts.easy ? 1 : opts.hard ? 3 : concept.difficulty) as 1 | 2 | 3,
     ...(opts.country ? { countries: [opts.country] } : {}),
     ...(brief.persona ? { persona: brief.persona } : {}),
     patient: { name: concept.patient.name, age: concept.patient.age, sex: concept.patient.sex, city: concept.patient.city, occupation: concept.patient.occupation, context: brief.track === "emergency" ? "Emergency" : "OPD" } as ClinicalCaseDefinition["patient"],
@@ -777,7 +782,7 @@ function learnPrompt(def: ClinicalCaseDefinition, country: Country): ChatMessage
 Write, for a doctor preparing for ${exam.name}:
 - "pearls": 3–5 high-yield clinical pearls this case teaches — specific, practical and memorable, one sentence each.
 - "mcqs": 5 questions in ${exam.style}. Test what this case needs: the diagnosis, the right investigation, management, a complication, and one closely related high-yield fact. Exactly one best answer each; plausible, homogeneous distractors; no "all of the above" or "none of the above". In explanations, refer to options by their content, never by letter or position.
-Each question: {"stem","options":[${exam.options} options],"answer": the 0-based index of the best answer,"explanation":"why it's right, and briefly why each other option isn't","topic":"a short tag, e.g. 'STEMI — reperfusion'","difficulty":"easy"|"medium"|"hard"}
+Each question: {"stem","options":[${exam.options} options],"answer": the 0-based index of the best answer,"explanation":"short lines (one point per line, separated by \\n, key words in **bold**): why it's right, then one line for each other option saying why it isn't","topic":"a short tag, e.g. 'STEMI — reperfusion'","difficulty":"easy"|"medium"|"hard"}
 Return {"pearls":[…],"mcqs":[…]}`,
     },
   ];

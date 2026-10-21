@@ -249,10 +249,11 @@ describe("questions come with ready answers, and bare words are asked about", ()
 });
 
 describe("hints", () => {
-  it("a hint points to the next step, never the answer, and is counted", async () => {
+  it("asking the senior gives the next step, why, and a button that does it — never the diagnosis — and is counted", async () => {
     const { surgAppendicitis: c } = await import("@/engine/cases/surg-appendicitis");
     const { state, hidden } = play(c, ["Hint"]);
-    expect(state.messages.at(-1)?.text).toMatch(/^💡 Hint 1:/);
+    expect(state.messages.at(-1)?.text).toMatch(/^👩‍⚕️ Your senior: .+\nWhy: /);
+    expect(state.messages.at(-1)?.replies?.length).toBe(1);
     expect(state.messages.at(-1)?.text ?? "").not.toMatch(/appendicitis/i);
     expect(hidden.actions.hint).toHaveLength(1);
   });

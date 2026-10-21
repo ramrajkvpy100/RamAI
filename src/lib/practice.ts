@@ -7,7 +7,7 @@
  */
 import type { EcgSpec } from "@/engine/types";
 
-export type Modality = "ecg" | "xray" | "ct" | "usg" | "smear";
+export type Modality = "ecg" | "xray" | "ct" | "usg" | "smear" | "clinical";
 
 export interface PracticeItem {
   id: string;
@@ -140,6 +140,36 @@ export const MODALITIES: Record<Modality, ModalityInfo> = {
       { id: "aml", label: "Acute myeloid leukaemia (Auer rods)", key: "Large myeloblasts with fine chromatin, nucleoli and needle-like Auer rods.", search: ["Auer rods myeloblast blood smear"], describe: "myeloblasts containing Auer rods" },
       { id: "cll", label: "Chronic lymphocytic leukaemia", key: "Many small mature lymphocytes and smudge cells.", search: ["chronic lymphocytic leukemia smudge cells"], describe: "many small mature lymphocytes with smudge cells in CLL" },
       { id: "microfilaria", label: "Microfilaria (Wuchereria bancrofti)", key: "A sheathed microfilaria lying among the red cells on a night smear.", search: ["Wuchereria bancrofti microfilaria blood smear"], describe: "sheathed Wuchereria bancrofti microfilaria on a blood smear" },
+    ],
+  },
+  clinical: {
+    id: "clinical",
+    label: "Clinical images",
+    short: "Clinical",
+    kind: "clinical photograph",
+    items: [
+      { id: "psoriasis", label: "Plaque psoriasis", key: "Well-demarcated, red plaques with **silvery scale** on the **extensor surfaces** (elbows, knees).", search: ["plaque psoriasis elbow", "psoriasis vulgaris plaques"], describe: "well-demarcated red scaly plaques of psoriasis, anywhere on the body" },
+      { id: "vitiligo", label: "Vitiligo", key: "Sharply defined **depigmented (milk-white) macules**, often symmetrical, around the face, hands or genitals.", search: ["vitiligo hands", "vitiligo depigmentation"], describe: "depigmented milk-white patches of vitiligo, anywhere on the body" },
+      { id: "zoster", label: "Herpes zoster (shingles)", key: "Grouped **vesicles on a red base** in a **single dermatome**, not crossing the midline.", search: ["herpes zoster dermatome vesicles", "shingles rash trunk"], describe: "grouped vesicles or crusts on a red base in a band on one side (any dermatome)" },
+      { id: "varicella", label: "Chickenpox (varicella)", key: "Itchy vesicles **in different stages** (papules, vesicles, crusts) at once — 'dewdrop on a rose petal'.", search: ["chickenpox rash vesicles child", "varicella rash"], describe: "a chickenpox rash: vesicles, papules or crusts, anywhere on the body" },
+      { id: "measles", label: "Measles", key: "A **maculopapular rash** spreading from the face downwards, after fever, cough, coryza and conjunctivitis; Koplik spots in the mouth.", search: ["measles rash face", "measles maculopapular rash"], describe: "a blotchy red maculopapular measles rash, anywhere on the body" },
+      { id: "tinea", label: "Tinea corporis (ringworm)", key: "An annular, scaly plaque with an **active raised edge** and **central clearing**.", search: ["tinea corporis ring", "ringworm skin annular"], describe: "a ring-shaped (annular) scaly patch of tinea, anywhere on the body" },
+      { id: "scabies", label: "Scabies", key: "Itchy papules and **burrows** in the **finger webs**, wrists and genitals, worse at night.", search: ["scabies finger webs burrows", "scabies hand"], describe: "the papules, burrows or excoriations of scabies, anywhere on the body" },
+      { id: "impetigo", label: "Impetigo", key: "**Honey-coloured crusts** around the nose and mouth, usually in children.", search: ["impetigo honey crusted face", "impetigo child"], describe: "honey-coloured crusts of impetigo, anywhere on the skin" },
+      { id: "urticaria", label: "Urticaria", key: "Raised, itchy **wheals** that come and go **within 24 hours**, leaving no mark.", search: ["urticaria hives wheals", "urticaria skin"], describe: "raised pale-centred itchy wheals with surrounding redness" },
+      { id: "cellulitis", label: "Cellulitis", key: "A **spreading, warm, tender red** area of skin with poorly defined edges, often on the leg.", search: ["cellulitis leg", "cellulitis lower limb erythema"], describe: "a red, swollen area of cellulitis, anywhere on the body" },
+      { id: "jaundice", label: "Jaundice (scleral icterus)", key: "**Yellow sclerae** — visible when bilirubin is above about 2.5–3 mg/dL.", search: ["scleral icterus jaundice eye", "jaundice yellow sclera"], describe: "yellow discolouration of the sclera of the eye" },
+      { id: "clubbing", label: "Finger clubbing", key: "Loss of the nail-bed angle and a **bulbous fingertip** (positive Schamroth's window sign).", search: ["finger clubbing nails", "digital clubbing"], describe: "clubbed fingers or toes with bulbous tips" },
+      { id: "koilonychia", label: "Koilonychia", key: "**Spoon-shaped**, thin, concave nails — classically **iron deficiency**.", search: ["koilonychia spoon nails"], describe: "spoon-shaped concave fingernails" },
+      { id: "goitre", label: "Goitre", key: "A **swelling in the front of the neck** that **moves up on swallowing**.", search: ["goitre neck swelling", "thyroid goiter"], describe: "a visible goitre — an enlarged thyroid in the neck" },
+      { id: "conjunctivitis", label: "Conjunctivitis", key: "A **red eye** with discharge, normal vision and a normal pupil.", search: ["conjunctivitis red eye discharge", "bacterial conjunctivitis"], describe: "a red, inflamed conjunctiva with sticky discharge" },
+      { id: "oral-candida", label: "Oral thrush (candidiasis)", key: "**White curd-like plaques** on the tongue and mouth that **scrape off**, leaving a red base.", search: ["oral candidiasis tongue", "oral thrush"], describe: "white curd-like plaques on the tongue and inside of the mouth" },
+      { id: "acne", label: "Acne vulgaris", key: "**Comedones** (blackheads, whiteheads), papules and pustules on the face, chest and back.", search: ["acne vulgaris face comedones"], describe: "acne: comedones, papules or pustules" },
+      { id: "cyanosis", label: "Central cyanosis", key: "**Blue lips and tongue** — low oxygen saturation in the arterial blood.", search: ["central cyanosis lips", "cyanosis"], describe: "bluish discolouration of the lips and tongue" },
+      { id: "pitting-oedema", label: "Pitting oedema", key: "Swelling of the legs that **keeps a dent** after pressing for a few seconds.", search: ["pitting edema leg", "pitting oedema"], describe: "pitting oedema — a dent left in swollen skin" },
+      { id: "leprosy", label: "Leprosy (hypopigmented patch)", key: "A **hypopigmented, anaesthetic** patch — loss of sensation is the key sign.", search: ["leprosy skin patch hypopigmented", "tuberculoid leprosy"], describe: "a skin patch of leprosy" },
+      { id: "molluscum", label: "Molluscum contagiosum", key: "Small, firm, pearly papules with a **central dimple (umbilication)**.", search: ["molluscum contagiosum papules"], describe: "small pearly umbilicated papules on the skin" },
+      { id: "kwashiorkor", label: "Severe acute malnutrition", key: "**Visible wasting** (or oedema in kwashiorkor) — MUAC below 11.5 cm in a child aged 6–59 months.", search: ["severe acute malnutrition child", "marasmus child"], describe: "a child with visible severe wasting" },
     ],
   },
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { RichLines } from "@/components/ui/rich-lines";
 import { ReportProblem } from "@/components/case/report-problem";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -20,10 +21,17 @@ const pct = (c: number, n: number) => (n ? Math.round((c / n) * 100) : 0);
 export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stats: ExamStats | null }) {
   const info = EXAMS[exam];
   // A subject named in the link (?subject=Medicine, from a debrief) is picked to start with.
-  const [subject, setSubject] = useState<string>(MIXED);
+  // Subjects picked (none = every subject), how many questions, and how hard.
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const setSubject = (s: string) => setSubjects(s === MIXED ? [] : [s]);
+  const toggleSubject = (s: string) => setSubjects((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s].slice(-4)));
+  const [count, setCount] = useState<5 | 10>(10);
+  const [level, setLevel] = useState<"any" | "easy" | "medium" | "hard">("any");
+  /** Where each question came from (its set and place), so a mixed round can be answered. */
+  const [refs, setRefs] = useState<{ setId: string; i: number; subject: string }[]>([]);
   useEffect(() => {
     const asked = new URLSearchParams(window.location.search).get("subject");
-    if (asked && info.subjects.includes(asked)) setSubject(asked);
+    if (asked && info.subjects.includes(asked)) setSubjects([asked]);
   }, [info.subjects]);
   const [style, setStyle] = useState<ExamStyle>("pyq");
   const [set, setSet] = useState<ExamSet | null>(null);
@@ -36,12 +44,20 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
   /** The score shows once they've read the last explanation. */
   const [scored, setScored] = useState(false);
 
-  const start = async (s = subject) => {
+  const start = async (picked: string[] = subjects) => {
     setLoading(true);
     setError(null);
     try {
-      const { set } = await examSet(exam, s, style);
-      setSet(set);
+      // One set per subject picked (up to four), mixed together — then the chosen difficulty first, cut to 5 or 10.
+      const want = picked.length ? picked : [MIXED];
+      const sets = await Promise.all(want.map((s) => examSet(exam, s, style).then((r) => r.set)));
+      const pool = sets.flatMap((st) => st.questions.map((q, i) => ({ q, ref: { setId: st.id, i, subject: st.subject } })));
+      const rank = (d: string) => (level === "any" || d === level ? 0 : 1);
+      // Interleave the subjects, then put the asked-for difficulty first.
+      const mixed = pool.map((x, k) => ({ x, k: (k % 10) * 10 + Math.floor(k / 10) })).sort((a, b) => a.k - b.k).map((y) => y.x);
+      const chosen = [...mixed].sort((a, b) => rank(a.q.difficulty) - rank(b.q.difficulty)).slice(0, count);
+      setRefs(chosen.map((c) => c.ref));
+      setSet({ ...sets[0]!, id: chosen.map((c) => `${c.ref.setId}:${c.ref.i}`).join(","), subject: want.length === 1 ? want[0]! : MIXED, questions: chosen.map((c) => c.q), repeat: sets.every((st) => st.repeat) });
       setIndex(0);
       setChecked({});
       setScored(false);
@@ -56,15 +72,17 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
     if (!set || checked[index] || busy) return;
     setBusy(true);
     try {
-      const r = await examAnswer(set.id, index, choice);
+      const ref = refs[index];
+      const r = ref ? await examAnswer(ref.setId, ref.i, choice) : await examAnswer(set.id, index, choice);
       setChecked((c) => ({ ...c, [index]: { choice, ...r } }));
       playSfx(r.correct ? "correct" : "wrong");
       // Their own tally, kept apart from cases, XP and rank.
       setStats((st) => {
         const base = st ?? { answered: 0, correct: 0, subjects: [] };
-        const row = base.subjects.find((x) => x.subject === set.subject) ?? { subject: set.subject, answered: 0, correct: 0 };
+        const subj = refs[index]?.subject ?? set.subject;
+        const row = base.subjects.find((x) => x.subject === subj) ?? { subject: subj, answered: 0, correct: 0 };
         const updated = { ...row, answered: row.answered + 1, correct: row.correct + (r.correct ? 1 : 0) };
-        return { answered: base.answered + 1, correct: base.correct + (r.correct ? 1 : 0), subjects: [updated, ...base.subjects.filter((x) => x.subject !== set.subject)] };
+        return { answered: base.answered + 1, correct: base.correct + (r.correct ? 1 : 0), subjects: [updated, ...base.subjects.filter((x) => x.subject !== subj)] };
       });
     } catch (err) {
       setError(err instanceof ClinicalEngineError ? err.message : "That answer didn't go through. Try again.");
@@ -109,22 +127,42 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
               </button>
             ))}
           </div>
-          <label htmlFor="subject" className="text-[14px] font-semibold">
-            Subject
-          </label>
-          <select
-            id="subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="h-11 rounded-xl border border-line bg-surface px-3 text-[15px] outline-none focus:border-accent-line focus:shadow-[0_0_0_3px_var(--accent-soft)]"
-          >
-            <option value={MIXED}>Mixed — every subject</option>
-            {info.subjects.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          <div>
+            <div className="text-[14px] font-semibold">Subjects <span className="font-normal text-fg-2">— pick one or several, or none for every subject</span></div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" aria-pressed={subjects.length === 0} onClick={() => setSubjects([])} className={cn("rounded-full border px-3.5 py-1.5 text-[13px] font-medium", subjects.length === 0 ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                All subjects
+              </button>
+              {info.subjects.map((s) => (
+                <button key={s} type="button" aria-pressed={subjects.includes(s)} onClick={() => toggleSubject(s)} className={cn("rounded-full border px-3.5 py-1.5 text-[13px] font-medium", subjects.includes(s) ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                  {subjects.includes(s) ? "✓ " : ""}
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <div className="text-[14px] font-semibold">Questions</div>
+              <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1">
+                {([5, 10] as const).map((c) => (
+                  <button key={c} type="button" aria-pressed={count === c} onClick={() => setCount(c)} className={cn("h-10 rounded-lg text-[14px] font-semibold", count === c ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-[14px] font-semibold">Difficulty</div>
+              <div className="mt-2 grid grid-cols-4 gap-1.5 rounded-xl bg-surface-3 p-1">
+                {(["any", "easy", "medium", "hard"] as const).map((d) => (
+                  <button key={d} type="button" aria-pressed={level === d} onClick={() => setLevel(d)} className={cn("h-10 rounded-lg text-[13px] font-semibold capitalize", level === d ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
+                    {d === "any" ? "Mixed" : d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           {stats && stats.subjects.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {stats.subjects.slice(0, 6).map((s) => (
@@ -135,7 +173,7 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
             </div>
           )}
           <button type="button" onClick={() => void start()} disabled={loading} className="flex h-11 items-center justify-center gap-2 rounded-full bg-accent text-[14.5px] font-semibold text-on-accent disabled:opacity-60">
-            {loading ? "Preparing your questions…" : "Start 10 questions"}
+            {loading ? "Preparing your questions…" : `Start ${count} questions`}
           </button>
           {loading && <FillingBar active expectedMs={35_000} label="Writing and checking the questions" />}
           {loading && <p className="text-[12.5px] text-fg-3">A new set is written and checked by an examiner — this can take up to a minute. The next one will be ready at once.</p>}
@@ -176,10 +214,10 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
           <div className="text-[44px] font-semibold tabular">
             {right}/{set.questions.length}
           </div>
-          <p className="text-[14.5px] text-fg-2">{right >= 8 ? "Excellent — exam-ready on this set." : right >= 5 ? "Good work. Read the explanations of the ones you missed." : "Keep at it — the explanations are where the marks are."}</p>
+          <p className="text-[14.5px] text-fg-2">{right >= set.questions.length * 0.8 ? "Excellent — exam-ready on this set." : right >= set.questions.length / 2 ? "Good work. Read the explanations of the ones you missed." : "Keep at it — the explanations are where the marks are."}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
-            <button type="button" onClick={() => void start(set.subject)} disabled={loading} className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent disabled:opacity-60">
-              {loading ? "Loading…" : "Next 10 questions"}
+            <button type="button" onClick={() => void start()} disabled={loading} className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent disabled:opacity-60">
+              {loading ? "Loading…" : `Next ${count} questions`}
             </button>
             <button type="button" onClick={() => setSet(null)} className="h-10 rounded-full bg-surface-3 px-5 text-[14px] font-medium">
               Change subject
@@ -256,7 +294,7 @@ function Question({
       {checked && (
         <div className="selectable animate-enter rounded-xl bg-surface-2 p-4">
           <div className={cn("text-[14px] font-semibold", checked.correct ? "text-success" : "text-danger")}>{checked.correct ? "Correct" : `The answer is ${LETTERS[checked.answer]}`}</div>
-          <p className="mt-1.5 text-[14px] leading-6 whitespace-pre-wrap text-fg">{checked.explanation}</p>
+          <RichLines text={checked.explanation} className="mt-1.5 text-[14px] text-fg" />
           <div className="mt-3 flex items-center justify-between gap-2">
             <ReportProblem compact target={{ area: "exam", ref: `${q.pattern ?? "Exam MCQ"} · ${q.topic} · Q${n + 1}`, details: `${q.stem}\n\nOptions: ${q.options.map((o, i) => `${i === checked.answer ? "✓ " : ""}${LETTERS[i]}. ${o}`).join(" | ")}\n\nExplanation: ${checked.explanation}` }} />
             <button type="button" onClick={onNext} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">

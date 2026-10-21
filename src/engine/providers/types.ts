@@ -15,6 +15,8 @@ export type CaseSource = { kind: "library"; id: string } | { kind: "generated"; 
 export interface StartOptions {
   /** A newcomer: an easy, classic case. */
   easy?: boolean;
+  /** The doctor asked for a hard case. */
+  hard?: boolean;
   specialty?: Specialty;
   track?: CaseTrack;
   level?: CareLevel;

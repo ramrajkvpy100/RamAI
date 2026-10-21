@@ -77,6 +77,8 @@ export interface CaseChoice {
   level?: CareLevel;
   /** "All resources": every test and treatment available. */
   unlimited?: boolean;
+  /** Easy (very easy, classic), medium or hard. */
+  difficulty?: "easy" | "medium" | "hard";
   /** A disease to practise. */
   disease?: string;
   /** The same patient again: the finished case's token. */

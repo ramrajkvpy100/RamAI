@@ -16,7 +16,7 @@ import { SoundsDrill } from "./sounds-drill";
 type Section = "spot" | "radiology" | "sounds" | "antidotes" | "algorithms" | "calculations";
 
 const SECTIONS: Record<Section, [string, string]> = {
-  spot: ["🔍 Spot the diagnosis", "ECG, X-ray, CT, ultrasound, blood smear"],
+  spot: ["🔍 Spot the diagnosis", "Clinical images, ECG, X-ray, CT, ultrasound, blood smear"],
   radiology: ["🩻 Radiology reporting", "History to diagnosis on real scans"],
   sounds: ["🩺 Heart & breath sounds", "Listen and name it"],
   antidotes: ["💊 Antidotes", "Poisoning and the right antidote"],

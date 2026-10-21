@@ -6,7 +6,6 @@ import { IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
-import { isLowData, setLowDataPref } from "@/lib/low-data";
 import type { Country } from "@/engine/countries";
 import { menusFor, QUICK_ACTIONS } from "@/lib/tool-menus";
 import { useSpeech } from "@/lib/use-speech";
@@ -15,29 +14,9 @@ import { useComposer } from "./composer-context";
 import { ToolMenu } from "./tool-menu";
 
 /** Beginner (suggestions and timed hints) or Expert (nothing offered) — the doctor's choice, remembered on this device. */
-const EXPERT_KEY = "ramai.expert";
-const expertListeners = new Set<() => void>();
+/** One way to play for everyone now (the Beginner/Expert switch is gone): the senior is always in reach. */
 export function useExpert(): { on: boolean; toggle: () => void } {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const read = () => {
-      try {
-        setOn(localStorage.getItem(EXPERT_KEY) === "1");
-      } catch {}
-    };
-    read();
-    expertListeners.add(read);
-    return () => void expertListeners.delete(read);
-  }, []);
-  return {
-    on,
-    toggle: () => {
-      try {
-        localStorage.setItem(EXPERT_KEY, on ? "0" : "1");
-      } catch {}
-      expertListeners.forEach((f) => f());
-    },
-  };
+  return { on: false, toggle: () => undefined };
 }
 
 export function Composer({
@@ -70,12 +49,6 @@ export function Composer({
   const actions = QUICK_ACTIONS.filter((a) => a.id !== "monitoring" && (!phone || a.id === "history" || a.id === "treatment"));
   const monitorAction = phone ? undefined : QUICK_ACTIONS.find((a) => a.id === "monitoring");
   const expert = useExpert();
-  const [lowData, setLowData] = useState(false);
-  useEffect(() => setLowData(isLowData()), []);
-  const toggleLowData = () => {
-    setLowDataPref(!lowData);
-    setLowData(!lowData);
-  };
 
   // Grow with content, up to ~6 lines.
   useEffect(() => {
@@ -158,17 +131,11 @@ export function Composer({
             )}
             <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Opinion"); }} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2 disabled:opacity-50">🩺 Opinion</button>
             {!expert.on && (
-              <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Hint"); }} className="h-11 rounded-xl border border-amber-300/60 bg-amber-50 text-[13.5px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">💡 Hint</button>
+              <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Hint"); }} className="h-11 rounded-xl border border-amber-300/60 bg-amber-50 text-[13.5px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">👩‍⚕️ Ask senior</button>
             )}
             {!phone && (
               <button type="button" disabled={disabled || sending} onClick={() => { setMenu(null); void onSend("Order CBC, RFT, LFT, electrolytes and ECG"); }} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2 disabled:opacity-50" title="CBC, RFT, LFT, electrolytes and ECG in one tap">🧪 Basic panel</button>
             )}
-            <button type="button" onClick={() => toggleLowData()} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2" title="Pictures load only when you tap them">
-              {lowData ? "📶 Low data ✓" : "📶 Low data"}
-            </button>
-            <button type="button" onClick={() => expert.toggle()} className="h-11 rounded-xl border border-line bg-surface text-[13.5px] font-medium hover:bg-surface-2" title="Beginner shows suggestions and timed hints; Expert shows nothing">
-              {expert.on ? "🎓 Expert mode ✓" : "🌱 Beginner mode ✓"}
-            </button>
           </div>
         </div>
       )}
@@ -181,7 +148,7 @@ export function Composer({
           }}
           className="absolute -top-11 left-1/2 z-10 flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50 px-4 text-[13px] font-semibold text-amber-800 shadow-md animate-enter dark:border-amber-400/30 dark:bg-[#2a2210] dark:text-amber-200"
         >
-          💡 Stuck? Get a hint
+          👩‍⚕️ Stuck? Ask your senior
         </button>
       )}
       {active && (
@@ -253,6 +220,17 @@ export function Composer({
               >
                 Skip {watch.minutes} min <Icon name="chevron-right" size={13} strokeWidth={2.4} />
                 <Icon name="chevron-right" size={13} strokeWidth={2.4} className="-ml-2" />
+              </button>
+            )}
+            {!expert.on && !phone && (
+              // Always in reach (Beginner mode): the senior gives the next step, why, and a button that does it.
+              <button
+                type="button"
+                disabled={disabled || sending}
+                onClick={() => void onSend("Hint")}
+                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-3 text-[13px] font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+              >
+                👩‍⚕️ Senior
               </button>
             )}
             {actions.map((a) => (

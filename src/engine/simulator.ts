@@ -2171,9 +2171,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     });
     // No waiting on it: the case moves on to its full effect at once, and what changed is reported now.
     const until = startedAt + peak;
-    // (A long drip is left running, so it can still be stopped part-way.)
-    if (until > hidden.clock && until - startedAt <= 60 && !def.guided && def.track !== "phone") {
-      fx.push(...handleWait(ctx, { kind: "wait", phrase: "", matched: true, payload: { minutes: Math.min(180, until - hidden.clock) } }));
+    // Never a "skip ahead" button: time moves on by itself — up to an hour for a long drip, so it can still be stopped part-way.
+    if (until > hidden.clock && def.track !== "phone") {
+      fx.push(...handleWait(ctx, { kind: "wait", phrase: "", matched: true, payload: { minutes: Math.min(60, until - hidden.clock) } }));
     } else if (until > hidden.clock) fx.push({ type: "watching", label: drug.generic, until });
   }
   // A course prescribed: taken as if its time is up — and the patient says, in their own words, what it did.
@@ -2660,7 +2660,7 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
  * A nudge towards the next thing an expert would do — the area, never the answer. Each is counted
  * and shown in the debrief.
  */
-const HINT_LIMIT = 3;
+const HINT_LIMIT = 5;
 
 /** "Stand up", "lie down", "take a deep breath": the patient does it (if well enough), in a line. */
 function handleInstruct(ctx: TurnContext, phrase: string): TurnEffect[] {
@@ -2686,28 +2686,59 @@ function handleInstruct(ctx: TurnContext, phrase: string): TurnEffect[] {
   return [{ type: "message", role: "system", kind: "action", text }];
 }
 
+/** Why a senior would want this asked or examined next — in a few words, without naming the diagnosis. */
+const HISTORY_WHY: Partial<Record<string, string>> = {
+  complaint: "the main complaint, in the patient's words, sets the direction",
+  hpi: "the story of this illness usually points to the answer",
+  systemic: "it checks whether other organs are involved",
+  past: "past illnesses change what this could be",
+  drugs: "medicines can cause it, or change what you can give",
+  family: "some conditions run in families",
+  personal: "habits and exposures change the likely causes",
+};
+
 function handleHint(ctx: TurnContext): TurnEffect[] {
   const { def, hidden } = ctx;
-  // Like asking your senior: a few nudges a case, not a walkthrough.
-  if ((hidden.actions.hint?.length ?? 0) >= HINT_LIMIT) return [{ type: "message", role: "system", kind: "status", text: `Your senior has given you ${HINT_LIMIT} hints this case — work the rest out yourself. You can do it.` }];
+  // Asking your senior: one clear next step, why it matters, and a button that does it. Counted in the debrief.
+  if ((hidden.actions.hint?.length ?? 0) >= HINT_LIMIT) return [{ type: "message", role: "system", kind: "status", text: `Your senior has helped ${HINT_LIMIT} times this case — try the rest yourself. You can do it.` }];
   record(hidden, "hint");
-  const n = hidden.actions.hint!.length;
   const history = def.history.find((h) => h.importance === "essential" && hidden.history[h.id] === undefined);
   const exam = def.exam.find((e) => e.importance === "essential" && hidden.exams[e.id] === undefined);
   const test = def.investigations.find((i) => i.priority === "essential" && !hidden.investigations.some((x) => x.defId === i.id));
-  const treated = def.rubric.idealTreatment.every((step) => step.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
-  const text = history
-    ? `Ask more about the history — ${history.label.toLowerCase()} matters here.`
-    : exam
-      ? `Examine further — look at ${exam.label.toLowerCase()}.`
-      : test
-        ? `An investigation would help now: consider ${(test.short ?? test.name ?? test.id).toString()}.`
-        : !hidden.diagnosis
-          ? "You have enough to commit: record a working diagnosis and your differentials."
-          : !treated
-            ? "Think about treatment — what does this patient need right now?"
-            : "You're on track: reassess the patient, then plan follow-up and close the case.";
-  return [{ type: "message", role: "system", kind: "status", text: `💡 Hint ${n}: ${text}` }];
+  const step = def.rubric.idealTreatment.find((st) => !st.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
+  const rule = step ? def.therapeutics.find((r) => step.includes(r.id)) : undefined;
+  let next: string, why: string, ask: string | undefined;
+  if (history) {
+    next = `Ask about ${history.label.toLowerCase()}.`;
+    why = HISTORY_WHY[history.group] ?? "it's one of the key questions in this case";
+    ask = `${history.match[0] ?? history.label}?`;
+  } else if (exam) {
+    next = `Examine: ${exam.label.toLowerCase()}.`;
+    why = "the examination confirms or rules out what the history suggests";
+    ask = `examine ${exam.match[0] ?? exam.label}`;
+  } else if (test) {
+    const name = String(test.short ?? test.name ?? test.id);
+    next = `Order ${name}.`;
+    why = "this result will confirm what you suspect, or change your mind";
+    ask = name;
+  } else if (!hidden.diagnosis) {
+    next = "Write your working diagnosis.";
+    why = "you have the history, examination and results you need — commit to it, with a differential";
+    ask = undefined;
+  } else if (rule) {
+    next = `Treat: ${rule.label.replace(/\.$/, "")}.`;
+    why = "this is what the patient needs now — give it with a dose and route";
+    ask = rule.match?.[0] ?? (rule.drugIds?.[0] ? `give ${rule.drugIds[0].replace(/-/g, " ")}` : undefined);
+  } else {
+    next = "Reassess the patient, then plan follow-up and close the case.";
+    why = "you've done the essentials — check the response before you finish";
+    ask = "check vitals";
+  }
+  return [{
+    type: "message", role: "system", kind: "status",
+    text: `👩‍⚕️ Your senior: ${next}\nWhy: ${why}.`,
+    ...(ask ? { replies: [{ text: ask, send: true }] } : {}),
+  }];
 }
 
 const CONSULT_DEPARTMENTS = ["Internal Medicine", "General Surgery", "Cardiology", "Neurology", "Paediatrics", "Obstetrics & Gynaecology", "Orthopaedics", "Pulmonology", "Nephrology", "Anaesthesia & ICU"];

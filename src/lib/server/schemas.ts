@@ -24,6 +24,8 @@ export const StartSchema = z.object({
   level: z.enum(CARE_LEVELS as unknown as [string, ...string[]]).optional(),
   /** "All resources": every test and treatment available. */
   unlimited: z.boolean().optional(),
+  /** How hard the case is: easy (very easy, classic), medium, hard. */
+  difficulty: z.enum(["easy", "medium", "hard"]).optional(),
   /** Two-player: invite a friend, find an opponent, play the computer — or a duel's id to join. */
   duel: z.union([z.enum(["invite", "find", "computer"]), z.string().regex(/^[a-f0-9]{12}$/)]).optional(),
   /** The same patient again: the finished case's token. */

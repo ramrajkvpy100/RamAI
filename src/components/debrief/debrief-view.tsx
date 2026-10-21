@@ -1,5 +1,6 @@
 "use client";
 
+import { RichLines } from "@/components/ui/rich-lines";
 import { Portal } from "@/components/ui/portal";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -118,8 +119,8 @@ function CoachFeedback({ coach }: { coach: NonNullable<CaseDebrief["coach"]> }) 
         </h2>
         <span className="ml-auto rounded-full bg-surface-3 px-2.5 py-0.5 text-[11.5px] text-fg-2">Written by AI</span>
       </div>
-      <p className="mt-3 text-[14px] leading-6">{coach.summary}</p>
-      <p className="mt-2 text-[14px] leading-6 text-fg-2">{coach.reasoning}</p>
+      <RichLines text={coach.summary} className="mt-3 text-[14px]" />
+      <RichLines text={coach.reasoning} className="mt-2 text-[14px] text-fg-2" />
       <div className="micro mt-4 text-fg-3">Next time</div>
       <ul className="mt-1.5 flex flex-col gap-1.5">
         {coach.nextTime.map((tip) => (

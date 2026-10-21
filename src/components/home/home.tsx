@@ -204,10 +204,6 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           )}
         </section>
 
-        <div data-tour="daily">
-          <DailyCard onPlay={() => void launch({ daily: true })} starting={starting} />
-        </div>
-
         {showGuide && <GuidedCard onStart={() => void launch({ tutorial: true })} onSkip={skipGuide} starting={starting} />}
 
         <ReviewCard onPractise={(disease) => void start({ disease })} starting={starting} />
@@ -295,6 +291,11 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
         </section>
 
         <div data-tour="league">{showMore && <LeagueCard meId={me.user.id} />}</div>
+
+        {/* The daily case — last on the page. */}
+        <div data-tour="daily">
+          <DailyCard onPlay={() => void launch({ daily: true })} starting={starting} />
+        </div>
 
         <Link href="/suggestions" className="panel flex items-center gap-3 p-4 hover:bg-surface-2">
           <span aria-hidden className="text-[22px]">✨</span>

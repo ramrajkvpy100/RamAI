@@ -1,5 +1,6 @@
 "use client";
 
+import { RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useState } from "react";
@@ -42,7 +43,7 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
       {picked !== null && (
         <section className="selectable animate-enter rounded-xl border border-line p-4">
           <div className={cn("text-[14px] font-semibold", picked === q.answer ? "text-success" : "text-danger")}>{picked === q.answer ? "Correct" : `Answer: ${q.options[q.answer]}`}</div>
-          <p className="mt-1 text-[14px] leading-6 whitespace-pre-line">{q.explain}</p>
+          <RichLines text={q.explain} className="mt-1 text-[14px]" />
           {picked !== q.answer && q.whyNot?.[picked] && (
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {q.options[picked]}?</b> {q.whyNot[picked]}</p>
           )}

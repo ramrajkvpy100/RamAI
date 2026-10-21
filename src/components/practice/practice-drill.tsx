@@ -1,5 +1,6 @@
 "use client";
 
+import { RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,7 +20,7 @@ interface Stat {
   best: number;
 }
 
-const ICON: Record<Modality, "pulse" | "scan" | "layers" | "monitor" | "droplet"> = { ecg: "pulse", xray: "scan", ct: "layers", usg: "monitor", smear: "droplet" };
+const ICON: Record<Modality, "pulse" | "scan" | "layers" | "monitor" | "droplet" | "eye"> = { ecg: "pulse", xray: "scan", ct: "layers", usg: "monitor", smear: "droplet", clinical: "eye" };
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -240,7 +241,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
       {picked !== null && mode === "spot" && (
         <div className="selectable panel animate-enter p-4">
           <div className={cn("text-[14px] font-semibold", picked === item.answer ? "text-success" : "text-danger")}>{picked === item.answer ? "Correct" : `It's ${item.options[item.answer]}`}</div>
-          <p className="mt-1 text-[14px] leading-6">{item.key}</p>
+          <RichLines text={item.key} className="mt-1 text-[14px]" />
           {picked !== item.answer && item.keys?.[picked] && (
             <div className="mt-3 rounded-xl border border-amber-300/50 bg-amber-50 px-3.5 py-2.5 dark:border-amber-400/30 dark:bg-amber-400/10">
               <div className="text-[11px] font-bold tracking-[0.08em] text-amber-800 uppercase dark:text-amber-200">Why not {item.options[picked]}?</div>
