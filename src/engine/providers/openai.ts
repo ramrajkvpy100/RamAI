@@ -501,7 +501,7 @@ function findingsPrompt(opts: StartOptions, concept: Concept, brief: Brief): Cha
     { role: "system", content: authoring(opts.country ?? "IN") },
     {
       role: "user",
-      content: `${partHead(concept, brief)}Write what the doctor finds. Return JSON:
+      content: `${partHead(concept, brief)}Write what the doctor finds.${brief.track === "phone" ? " This is a phone call: the exam entries are what the caller can see and describe at home in plain words (the colour, the swelling, how the breathing looks) — no measured signs, no examination only a clinician could do; the investigations are those the doctor would ask the patient to have done afterwards." : ""} Return JSON:
 { "exam": [{ "id", "group": "general-exam"|"systemic-exam"|"local-exam", "label", "match": [], "finding": "what is seen, felt and heard, objectively", "fact", "abnormal"?, "importance", "media"? }],
   "investigations": [{ "id", "name", "short", "category": "lab"|"bedside"|"ecg"|"imaging"|"photo"|"micro"|"histopath"|"function", "match": ["phrases a doctor might type"], "cost" (INR), "rows"?: [{ "analyte", "value", "unit", "reference", "flag": "normal"|"low"|"high"|"critical" }], "report"?: "findings only — never an impression or diagnosis", "media"?, "priority": "essential"|"useful"|"situational"|"unnecessary", "teaching": { "whenToOrder", "whatItTellsYou" } }] }
 media = { "spec": { …ECG or PICTURE fields… }, "alt": "what it is a picture of, without interpreting it", "caption": "acquisition details only, e.g. 'PA erect', 'Left cheek · close-up'" }
@@ -600,7 +600,11 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     patient: { name: concept.patient.name, age: concept.patient.age, sex: concept.patient.sex, city: concept.patient.city, occupation: concept.patient.occupation, context: brief.track === "emergency" ? "Emergency" : brief.track === "phone" ? "Phone" : "OPD" } as ClinicalCaseDefinition["patient"],
     arrivalMinuteOfDay: 8 * 60 + Math.floor(Math.random() * 10 * 60),
     briefing: concept.briefing,
-    opening: (d.opening.length ? d.opening : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }]) as ClinicalCaseDefinition["opening"],
+    // A phone call has no nurse at the bedside: only the patient and family speak.
+    opening: (() => {
+      const lines = brief.track === "phone" ? d.opening.filter((o) => o.role !== "nurse") : d.opening;
+      return lines.length ? lines : [{ role: "patient", kind: "speech", text: "Namaste, doctor." }];
+    })() as ClinicalCaseDefinition["opening"],
     baselineVitals: Object.fromEntries(Object.entries({ bp: "122/78", hr: "84", rr: "16", temp: "98.4", spo2: "98", weight: "62", ...cleanVitals(d.baselineVitals) }).map(([k, v]) => [k, { key: k, value: v }])) as ClinicalCaseDefinition["baselineVitals"],
     triageVitals: d.triageVitals as ClinicalCaseDefinition["triageVitals"],
     profile: d.profile,
@@ -921,10 +925,10 @@ export function createOpenAIProvider(): ClinicalProvider {
         const level = levelMeta(brief.level, country).label;
         // Each part is written, then checked by a consultant the moment it's ready — the three in parallel.
         let [d, f, m] = await Promise.all([
-          chatJSON(dialoguePrompt(opts, concept, brief), 4000, false, partTimeout())
+          chatJSON(dialoguePrompt(opts, concept, brief), 3400, false, partTimeout())
             .then((x) => DialogueSchema.parse(x))
             .then((part) => reviewPart("history and vitals", part, dialogueReviewPrompt(concept, part, country), 5000, applyDialogueReview, left())),
-          chatJSON(findingsPrompt(opts, concept, brief), 7000, false, partTimeout())
+          chatJSON(findingsPrompt(opts, concept, brief), 5800, false, partTimeout())
             .then((x) => FindingsSchema.parse(x))
             .then((part) => reviewPart("findings and results", part, findingsReviewPrompt(concept, part, country), 8000, applyFindingsReview, left()))
             .then((part) => {
@@ -932,7 +936,7 @@ export function createOpenAIProvider(): ClinicalProvider {
               if (checked.fixes.length) console.info(`[ramai] lab flags corrected: ${checked.fixes.join(" | ")}`);
               return checked.part;
             }),
-          chatJSON(managementPrompt(opts, concept, brief), 4000, false, partTimeout())
+          chatJSON(managementPrompt(opts, concept, brief), 3400, false, partTimeout())
             .then((x) => ManagementSchema.parse(x))
             .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 6000, applyManagementReview, left())),
         ]);
