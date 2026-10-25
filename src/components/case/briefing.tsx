@@ -16,9 +16,9 @@ import { LangToggle } from "./lang-toggle";
 import { figureSeed } from "./scene/figures";
 
 const RULES: Record<CaseState["track"], string> = {
-  opd: "Everything you need is behind your own questions, examinations and orders. Nothing will be suggested.",
+  opd: "Everything you need is behind your own questions, examinations and orders. Stuck? Tap 👩‍⚕️ Senior for the next step.",
   phone: "You can't examine the patient or run tests on a call. Ask, advise, and decide where they should go.",
-  emergency: "Everything you need is behind your own questions, examinations and orders. The clock is running.",
+  emergency: "Everything you need is behind your own questions, examinations and orders. The clock is running — tap 👩‍⚕️ Senior if you're stuck.",
 };
 
 const KICKER: Record<CaseState["track"], string> = {
