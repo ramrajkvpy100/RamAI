@@ -676,3 +676,7 @@ svg {
 @keyframes liquid-shine { to { transform: rotate(360deg); } }
 .liquid-shine { background: conic-gradient(from 0deg, transparent 0 70%, rgb(255 255 255 / 0.35) 80%, transparent 90%); mix-blend-mode: soft-light; animation: liquid-shine 12s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .cafe-rain, .cafe-lamp, .cafe-glow, .steam-puff, .liquid-shine { animation: none; } }
+
+@keyframes cafe-drift { 0%, 100% { transform: scale(1.02) translate(0, 0); } 50% { transform: scale(1.06) translate(-1%, 0.5%); } }
+.cafe-drift { animation: cafe-drift 40s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .cafe-drift { animation: none; } }

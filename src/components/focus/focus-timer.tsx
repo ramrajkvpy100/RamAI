@@ -11,7 +11,7 @@ import { success, tap } from "@/lib/haptics";
 import { playSfx } from "@/lib/sfx";
 import { toast } from "@/lib/toast";
 
-import { CafeScene } from "./cafe-scene";
+import { CafeScene, StreetScene } from "./cafe-scene";
 import { Cup, DRINKS } from "./cup";
 
 const mmss = (ms: number) => {
@@ -187,12 +187,7 @@ export function FocusTimer() {
   return (
     <Portal>
     <div className={cn("fixed inset-0 z-[85] flex flex-col overflow-hidden", scene === "focus" ? "focus-table" : scene === "social" ? "bg-[radial-gradient(80%_60%_at_30%_20%,#f7dcc0,transparent_60%),radial-gradient(70%_60%_at_80%_40%,#f1e2c9,transparent_60%),#efe6d8]" : "bg-black")}>
-      {scene === "window" && (
-        <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover">
-          <source src="/focus/window-rain.webm" type="video/webm" />
-          <source src="/focus/window-rain.mp4" type="video/mp4" />
-        </video>
-      )}
+      {scene === "window" && <StreetScene />}
       {scene === "social" && <CafeScene />}
       <audio ref={audio} loop preload="none">
         <source src="/focus/cafe.ogg" type="audio/ogg" />
@@ -273,7 +268,7 @@ export function FocusTimer() {
         )}
         {!unlimited && <div className="absolute inset-x-0 bottom-0 h-1.5 bg-[#00000010]"><div className="h-full bg-[#24332c]/60 transition-[width] duration-1000 ease-linear" style={{ width: `${pct * 100}%` }} /></div>}
       </div>
-      {scene === "window" && <p className="absolute right-2 bottom-1 z-10 text-[9px] text-black/40">Video: Vjatseslav Robtsenkov, CC0 · Wikimedia Commons</p>}
+      {scene === "window" && <p className="absolute right-2 bottom-1 z-10 text-[9px] text-black/40">Video: INakeii, CC BY-SA 4.0 · Wikimedia Commons</p>}
     </div>
     </Portal>
   );
