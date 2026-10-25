@@ -1,5 +1,6 @@
 "use client";
 
+import { tap } from "@/lib/haptics";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { IconButton } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function Composer({
   phone = false,
   country,
   watch,
+  skin = false,
 }: {
   onSend: (text: string) => Promise<boolean>;
   disabled?: boolean;
@@ -39,6 +41,8 @@ export function Composer({
   country?: Country;
   /** A treatment still acting: one tap waits for its full effect, and what changed is reported. */
   watch?: { label: string; minutes: number } | null;
+  /** A skin complaint: one tap shows the rash or lesion. */
+  skin?: boolean;
 }) {
   const { draft, setDraft, insert, inputRef } = useComposer();
   const [menu, setMenu] = useState<string | null>(null);
@@ -227,10 +231,31 @@ export function Composer({
               <button
                 type="button"
                 disabled={disabled || sending}
-                onClick={() => void onSend("Hint")}
-                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-3 text-[13px] font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+                onClick={() => { tap(); void onSend("Hint"); }}
+                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-3 text-[13px] font-semibold text-amber-800 transition-transform hover:bg-amber-100 active:scale-95 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
               >
                 👩‍⚕️ Senior
+              </button>
+            )}
+            {skin && !phone && (
+              <button
+                type="button"
+                disabled={disabled || sending}
+                onClick={() => { tap(); void onSend("Examine the skin lesion"); }}
+                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-accent-line bg-accent-soft px-3 text-[13px] font-semibold text-accent-text transition-transform active:scale-95 disabled:opacity-50"
+              >
+                📷 Show the rash
+              </button>
+            )}
+            {!phone && (
+              // The whole important history in one tap: fewer turns to the end of the case.
+              <button
+                type="button"
+                disabled={disabled || sending}
+                onClick={() => { tap(); void onSend("Take full history"); }}
+                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-line px-3 text-[13px] font-medium text-fg-2 transition-transform hover:bg-surface-3 hover:text-fg active:scale-95 disabled:opacity-50"
+              >
+                📋 Full history
               </button>
             )}
             {actions.map((a) => (

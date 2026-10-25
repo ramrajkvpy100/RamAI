@@ -1120,6 +1120,8 @@ export function createOpenAIProvider(): ClinicalProvider {
     async interpret(text, ctx): Promise<Interpretation> {
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
       const rules = await mockProvider.interpret(text, ctx);
+      // The senior's button and "Full history" are carried out exactly by the simulator — nothing to read.
+      if (text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim())) return rules;
       // An order's question asked again: the rules have the words already.
       if (rules.generated && rules.intents.some((i) => i.payload?.keepPending === true || i.payload?.settled === true)) return rules;
       const ruled = rules.intents;
@@ -1130,7 +1132,12 @@ export function createOpenAIProvider(): ClinicalProvider {
       // A question the rules turned into an order ("can we give aspirin?", "cbc normal?") is checked by the model too.
       const questionAsOrder = /\?\s*$/.test(text.trim()) && ruled.some((i) => ["drug", "investigation", "action"].includes(i.kind) && i.payload?.reshow !== true);
       const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || questionAsOrder || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
-      const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : voice(text, ctx, ruled);
+      // Speed: a button (the senior's step, "Full history", a ready-made reply) or a plain order needs no rewording — the
+      // rules' words go straight back. Otherwise the patient's voice gets 2.5 s; past that, the rules' answer is shown.
+      const button = text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim());
+      const talk = ruled.some((i) => i.kind === "history" || i.kind === "greeting");
+      const quick = (p: Promise<Interpretation>): Promise<Interpretation> => Promise.race([p, new Promise<Interpretation>((resolve) => setTimeout(() => resolve({ intents: ruled }), 2500))]);
+      const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : button || !talk || ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : quick(voice(text, ctx, ruled));
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;
       // When the rules placed the order, its results are written while the patient's words are (the voice keeps the rules' intents).

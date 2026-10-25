@@ -25,7 +25,7 @@ import { setVoicesEnabled, usePatientVoices, useVoicesEnabled, voicesSupported }
 import { useMediaQuery } from "@/lib/use-media-query";
 
 import { Briefing } from "./briefing";
-import { CaseTopBar } from "./case-top-bar";
+import { CaseTopBar, readyToEnd } from "./case-top-bar";
 import { Coach } from "./coach";
 import { UndoBar } from "./undo-bar";
 import { Composer } from "./composer";
@@ -270,13 +270,13 @@ function Workspace() {
                           {t === "results" && state.investigations.length > 0 && <span className="text-[10.5px] text-fg-3 tabular">{state.investigations.length}</span>}
                         </button>
                       ))}
-                      <button type="button" onClick={() => setEnding(true)} data-coach-target="end-case" className="ml-auto flex h-8 items-center rounded-full px-3 text-ui font-medium whitespace-nowrap text-fg-2 hover:bg-surface-3 hover:text-fg">
+                      <button type="button" onClick={() => setEnding(true)} data-coach-target="end-case" className={cn("ml-auto flex h-8 items-center rounded-full px-3 text-ui font-medium whitespace-nowrap transition-colors", readyToEnd(state) ? "pulse-soft bg-accent font-semibold text-on-accent" : "text-fg-2 hover:bg-surface-3 hover:text-fg")}>
                         End case
                       </button>
                     </div>
                     <Coach state={state} onTry={onSend} busy={!!snap.sending} />
                   <UndoBar />
-                  <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} country={state.country} watch={state.watching && state.watching.until > state.clock ? { label: state.watching.label, minutes: Math.ceil(state.watching.until - state.clock) } : null} />
+                  <Composer onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} skin={state.specialty === "Dermatology" || /\b(rash|itch\w*|skin|patch\w*|spots?|lesion\w*|pimples?|boils?|blisters?|scal(y|es)|ring)\b/i.test(state.messages.slice(0, 4).map((m) => m.text).join(" ") + " " + (state.briefing ?? ""))} country={state.country} watch={state.watching && state.watching.until > state.clock ? { label: state.watching.label, minutes: Math.ceil(state.watching.until - state.clock) } : null} />
                   </div>
                 </div>
               </main>

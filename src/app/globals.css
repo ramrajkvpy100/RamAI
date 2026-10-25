@@ -586,3 +586,12 @@ video,
 svg {
   -webkit-user-drag: none;
 }
+
+/* Old and low-end phones, and the Android app: endless decorative motion and heavy blur off (saves memory and battery). */
+.lite .animate-float, .lite .animate-float-slow, .lite .animate-shine, .lite .animate-bob, .lite .animate-flicker, .lite .shine::after, .lite .scan-anim { animation: none !important; }
+.lite .blur-2xl, .lite .blur-3xl { filter: none !important; opacity: 0.5; }
+
+/* "Time to end the case": a slow, soft glow — noticeable, never nagging. */
+@keyframes pulse-soft { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--accent-rgb, 79 70 229) / 0.35); } 50% { box-shadow: 0 0 0 6px rgb(var(--accent-rgb, 79 70 229) / 0); } }
+.pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .pulse-soft { animation: none; } }

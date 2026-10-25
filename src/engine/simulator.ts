@@ -154,6 +154,8 @@ export interface HiddenState {
   watches: Watch[];
   /** Orders given without what's needed to carry them out — asked about, waiting for the doctor's answer. */
   pendingOrders: PendingOrder[];
+  /** The step the senior last suggested: its button does exactly that, with no words to misread. */
+  seniorStep?: { text: string; intent: ResolvedIntent };
   /** When the patient responded to the definitive treatment, and to which order. */
   responded?: { at: number; order?: string };
   hazards: ArmedHazard[];
@@ -1732,7 +1734,8 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   }
   let privateLab = false;
   if (!(def.unlimited || canPerform(def.level, partStudy(id) && study.kind ? STUDY_BASE[study.kind] : id, { inCatalog: !!cat, minLevel: override?.minLevel }))) {
-    if (intent.payload?.private || PRIVATE_RE.test(intent.phrase)) privateLab = true;
+    // The AI reader may pass only the test's name as the phrase — the doctor's own words say "private lab".
+    if (intent.payload?.private || PRIVATE_RE.test(intent.phrase) || PRIVATE_RE.test(ctx.record.raw)) privateLab = true;
     else {
       hidden.unavailable.push(id);
       return [{
@@ -2200,7 +2203,8 @@ const core = (def: ClinicalCaseDefinition) => new Set([...(def.rubric.definitive
 /** After a prescribed course: what the patient noticed, if anything. */
 function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, duration: string | undefined, before: PatientStatus): TurnEffect[] {
   const name = drug.generic.toLowerCase();
-  const when = duration ? `After ${duration.replace(/^for\s+/i, "")} of ${name}` : `After taking the ${name}`;
+  const span = duration?.replace(/^for\s+/i, "");
+  const when = span && !/as advised|as needed|prn|sos/i.test(span) ? `After ${span} of ${name}` : `After a few days of ${name}`;
   const feels = profileFor(drug)?.feels;
   const relief = feels && troublesOf(def, hidden).has(feels.when) ? feels.says : undefined;
   const now = hidden.status;
@@ -2708,35 +2712,43 @@ function handleHint(ctx: TurnContext): TurnEffect[] {
   const history = def.history.find((h) => h.importance === "essential" && hidden.history[h.id] === undefined);
   const exam = def.exam.find((e) => e.importance === "essential" && hidden.exams[e.id] === undefined);
   const test = def.investigations.find((i) => i.priority === "essential" && !hidden.investigations.some((x) => x.defId === i.id));
-  const step = def.rubric.idealTreatment.find((st) => !st.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
-  const rule = step ? def.therapeutics.find((r) => step.includes(r.id)) : undefined;
+  const treatStep = def.rubric.idealTreatment.find((st) => !st.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
+  const rule = treatStep ? def.therapeutics.find((r) => treatStep.includes(r.id)) : undefined;
   let next: string, why: string, ask: string | undefined;
+  let step: ResolvedIntent | undefined;
   if (history) {
     next = `Ask about ${history.label.toLowerCase()}.`;
     why = HISTORY_WHY[history.group] ?? "it's one of the key questions in this case";
-    ask = `${history.match[0] ?? history.label}?`;
+    ask = `Ask about ${history.label.toLowerCase()}`;
+    step = { kind: "history", targetId: history.id, phrase: history.match[0] ?? history.label, matched: true };
   } else if (exam) {
     next = `Examine: ${exam.label.toLowerCase()}.`;
     why = "the examination confirms or rules out what the history suggests";
-    ask = `examine ${exam.match[0] ?? exam.label}`;
+    ask = `Examine ${exam.label.toLowerCase()}`;
+    step = { kind: "exam", targetId: exam.id, phrase: `examine ${exam.match[0] ?? exam.label}`, matched: true };
   } else if (test) {
-    const name = String(test.short ?? test.name ?? test.id);
+    const name = String(test.name ?? test.short ?? test.id);
     next = `Order ${name}.`;
     why = "this result will confirm what you suspect, or change your mind";
-    ask = name;
+    ask = `Order ${name}`;
+    step = { kind: "investigation", targetId: test.id, phrase: name, matched: true };
   } else if (!hidden.diagnosis) {
-    next = "Write your working diagnosis.";
-    why = "you have the history, examination and results you need — commit to it, with a differential";
-    ask = undefined;
+    next = `I think this is ${def.truth.diagnosis}. Make it your working diagnosis.`;
+    why = "the history, examination and results fit it — committing to a diagnosis guides the treatment";
+    ask = `Diagnosis: ${def.truth.diagnosis}`;
+    step = { kind: "diagnosis", phrase: ask, matched: true, payload: { text: def.truth.diagnosis } };
   } else if (rule) {
     next = `Treat: ${rule.label.replace(/\.$/, "")}.`;
-    why = "this is what the patient needs now — give it with a dose and route";
-    ask = rule.match?.[0] ?? (rule.drugIds?.[0] ? `give ${rule.drugIds[0].replace(/-/g, " ")}` : undefined);
+    why = "this is what the patient needs now — the usual dose and route";
+    ask = `Treat: ${rule.label.replace(/\.$/, "")}`;
+    const drugId = rule.drugIds?.[0];
+    step = drugId ? { kind: "drug", targetId: drugId, phrase: ask, matched: true, payload: { usual: true, mode: "given" } } : { kind: "action", targetId: rule.id, phrase: rule.match?.[0] ?? rule.label, matched: true };
   } else {
-    next = "Reassess the patient, then plan follow-up and close the case.";
-    why = "you've done the essentials — check the response before you finish";
-    ask = "check vitals";
+    next = "You've done the essentials — end the case and see your debrief.";
+    why = "the diagnosis is made and the treatment is in; the debrief shows what to improve";
+    ask = "End case";
   }
+  hidden.seniorStep = ask && step ? { text: ask, intent: step } : undefined;
   return [{
     type: "message", role: "system", kind: "status",
     text: `👩‍⚕️ Your senior: ${next}\nWhy: ${why}.`,
@@ -2837,8 +2849,42 @@ export const isTick = (record: ActionRecord) => record.raw === "" && record.inte
 
 const SIGNIFICANT: ResolvedIntent["kind"][] = ["history", "vitals", "exam", "investigation", "drug", "action", "followup", "reassess", "diagnosis", "differential", "wait"];
 
+/** Everyday names doctors type for a diagnosis — "ringworm" is tinea. */
+const LAY_NAMES: [RegExp, string][] = [
+  [/\bring ?worm\b/, "tinea"], [/\bshingles\b/, "zoster"], [/\bchicken ?pox\b/, "varicella"], [/\bhives\b/, "urticaria"], [/\bpink eye\b/, "conjunctivitis"],
+  [/\bthrush\b/, "candid"], [/\bcold sore\b/, "herpes labialis"], [/\bheart attack\b/, "myocardial infarction"], [/\bmi\b/, "myocardial infarction"], [/\buti\b/, "urinary tract infection"],
+  [/\bsugar\b|\bdm\b/, "diabetes"], [/\bhtn\b|\bhigh bp\b/, "hypertension"], [/\btb\b/, "tuberculosis"], [/\bcap\b/, "pneumonia"], [/\bage\b/, "gastroenteritis"], [/\bgerd\b|\bacidity\b/, "reflux"],
+];
+
+/**
+ * A bare diagnosis typed on its own ("ringworm", "tinea corporis") is the doctor's working diagnosis — not a question
+ * for the patient. Only short phrases that name this case's diagnosis (or a near one), never an order or a question.
+ */
+function bareDiagnosis(def: ClinicalCaseDefinition, raw: string): string | null {
+  const t = raw.trim().toLowerCase().replace(/[.!]+$/, "");
+  if (!t || t.includes("?") || t.split(/\s+/).length > 6) return null;
+  if (/^(give|start|order|check|examine|ask|send|do|get|apply|prescribe|take|any|how|what|when|where|why|is|are|do you|have you|tell)\b/.test(t)) return null;
+  let probe = t;
+  for (const [re, name] of LAY_NAMES) if (re.test(probe)) probe = `${probe} ${name}`;
+  const terms = [...def.rubric.diagnosisAccept, ...def.rubric.diagnosisPartial, def.truth.diagnosis].map((x) => x.toLowerCase()).filter((x) => x.length >= 4);
+  return terms.some((x) => probe.includes(x) || (t.length >= 5 && x.includes(t))) ? raw.trim().replace(/[.!]+$/, "") : null;
+}
+
 export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record: ActionRecord): TurnEffect[] {
   const fx: TurnEffect[] = [];
+  // "Full history": every important question at once — fewer turns to the end of the case.
+  if (/^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(record.raw.trim())) {
+    const todo = def.history.filter((h) => h.importance !== "minor" && hidden.history[h.id] === undefined);
+    if (todo.length) record = { ...record, intents: todo.map((h) => ({ kind: "history" as const, targetId: h.id, phrase: h.match[0] ?? h.label, matched: true })) };
+  }
+  // The senior's button: exactly the step suggested.
+  if (hidden.seniorStep && record.raw.trim() === hidden.seniorStep.text) {
+    record = { ...record, intents: [hidden.seniorStep.intent] };
+    hidden.seniorStep = undefined;
+  } else if (!hidden.closed && record.raw && !record.intents.some((i) => i.matched && i.kind !== "history" && i.kind !== "unknown")) {
+    const dx = bareDiagnosis(def, record.raw);
+    if (dx) record = { ...record, intents: [{ kind: "diagnosis", phrase: record.raw, matched: true, payload: { text: dx } }] };
+  }
   const ctx: TurnContext = { def, hidden, record, sent: [], stages: [], notices: [], asked: [], challenged: [] };
   const conversational = record.intents.some((i) => i.kind === "history" || i.kind === "greeting" || (i.kind === "unknown" && (i.payload?.question || i.payload?.speaker === "patient" || i.payload?.speaker === "attendant")));
   // A real-time tick has no words: time passes without the doctor saying anything.

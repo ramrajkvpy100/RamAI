@@ -11,7 +11,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 
-import { isLowData } from "@/lib/low-data";
+import { isLiteDevice } from "@/lib/low-data";
 
 import { cn } from "@/lib/cn";
 
@@ -64,6 +64,10 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
     const abort = new AbortController();
 
     (async () => {
+      if (isLiteDevice()) {
+        setFallback(true);
+        return;
+      }
       const probe = document.createElement("canvas");
       if (!(probe.getContext("webgl2") ?? probe.getContext("webgl")) || typeof DecompressionStream === "undefined") {
         setFallback(true);
@@ -91,7 +95,7 @@ export function OrganScene({ organ = "heart", className, density = "hero", tone 
       });
       if (disposed) return;
       // Low-data mode (or the browser's data saver): the soft glow stands in.
-      if (isLowData()) {
+      if (isLiteDevice()) {
         setFallback(true);
         return;
       }

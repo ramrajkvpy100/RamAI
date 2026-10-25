@@ -16,6 +16,12 @@ import { useSpeaking } from "@/lib/voices";
 
 const since = (minutes: number) => (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${Math.round(minutes % 60)} min` : `${Math.round(minutes)} min`);
 
+/** Time to end: a diagnosis is down and something has been given — or the encounter has gone on a while. */
+export function readyToEnd(state: { workingDiagnosis?: string; drugs?: unknown[]; messages: { role: string }[] }): boolean {
+  const turns = state.messages.filter((m) => m.role === "doctor").length;
+  return (!!state.workingDiagnosis && (state.drugs?.length ?? 0) > 0) || turns >= 14;
+}
+
 /** Case and scene on the left; the clock in the middle; sound and End case on the right. The patient's condition lives in the Condition card. */
 export function CaseTopBar({
   state,
@@ -108,7 +114,7 @@ export function CaseTopBar({
           )}
           {onClose && !complete ? (
             <div className="hidden sm:block">
-              <Button size="sm" variant="secondary" onClick={onClose} data-coach-target="end-case">
+              <Button size="sm" variant={readyToEnd(state) ? "primary" : "secondary"} onClick={onClose} data-coach-target="end-case" className={readyToEnd(state) ? "pulse-soft" : undefined}>
                 End case
               </Button>
             </div>

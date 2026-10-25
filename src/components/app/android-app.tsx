@@ -1,5 +1,6 @@
 "use client";
 
+import { isLiteDevice } from "@/lib/low-data";
 import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 
@@ -9,6 +10,8 @@ import { inAndroidApp, useInAndroidApp } from "@/lib/in-app";
 export function AndroidAppMarker() {
   useEffect(() => {
     inAndroidApp();
+    // Old and low-end phones (and the app): decorative, never-ending animations stop (see .lite in globals.css).
+    if (isLiteDevice()) document.documentElement.classList.add("lite");
   }, []);
   return null;
 }

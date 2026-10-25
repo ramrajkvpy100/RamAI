@@ -129,7 +129,9 @@ export async function makePicture(p: PictureBrief, budgetMs = PICTURE_BUDGET_MS)
   const left = () => deadline - Date.now();
   const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = KIND[p.type];
-  const real = p.aiOnly ? null : await findRealImage([p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`], accept, 10_000);
+  // Plain names find far more on Commons ("psoriasis", not "clinical photograph of psoriasis on the elbow"); skin photos get longer to look.
+  const plain = p.topic?.replace(/\s*\(.*?\)\s*/g, " ").trim();
+  const real = p.aiOnly ? null : await findRealImage([p.type === "photo" && plain ? plain : "", p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`].filter(Boolean), accept, p.type === "photo" ? 18_000 : 10_000);
   if (real) return { ...real, checked: true };
   const drawn = await drawPicture(p, Math.max(15_000, left() - 2_000));
   // Checked, and drawn again, only while there's time for it: a picture shown beats a better one cut off.
