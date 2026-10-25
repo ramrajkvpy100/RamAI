@@ -174,9 +174,22 @@ const adminEmails = () =>
     .filter(Boolean);
 
 /** Whether the signed-in player is an admin — asked of the database itself. */
+/** Admin answers, kept 10 minutes per signed-in account — every page asks, and Supabase is a network trip away. */
+const adminCache = new Map<string, { yes: boolean; at: number }>();
+const ADMIN_TTL = 10 * 60_000;
+
 export async function isAdmin(user?: User | null): Promise<boolean> {
   if (user && !adminEmails().includes(user.email.toLowerCase())) return false;
-  if (!(await currentAccount())) return false;
+  const account = await currentAccount();
+  if (!account) return false;
+  const kept = adminCache.get(account.id);
+  if (kept && Date.now() - kept.at < ADMIN_TTL) return kept.yes;
+  const yes = await askIsAdmin();
+  adminCache.set(account.id, { yes, at: Date.now() });
+  return yes;
+}
+
+async function askIsAdmin(): Promise<boolean> {
   const supabase = await supabaseServer();
   const { data, error } = await supabase.rpc("is_admin");
   if (error) {
@@ -241,7 +254,16 @@ export async function answerSuggestion(id: string, patch: { status?: SuggestionS
 }
 
 /** Admins: how many suggestions are still new. */
+/** The badge count, at most a minute old. */
+let newCount: { n: number; at: number } | null = null;
 export async function newSuggestionCount(): Promise<number> {
+  if (newCount && Date.now() - newCount.at < 60_000) return newCount.n;
+  const n = await countNewSuggestions();
+  newCount = { n, at: Date.now() };
+  return n;
+}
+
+async function countNewSuggestions(): Promise<number> {
   const supabase = await supabaseServer();
   const [{ count, error }, open] = await Promise.all([
     supabase.from("suggestions").select("id", { count: "exact", head: true }).eq("status", "new"),
