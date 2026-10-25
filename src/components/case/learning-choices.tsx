@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Rich } from "@/components/ui/rich-lines";
+import { WaitingFact } from "@/components/ui/waiting-fact";
 import { fetchGuide, type GuideChoice } from "@/lib/engine-client";
 import { cn } from "@/lib/cn";
 import { tap } from "@/lib/haptics";
@@ -37,6 +38,7 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
       <div className="mx-3 mb-2 flex flex-col gap-1.5 rounded-2xl border border-line bg-surface p-3" aria-busy="true">
         <div className="h-4 w-40 animate-pulse rounded bg-surface-3" />
         {[0, 1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded-xl bg-surface-2" />)}
+        <WaitingFact className="mt-1" />
       </div>
     );
   }

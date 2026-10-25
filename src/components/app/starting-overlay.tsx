@@ -2,6 +2,7 @@
 
 import { FillingBar } from "@/components/ui/filling-bar";
 import { LoopVideo } from "@/components/ui/loop-video";
+import { WaitingFact } from "@/components/ui/waiting-fact";
 import { useCase } from "@/lib/case-store";
 import { useStartingMessage } from "@/lib/use-starting-message";
 
@@ -24,6 +25,7 @@ export function StartingOverlay() {
           </div>
         </div>
         <FillingBar active={starting} expectedMs={18_000} label="Preparing your patient" />
+        <WaitingFact />
       </div>
     </div>
   );

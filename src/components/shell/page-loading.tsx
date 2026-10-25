@@ -1,4 +1,5 @@
 import { Wordmark } from "@/components/brand/wordmark";
+import { WaitingFact } from "@/components/ui/waiting-fact";
 
 /**
  * The instant outline of an app page while its data loads (Skills Lab, exams, leaderboard, community):
@@ -15,6 +16,7 @@ export function PageLoading() {
       </header>
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pt-6 pb-8 sm:px-6 sm:pt-8">
         <div className="h-9 w-56 animate-pulse rounded-xl bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]" />
+        <WaitingFact className="max-w-xl" />
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-24 animate-pulse rounded-[22px] bg-[color-mix(in_srgb,var(--fg)_5%,transparent)]" />
         ))}

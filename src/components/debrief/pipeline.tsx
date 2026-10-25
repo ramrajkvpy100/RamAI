@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { LoopVideo } from "@/components/ui/loop-video";
+import { WaitingFact } from "@/components/ui/waiting-fact";
 import { cn } from "@/lib/cn";
 
 const STAGES = [
@@ -36,6 +37,7 @@ export function DebriefPipeline() {
             </li>
           ))}
         </ol>
+        <WaitingFact className="mt-5 border-t border-line pt-4" />
       </div>
     </div>
   );

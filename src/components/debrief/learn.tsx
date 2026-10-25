@@ -1,5 +1,7 @@
 "use client";
 
+import { WaitingFact } from "@/components/ui/waiting-fact";
+
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { useEffect, useState } from "react";
 
@@ -102,6 +104,7 @@ export function LearnSection({ token }: { token: string }) {
             Writing your clinical pearls and exam questions…
           </span>
           <FillingBar active expectedMs={15_000} label="Writing your pearls and questions" />
+          <WaitingFact className="mt-1" />
         </div>
       ) : (
         <div className="flex flex-col gap-4">

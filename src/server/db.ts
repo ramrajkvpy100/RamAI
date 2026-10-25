@@ -668,12 +668,15 @@ const SCHEMA_VERSION = (() => {
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
   const b = remote ? await stableTurso(remote.url, remote.authToken) : await fileBackend();
-  const at = await b.get<{ value: number }>("SELECT value FROM meta WHERE key = 'schema-fp'").catch(() => undefined);
-  if (at && at.value === SCHEMA_VERSION) return b;
+  // Each part of the site is bundled on its own (its migrate() text differs slightly), so each keeps its own mark —
+  // they never undo each other, and each runs the setup once, ever.
+  const mark = `schema-fp:${SCHEMA_VERSION}`;
+  const at = await b.get<{ value: number }>("SELECT value FROM meta WHERE key = ?", mark).catch(() => undefined);
+  if (at) return b;
   await b.exec(SCHEMA);
   await migrate(b);
   await b.exec("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value INTEGER NOT NULL)");
-  await b.run("INSERT INTO meta (key, value) VALUES ('schema-fp', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", SCHEMA_VERSION);
+  await b.run("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING", mark, Date.now());
   return b;
 }
 
