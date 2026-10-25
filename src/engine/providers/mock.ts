@@ -86,7 +86,9 @@ export const mockProvider: ClinicalProvider = {
     return def;
   },
 
-  async interpret(text, ctx) {
+  async interpret(said, ctx) {
+    // Voice typing mishears "usual dose" ("usual Jose", "usual those"); a bare "usual" answers it too.
+    const text = said.replace(/\busual\s+(?:jose|joes|joe's|dos|doz|those|doze|goes|dose)\b/gi, "usual dose").replace(/^\s*(?:the\s+)?usual\s*\.?\s*$/i, "usual dose");
     const weightKg = parseFloat(ctx.hidden.vitals.weight.value) || 60;
     const rctx: IntentContext = { def: ctx.def, setting: ctx.hidden.setting, weightKg };
     // "No", "cancel": the order the nurse queried isn't given.

@@ -76,10 +76,35 @@ export interface ClinicalProvider {
   teach?(def: ClinicalCaseDefinition): Promise<TeachingPack | undefined>;
   /** Clinical pearls and exam-style questions on the case, for the doctor's country (optional). */
   learn?(def: ClinicalCaseDefinition, country: Country): Promise<LearnPack | undefined>;
+  /** The senior's reason for the next step, written for this patient (optional; the rules' reason stands without it). */
+  explainStep?(step: GuideStep, ctx: InterpretContext): Promise<string | undefined>;
+  /** Learning mode: the right next step and three tempting others, each with why or why not, for this case. */
+  guide?(step: GuideStep, ctx: InterpretContext): Promise<GuideOptions | undefined>;
   /** Number of available cases per specialty, mode and level, in the player's country. */
   availability(country?: Country): Promise<{
     specialties: Partial<Record<Specialty, number>>;
     tracks: Partial<Record<CaseTrack, number>>;
     levels: Partial<Record<CareLevel, number>>;
   }>;
+}
+
+/** The next essential step, as the simulator sees it. */
+export interface GuideStep {
+  stage: "history" | "exam" | "investigation" | "diagnosis" | "treatment" | "end";
+  /** The senior's words ("Ask about the duration of fever."). */
+  next: string;
+  /** The button's exact words, carried out by the simulator. */
+  ask?: string;
+}
+
+export interface GuideOption {
+  text: string;
+  correct: boolean;
+  /** Why it is right — or why not — in this case. */
+  why: string;
+}
+export interface GuideOptions {
+  /** What the doctor is deciding now ("What do you ask next?"). */
+  question: string;
+  options: GuideOption[];
 }

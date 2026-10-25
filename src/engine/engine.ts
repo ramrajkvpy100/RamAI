@@ -24,11 +24,11 @@ import { generateDebrief } from "./debrief";
 import { localizeCase, presentDebrief, presentEffects, presentState } from "./i18n/country";
 import { localizeEffects, localizeState } from "./i18n/hinglish";
 import { getProvider } from "./providers";
-import type { CaseSource, ClinicalProvider, TeachingPack } from "./providers/types";
+import type { CaseSource, ClinicalProvider, GuideOptions, TeachingPack } from "./providers/types";
 import { applyEffects, createInitialState } from "./reducer";
 import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
-import { createHiddenState, examPicture, imagingPicture, isTick, openingEffects, openingPicture, runTurn, type HiddenState } from "./simulator";
+import { createHiddenState, examPicture, imagingPicture, isTick, nextSeniorStep, openingEffects, openingPicture, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
 import type { ActionRecord, Auscultation, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, LearnPack, PatientLang, Specialty, TurnEffect, TurnResponse } from "./types";
 
@@ -97,6 +97,7 @@ function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
     guided: def.guided,
     ...(def.unlimited ? { unlimited: true } : {}),
     ...(payload.du ? { duel: payload.du } : {}),
+    ...(payload.lm ? { learning: true } : {}),
   });
   state = applyEffects(state, openingEffects(def, hidden));
   for (const record of payload.a) state = applyEffects(state, runTurn(def, hidden, record));
@@ -216,6 +217,8 @@ export interface StartCaseOptions {
   disease?: string;
   /** The duel this case is played in. */
   duel?: string;
+  /** Learning mode: four choices at every step. */
+  learning?: boolean;
 }
 
 export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession> {
@@ -232,7 +235,7 @@ export async function simulateCase(opts: StartCaseOptions): Promise<CaseSession>
     throw err;
   }
   const country = opts.country ?? "IN";
-  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }), ...(opts.daily && { d: opts.daily }), ...(opts.unlimited && !opts.tutorial && { f: 1 as const }), ...(opts.duel && { du: opts.duel }) };
+  const payload: SessionPayload = { v: 1, sid: randomUUID(), u: opts.userId, n: opts.caseNumber, sp: opts.specialty, src, a: [], t: Date.now(), ...(country !== "IN" && { c: country }), ...(opts.daily && { d: opts.daily }), ...(opts.unlimited && !opts.tutorial && { f: 1 as const }), ...(opts.duel && { du: opts.duel }), ...(opts.learning && !opts.tutorial && !opts.duel && { lm: 1 as const }) };
   const { def, state } = rebuild(payload, provider);
   return { token: seal(payload), state: render(state, def, country, opts.lang ?? "en") };
 }
@@ -374,7 +377,9 @@ export async function submitDoctorAction(token: string, input: string, userId: s
   const { def, hidden, state, country } = rebuild(payload, provider);
   if (hidden.closed) throw new EngineError("CASE_CLOSED", "This case is already closed.");
 
-  const interpretation = await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-40), country, lang });
+  // Learning mode: the right choice is carried out exactly, at once — nothing to read.
+  const learnt = payload.lm ? nextSeniorStep(def, hidden) : undefined;
+  const interpretation = learnt?.ask && learnt.step && text === learnt.ask ? { intents: [learnt.step] } : await provider.interpret(text, { def, hidden, transcript: state.messages.slice(-40), country, lang });
   const record: ActionRecord = {
     id: `a${payload.a.length + 1}`,
     at: hidden.clock,
@@ -400,6 +405,7 @@ export async function submitDoctorAction(token: string, input: string, userId: s
     }
     // The score and the debrief come at once; the feedback in words follows from coachFor() — no waiting on the model here.
     debrief = presentDebrief(generateDebrief(full, hidden, next), country);
+    if (payload.lm) debrief = { ...debrief, learning: true, assisted: Math.max(1, debrief.assisted ?? 0) };
   }
   const shown = speechIn(country, lang);
   return {
@@ -408,6 +414,22 @@ export async function submitDoctorAction(token: string, input: string, userId: s
     effects: effectsForPlayer(presentEffects(localizeEffects(effects, def.id, def.patient, shown), country), !def.guided),
     debrief,
   };
+}
+
+/**
+ * Learning mode: the next step as four choices — the right one and three tempting others — each with why or why
+ * not for this patient. Without the model, the senior's step alone (no wrong choices).
+ */
+export async function guideFor(token: string, userId: string, lang: PatientLang = "en"): Promise<GuideOptions | null> {
+  const provider = await getProvider();
+  const payload = open(token, userId);
+  if (!payload.lm) throw new EngineError("BAD_INPUT", "Not a learning-mode case.");
+  const { def, hidden, state, country } = rebuild(payload, provider);
+  if (hidden.closed) return null;
+  const step = nextSeniorStep(def, hidden);
+  if (step.stage === "end" || !step.ask) return { question: "You've done the essentials.", options: [{ text: "End case", correct: true, why: step.why[0]!.toUpperCase() + step.why.slice(1) + "." }] };
+  const made = provider.guide ? await provider.guide(step, { def, hidden, transcript: state.messages.slice(-40), country, lang }) : undefined;
+  return made ?? { question: "Your next step", options: [{ text: step.ask, correct: true, why: step.why[0]!.toUpperCase() + step.why.slice(1) + "." }] };
 }
 
 /**

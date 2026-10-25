@@ -22,6 +22,7 @@ export function createInitialState(init: {
   guided?: boolean;
   unlimited?: boolean;
   duel?: string;
+  learning?: boolean;
 }): CaseState {
   return {
     sessionId: init.sessionId,
@@ -51,6 +52,7 @@ export function createInitialState(init: {
     ...(init.guided ? { guided: true } : {}),
     ...(init.unlimited ? { unlimited: true } : {}),
     ...(init.duel ? { duel: init.duel } : {}),
+    ...(init.learning ? { learning: true } : {}),
     seq: 0,
   };
 }

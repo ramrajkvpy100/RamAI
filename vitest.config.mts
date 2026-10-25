@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // The audits call the real AI (they cost credits): run only on purpose: `AUDIT=1 npx vitest run tests/audit/compare.test.ts`.
+    exclude: process.env.AUDIT ? [] : ["tests/audit/**", "**/node_modules/**"],
   },
 });

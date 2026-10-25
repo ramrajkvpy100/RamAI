@@ -1405,7 +1405,15 @@ function handleResults(ctx: TurnContext): TurnEffect[] {
   const ready = ordered.filter((i) => i.delivered).slice(-4);
   const pending = ordered.filter((i) => !i.delivered);
   if (ready.length > 0) {
-    fx.push({ type: "message", role: "system", kind: "finding", text: ready.length === 1 ? `${ready[0]!.name} — result.` : `Results: ${ready.map((i) => i.name).join(", ")}.`, attachmentIds: ready.map((i) => i.instanceId) });
+    // "What was the platelet count?": the value itself, said, as well as the report.
+    const asked = ctx.record.raw.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2);
+    const keys = new Set(asked.flatMap((w) => [analyteKey(w), analyteKey(w.replace(/s$/, "")), analyteKey(`${w}s`)]));
+    const values = ordered.filter((i) => i.delivered).flatMap((i) => i.result.rows ?? []).filter((r) => {
+      const k = analyteKey(r.analyte);
+      return keys.has(k) || asked.some((w) => w.length >= 4 && r.analyte.toLowerCase().includes(w.replace(/s$/, "")));
+    });
+    const said = [...new Map(values.map((r) => [analyteKey(r.analyte), r])).values()].slice(0, 4).map((r) => `${r.analyte} ${r.value}${r.unit ? ` ${r.unit}` : ""}${r.flag && r.flag !== "normal" ? ` (${r.flag})` : ""}`);
+    fx.push({ type: "message", role: "system", kind: "finding", text: said.length ? `${said.join(" · ")}.` : ready.length === 1 ? `${ready[0]!.name} — result.` : `Results: ${ready.map((i) => i.name).join(", ")}.`, attachmentIds: ready.map((i) => i.instanceId) });
   }
   if (pending.length > 0) {
     const left = (i: OrderedInvestigation) => Math.max(1, Math.round(i.resultAt - hidden.clock));
@@ -1633,8 +1641,10 @@ function generatedResult(record: ActionRecord, id: string): { rows?: LabRow[]; r
   }
 }
 
-/** "All resources": a test the catalogue doesn't have, named by the doctor ("adhoc:Anti-CCP antibodies"). */
-const adhocTest = (def: ClinicalCaseDefinition, id: string) => !!def.unlimited && def.track !== "phone" && id.startsWith("adhoc:") && id.length > 7;
+/** A teaching hospital (or "all resources") does any standard test, even one the catalogue doesn't list. */
+export const fullLab = (def: ClinicalCaseDefinition) => !!def.unlimited || def.level === "college" || def.level === "apex" || def.level === "grandrounds";
+/** A test the catalogue doesn't have, named by the doctor ("adhoc:Anti-CCP antibodies"). */
+const adhocTest = (def: ClinicalCaseDefinition, id: string) => fullLab(def) && def.track !== "phone" && id.startsWith("adhoc:") && id.length > 7;
 export const adhocName = (id: string) => id.slice(6).trim().slice(0, 60);
 
 /** Sent like any other test; its result is what the lab wrote for this patient (kept on the action). */
@@ -2704,14 +2714,25 @@ const HISTORY_WHY: Partial<Record<string, string>> = {
   personal: "habits and exposures change the likely causes",
 };
 
-function handleHint(ctx: TurnContext): TurnEffect[] {
-  const { def, hidden } = ctx;
-  // Asking your senior: one clear next step, why it matters, and a button that does it. Counted in the debrief.
-  // As often as asked: it is for learning (each one is counted in the debrief).
-  record(hidden, "hint");
+export interface SeniorStep {
+  /** What to do, in the senior's words. */
+  next: string;
+  /** Why, from the rules (the AI rewrites it for this case when it can). */
+  why: string;
+  /** The button's words; carried out exactly. */
+  ask?: string;
+  step?: ResolvedIntent;
+  /** Kind of step, for learning mode. */
+  stage: "history" | "exam" | "investigation" | "diagnosis" | "treatment" | "end";
+}
+
+/** The next essential step in this case — what the senior would say, and the learning-mode answer. */
+export function nextSeniorStep(def: ClinicalCaseDefinition, hidden: HiddenState): SeniorStep {
   const history = def.history.find((h) => h.importance === "essential" && hidden.history[h.id] === undefined);
   const exam = def.exam.find((e) => e.importance === "essential" && hidden.exams[e.id] === undefined);
   const test = def.investigations.find((i) => i.priority === "essential" && !hidden.investigations.some((x) => x.defId === i.id));
+  // A test this facility can't do: the senior says so, and suggests a private lab — never an order that will be refused.
+  const testHere = !test || def.unlimited || def.track === "phone" || canPerform(def.level, partStudy(test.id) ? STUDY_BASE[test.id.split("-")[0] as ImagingKind] : test.id, { inCatalog: !!investigationEntry(test.id), minLevel: test.minLevel });
   const treatStep = def.rubric.idealTreatment.find((st) => !st.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
   const rule = treatStep ? def.therapeutics.find((r) => treatStep.includes(r.id)) : undefined;
   // What this patient came with, in their words — so the senior's reason is about this case, not cases in general.
@@ -2732,10 +2753,10 @@ function handleHint(ctx: TurnContext): TurnEffect[] {
     step = { kind: "exam", targetId: exam.id, phrase: `examine ${exam.match[0] ?? exam.label}`, matched: true };
   } else if (test) {
     const name = String(test.name ?? test.short ?? test.id);
-    next = `Order ${name}.`;
+    next = testHere ? `Order ${name}.` : `${name} isn't done here — send it to a private lab (or decide clinically and refer).`;
     why = `it's the test that settles this case — it confirms or rules out what the history and examination suggest${complaint ? ` about ${complaint}` : ""}, and changes what you give`;
-    ask = `Order ${name}`;
-    step = { kind: "investigation", targetId: test.id, phrase: name, matched: true };
+    ask = testHere ? `Order ${name}` : `Order ${name} from a private lab`;
+    step = { kind: "investigation", targetId: test.id, phrase: name, matched: true, ...(testHere ? {} : { payload: { private: true } }) };
   } else if (!hidden.diagnosis) {
     next = `I think this is ${def.truth.diagnosis}. Make it your working diagnosis.`;
     why = "the history, examination and results fit it — committing to a diagnosis guides the treatment";
@@ -2746,12 +2767,27 @@ function handleHint(ctx: TurnContext): TurnEffect[] {
     why = rule.note ? rule.note.replace(/\.$/, "") : `it's the treatment ${def.truth.diagnosis} needs now — the usual dose and route`;
     ask = `Treat: ${rule.label.replace(/\.$/, "")}`;
     const drugId = rule.drugIds?.[0];
-    step = drugId ? { kind: "drug", targetId: drugId, phrase: ask, matched: true, payload: { usual: true, mode: "given" } } : { kind: "action", targetId: rule.id, phrase: rule.match?.[0] ?? rule.label, matched: true };
+    step = drugId ? { kind: "drug", targetId: drugId, phrase: ask, matched: true, payload: { usual: true, mode: "given", ...(rule.doseRange && def.patient.age >= 16 ? { amount: rule.doseRange.min, unit: rule.doseRange.unit, dose: `${rule.doseRange.min} ${rule.doseRange.unit}` } : drugId === "methylprednisolone" && /\bpulse\b/i.test(rule.label) && def.patient.age >= 16 ? { amount: 1000, unit: "mg", dose: "1000 mg", overMin: 60 } : {}) } } : { kind: "action", targetId: rule.id, phrase: rule.match?.[0] ?? rule.label, matched: true };
   } else {
     next = "You've done the essentials — end the case and see your debrief.";
     why = "the diagnosis is made and the treatment is in; the debrief shows what to improve";
     ask = "End case";
   }
+  const stage: SeniorStep["stage"] = history ? "history" : exam ? "exam" : test ? "investigation" : !hidden.diagnosis ? "diagnosis" : rule ? "treatment" : "end";
+  return { next, why, ask, step, stage };
+}
+
+/** Senior's reason written for this case by the AI, kept with the action so the case replays the same. */
+export const SENIOR_WHY_KEY = "senior-why";
+
+function handleHint(ctx: TurnContext): TurnEffect[] {
+  const { def, hidden } = ctx;
+  // Asking your senior: one clear next step, why it matters, and a button that does it. Counted in the debrief.
+  // As often as asked: it is for learning (each one is counted in the debrief).
+  record(hidden, "hint");
+  const { next, ask, step } = nextSeniorStep(def, hidden);
+  const written = ctx.record.generated?.[SENIOR_WHY_KEY];
+  const why = written && written.trim() ? written.trim().replace(/\.$/, "") : nextSeniorStep(def, hidden).why;
   hidden.seniorStep = ask && step ? { text: ask, intent: step } : undefined;
   return [{
     type: "message", role: "system", kind: "status",
@@ -3054,7 +3090,12 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
         const first = t.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/).slice(0, 2).join(" ");
         return first.length > 160 ? `${first.slice(0, 157).replace(/\s+\S*$/, "")}…` : first;
       };
-      const lines = spoken.map((m, i) => `• ${spoken.length === fullHistory!.length ? `**${capitalise(fullHistory![i]!)}:** ` : ""}${short(m.text)}`);
+      // The case file's own summary of each answer (a doctor's note) where it has one; else the patient's words, shortened.
+      const fact = (label: string | undefined) => (label ? def.history.find((h) => h.label.toLowerCase() === label.toLowerCase())?.fact : undefined);
+      const lines = spoken.map((m, i) => {
+        const label = spoken.length === fullHistory!.length ? fullHistory![i] : undefined;
+        return `• ${label ? `**${capitalise(label)}:** ` : ""}${short(fact(label) ?? m.text)}`;
+      });
       const at = fx.indexOf(spoken[0]!);
       for (const m of spoken) fx.splice(fx.indexOf(m), 1);
       fx.splice(at, 0, { type: "message", role: "system", kind: "finding", text: `📋 History\n${lines.join("\n")}` });

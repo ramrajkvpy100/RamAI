@@ -1,6 +1,6 @@
 "use client";
 
-import { RichLines } from "@/components/ui/rich-lines";
+import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
@@ -55,7 +55,7 @@ export function ExplainMore({ drill, question, options, answer, explanation }: {
         {teaching.next && <Part title="What to do next" text={teaching.next} />}
         {teaching.pearl && (
           <p className="rounded-xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-3 py-2 text-[13.5px]">
-            <b className="font-semibold">Pearl:</b> {teaching.pearl}
+            <b className="font-semibold">Pearl:</b> <Rich text={teaching.pearl} />
           </p>
         )}
       </div>

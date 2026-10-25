@@ -30,6 +30,7 @@ import { CaseTopBar, readyToEnd } from "./case-top-bar";
 import { Coach } from "./coach";
 import { UndoBar } from "./undo-bar";
 import { Composer } from "./composer";
+import { LearningChoices } from "./learning-choices";
 import { ComposerProvider } from "./composer-context";
 import { Conversation } from "./conversation";
 import { EndCaseDialog } from "./end-case";
@@ -277,6 +278,7 @@ function Workspace() {
                     </div>
                     <Coach state={state} onTry={onSend} busy={!!snap.sending} />
                   <UndoBar />
+                  {state.learning && snap.session && state.status === "active" && <LearningChoices token={snap.session.token} turn={snap.turn} busy={!!snap.sending} onDo={(t) => (t === "End case" ? setEnding(true) : onSend(t))} />}
                   <Composer fullHistory={state.messages.some((m) => m.kind === "speech" && (m.role === "patient" || m.role === "attendant")) && !state.messages.some((m) => m.text.startsWith("📋 History"))} onSend={onSend} sending={!!snap.sending} disabled={false} history={history} phone={state.track === "phone"} skin={state.specialty === "Dermatology" || /\b(rash|itch\w*|skin|patch\w*|spots?|lesion\w*|pimples?|boils?|blisters?|scal(y|es)|ring)\b/i.test(state.messages.slice(0, 4).map((m) => m.text).join(" ") + " " + (state.briefing ?? ""))} country={state.country} watch={state.watching && state.watching.until > state.clock ? { label: state.watching.label, minutes: Math.ceil(state.watching.until - state.clock) } : null} />
                   </div>
                 </div>

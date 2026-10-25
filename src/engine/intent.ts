@@ -619,7 +619,9 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
   }
 
   // Asking about results ("result of the test?", "is the CBC report ready?"): show what's back, say what's pending — never a new order.
-  if (hasAny(tk, ["result", "results", "report", "reports", "findings", "impression"]) && !hasAny(tk, ["order", "send", "send for", "request", "repeat"])) {
+  // "Your previous reports and treatment", "old prescriptions": what the patient brought — asked of the patient (history), not our results.
+  const outside = /\b(?:previous|old|earlier|past|outside|prior|other|your|his|her|brought)\s+(?:\w+\s+)?(?:reports?|records?|papers|files?|prescriptions?|treatments?|medicines?|slips?)\b/i.test(rawClause);
+  if (hasAny(tk, ["result", "results", "report", "reports", "findings", "impression"]) && !outside && !hasAny(tk, ["order", "send", "send for", "request", "repeat"])) {
     const named = resolveOverlaps(investigationCandidates(rawClause, tk, ctx));
     // "USG report?" / "impression of the CT" — the report itself, not just the picture again.
     const report = hasAny(tk, ["report", "reports", "impression", "reported", "radiologist"]);
@@ -632,6 +634,15 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     // Only an examination that has a photograph — otherwise it's not this rule's to guess.
     const pictured = ctx.def.exam.find((e) => e.media);
     if (pictured) return done([{ kind: "exam", targetId: pictured.id, phrase: rawClause, matched: true }]);
+  }
+
+  // "Show (me a) picture of both hands": the examination of that part — its photograph when the case has one.
+  const picOf = norm.match(/^(?:please\s+|can you\s+|let me\s+)?(?:show|see|let me see|can i see)(?: me)?\s+(?:a\s+|the\s+)?(?:pic|pics|picture|pictures|photo|photos|photograph|image|images)\s+of\s+(?:the\s+|your\s+|his\s+|her\s+|both\s+)*(.+?)\s*$/);
+  if (picOf) {
+    const words = picOf[1]!.split(/[^a-z]+/).filter((w) => w.length > 2 && !["and", "the", "both"].includes(w)).map((w) => w.replace(/s$/, ""));
+    const hit = ctx.def.exam.find((e) => e.media && words.some((w) => `${e.label} ${(e.match ?? []).join(" ")}`.toLowerCase().includes(w)))
+      ?? ctx.def.exam.find((e) => words.some((w) => `${e.label} ${(e.match ?? []).join(" ")}`.toLowerCase().includes(w)));
+    if (hit) return done([{ kind: "exam", targetId: hit.id, phrase: rawClause, matched: true }]);
   }
 
   // "How are you feeling?" — the patient says how they are now.
@@ -741,7 +752,7 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   // unless the case has its own step for them (sitting a breathless patient up is treatment).
   const instruction = /^\s*(?:please\s+|can you\s+|could you\s+|make (?:him|her|them|the patient)\s+)?(?:stand(?: up)?|get up|sit(?: (?:him|her|them|the patient))?(?: up| down| upright)?|prop (?:him|her|them|the patient) up|lie (?:down|flat)|lie on (?:your|the|his|her) (?:back|side|left|right)|turn (?:over|to (?:your|the|his|her) (?:left|right|side))|walk(?: a few steps| for me| around)?|take a (?:deep )?breath|breathe (?:in|deeply)|hold your breath|open your mouth|say (?:aa+h|ahh+)|stick out your tongue|show (?:me )?your tongue|relax|cough)\b[^?]{0,30}$/i.test(raw);
   // "Hint", "give me a hint", "I'm stuck": a nudge, only when asked for.
-  if (/^\s*(?:please\s+)?(?:give me |show me |i need |any )?(?:a |another )?(?:hint|clue)s?\b|\bi'?m stuck\b|\bwhat (?:should|do) i do next\b/i.test(raw)) return [{ kind: "hint", phrase: raw, matched: true }];
+  if (/^\s*(?:please\s+)?(?:give me |show me |i need |any )?(?:a |another )?(?:hint|clue)s?\b|\bi'?m stuck\b|\bwhat (?:should|do) i do next\b|^\s*(?:dear\s+|hey\s+|ok\s+)?senior\b/i.test(raw)) return [{ kind: "hint", phrase: raw, matched: true }];
   // "Call cardiology", "surgery consult", "ortho opinion": another department's view.
   const consult = consultDepartment(raw);
   if (consult !== null) return [{ kind: "consult", targetId: consult || undefined, phrase: raw, matched: true }];

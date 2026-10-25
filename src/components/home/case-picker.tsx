@@ -58,6 +58,9 @@ export function CasePicker({
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [level, setLevel] = useState<CareLevel | undefined>();
   const [unlimited, setUnlimited] = useState(false);
+  // Learning mode (four choices at every step, with why) or real life (you decide and type everything).
+  const [learning, setLearning] = useState(() => { try { return localStorage.getItem("ramai.learning") === "1"; } catch { return false; } });
+  const chooseLearning = (on: boolean) => { setLearning(on); try { localStorage.setItem("ramai.learning", on ? "1" : "0"); } catch {} };
   const [disease, setDisease] = useState("");
   // Kept simple: specialty and level; the rest one tap away.
   const [more, setMore] = useState(false);
@@ -75,7 +78,7 @@ export function CasePicker({
       footer={
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
-          <button type="button" onClick={() => onStart({ track, level, difficulty, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
+          <button type="button" onClick={() => onStart({ track, level, difficulty, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}), ...(learning ? { learning: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
             {starting ? startingLabel : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
             {/* How far along the new patient is: a bar filling along the bottom of the button. */}
@@ -85,7 +88,18 @@ export function CasePicker({
       }
     >
       <div className="flex flex-col gap-6">
-        <Group label="Mode">
+        <Group label="How you play">
+          <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1" role="radiogroup" aria-label="How you play">
+            {([[true, "🎓 Learning", "4 choices each step, with why"], [false, "🩺 Real life", "you decide and type"]] as const).map(([on, label, note]) => (
+              <button key={label} type="button" role="radio" aria-checked={learning === on} onClick={() => chooseLearning(on)} className={cn("flex flex-col items-center justify-center rounded-lg px-2 py-2 text-center transition-colors", learning === on ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+                <span className="text-[14px] font-semibold">{label}</span>
+                <span className="text-[11.5px] text-fg-3">{note}</span>
+              </button>
+            ))}
+          </div>
+        </Group>
+
+        <Group label="Setting">
           <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1">
             {PLAYABLE_TRACKS.map((t) => (
               <button

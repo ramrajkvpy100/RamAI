@@ -121,7 +121,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
     return () => window.clearTimeout(t);
   }, [snap.hydrated, active, played, unasked]);
   const stops: TourStop[] = [
-    { target: "start", title: "Start a case", body: "A new patient every time — the diagnosis is hidden and there are no tips. Choose case lets you pick the specialty, the mode (OPD, emergency or phone) and the hospital level." },
+    { target: "start", title: "Start a case", body: "New case lets you pick the specialty, the mode (learning or real life, OPD, emergency or phone) and the hospital level. Any case starts a random patient in one tap." },
     { target: "daily", title: "Today's case", body: "One patient for every doctor today. Play it, see where you rank, and share your result." },
     { target: "levels", title: "Your path", body: "Climb from a primary health centre to grand rounds. Score 70 or more to clear a level and unlock harder hospitals." },
     {
@@ -181,20 +181,22 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           {!snap.hydrated ? (
             <div className="mt-7 h-12" aria-hidden />
           ) : (
-            <div className="mt-7 flex animate-fade flex-wrap items-center gap-2.5" data-tour="start">
-              {active ? (
-                <Link href="/case" className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow">
+            <div className="mt-7 flex w-full max-w-[360px] animate-fade flex-col gap-2.5" data-tour="start">
+              {active && (
+                <Link href="/case" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 text-[15px] font-semibold text-white backdrop-blur">
                   Resume {caseLabel(active.state.caseNumber)} <Icon name="arrow-right" size={16} />
                 </Link>
-              ) : (
-                <button type="button" onClick={() => void start({})} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">
-                  {starting ? startingLabel : "Start case"}
-                  {!starting && <Icon name="arrow-right" size={16} />}
+              )}
+              {/* New case first — choose the patient you want — then any case, one tap. */}
+              <button type="button" onClick={() => setPicker(true)} className="shine inline-flex h-13 items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[16px] font-bold text-white shadow-glow">
+                <Icon name="plus" size={17} /> New case
+              </button>
+              {!active && (
+                <button type="button" onClick={() => void start({})} disabled={starting} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 text-[14.5px] font-medium text-white/90 backdrop-blur transition-colors hover:bg-white/10 disabled:opacity-70">
+                  {starting ? startingLabel : "Any case"}
+                  {!starting && <Icon name="shuffle" size={15} />}
                 </button>
               )}
-              <button type="button" onClick={() => setPicker(true)} className="inline-flex h-12 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 text-[14.5px] font-medium text-white/90 backdrop-blur transition-colors hover:bg-white/10">
-                <Icon name="sliders" size={15} /> {active ? "New case" : "Choose case"}
-              </button>
             </div>
           )}
           {error && (

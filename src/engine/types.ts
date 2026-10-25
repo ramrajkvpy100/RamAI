@@ -537,6 +537,8 @@ export interface CaseState {
   unlimited?: boolean;
   /** The duel this case is played in (two doctors, one patient). */
   duel?: string;
+  /** Learning mode: four choices at every step, with why and why not (not ranked). */
+  learning?: boolean;
   /** Where the case is set: units, money and names on screen follow it. */
   country?: Country;
   /** The daily case's day (IST) — the same patient for everyone that day. */
@@ -848,6 +850,8 @@ export interface CaseDebrief {
   elapsedMin: number;
   /** How many times the senior was asked: a case finished with help is practice — it never counts towards progress. */
   assisted?: number;
+  /** Played in learning mode (not ranked). */
+  learning?: boolean;
   /** Total spent on investigations, INR. */
   spend: number;
   /** Investigations the player ordered, by catalogue/case id. */

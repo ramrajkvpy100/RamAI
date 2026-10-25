@@ -118,6 +118,7 @@ export async function POST(req: Request) {
       country: user.country,
       daily,
       unlimited: body.unlimited,
+      learning: body.learning,
       disease: body.disease,
       duel: duelId,
     }));

@@ -203,7 +203,7 @@ function bowel(m: Mix, s: BowelSounds, from: number, until: number) {
 }
 
 /** Breath and bowel sounds are quieter than the heart at the chest piece; bring them up so a phone speaker carries them. */
-const LEVEL = { heart: 1, lungs: 2.2, bowel: 3 } as const;
+const LEVEL = { heart: 1, lungs: 3.2, bowel: 3 } as const;
 
 /** Several areas, one after another, as a stethoscope moves. Same parameters and seed, same sound. */
 export function renderAuscultation(sounds: Auscultation[], seed: number, seconds = LISTEN_SECONDS, rate = SAMPLE_RATE): Float32Array {
@@ -226,6 +226,12 @@ export function renderAuscultation(sounds: Auscultation[], seed: number, seconds
   // Gentle saturation instead of hard clipping.
   for (let i = 0; i < out.length; i++) out[i] = Math.tanh(out[i]! * 1.1);
   return out;
+}
+
+/** Louder for phone speakers: soft parts lifted about twice, peaks kept below clipping (soft stays relatively soft). */
+export function loud(x: Float32Array) {
+  const k = 2, norm = Math.tanh(k);
+  return x.map((v) => (Math.tanh(v * k) / norm) * 0.98);
 }
 
 /** 16-bit mono PCM WAV. */

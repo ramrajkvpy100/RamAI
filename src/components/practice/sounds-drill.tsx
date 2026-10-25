@@ -4,7 +4,7 @@ import { recordSkill } from "@/lib/skill-progress";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { renderAuscultation, toWav } from "@/engine/stethoscope-audio";
+import { loud, renderAuscultation, toWav } from "@/engine/stethoscope-audio";
 import type { Auscultation } from "@/engine/types";
 import { cn } from "@/lib/cn";
 
@@ -83,7 +83,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
   // The sound itself, made on this device the first time it's played.
   const url = useMemo(() => {
     if (!item) return null;
-    const wav = toWav(renderAuscultation([item.sound], Math.floor(Math.random() * 1e6)));
+    const wav = toWav(loud(renderAuscultation([item.sound], Math.floor(Math.random() * 1e6))));
     return URL.createObjectURL(new Blob([wav as BlobPart], { type: "audio/wav" }));
   }, [item]);
   useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url]);
@@ -128,9 +128,9 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
           </div>
           {picked !== null && (
             <section className="selectable animate-enter rounded-xl border border-line p-4">
-              <div className={cn("text-[14px] font-semibold", options[picked]?.id === item.id ? "text-success" : "text-danger")}>{options[picked]?.id === item.id ? "Correct" : `It's ${item.label}`}</div>
+              <div className={cn("text-[14px] font-semibold", options[picked]?.id === item.base ? "text-success" : "text-danger")}>{options[picked]?.id === item.base ? "Correct" : `It's ${item.label}`}</div>
               <p className="mt-1 text-[14px] leading-6">{item.key}</p>
-              {options[picked]?.id !== item.id && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {options[picked]?.label}?</b> {options[picked]?.key}</p>}
+              {options[picked]?.id !== item.base && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {options[picked]?.label}?</b> {options[picked]?.key}</p>}
               <p className="mt-2 text-[11.5px] text-fg-3">A teaching simulation of the sound, made by RamAI&apos;s stethoscope engine — real recordings vary. Source for the findings: Macleod&apos;s Clinical Examination.</p>
               <div className="mt-3 flex items-center justify-between gap-2">
                 <ReportProblem compact target={{ area: "skills", ref: `Heart & breath sounds · ${item.label}`, details: `Sound: ${item.label}\nOptions: ${options.map((o) => `${o.id === item.base ? "✓ " : ""}${o.label}`).join(" | ")}\nKey: ${item.key}` }} />

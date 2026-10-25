@@ -1,5 +1,7 @@
 "use client";
 
+import { SearchButton } from "./search-box";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -47,6 +49,7 @@ export function AppHeader({ initial }: { initial: Me }) {
           <ExamMenu country={me.user.country} />
         </nav>
         <div className="ml-auto flex items-center gap-2.5">
+          <SearchButton />
           <NotInAndroidApp>
             <Link href="/support" aria-label="Donate to RamAI" className="flex h-8 items-center gap-1.5 rounded-full bg-rose-500/10 px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-500/15 dark:text-rose-400">
               <span aria-hidden>♥</span><span className="hidden min-[400px]:inline">Donate</span>

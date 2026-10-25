@@ -36,14 +36,14 @@ import { CARE_LEVELS, PLAYABLE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
 import { pickCondition } from "./conditions";
 import { mockProvider, NoCaseError } from "./mock";
-import type { z } from "zod";
+import { z } from "zod";
 
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
 import { normalise } from "../text";
-import { aboutThem, labGap, systemFinding, vitalsNow } from "../simulator";
+import { aboutThem, fullLab, labGap, nextSeniorStep, SENIOR_WHY_KEY, systemFinding, vitalsNow } from "../simulator";
 import { noteUsage } from "./usage";
-import type { CaseSource, ClinicalProvider, CoachFeedback, FeedbackInput, InterpretContext, Interpretation, StartOptions } from "./types";
+import type { CaseSource, ClinicalProvider, CoachFeedback, FeedbackInput, GuideStep, InterpretContext, Interpretation, StartOptions } from "./types";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -257,8 +257,8 @@ Orders are carried out exactly as given, however unusual, excessive or unsafe �
 If the nurse has just asked about an order's missing details and the doctor answers them, return that same order (same kind and targetId) with the details in its payload.
 Map to existing ids whenever the meaning matches — the game answers those itself.
 Understand the doctor the way a thoughtful, experienced colleague would in a real conversation: typos, abbreviations (c/o, h/o, o/e, BD, TDS, stat), shorthand, Hinglish or Hindi, half-sentences and several requests in one message — handle every request, in the order given, each as its own intent. Use the whole conversation to work out what "it", "that", "same", "again" and short replies refer to.
-Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${def.unlimited ? `
-This hospital has every resource: any test can be done. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
+Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${fullLab(def) ? `
+This hospital can do any standard test. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
 For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}. A relative speaking about a child (or about a patient who can't speak) speaks of them in the third person — "he hasn't had a fever", never "I haven't".
 Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
 For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient (in ${language(country, lang)}); the relative only when spoken to directly, or when the patient is a young child or can't speak. The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
@@ -716,7 +716,7 @@ Diagnosis: ${def.truth.diagnosis}${def.truth.qualifier ? ` — ${def.truth.quali
 Items in the case (id, what, importance): ${items.join("; ")}
 
 Return JSON:
-{ "teaching": { "patientBand": "the id of this patient's severity band", "severityBands": [{ "id", "label", "recognition": [], "investigation": [], "treatment": [], "followUp": [] }] (2–4 bands), "drugs": [{ "generic", "brand", "dose", "route": "PO"|"IV"|"IM"|"SC"|"SL"|"PR"|"TOP"|"INH"|"NEB"|"IN", "frequency", "duration", "indication", "mechanism", "whyItWorks", "avoidWhen": [], "adverseEffects": [], "monitoring": [] }] (1–4), "routines": [], "followUp": { "interval", "reassess": [], "redFlags": [], "whenToEscalate": [] }, "treatmentFailure": { "steps": [] }, "pearl": "one memorable teaching point", "sources": ["1–3 real, widely recognised sources this treatment follows, in this order: the current guideline for this exact condition where one exists (e.g. 'National Snakebite Management Protocol (MoHFW, 2017)', 'GINA 2024', 'Surviving Sepsis Campaign 2021'), else the specialty body's guideline (e.g. 'IAP Standard Treatment Guidelines'), and the standard textbook (e.g. 'Nelson Textbook of Pediatrics'); every drug and dose in this teaching must agree with them; no page numbers, never invent a title or a year"] },
+{ "teaching": { "patientBand": "the id of this patient's severity band", "severityBands": [{ "id", "label", "recognition": [], "investigation": [], "treatment": [], "followUp": [] }] (2–4 bands), "drugs": [{ "generic", "brand", "dose", "route": "PO"|"IV"|"IM"|"SC"|"SL"|"PR"|"TOP"|"INH"|"NEB"|"IN", "frequency", "duration", "indication", "mechanism", "whyItWorks", "avoidWhen": [], "adverseEffects": [], "monitoring": [] }] (1–4), "routines": [], "followUp": { "interval", "reassess": [], "redFlags": [], "whenToEscalate": [] }, "treatmentFailure": { "steps": [] }, "pearl": "one memorable teaching point, its key words in **bold**", "sources": ["1–3 real, widely recognised sources this treatment follows, in this order: the current guideline for this exact condition where one exists (e.g. 'National Snakebite Management Protocol (MoHFW, 2017)', 'GINA 2024', 'Surviving Sepsis Campaign 2021'), else the specialty body's guideline (e.g. 'IAP Standard Treatment Guidelines'), and the standard textbook (e.g. 'Nelson Textbook of Pediatrics'); every drug and dose in this teaching must agree with them; no page numbers, never invent a title or a year"] },
   "misses": { "<id of an essential or useful item>": { "what": "what the doctor didn't do, said to them (\"Didn't check renal function\") — never about the case notes or the record", "why": "why it matters here, in one line — naming the guideline (WHO, ICMR, NICE, AHA…) where one applies", "better": "the better approach", "severity": "minor"|"moderate"|"major" } },
   "strengths": { "<id>": "what doing it well shows" } }
 misses and strengths: one for each essential item and the most useful ones; keys must be ids from the list.`,
@@ -781,7 +781,7 @@ function learnPrompt(def: ClinicalCaseDefinition, country: Country): ChatMessage
       content: `THE CASE (finished — the diagnosis can be named): ${caseSummary(def)}
 
 Write, for a doctor preparing for ${exam.name}:
-- "pearls": 3–5 high-yield clinical pearls this case teaches — specific, practical and memorable, one sentence each.
+- "pearls": 3–5 high-yield clinical pearls this case teaches — specific, practical and memorable, one sentence each, with the 1–3 key words of each in **bold**.
 - "mcqs": 5 questions in ${exam.style}. Test what this case needs: the diagnosis, the right investigation, management, a complication, and one closely related high-yield fact. Exactly one best answer each; plausible, homogeneous distractors; no "all of the above" or "none of the above". In explanations, refer to options by their content, never by letter or position.
 Each question: {"stem","options":[${exam.options} options],"answer": the 0-based index of the best answer,"explanation":"short lines (one point per line, separated by \\n, key words in **bold**): why it's right, then one line for each other option saying why it isn't","topic":"a short tag, e.g. 'STEMI — reperfusion'","difficulty":"easy"|"medium"|"hard"}
 Return {"pearls":[…],"mcqs":[…]}`,
@@ -817,6 +817,46 @@ function shuffleOptions<T extends { options: string[]; answer: number }>(q: T, r
 /* -------------------------------------------------------------------------- */
 
 /** The rules couldn't place it: ask the model what the doctor meant. */
+/** Words around a test order that aren't test names. */
+const ORDER_FILLER = new Set("test tests for order send do get check please plz pls and also the a an of with me us her his him now stat urgent sample report reports level levels serum blood urine routine plain contrast chest abdomen head pelvis kub pa ap lateral view erect supine".split(" "));
+
+/* -------------------------------------------------------------------------- */
+/* The senior's reasons and learning mode's four choices                      */
+/* -------------------------------------------------------------------------- */
+
+const GuideSchema = z.object({
+  question: z.string().min(3).max(160),
+  why: z.string().min(10).max(500),
+  others: z.array(z.object({ text: z.string().min(2).max(140), why: z.string().min(10).max(500) })).min(3),
+});
+
+function stepPrompt(step: GuideStep, ctx: InterpretContext, want: "why" | "options"): ChatMessage[] {
+  const { def } = ctx;
+  const named = step.stage === "diagnosis" || step.stage === "treatment";
+  const kind = { history: "a history question to ask", exam: "an examination to do", investigation: "a test to order", diagnosis: "the working diagnosis to commit to", treatment: "a treatment to give", end: "" }[step.stage];
+  return [
+    {
+      role: "system",
+      content: `You are a kind, sharp senior doctor teaching a junior during a simulated case in ${WHERE[ctx.country ?? "IN"]} (RamAI, an educational simulation).
+You know the case file (the answer). Teach clinical reasoning for THIS patient: tie every reason to this patient's age, sex, complaint, findings and results so far — never a generic textbook line.
+${named ? "The doctor has reached the diagnosis step, so the diagnosis may be named." : "The doctor has NOT made the diagnosis yet: never name it, its synonyms or its specific test results. Reason from what is known so far and what must be told apart (you may name broad possibilities that must be ruled out)."}
+Short, plain sentences; 1–2 sentences per reason. Output JSON only.`,
+    },
+    {
+      role: "user",
+      content: `Patient: ${def.patient.age}-year-old ${def.patient.sex}. ${def.briefing}
+Case file (hidden from the doctor): diagnosis ${def.truth.diagnosis}${def.truth.qualifier ? ` (${def.truth.qualifier})` : ""}.
+${stateNote(ctx)}
+
+The right next step is ${kind}: "${step.ask ?? step.next}".
+${want === "why"
+  ? `Write why this step matters now, for this patient. Return {"why":"…"}`
+  : `Write a learning-mode choice: the question the doctor faces now (e.g. "What would you ask next?"), why the right step is right here, and three other options of the same kind (${kind}) that a junior might pick — plausible but less useful, premature, unsafe or irrelevant for this patient now. For each, why not, for this patient. Write each option as a short instruction like the right one ("Ask about…", "Examine…", "Order…", "Diagnosis: …", "Treat: …"). Never repeat the right step.
+Return {"question":"…","why":"…","others":[{"text":"…","why":"…"},{"text":"…","why":"…"},{"text":"…","why":"…"}]}`}`,
+    },
+  ];
+}
+
 async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[]): Promise<Interpretation> {
   try {
     // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
@@ -1113,6 +1153,36 @@ export function createOpenAIProvider(): ClinicalProvider {
         return undefined;
       }
     },
+    async explainStep(step, ctx) {
+      if (ctx.def.guided || step.stage === "end") return undefined;
+      try {
+        const raw = (await chatJSON(stepPrompt(step, ctx, "why"), 300, false, 6_000, true)) as { why?: unknown };
+        const why = typeof raw.why === "string" ? raw.why.trim() : "";
+        if (!why || (step.stage !== "diagnosis" && step.stage !== "treatment" && leaksDiagnosis(ctx.def, why, ctx.transcript.map((m) => m.text).join(" ")))) return undefined;
+        return why.slice(0, 400);
+      } catch {
+        return undefined;
+      }
+    },
+    async guide(step, ctx) {
+      if (step.stage === "end" || !step.ask) return undefined;
+      try {
+        const raw = await chatJSON(stepPrompt(step, ctx, "options"), 900, false, 12_000, true);
+        const parsed = GuideSchema.safeParse(raw);
+        if (!parsed.success) return undefined;
+        const said = ctx.transcript.map((m) => m.text).join(" ");
+        const wrong = parsed.data.others.slice(0, 3).map((o) => ({ text: o.text, correct: false, why: o.why }));
+        const right = { text: step.ask, correct: true, why: parsed.data.why };
+        // Nothing before the diagnosis step may name the diagnosis.
+        if (step.stage !== "diagnosis" && step.stage !== "treatment" && [right, ...wrong].some((o) => leaksDiagnosis(ctx.def, `${o.text} ${o.why}`, said))) return undefined;
+        if (wrong.length < 3) return undefined;
+        const options = [right, ...wrong].sort(() => Math.random() - 0.5);
+        return { question: parsed.data.question, options };
+      } catch (err) {
+        console.error("[ramai] learning options unavailable", err instanceof Error ? err.message : err);
+        return undefined;
+      }
+    },
     resolveCase: (src) => mockProvider.resolveCase(src),
     /** Any specialty, mode or level can be invented. */
     async availability() {
@@ -1125,6 +1195,11 @@ export function createOpenAIProvider(): ClinicalProvider {
       const rules = await mockProvider.interpret(text, ctx);
       // The senior's button and "Full history" are carried out exactly by the simulator — nothing to read.
       if (text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim())) return rules;
+      // Asking the senior: the rules pick the step; the model writes why it matters for this patient (6 s at most).
+      if (rules.intents.length === 1 && rules.intents[0]!.kind === "hint" && this.explainStep) {
+        const why = await this.explainStep(nextSeniorStep(ctx.def, ctx.hidden), ctx);
+        return why ? { ...rules, generated: { ...rules.generated, [SENIOR_WHY_KEY]: why } } : rules;
+      }
       // An order's question asked again: the rules have the words already.
       if (rules.generated && rules.intents.some((i) => i.payload?.keepPending === true || i.payload?.settled === true)) return rules;
       const ruled = rules.intents;
@@ -1134,12 +1209,15 @@ export function createOpenAIProvider(): ClinicalProvider {
       const partly = text.trim().split(/\s+/).length > 6 && clauses > ruled.filter((i) => i.kind !== "unknown").length;
       // A question the rules turned into an order ("can we give aspirin?", "cbc normal?") is checked by the model too.
       const questionAsOrder = /\?\s*$/.test(text.trim()) && ruled.some((i) => ["drug", "investigation", "action"].includes(i.kind) && i.payload?.reshow !== true);
-      const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || questionAsOrder || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
+      // "Test for ana anca": more test names than the rules placed — the model reads the rest (an unlisted test too).
+      const testWords = ruled.some((i) => i.kind === "investigation") ? text.toLowerCase().split(/[^a-z0-9-]+/).filter((w) => w.length >= 2 && !ORDER_FILLER.has(w)) : [];
+      const moreTests = testWords.length > ruled.filter((i) => i.kind === "investigation").length + 1 || (testWords.length === 2 && ruled.filter((i) => i.kind === "investigation").length === 1 && testWords.every((w) => w.length <= 6));
+      const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || questionAsOrder || moreTests || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
       // Speed: a button (the senior's step, "Full history", a ready-made reply) or a plain order needs no rewording — the
-      // rules' words go straight back. Otherwise the patient's voice gets 2.5 s; past that, the rules' answer is shown.
+      // rules' words go straight back. Otherwise the patient's voice gets 1.5 s; past that, the rules' answer is shown.
       const button = text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim());
       const talk = ruled.some((i) => i.kind === "history" || i.kind === "greeting");
-      const quick = (p: Promise<Interpretation>): Promise<Interpretation> => Promise.race([p, new Promise<Interpretation>((resolve) => setTimeout(() => resolve({ intents: ruled }), 2500))]);
+      const quick = (p: Promise<Interpretation>): Promise<Interpretation> => Promise.race([p, new Promise<Interpretation>((resolve) => setTimeout(() => resolve({ intents: ruled }), 1500))]);
       const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : button || !talk || ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : quick(voice(text, ctx, ruled));
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;

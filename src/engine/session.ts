@@ -38,6 +38,8 @@ export interface SessionPayload {
   d?: string;
   /** "All resources": every test and treatment available. */
   f?: 1;
+  /** Learning mode. */
+  lm?: 1;
   /** The duel this case is played in, if any. */
   du?: string;
 }

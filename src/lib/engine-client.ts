@@ -77,6 +77,8 @@ export interface CaseChoice {
   level?: CareLevel;
   /** "All resources": every test and treatment available. */
   unlimited?: boolean;
+  /** Learning mode: four choices at every step, with why and why not. */
+  learning?: boolean;
   /** Easy (very easy, classic), medium or hard. */
   difficulty?: "easy" | "medium" | "hard";
   /** A disease to practise. */
@@ -92,6 +94,9 @@ export const submitDoctorAction = (token: string, input: string) => call<TurnRes
 /** Real-time mode: one minute of case time passes. */
 export const tickCase = (token: string) => call<TurnResponse>("/api/cases/tick", { token });
 export const resumeCase = (token: string) => call<CaseSession>("/api/cases/resume", { token });
+/** Learning mode: the next step as four choices. */
+export interface GuideChoice { text: string; correct: boolean; why: string }
+export const fetchGuide = (token: string) => call<{ guide: { question: string; options: GuideChoice[] } | null }>("/api/cases/guide", { token });
 export const getLibrary = () => call<LibraryInfo>("/api/cases/library");
 
 /* Convenience wrappers — all are natural-language actions underneath. */

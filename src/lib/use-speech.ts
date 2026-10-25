@@ -44,16 +44,23 @@ export function useSpeech(onText: (text: string, final: boolean) => void) {
     r.lang = "en-IN";
     r.continuous = true;
     r.interimResults = true;
-    let finalText = "";
     r.onresult = (e) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      // Rebuilt from every result each time. Android Chrome repeats the words so far in each new result
+      // ("diclofenac", "diclofenac 40", "diclofenac 40 mg") — a result that extends the one before replaces it.
+      const parts: string[] = [];
+      let interim = false;
+      for (let i = 0; i < e.results.length; i++) {
         const res = e.results[i]!;
-        const t = res[0]?.transcript ?? "";
-        if (res.isFinal) finalText += t;
-        else interim += t;
+        const t = (res[0]?.transcript ?? "").trim();
+        if (!res.isFinal) interim = true;
+        if (!t) continue;
+        const prev = parts[parts.length - 1];
+        const a = t.toLowerCase(), b = prev?.toLowerCase() ?? "";
+        if (prev !== undefined && a.startsWith(b)) parts[parts.length - 1] = t;
+        else if (prev !== undefined && b.startsWith(a)) continue;
+        else parts.push(t);
       }
-      cb.current((finalText + interim).trim(), !interim);
+      cb.current(parts.join(" ").replace(/\s+/g, " ").trim(), !interim);
     };
     r.onerror = (e) => setError(e.error === "not-allowed" ? "Microphone access was blocked." : e.error === "no-speech" ? null : "Voice input stopped.");
     r.onend = () => {

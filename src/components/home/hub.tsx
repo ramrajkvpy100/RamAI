@@ -110,7 +110,7 @@ export function Hub({ initial }: { initial: Me }) {
             href={active ? "/case" : "/cases"}
             className="relative mt-5 flex h-13 items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[16px] font-bold text-[#3b3fd8] shadow-lg transition-transform active:scale-[0.98]"
           >
-            <Icon name="pulse" size={18} /> {active ? "Continue your case" : "Start a case"}
+            <Icon name="pulse" size={18} /> {active ? "Continue your case" : "New case"}
           </Link>
         )}
         {left !== null && <p className="relative mt-2.5 text-center text-[12.5px] text-white/85">{left} of {limit} free cases left today</p>}

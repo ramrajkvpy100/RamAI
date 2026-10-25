@@ -59,7 +59,8 @@ export function StackViewer({ id, slices, label, windows }: { id: string; slices
         c.width = ow;
         c.height = oh;
         // Reformats: the stack's slices are thicker than its pixels — stretched to a natural shape, never squashed flat.
-        c.style.aspectRatio = p === "axial" ? "1 / 1" : `${ow} / ${Math.min(ow, oh * 6)}`;
+        // Axial at its own shape (some MRI slices aren't square — never squeezed into a square).
+        c.style.aspectRatio = p === "axial" ? `${ow} / ${oh}` : `${ow} / ${Math.min(Math.max(v.w, v.h), oh * 6)}`;
       }
       const ctx = c.getContext("2d");
       if (!ctx) return;

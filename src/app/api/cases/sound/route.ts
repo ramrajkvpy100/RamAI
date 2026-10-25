@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { sessionInfo, stethoscopeSounds } from "@/engine/engine";
-import { renderAuscultation, seedOf, toWav } from "@/engine/stethoscope-audio";
+import { loud, renderAuscultation, seedOf, toWav } from "@/engine/stethoscope-audio";
 import { requireUser } from "@/server/auth";
 import { apiError, crossSite, handleError, parseBody, rateLimited } from "@/lib/server/http";
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const user = await requireUser();
     const sounds = await stethoscopeSounds(body.token, user.id, body.messageId);
     if (!sounds?.length) return apiError(404, "NOT_FOUND", "Nothing to listen to there.");
-    const wav = toWav(renderAuscultation(sounds, seedOf(`${sessionInfo(body.token).sessionId}:${body.messageId}`)));
+    const wav = toWav(loud(renderAuscultation(sounds, seedOf(`${sessionInfo(body.token).sessionId}:${body.messageId}`))));
     return new Response(new Uint8Array(wav), { headers: { "Content-Type": "audio/wav", "Cache-Control": "private, no-store" } });
   } catch (err) {
     return handleError(err);

@@ -1,10 +1,19 @@
 import { Fragment, type ReactNode } from "react";
 
+/** Bold as written by AI: **x**, __x__ or *x* (a stray asterisk is dropped). */
+const BOLD = /(\*\*[^*]+?\*\*|__[^_]+?__|(?<![\w*])\*[^*\s][^*]*?\*(?![\w*]))/g;
+function bolded(text: string): ReactNode[] {
+  return text.split(BOLD).map((p, i) => {
+    const m = p.match(/^\*\*([^*]+)\*\*$/) ?? p.match(/^__([^_]+)__$/) ?? p.match(/^\*([^*]+)\*$/);
+    return m ? <b key={i} className="font-bold text-fg">{m[1]}</b> : <Fragment key={i}>{p.replace(/\*\*?/g, "")}</Fragment>;
+  });
+}
+
 /** "**bold**" in a line becomes bold; a short "Label:" at the start of a line is bold too. */
 function line(text: string): ReactNode {
   const label = text.match(/^((?:[•\-–]\s*)?[A-Z][^:,.*]{1,28}:)\s/);
   const rest = label ? text.slice(label[1]!.length) : text;
-  const parts = rest.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") && p.endsWith("**") ? <b key={i} className="font-semibold text-fg">{p.slice(2, -2)}</b> : <Fragment key={i}>{p.replace(/\*\*/g, "")}</Fragment>));
+  const parts = bolded(rest);
   return (
     <>
       {label && <b className="font-semibold text-fg">{label[1]}</b>}
@@ -17,7 +26,7 @@ function line(text: string): ReactNode {
 export function Rich({ text }: { text: string }) {
   return (
     <>
-      {text.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") && p.endsWith("**") && p.length > 4 ? <b key={i} className="font-semibold text-fg">{p.slice(2, -2)}</b> : <Fragment key={i}>{p.replace(/\*\*/g, "")}</Fragment>))}
+      {bolded(text)}
     </>
   );
 }

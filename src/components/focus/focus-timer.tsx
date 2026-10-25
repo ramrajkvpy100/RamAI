@@ -213,13 +213,9 @@ export function FocusTimer() {
             {secs ? mmss(left) : calmTime(left, unlimited)}
           </button>
         )}
-        <p className={cn("mt-2 max-w-xs text-center text-[15px]", scene === "window" ? "rounded-full bg-black/40 px-3 py-1 text-white" : "text-[#56655d]")}>
-          {active.phase === "break" ? (waitingBreak ? "focus done — take a break?" : "break") : active.name ? `I will ${active.name}` : unlimited ? "focusing" : "focus"}
-          {active.size === "flow" && active.phase === "focus" && ` · ${earned} min break earned`}
-        </p>
       </div>
 
-      {/* The table, and your drink emptying on it */}
+      {/* The wooden table, and your drink emptying on it */}
       <div className="focus-tabletop relative z-10 flex flex-col items-center pt-2 pb-[max(14px,env(safe-area-inset-bottom))]">
         <div className="-mt-24 transition-transform duration-1000" style={{ transform: `rotate(${pct * 40 - 20}deg)` }}>
           <div className="relative">
@@ -243,6 +239,11 @@ export function FocusTimer() {
             </div>
           </div>
         </div>
+        {/* Your target, under the drink. */}
+        <p className="mt-1 max-w-xs px-3 text-center text-[15px] font-medium text-[#3a2a1c]">
+          {active.phase === "break" ? (waitingBreak ? "focus done — take a break?" : "break") : active.name ? `I will ${active.name}` : unlimited ? "focusing" : "focus"}
+          {active.size === "flow" && active.phase === "focus" && ` · ${earned} min break earned`}
+        </p>
         {scene !== "focus" && <button type="button" onClick={() => setSecs((v) => !v)} className="mt-1 text-[28px] font-light text-[#24332c] tabular">{secs ? mmss(left) : calmTime(left, unlimited)}</button>}
         <div className="mt-3 flex items-center gap-3">
           {active.size === "flow" && active.phase === "focus" && (
