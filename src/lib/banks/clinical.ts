@@ -107,7 +107,7 @@ const C: C[] = [
 ];
 
 /** Written by AI and checked by an AI examiner, filling each subject towards 50 (scripts/gen-clinical.mjs). */
-const MORE = (EXTRA as { id: string; subject: string; label: string; key: string; search: string[]; describe?: string }[]).filter((x) => (CLINICAL_SUBJECTS as readonly string[]).includes(x.subject));
+const MORE = (EXTRA as { id: string; subject: string; label: string; key: string; search: string[]; describe?: string }[]).filter((x) => (CLINICAL_SUBJECTS as readonly string[]).includes(x.subject) && x.label && x.key && Array.isArray(x.search) && x.search.length > 0);
 
 export const CLINICAL_ITEMS: (PracticeItem & { subject: ClinicalSubject })[] = [
   ...C.map(([id, subject, label, key, search, describe]) => ({ id, subject, label, key, search, describe })),

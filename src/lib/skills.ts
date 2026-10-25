@@ -371,8 +371,26 @@ const CALCS: (() => QuizQuestion)[] = [
   },
 ];
 
-export const calculationQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
-  forDoctor(CALCS.map((make) => make()).map((x) => ({ ...x, id: `calc-${x.id}` })), level, specialty, 8);
+export const CALC_CATS: [string, RegExp][] = [
+  ["Kidney & salts", /crcl|fena|na|osm|ag|ca/],
+  ["Heart & lungs", /map|qtc|pf|curb/],
+  ["Brain & liver", /gcs|hs/],
+  ["Fluids, burns & doses", /maint|parkland|pcm|adr-paed/],
+  ["Body measures", /bmi/],
+];
+/** Calculations come with fresh numbers every time: each subcategory gives endless cases. */
+export const calculationQuestions = (level: SkillLevel = "full", specialty?: string | null, cat?: string): QuizQuestion[] => {
+  if (!cat) return forDoctor(CALCS.map((make) => make()).map((x) => ({ ...x, id: `calc-${x.id}` })), level, specialty, 8);
+  // One subcategory: its kinds of sum, each with fresh numbers, until there's a full set of 8.
+  const makers = CALCS.filter((make) => catOf(CALC_CATS, make().id) === cat);
+  const out: QuizQuestion[] = [];
+  for (let n = 0; out.length < 8 && n < 60; n++) {
+    const q = makers[n % makers.length]!();
+    if (!out.some((x) => x.stem === q.stem)) out.push({ ...q, id: `calc-${q.id}` });
+  }
+  return out;
+};
+export const CALC_IDS = (): { id: string; cat: string }[] => CALCS.map((make) => make()).map((x) => ({ id: `calc-${x.id}`, cat: catOf(CALC_CATS, x.id) }));
 
 export const ANTIDOTE_COUNT = ALL_ANTIDOTES.length;
 export const ALGORITHM_COUNT = ALGORITHMS.length + MORE_ALGORITHMS.length;

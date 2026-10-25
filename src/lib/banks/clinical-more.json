@@ -1167,5 +1167,1150 @@
   ],
   "describe": "The nose appears enlarged and irregular, with thickened skin and prominent pores.",
   "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-gingivitis-106",
+  "label": "Gingivitis",
+  "key": "The gums are **red, swollen, and bleed easily**, especially along the tooth margins.",
+  "search": [
+   "gingivitis gums Wikimedia Commons",
+   "gingivitis clinical photo Wikimedia Commons"
+  ],
+  "describe": "A clinical mouth photo shows inflamed red gums around several teeth, sometimes with bleeding.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-periodontitis-107",
+  "label": "Periodontitis",
+  "key": "Look for **gum recession, visible root exposure, and loss of support around teeth**; plaque or calculus may also be present. Deepened periodontal pockets cannot be reliably identified from a photo alone.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-denture-stomatitis-108",
+  "label": "Denture stomatitis",
+  "key": "The tissue beneath an upper denture is **diffusely red**, sometimes with pinpoint red areas; the redness may correspond to the denture-bearing area.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-oral-squamous-papilloma-109",
+  "label": "Oral squamous papilloma",
+  "key": "This usually benign growth has a **small, papillary or cauliflower-like surface** on a stalk or broad base.",
+  "search": [
+   "oral squamous papilloma Wikimedia Commons",
+   "squamous papilloma mouth Wikimedia Commons"
+  ],
+  "describe": "A small pale or pink finger-like growth projects from the oral lining.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-fordyce-spots-110",
+  "label": "Fordyce spots",
+  "key": "These normal visible sebaceous glands appear as **multiple tiny yellow-white spots** on the inner lips or cheeks.",
+  "search": [
+   "Fordyce spots mouth Wikimedia Commons",
+   "Fordyce granules oral mucosa Wikimedia Commons"
+  ],
+  "describe": "Close-up of the inner lip or cheek shows scattered, pale-yellow pinhead-sized spots.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-torus-palatinus-111",
+  "label": "Torus palatinus",
+  "key": "A **hard, midline bony lump** rises from the roof of the mouth and is covered by normal-looking mucosa.",
+  "search": [
+   "torus palatinus Wikimedia Commons",
+   "palatal torus clinical photo Wikimedia Commons"
+  ],
+  "describe": "The palate shows a smooth, firm-looking central bony prominence.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-ankyloglossia-112",
+  "label": "Ankyloglossia",
+  "key": "A **short, tight lingual frenulum** visibly tethers the tongue and limits its elevation or protrusion.",
+  "search": [
+   "ankyloglossia tongue Wikimedia Commons",
+   "tongue tie clinical photo Wikimedia Commons"
+  ],
+  "describe": "With the tongue lifted, a tight band beneath it restricts movement.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-leukoedema-113",
+  "label": "Leukoedema",
+  "key": "The cheek lining has a **diffuse, milky-white, slightly wrinkled appearance** that fades when stretched.",
+  "search": [
+   "leukoedema oral Wikimedia Commons",
+   "leukoedema buccal mucosa photo Wikimedia Commons"
+  ],
+  "describe": "A cheek retractor exposes a pale, opalescent inner cheek with fine folds.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-linea-alba-114",
+  "label": "Linea alba of the cheek",
+  "key": "A **thin white horizontal line** runs along the inner cheek at the level where the teeth meet.",
+  "search": [
+   "linea alba buccal mucosa Wikimedia Commons",
+   "linea alba cheek oral photo Wikimedia Commons"
+  ],
+  "describe": "A close-up of the cheek shows a narrow white line corresponding to the bite line.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-traumatic-oral-ulcer-115",
+  "label": "Traumatic oral ulcer",
+  "key": "A **solitary shallow ulcer with a yellow-white base and red rim** lies where it may contact a sharp tooth or appliance.",
+  "search": [
+   "traumatic ulcer oral Wikimedia Commons",
+   "traumatic mouth ulcer clinical photo Wikimedia Commons"
+  ],
+  "describe": "A single sore with a pale center and inflamed border appears beside a tooth or denture.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-gingival-recession-116",
+  "label": "Gingival recession",
+  "key": "The gum margin has moved **away from the crown, exposing part of the tooth root**.",
+  "search": [
+   "gingival recession Wikimedia Commons",
+   "receding gums clinical photo Wikimedia Commons"
+  ],
+  "describe": "One or more teeth look unusually long because the gumline is lower than expected.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-cerumen-impaction-117",
+  "label": "Cerumen impaction",
+  "key": "A **plug of earwax obstructs the external ear canal**, partly or completely hiding the eardrum.",
+  "search": [
+   "cerumen impaction Wikimedia Commons",
+   "earwax blockage otoscopy Wikimedia Commons"
+  ],
+  "describe": "An otoscopic view shows a wax plug filling the ear canal.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-acute-otitis-media-118",
+  "label": "Acute otitis media",
+  "key": "The eardrum appears **bulging and opaque**, with landmarks obscured and sometimes redness or fluid behind it.",
+  "search": [
+   "acute otitis media otoscopy Wikimedia Commons",
+   "bulging tympanic membrane Wikimedia Commons"
+  ],
+  "describe": "An otoscopic photo shows a full, cloudy eardrum that bulges into the canal.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-auricular-hematoma-119",
+  "label": "Auricular hematoma",
+  "key": "A **soft-looking, swollen collection over the outer ear cartilage** distorts the usual folds, often after trauma.",
+  "search": [
+   "auricular hematoma Wikimedia Commons",
+   "pinna hematoma clinical photo Wikimedia Commons"
+  ],
+  "describe": "The outer ear has a localized rounded swelling that obscures its normal contours.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-cauliflower-ear-120",
+  "label": "Cauliflower ear",
+  "key": "The pinna has **thickened, irregular scarred contours** from prior cartilage injury.",
+  "search": [
+   "cauliflower ear Wikimedia Commons",
+   "cauliflower ear clinical photo Wikimedia Commons"
+  ],
+  "describe": "The outer ear appears permanently lumpy and distorted, with flattened normal folds.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-hand-foot-and-mouth-disease-121",
+  "label": "Hand, foot and mouth disease",
+  "key": "Recognise **small mouth blisters or ulcers** alongside a rash of spots or blisters on the palms and soles.",
+  "search": [
+   "hand foot mouth disease mouth",
+   "hand foot mouth disease rash"
+  ],
+  "describe": "Small oral sores, often with spots or blisters visible on the hands or feet.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-herpangina-122",
+  "label": "Herpangina",
+  "key": "Look for **small blisters or ulcers at the back of the mouth**, especially on the soft palate and around the tonsils.",
+  "search": [
+   "herpangina soft palate",
+   "herpangina oral lesions"
+  ],
+  "describe": "Several small red-rimmed sores clustered toward the back of the mouth.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-primary-herpetic-gingivostomat-123",
+  "label": "Primary herpetic gingivostomatitis",
+  "key": "The combination of **widespread painful mouth sores** and **bright-red, swollen gums** is characteristic.",
+  "search": [
+   "primary herpetic gingivostomatitis",
+   "herpetic gingivostomatitis gums"
+  ],
+  "describe": "Inflamed gums with multiple small ulcers or blisters across the mouth and lips.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-macroglossia-124",
+  "label": "Macroglossia",
+  "key": "Identify a **larger-than-usual tongue** that may protrude beyond the teeth or show tooth impressions along its edges.",
+  "search": [
+   "macroglossia tongue",
+   "macroglossia clinical photograph"
+  ],
+  "describe": "An enlarged tongue, sometimes extending outside the mouth or bearing scalloped tooth marks.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-fissured-tongue-125",
+  "label": "Fissured tongue",
+  "key": "Recognise **prominent grooves or cracks** running across the surface of the tongue.",
+  "search": [
+   "fissured tongue",
+   "scrotal tongue clinical"
+  ],
+  "describe": "A tongue with visible grooves of varying depth across its upper surface.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-acute-parotitis-126",
+  "label": "Acute parotitis",
+  "key": "Look for **swelling in front of and below the ear**, which can blur the jaw angle on the affected side.",
+  "search": [
+   "acute parotitis facial swelling",
+   "parotid swelling clinical photograph"
+  ],
+  "describe": "Visible cheek swelling extending from the area in front of the ear toward the angle of the jaw.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-allergic-rhinitis-127",
+  "label": "Allergic rhinitis",
+  "key": "Typical visible clues include **pale, swollen nasal lining** and, on the face, an **allergic nasal crease** from repeated upward rubbing.",
+  "search": [
+   "allergic rhinitis pale turbinates",
+   "allergic salute nasal crease"
+  ],
+  "describe": "Pale, puffy tissue inside the nostrils, sometimes accompanied by a horizontal crease across the nose.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-nasal-vestibulitis-128",
+  "label": "Nasal vestibulitis",
+  "key": "Recognise **redness, crusting, or small sores just inside the nostril** at the entrance of the nose.",
+  "search": [
+   "nasal vestibulitis",
+   "nasal vestibulitis nostril crust"
+  ],
+  "describe": "An irritated nostril entrance with redness and sometimes crusts or a small tender-looking sore.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-preauricular-sinus-129",
+  "label": "Preauricular sinus",
+  "key": "Look for a **tiny pit or opening just in front of the upper ear**, often present from birth.",
+  "search": [
+   "preauricular sinus pit",
+   "preauricular pit clinical photo"
+  ],
+  "describe": "A small, pinpoint opening in the skin immediately in front of the ear.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-earlobe-keloid-130",
+  "label": "Earlobe keloid",
+  "key": "Identify a **firm, raised scar that grows beyond the original piercing or injury site** on the earlobe.",
+  "search": [
+   "earlobe keloid piercing",
+   "ear keloid clinical photograph"
+  ],
+  "describe": "A smooth, raised lump of scar tissue on an earlobe, often around a piercing.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-tonsillolith-131",
+  "label": "Tonsillolith (tonsil stone)",
+  "key": "Look for **white or yellow plugs** lodged in the **tonsillar crypts**.",
+  "search": [
+   "tonsillolith tonsil",
+   "tonsil stone"
+  ],
+  "describe": "A typical photo shows one or more pale, firm-looking deposits within the surface pits of a tonsil.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-impetigo-132",
+  "label": "Impetigo",
+  "key": "Look for **honey-coloured crusts** over superficial sores, often around the nose and mouth.",
+  "search": [
+   "Wikimedia Commons impetigo child",
+   "Wikimedia Commons impetigo face"
+  ],
+  "describe": "A child with small facial sores covered by golden crusts.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-atopic-dermatitis-133",
+  "label": "Atopic dermatitis (eczema)",
+  "key": "Recognise **dry, itchy, inflamed patches**, often on the cheeks or in the creases of the elbows and knees.",
+  "search": [
+   "Wikimedia Commons atopic dermatitis child",
+   "Wikimedia Commons childhood eczema"
+  ],
+  "describe": "A child with red, dry, scaly patches on the face or flexural skin.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-scabies-134",
+  "label": "Scabies",
+  "key": "Look for **intensely itchy papules and burrows**, especially between the fingers and on the wrists.",
+  "search": [
+   "Wikimedia Commons scabies child",
+   "Wikimedia Commons scabies hands"
+  ],
+  "describe": "Small itchy bumps and fine tracks on a child's hands or wrists.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-molluscum-contagiosum-135",
+  "label": "Molluscum contagiosum",
+  "key": "Identify **small, pearly, dome-shaped bumps with a central dimple**.",
+  "search": [
+   "Wikimedia Commons molluscum contagiosum child",
+   "Wikimedia Commons molluscum papules"
+  ],
+  "describe": "A cluster of smooth, skin-coloured or pink bumps, often on the trunk or limbs.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-tinea-capitis-136",
+  "label": "Tinea capitis",
+  "key": "Recognise **scaly patches of scalp with broken hairs or hair loss**.",
+  "search": [
+   "Wikimedia Commons tinea capitis child",
+   "Wikimedia Commons scalp ringworm"
+  ],
+  "describe": "A child with one or more scaly areas of hair loss on the scalp.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-alopecia-areata-137",
+  "label": "Alopecia areata",
+  "key": "Look for **smooth, sharply defined patches of hair loss** without visible scaling.",
+  "search": [
+   "Wikimedia Commons alopecia areata child",
+   "Wikimedia Commons alopecia areata scalp"
+  ],
+  "describe": "A round or oval bald patch on a child's scalp with otherwise normal-looking skin.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-infantile-haemangioma-138",
+  "label": "Infantile haemangioma",
+  "key": "Identify a raised or flat **bright-red vascular mark** that may have a lobulated, strawberry-like surface.",
+  "search": [
+   "Wikimedia Commons infantile hemangioma",
+   "Wikimedia Commons strawberry hemangioma infant"
+  ],
+  "describe": "A well-defined red mark or raised lesion on an infant's skin.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-cafe-au-lait-macules-139",
+  "label": "Café-au-lait macules",
+  "key": "Recognise **flat, evenly pigmented light-brown patches** with smooth, well-defined borders.",
+  "search": [
+   "Wikimedia Commons cafe au lait macules child",
+   "Wikimedia Commons café-au-lait spots"
+  ],
+  "describe": "Several flat, light-brown patches visible on a child's skin.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-congenital-dermal-melanocytosi-140",
+  "label": "Congenital dermal melanocytosis",
+  "key": "Look for **blue-grey, flat patches**, usually over the lower back or buttocks.",
+  "search": [
+   "Wikimedia Commons congenital dermal melanocytosis infant",
+   "Wikimedia Commons Mongolian spot baby"
+  ],
+  "describe": "A blue-grey patch over an infant's lower back or buttocks.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-port-wine-stain-141",
+  "label": "Port-wine stain",
+  "key": "Identify a **flat, persistent pink-to-purple birthmark** with sharply defined edges.",
+  "search": [
+   "Wikimedia Commons port wine stain child",
+   "Wikimedia Commons port-wine stain face"
+  ],
+  "describe": "A pink, red, or purple patch, often covering part of a child's face.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-seborrhoeic-dermatitis-infant-142",
+  "label": "Infantile seborrhoeic dermatitis (cradle cap)",
+  "key": "Recognise **greasy yellow scales** on the scalp, sometimes extending to the eyebrows or skin folds.",
+  "search": [
+   "Wikimedia Commons cradle cap infant",
+   "Wikimedia Commons infant seborrheic dermatitis"
+  ],
+  "describe": "Yellow, greasy scales adhering to an infant's scalp.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-oral-candidiasis-143",
+  "label": "Oral candidiasis (thrush)",
+  "key": "Look for **white plaques on the tongue or inner cheeks** that do not wipe away easily.",
+  "search": [
+   "Wikimedia Commons oral thrush infant",
+   "Wikimedia Commons oral candidiasis child"
+  ],
+  "describe": "White patches on an infant's tongue or inner cheek.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-congenital-talipes-equinovarus-144",
+  "label": "Congenital talipes equinovarus (clubfoot)",
+  "key": "Recognise a foot turned **downwards and inwards**, with the sole rotated towards the other foot.",
+  "search": [
+   "Wikimedia Commons clubfoot newborn",
+   "Wikimedia Commons congenital talipes equinovarus"
+  ],
+  "describe": "A newborn's foot visibly turned inward and downward.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-polydactyly-145",
+  "label": "Polydactyly",
+  "key": "Identify **an extra digit** on a hand or foot.",
+  "search": [
+   "Wikimedia Commons polydactyly infant",
+   "Wikimedia Commons polydactyly hand child"
+  ],
+  "describe": "A newborn's hand or foot with an additional finger or toe.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-umbilical-hernia-146",
+  "label": "Umbilical hernia",
+  "key": "Look for a **soft bulge at the umbilicus**, especially when the infant cries or strains.",
+  "search": [
+   "Wikimedia Commons umbilical hernia infant",
+   "Wikimedia Commons child umbilical hernia"
+  ],
+  "describe": "A rounded protrusion at an infant's navel.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-erythema-toxicum-neonatorum-147",
+  "label": "Erythema toxicum neonatorum",
+  "key": "Look for scattered **red blotches with tiny central papules or pustules** on a well newborn, often sparing the palms and soles.",
+  "search": [
+   "erythema toxicum neonatorum Wikimedia Commons",
+   "newborn erythema toxicum rash"
+  ],
+  "describe": "A newborn has scattered red patches with small pale or yellowish bumps, especially on the trunk.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-neonatal-milia-148",
+  "label": "Neonatal milia",
+  "key": "Recognise the **tiny, firm white or yellow bumps** clustered mainly on a newborn’s nose and cheeks.",
+  "search": [
+   "neonatal milia Wikimedia Commons",
+   "milia newborn face"
+  ],
+  "describe": "A newborn’s nose and cheeks show numerous pinhead-sized white bumps.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-neonatal-acne-149",
+  "label": "Neonatal acne",
+  "key": "Look for small red papules and pustules, usually on an infant’s cheeks, forehead, or chin; comedones are absent.",
+  "search": [
+   "neonatal acne Wikimedia Commons",
+   "newborn acne face"
+  ],
+  "describe": "An infant has scattered red bumps, sometimes with small pustules, on the face.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-erythema-infectiosum-150",
+  "label": "Erythema infectiosum (fifth disease)",
+  "key": "The characteristic clue is **bright red cheeks**, sometimes followed by a lacy rash on the limbs.",
+  "search": [
+   "erythema infectiosum Wikimedia Commons",
+   "slapped cheek fifth disease child"
+  ],
+  "describe": "A child has strikingly red cheeks, with or without a faint net-like rash on the arms.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-scarlet-fever-151",
+  "label": "Scarlet fever",
+  "key": "Recognise the **fine, rough, sandpaper-like red rash**, often with flushed cheeks and a pale area around the mouth.",
+  "search": [
+   "scarlet fever rash Wikimedia Commons",
+   "scarlet fever child rash"
+  ],
+  "describe": "A child has a widespread fine red rash that looks and feels like sandpaper.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-viral-warts-152",
+  "label": "Viral warts (verruca vulgaris)",
+  "key": "Look for **firm, rough-surfaced papules**, often on the fingers, hands, or knees.",
+  "search": [
+   "verruca vulgaris Wikimedia Commons",
+   "common warts child hand"
+  ],
+  "describe": "One or more raised, rough bumps are visible on a child’s hand or finger.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-pityriasis-alba-153",
+  "label": "Pityriasis alba",
+  "key": "The key feature is **pale, poorly defined patches with fine surface scale**, commonly on a child’s face.",
+  "search": [
+   "pityriasis alba Wikimedia Commons",
+   "pityriasis alba child face"
+  ],
+  "describe": "A child has faint, lighter patches with slightly dry or scaly surfaces on the cheeks.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-vitiligo-154",
+  "label": "Vitiligo",
+  "key": "Recognise **sharply demarcated, milk-white patches** that contrast clearly with the surrounding skin.",
+  "search": [
+   "vitiligo child Wikimedia Commons",
+   "vitiligo face child"
+  ],
+  "describe": "Distinct white patches are visible on the face, hands, or other areas of skin.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-psoriasis-155",
+  "label": "Plaque psoriasis",
+  "key": "Look for **well-defined red plaques with silvery scale**, often on the elbows, knees, or scalp.",
+  "search": [
+   "plaque psoriasis child Wikimedia Commons",
+   "child psoriasis elbow"
+  ],
+  "describe": "A child has sharply outlined, scaly plaques on an extensor surface or the scalp.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-congenital-muscular-torticolli-156",
+  "label": "Congenital muscular torticollis",
+  "key": "The visible clue is a **persistent head tilt with the chin turned toward the opposite side**.",
+  "search": [
+   "congenital muscular torticollis Wikimedia Commons",
+   "infant torticollis head tilt"
+  ],
+  "describe": "An infant holds the head tilted to one side, with the face turned away from it.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-positional-plagiocephaly-157",
+  "label": "Positional plagiocephaly",
+  "key": "Look for **asymmetrical flattening of the back or side of the skull**, sometimes with a forward-shifted ear.",
+  "search": [
+   "positional plagiocephaly Wikimedia Commons",
+   "infant plagiocephaly head"
+  ],
+  "describe": "The infant’s head appears uneven from above, with flattening on one side of the back of the skull.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-umbilical-granuloma-158",
+  "label": "Umbilical granuloma",
+  "key": "Recognise a **small, moist, pink-red lump** in the umbilicus after the cord has fallen off.",
+  "search": [
+   "umbilical granuloma Wikimedia Commons",
+   "infant umbilical granuloma"
+  ],
+  "describe": "A small, moist pink growth is visible at the base of an infant’s belly button.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-genu-varum-159",
+  "label": "Genu varum (bow legs)",
+  "key": "The key feature is **outward bowing of the legs** when the child stands with the feet together.",
+  "search": [
+   "genu varum child Wikimedia Commons",
+   "bow legs toddler"
+  ],
+  "describe": "A standing toddler’s knees remain apart when the ankles are brought together.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-genu-valgum-160",
+  "label": "Genu valgum (knock knees)",
+  "key": "Look for **knees angling inward and touching** while the ankles remain separated.",
+  "search": [
+   "genu valgum child Wikimedia Commons",
+   "knock knees child"
+  ],
+  "describe": "A standing child’s knees meet while a visible gap remains between the ankles.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-rickets-161",
+  "label": "Nutritional rickets",
+  "key": "Visible clues can include **bowed legs** and **prominent widening at the wrists or ankles**.",
+  "search": [
+   "rickets child Wikimedia Commons",
+   "rickets wrist widening child"
+  ],
+  "describe": "A child may show bowed legs together with visibly widened wrists or ankles.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-pediculosis-capitis-162",
+  "label": "Head lice (pediculosis capitis)",
+  "key": "Look for **nits firmly attached to hair shafts**, especially behind the ears and at the nape of the neck.",
+  "search": [
+   "Wikimedia head lice nits",
+   "Wikimedia pediculosis capitis child"
+  ],
+  "describe": "A close-up of a child’s scalp and hair showing small oval nits attached near the roots.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-bacterial-conjunctivitis-163",
+  "label": "Bacterial conjunctivitis",
+  "key": "The eye is **red with mucopurulent discharge** that may crust the eyelids together.",
+  "search": [
+   "Wikimedia bacterial conjunctivitis child",
+   "Wikimedia purulent conjunctivitis"
+  ],
+  "describe": "A close-up showing a red conjunctiva and yellowish discharge along the eyelid.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-strabismus-164",
+  "label": "Strabismus",
+  "key": "The eyes are **misaligned**, with one eye appearing to turn inward, outward, upward, or downward.",
+  "search": [
+   "Wikimedia strabismus child",
+   "Wikimedia esotropia child"
+  ],
+  "describe": "A front-facing portrait in which the two eyes are visibly not directed at the same point.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-congenital-ptosis-165",
+  "label": "Congenital ptosis",
+  "key": "A **drooping upper eyelid** partially covers the eye, sometimes obscuring the pupil.",
+  "search": [
+   "Wikimedia congenital ptosis child",
+   "Wikimedia ptosis infant"
+  ],
+  "describe": "A child’s face showing one upper eyelid sitting noticeably lower than the other.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-dental-caries-166",
+  "label": "Early childhood dental caries",
+  "key": "Look for **cavitated or discoloured areas on the teeth**, often affecting the upper front teeth in young children.",
+  "search": [
+   "Wikimedia early childhood caries",
+   "Wikimedia dental caries child"
+  ],
+  "describe": "An open-mouth view showing decayed, discoloured primary teeth.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-herpes-labialis-167",
+  "label": "Herpes labialis",
+  "key": "Grouped **small blisters or crusted erosions at the lip margin** are characteristic.",
+  "search": [
+   "Wikimedia herpes labialis child",
+   "Wikimedia cold sore lip"
+  ],
+  "describe": "A close-up of the lips showing a cluster of vesicles or crusts at the border of the lip.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-erythema-multiforme-168",
+  "label": "Erythema multiforme",
+  "key": "The hallmark is a **target-shaped lesion** with concentric rings of different colour.",
+  "search": [
+   "Wikimedia erythema multiforme child",
+   "Wikimedia erythema multiforme target lesions"
+  ],
+  "describe": "A skin close-up showing round lesions with darker centres and pale and red outer rings.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-keratosis-pilaris-169",
+  "label": "Keratosis pilaris",
+  "key": "Numerous tiny **rough follicular bumps**, often on the upper arms or cheeks, give the skin a sandpaper-like texture.",
+  "search": [
+   "Wikimedia keratosis pilaris child",
+   "Wikimedia keratosis pilaris arm"
+  ],
+  "describe": "A close-up of the upper arm showing many small, rough, skin-coloured or reddish bumps.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-papular-urticaria-170",
+  "label": "Papular urticaria",
+  "key": "Look for **itchy clusters of papules**, often with a central punctum and on exposed areas of skin.",
+  "search": [
+   "Wikimedia papular urticaria child",
+   "Wikimedia insect bite reactions child"
+  ],
+  "describe": "A skin view showing grouped raised red bumps, sometimes with small central marks.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-nevus-simplex-171",
+  "label": "Nevus simplex (salmon patch)",
+  "key": "This is a **flat, pale pink-red patch** commonly seen on the eyelids, forehead, or nape of the neck.",
+  "search": [
+   "Wikimedia nevus simplex infant",
+   "Wikimedia salmon patch newborn"
+  ],
+  "describe": "A newborn’s face or nape showing a flat, faint pink-red patch.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-cephalohematoma-172",
+  "label": "Cephalohematoma",
+  "key": "A well-defined scalp swelling that does not cross cranial suture lines is the key visible feature.",
+  "search": [
+   "Wikimedia cephalohematoma newborn",
+   "Wikimedia neonatal cephalohematoma"
+  ],
+  "describe": "A newborn’s scalp with a localized, rounded swelling over one skull bone.",
+  "subject": "Paediatrics"
+ },
+ {
+  "id": "cx-umbilical-hernia-173",
+  "label": "Umbilical hernia",
+  "key": "Look for a **soft bulge at the umbilicus** that becomes more prominent with coughing or straining.",
+  "search": [
+   "umbilical hernia adult",
+   "umbilical hernia child"
+  ],
+  "describe": "A rounded protrusion centered on the navel, sometimes with stretched or everted skin.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-incisional-hernia-174",
+  "label": "Incisional hernia",
+  "key": "Recognise a **bulge through a previous surgical scar**, often more obvious when the patient stands or strains.",
+  "search": [
+   "incisional hernia abdomen",
+   "incisional hernia surgical scar"
+  ],
+  "describe": "A localized swelling protrudes along an old abdominal incision.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-hydrocele-of-cord-175",
+  "label": "Spermatic cord hydrocele",
+  "key": "Look for a **smooth, cystic swelling along the spermatic cord**, separate from the testis and typically above the scrotum.",
+  "search": [
+   "spermatic cord hydrocele",
+   "encysted hydrocele cord"
+  ],
+  "describe": "A discrete, rounded groin or upper-scrotal swelling along the cord.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-varicocele-176",
+  "label": "Varicocele",
+  "key": "Recognise **dilated, tortuous veins above the testis**, classically described as a bag of worms.",
+  "search": [
+   "varicocele scrotum",
+   "varicocele examination"
+  ],
+  "describe": "A cluster of soft, winding veins visible or palpable above a testis.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-phimosis-177",
+  "label": "Phimosis",
+  "key": "Identify a **tight foreskin that cannot be retracted** over the glans.",
+  "search": [
+   "phimosis clinical",
+   "phimosis foreskin"
+  ],
+  "describe": "The narrowed foreskin opening remains in front of and obscures the glans.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-paraphimosis-178",
+  "label": "Paraphimosis",
+  "key": "Look for a **retracted foreskin trapped behind the glans**, producing a swollen constriction ring.",
+  "search": [
+   "paraphimosis clinical",
+   "paraphimosis glans swelling"
+  ],
+  "describe": "The glans is exposed and swollen, with a tight band of foreskin behind it.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-pilonidal-sinus-179",
+  "label": "Pilonidal sinus",
+  "key": "Recognise **midline pits in the natal cleft**, sometimes with surrounding inflamed tissue or draining openings.",
+  "search": [
+   "pilonidal sinus natal cleft",
+   "pilonidal sinus clinical"
+  ],
+  "describe": "One or more small pits or openings are visible in the cleft between the buttocks.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-anal-fissure-180",
+  "label": "Anal fissure",
+  "key": "Look for a **linear tear in the anoderm**, usually at the posterior midline.",
+  "search": [
+   "anal fissure clinical photograph",
+   "posterior midline anal fissure"
+  ],
+  "describe": "A narrow midline split at the anal verge, sometimes with a small sentinel skin tag.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-external-haemorrhoids-181",
+  "label": "External haemorrhoids",
+  "key": "Identify **swollen bluish perianal lumps**, especially a tender thrombosed lump at the anal margin.",
+  "search": [
+   "thrombosed external hemorrhoid",
+   "external haemorrhoids clinical"
+  ],
+  "describe": "A bluish or purple tender swelling is visible at the edge of the anus.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-hallux-valgus-182",
+  "label": "Hallux valgus",
+  "key": "Recognise **lateral deviation of the great toe** with a prominent medial first-metatarsal head.",
+  "search": [
+   "hallux valgus foot clinical",
+   "bunion hallux valgus"
+  ],
+  "describe": "The great toe angles toward the lesser toes beside a prominent bunion.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-hammer-toe-183",
+  "label": "Hammer toe",
+  "key": "Look for a **fixed flexion deformity at the proximal interphalangeal joint** of a toe.",
+  "search": [
+   "hammer toe clinical foot",
+   "hammer toe deformity"
+  ],
+  "describe": "One or more toes bend downward at the middle joint, often with a raised knuckle.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-achilles-tendon-rupture-184",
+  "label": "Achilles tendon rupture",
+  "key": "Look for a **gap or loss of contour in the Achilles tendon**, with swelling above the heel.",
+  "search": [
+   "Achilles tendon rupture clinical",
+   "Achilles rupture gap"
+  ],
+  "describe": "The tendon outline above the heel appears interrupted or swollen compared with the other side.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-clavicle-fracture-185",
+  "label": "Clavicle fracture",
+  "key": "Recognise **visible deformity or a step in the clavicle**, often with bruising and shoulder droop.",
+  "search": [
+   "clavicle fracture clinical deformity",
+   "displaced clavicle fracture photo"
+  ],
+  "describe": "The collarbone has an obvious bump or angulation, with the shoulder appearing lowered.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-colles-fracture-186",
+  "label": "Colles fracture",
+  "key": "Identify the **dinner-fork deformity** of the wrist caused by dorsal displacement of the distal radius.",
+  "search": [
+   "Colles fracture dinner fork deformity",
+   "Colles fracture clinical photo"
+  ],
+  "describe": "The wrist is swollen and bent backward, creating a characteristic fork-like profile.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-anterior-shoulder-dislocation-187",
+  "label": "Anterior shoulder dislocation",
+  "key": "Look for a **squared-off shoulder contour** and prominent acromion with the arm held slightly away from the body.",
+  "search": [
+   "anterior shoulder dislocation clinical",
+   "shoulder dislocation squared off"
+  ],
+  "describe": "The shoulder loses its rounded contour, and the patient supports the affected arm.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-dupuytren-contracture-188",
+  "label": "Dupuytren contracture",
+  "key": "Look for **thickened cords in the palm** pulling one or more fingers into fixed flexion.",
+  "search": [
+   "Dupuytren contracture hand",
+   "Dupuytren disease palm"
+  ],
+  "describe": "A palm with visible cords or nodules and a ring or little finger bent toward the palm.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-mallet-finger-189",
+  "label": "Mallet finger",
+  "key": "The **tip of the finger droops** at the distal joint and cannot be held straight.",
+  "search": [
+   "mallet finger hand",
+   "mallet finger deformity"
+  ],
+  "describe": "A finger with its end joint bent downward while the rest of the finger is relatively straight.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-boutonniere-deformity-190",
+  "label": "Boutonniere deformity",
+  "key": "The finger has **middle-joint flexion with the fingertip joint extended**.",
+  "search": [
+   "boutonniere deformity finger",
+   "boutonniere deformity hand"
+  ],
+  "describe": "A finger bent at its middle joint with the end joint held straight or slightly backward.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-swan-neck-deformity-191",
+  "label": "Swan-neck deformity",
+  "key": "The finger shows **middle-joint hyperextension and fingertip-joint flexion**.",
+  "search": [
+   "swan neck deformity finger",
+   "swan neck hand arthritis"
+  ],
+  "describe": "A finger with a backward-bent middle joint and a bent fingertip.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-rheumatoid-hand-deformity-192",
+  "label": "Rheumatoid hand deformity",
+  "key": "Recognise **multiple swollen joints and characteristic finger deviation or deformity**, often affecting both hands.",
+  "search": [
+   "rheumatoid arthritis hand deformity",
+   "rheumatoid hand ulnar deviation"
+  ],
+  "describe": "Hands showing swollen knuckles and fingers angled toward the little-finger side, sometimes with other deformities.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-heberden-nodes-193",
+  "label": "Heberden nodes",
+  "key": "Look for **firm bony swellings at the distal finger joints**, often on several fingers.",
+  "search": [
+   "Heberden nodes fingers",
+   "Heberden nodes hand osteoarthritis"
+  ],
+  "describe": "One or more enlarged, knobbly joints close to the fingernails.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-cellulitis-194",
+  "label": "Cellulitis",
+  "key": "The affected skin is **diffusely red, swollen, and poorly demarcated** compared with surrounding skin.",
+  "search": [
+   "cellulitis leg clinical",
+   "cellulitis skin photograph"
+  ],
+  "describe": "An area of spreading redness and swelling, commonly on a lower leg.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-venous-leg-ulcer-195",
+  "label": "Venous leg ulcer",
+  "key": "A shallow ulcer near the **medial ankle**, often with surrounding brown pigmentation or venous skin changes.",
+  "search": [
+   "venous leg ulcer ankle",
+   "venous ulcer lower leg"
+  ],
+  "describe": "A shallow, irregular wound around the lower leg or ankle with discoloured surrounding skin.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-diabetic-foot-ulcer-196",
+  "label": "Diabetic foot ulcer",
+  "key": "Look for a **chronic ulcer on a pressure-bearing area of the foot**, often surrounded by callus.",
+  "search": [
+   "diabetic foot ulcer plantar",
+   "diabetic foot ulcer clinical"
+  ],
+  "describe": "A wound on the sole or toe, sometimes with thickened callused skin around it.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-pressure-ulcer-197",
+  "label": "Pressure ulcer",
+  "key": "Recognise a **pressure injury over a bony prominence**, ranging from persistent non-blanching redness to deeper tissue loss.",
+  "search": [
+   "pressure ulcer sacrum",
+   "pressure sore heel clinical"
+  ],
+  "describe": "A pressure-related sore over the sacrum, heel, hip, or another prominent bone.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-lymphedema-198",
+  "label": "Lymphedema",
+  "key": "Look for **persistent diffuse swelling of a limb**, often with thickened skin and involvement of the foot or hand.",
+  "search": [
+   "lymphedema leg clinical",
+   "lymphedema arm photograph"
+  ],
+  "describe": "A markedly enlarged arm or leg with diffuse swelling and sometimes thickened skin.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-keloid-199",
+  "label": "Keloid",
+  "key": "A **raised, firm scar extending beyond the original wound margins** is characteristic.",
+  "search": [
+   "keloid scar clinical",
+   "keloid chest photograph"
+  ],
+  "describe": "A prominent, smooth raised scar that grows beyond the boundaries of the original injury.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-genu-valgum-200",
+  "label": "Genu valgum",
+  "key": "With the knees together, the **ankles remain separated**, producing an inward angulation of the legs.",
+  "search": [
+   "genu valgum clinical",
+   "knock knees photograph"
+  ],
+  "describe": "A standing person whose knees touch or nearly touch while the ankles are apart.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-genu-varum-201",
+  "label": "Genu varum",
+  "key": "With the ankles together, the **knees remain separated**, producing outward bowing of the legs.",
+  "search": [
+   "genu varum clinical",
+   "bow legs photograph"
+  ],
+  "describe": "A standing person with bowed legs and a visible gap between the knees.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-scoliosis-202",
+  "label": "Scoliosis",
+  "key": "Look for **asymmetric shoulder or waist levels** and a sideways spinal curve, often clearer on forward bending.",
+  "search": [
+   "scoliosis clinical photograph",
+   "scoliosis forward bend test"
+  ],
+  "describe": "A person viewed from behind showing uneven shoulders or waist contours and a lateral spinal curve.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-multinodular-goitre-203",
+  "label": "Multinodular goitre",
+  "key": "Look for an enlarged, often nodular swelling at the front of the neck. It may rise when the patient swallows.",
+  "search": [
+   "multinodular goitre Wikimedia Commons",
+   "goitre neck swelling Wikimedia Commons"
+  ],
+  "describe": "A rounded or irregular swelling is visible over the lower front of the neck.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-gynecomastia-204",
+  "label": "Gynecomastia",
+  "key": "Recognise **enlarged male breast tissue**, often affecting both sides and centred beneath the nipples.",
+  "search": [
+   "gynecomastia Wikimedia Commons",
+   "male breast enlargement Wikimedia Commons"
+  ],
+  "describe": "One or both male breasts appear enlarged, sometimes with prominent areolae.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-breast-cancer-peau-dorange-205",
+  "label": "Breast cancer with peau d’orange",
+  "key": "The key sign is breast skin with **pitting like orange peel**, often over an enlarged or distorted breast.",
+  "search": [
+   "peau d'orange breast Wikimedia Commons",
+   "inflammatory breast cancer Wikimedia Commons"
+  ],
+  "describe": "A breast appears swollen or distorted, with visibly dimpled, orange-peel-like skin.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-rectal-prolapse-206",
+  "label": "Rectal prolapse",
+  "key": "Identify a **reddish protruding mass with concentric folds** emerging from the anus.",
+  "search": [
+   "rectal prolapse Wikimedia Commons",
+   "complete rectal prolapse clinical photo"
+  ],
+  "describe": "Moist red rectal tissue protrudes through the anal opening.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-wet-gangrene-207",
+  "label": "Wet gangrene",
+  "key": "Look for **swollen, discoloured tissue** with a moist appearance, often with blisters or discharge.",
+  "search": [
+   "wet gangrene foot Wikimedia Commons",
+   "wet gangrene clinical photograph"
+  ],
+  "describe": "An affected part, commonly a foot or toe, appears swollen and dark with damaged, moist tissue.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-polydactyly-208",
+  "label": "Polydactyly",
+  "key": "Recognise a **supernumerary finger or toe** alongside the usual digits.",
+  "search": [
+   "polydactyly hand Wikimedia Commons",
+   "polydactyly foot Wikimedia Commons"
+  ],
+  "describe": "A hand or foot has an extra digit, which may be fully formed or a small appendage.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-syndactyly-209",
+  "label": "Syndactyly",
+  "key": "The distinguishing feature is **two or more digits joined by skin or tissue**.",
+  "search": [
+   "syndactyly hand Wikimedia Commons",
+   "webbed toes syndactyly Wikimedia Commons"
+  ],
+  "describe": "Adjacent fingers or toes appear webbed or fused together.",
+  "subject": "Surgery & ortho"
+ },
+ {
+  "id": "cx-open-tibial-fracture-210",
+  "label": "Open tibial fracture",
+  "key": "Recognise a **visible wound over a deformed lower leg**, potentially exposing bone.",
+  "search": [
+   "open tibia fracture Wikimedia Commons",
+   "open tibial fracture clinical photo"
+  ],
+  "describe": "The lower leg is visibly swollen or deformed, with an overlying wound near the fracture.",
+  "subject": "Surgery & ortho"
  }
 ]

@@ -10,7 +10,7 @@ import { useMe } from "@/lib/me-store";
 import { MODALITIES, MODALITY_IDS, type Modality } from "@/lib/practice";
 import { useSkillProgress } from "@/lib/skill-progress";
 import type { PracticeStats } from "@/server/practice";
-import { ALGORITHM_COUNT, ALGORITHM_IDS, ANTIDOTE_COUNT, ANTIDOTE_IDS, CALCULATION_COUNT, algorithmQuestions, antidoteQuestions, calculationQuestions, type SkillLevel } from "@/lib/skills";
+import { ALGORITHM_COUNT, ALGORITHM_IDS, CALC_IDS, ANTIDOTE_COUNT, ANTIDOTE_IDS, CALCULATION_COUNT, algorithmQuestions, antidoteQuestions, calculationQuestions, type SkillLevel } from "@/lib/skills";
 
 import { PracticeDrill } from "./practice-drill";
 import { QuizDrill } from "./quiz-drill";
@@ -87,7 +87,7 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
   const [cat, setCat] = useState<string | null>(null);
   const antidotes = useCallback(() => antidoteQuestions(level, specialty, cat ?? undefined), [level, specialty, cat]);
   const algorithms = useCallback(() => algorithmQuestions(level, specialty, cat ?? undefined), [level, specialty, cat]);
-  const calculations = useCallback(() => calculationQuestions(level, specialty), [level, specialty]);
+  const calculations = useCallback(() => calculationQuestions(level, specialty, cat ?? undefined), [level, specialty, cat]);
 
   if (!section) {
     // Three kinds of drill, each its own group: what you see, what you hear, what you must know.
@@ -145,10 +145,10 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
       {section === "spot" && <PracticeDrill stats={stats} level={level} order={modalities} />}
       {section === "radiology" && <RadiologyReporting embedded />}
       {section === "sounds" && <SoundsDrill level={level} />}
-      {(section === "antidotes" || section === "algorithms") && (
+      {(section === "antidotes" || section === "algorithms" || section === "calculations") && (
         <div role="radiogroup" aria-label="Subcategory" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-          {[null, ...[...new Set((section === "antidotes" ? ANTIDOTE_IDS() : ALGORITHM_IDS()).map((x) => x.cat))]].map((c) => {
-            const ids = (section === "antidotes" ? ANTIDOTE_IDS() : ALGORITHM_IDS()).filter((x) => !c || x.cat === c).map((x) => x.id);
+          {[null, ...[...new Set((section === "antidotes" ? ANTIDOTE_IDS() : section === "algorithms" ? ALGORITHM_IDS() : CALC_IDS()).map((x) => x.cat))]].map((c) => {
+            const ids = (section === "antidotes" ? ANTIDOTE_IDS() : section === "algorithms" ? ALGORITHM_IDS() : CALC_IDS()).filter((x) => !c || x.cat === c).map((x) => x.id);
             return (
               <button key={c ?? "all"} type="button" role="radio" aria-checked={cat === c} onClick={() => setCat(c)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", cat === c ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
                 {c ?? "All"} <span className="text-fg-3 tabular">{progress("quiz:", ids).mastered}/{ids.length}</span>
@@ -159,7 +159,7 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
       )}
       {section === "antidotes" && <QuizDrill key={`a-${cat}`} make={antidotes} title="Antidotes" />}
       {section === "algorithms" && <QuizDrill key={`g-${cat}`} make={algorithms} title="Emergency algorithms" />}
-      {section === "calculations" && <QuizDrill make={calculations} title="Clinical calculations" />}
+      {section === "calculations" && <QuizDrill key={`c-${cat}`} make={calculations} title="Clinical calculations" />}
     </div>
   );
 }
