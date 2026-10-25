@@ -654,3 +654,10 @@ svg {
 @keyframes focus-breathe-cup { 0%, 100% { transform: scale(1) rotate(-1.5deg); } 50% { transform: scale(1.035) rotate(1.5deg); } }
 .focus-breathe-cup { animation: focus-breathe-cup 7s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .focus-wisp, .focus-ripple, .focus-breathe-cup { animation: none; } }
+
+/* The drink, slowly stirred (one turn a minute and a half), with a soft warm glow breathing behind it. */
+@keyframes focus-stir { to { transform: rotate(360deg); } }
+.focus-stir { animation: focus-stir 90s linear infinite; }
+@keyframes focus-glow { 0%, 100% { opacity: 0.35; transform: scale(0.95); } 50% { opacity: 0.7; transform: scale(1.05); } }
+.focus-glow { background: radial-gradient(circle, rgb(255 226 180 / 0.65), transparent 65%); animation: focus-glow 8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .focus-stir, .focus-glow { animation: none; } }

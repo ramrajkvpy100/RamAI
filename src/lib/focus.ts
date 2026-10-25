@@ -17,7 +17,7 @@ export type Scene = "focus" | "social" | "window";
 export const SIZES: Record<Size, { label: string; focus: number; brk: number; note: string }> = {
   tall: { label: "tall", focus: 25, brk: 5, note: "25 min focus · 5 min break" },
   grande: { label: "grande", focus: 50, brk: 10, note: "50 min focus · 10 min break" },
-  flow: { label: "flowmodoro", focus: 5, brk: 1, note: "5 min study · 1 min break, on repeat" },
+  flow: { label: "flowmodoro", focus: 0, brk: 0, note: "study freely — every 5 min earns 1 min of break" },
   unlimited: { label: "unlimited", focus: 0, brk: 0, note: "a stopwatch — stop when you're done" },
 };
 
@@ -38,6 +38,8 @@ export interface Active {
   startedAt: number;
   /** Flowmodoro: focus rounds completed in this sitting. */
   rounds: number;
+  /** Flowmodoro: break minutes earned and not yet taken (1 per 5 studied). */
+  earned?: number;
 }
 export interface Done {
   name: string;
@@ -75,23 +77,40 @@ export const setPrefs = (p: Partial<ReturnType<typeof getPrefs>>) => write(PREFS
 const phaseMs = (size: Size, phase: Phase) => (phase === "focus" ? SIZES[size].focus : SIZES[size].brk) * 60_000;
 
 /** Time left in this phase (or, unlimited, time elapsed). */
+/** Counting up: the unlimited stopwatch, and flowmodoro while studying. */
+const countsUp = (a: Pick<Active, "size" | "phase">) => a.size === "unlimited" || (a.size === "flow" && a.phase === "focus");
+
 export function leftOf(a: Active, now = Date.now()) {
-  if (a.size === "unlimited") return a.leftMs + (a.runFrom ? now - a.runFrom : 0);
+  if (countsUp(a)) return a.leftMs + (a.runFrom ? now - a.runFrom : 0);
   return a.endsAt ? Math.max(0, a.endsAt - now) : a.leftMs;
 }
 export const totalOf = (a: Active) => phaseMs(a.size, a.phase);
-export const running = (a: Active | null) => !!a && (a.size === "unlimited" ? !!a.runFrom : !!a.endsAt);
+export const running = (a: Active | null) => !!a && (countsUp(a) ? !!a.runFrom : !!a.endsAt);
+
+/** Flowmodoro: break minutes in hand — those carried over plus 1 for every 5 studied in this stretch. */
+export const breakEarned = (a: Active, now = Date.now()) => (a.earned ?? 0) + (a.size === "flow" && a.phase === "focus" ? Math.floor(leftOf(a, now) / 300_000) : 0);
 
 export function start(drink: Drink, size: Size, name: string) {
   const ms = phaseMs(size, "focus");
   const now = Date.now();
-  write(ACTIVE, { drink, size, name: name.trim(), phase: "focus", endsAt: size === "unlimited" ? null : now + ms, leftMs: size === "unlimited" ? 0 : ms, runFrom: size === "unlimited" ? now : null, startedAt: now, rounds: 0 } satisfies Active);
+  const up = size === "unlimited" || size === "flow";
+  write(ACTIVE, { drink, size, name: name.trim(), phase: "focus", endsAt: up ? null : now + ms, leftMs: up ? 0 : ms, runFrom: up ? now : null, startedAt: now, rounds: 0, earned: 0 } satisfies Active);
   setPrefs({ drink, size });
   emit();
 }
 export function startBreak() {
   const a = getActive();
   if (!a) return;
+  if (a.size === "flow") {
+    // Take every break minute collected; the study time so far is recorded.
+    const mins = breakEarned(a);
+    if (mins < 1) return;
+    record(a.name, Math.floor(leftOf(a) / 60_000));
+    const ms = mins * 60_000;
+    write(ACTIVE, { ...a, phase: "break", endsAt: Date.now() + ms, leftMs: ms, runFrom: null, earned: 0, rounds: a.rounds + 1 });
+    emit();
+    return;
+  }
   const ms = phaseMs(a.size, "break");
   write(ACTIVE, { ...a, phase: "break", endsAt: Date.now() + ms, leftMs: ms });
   emit();
@@ -99,13 +118,13 @@ export function startBreak() {
 export function pause() {
   const a = getActive();
   if (!a || !running(a)) return;
-  write(ACTIVE, a.size === "unlimited" ? { ...a, leftMs: leftOf(a), runFrom: null } : { ...a, endsAt: null, leftMs: leftOf(a) });
+  write(ACTIVE, countsUp(a) ? { ...a, leftMs: leftOf(a), runFrom: null } : { ...a, endsAt: null, leftMs: leftOf(a) });
   emit();
 }
 export function resume() {
   const a = getActive();
   if (!a || running(a)) return;
-  write(ACTIVE, a.size === "unlimited" ? { ...a, runFrom: Date.now() } : { ...a, endsAt: Date.now() + a.leftMs });
+  write(ACTIVE, countsUp(a) ? { ...a, runFrom: Date.now() } : { ...a, endsAt: Date.now() + a.leftMs });
   emit();
 }
 const record = (name: string, minutes: number) => {
@@ -115,7 +134,7 @@ const record = (name: string, minutes: number) => {
 /** Stops. A cancelled timed focus records nothing; the stopwatch records the minutes it ran. */
 export function stop() {
   const a = getActive();
-  if (a?.size === "unlimited" && a.phase === "focus") record(a.name, Math.floor(leftOf(a) / 60_000));
+  if ((a?.size === "unlimited" || a?.size === "flow") && a.phase === "focus") record(a.name, Math.floor(leftOf(a) / 60_000));
   write(ACTIVE, null);
   emit();
 }
@@ -134,10 +153,9 @@ export function complete(): "focus-done" | "break-done" | null {
     emit();
     return "focus-done";
   }
-  if (a.size === "flow") {
-    const ms = phaseMs("flow", "focus");
-    write(ACTIVE, { ...a, phase: "focus", endsAt: now + ms, leftMs: ms });
-  } else write(ACTIVE, null);
+  // Flowmodoro: back to studying, counting up from zero again.
+  if (a.size === "flow") write(ACTIVE, { ...a, phase: "focus", endsAt: null, leftMs: 0, runFrom: now });
+  else write(ACTIVE, null);
   emit();
   return "break-done";
 }

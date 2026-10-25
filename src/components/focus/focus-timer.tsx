@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
+import { Portal } from "@/components/ui/portal";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { complete, getPrefs, leftOf, pause, resume, running, setPrefs, SIZES, start, startBreak, stop, todayMinutes, todaySessions, totalOf, useFocus, type Drink, type Scene, type Size } from "@/lib/focus";
+import { breakEarned, complete, getPrefs, leftOf, pause, resume, running, setPrefs, SIZES, start, startBreak, stop, todayMinutes, todaySessions, totalOf, useFocus, type Drink, type Scene, type Size } from "@/lib/focus";
 import { success, tap } from "@/lib/haptics";
 import { playSfx } from "@/lib/sfx";
 import { toast } from "@/lib/toast";
@@ -17,6 +19,11 @@ const mmss = (ms: number) => {
   const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
   const sec = String(s % 60).padStart(2, "0");
   return h ? `${h}:${m}:${sec}` : `${m}:${sec}`;
+};
+/** Calm time: whole minutes ("24 min"; counting up, "12 min"), a gentle "< 1 min" at the very end. */
+const calmTime = (ms: number, up: boolean) => {
+  const m = up ? Math.floor(ms / 60_000) : Math.ceil(ms / 60_000);
+  return !up && ms < 60_000 ? "< 1 min" : `${m} min`;
 };
 const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -46,14 +53,19 @@ function useWakeLock(on: boolean) {
 }
 
 /** What each scene is called. */
-const SCENE_NAME: Record<Scene, string> = { focus: "🌿 Quiet", social: "☕ Café", window: "🏙️ Street view" };
+const SCENE_NAME: Record<Scene, string> = { focus: "🌿 Quiet", social: "☕ Café", window: "🏙️ Street" };
 
 /** Paper card on a wooden café table. */
 function Table({ children }: { children: React.ReactNode }) {
   return (
-    <div className="focus-table fixed inset-0 z-[40] flex items-center justify-center overflow-y-auto p-4">
-      <div className="focus-paper relative w-full max-w-xl animate-pop px-6 py-9 text-[#24332c] sm:px-10">{children}</div>
-    </div>
+    <Portal>
+      <div className="focus-table fixed inset-0 z-[85] flex items-center justify-center overflow-y-auto p-4">
+        <div className="focus-paper relative w-full max-w-xl animate-pop px-6 py-9 text-[#24332c] sm:px-10">
+          <Link href="/" aria-label="Back to RamAI" className="absolute top-4 left-4 text-[14px] font-medium text-[#56655d]">← Home</Link>
+          {children}
+        </div>
+      </div>
+    </Portal>
   );
 }
 
@@ -66,6 +78,8 @@ export function FocusTimer() {
   const [note, setNote] = useState("");
   const [scene, setScene] = useState<Scene>("focus");
   const [volume, setVolume] = useState(0.5);
+  /** Seconds ticking away can distract: minutes only, unless tapped. */
+  const [secs, setSecs] = useState(false);
   const handled = useRef<number | null>(null);
   const audio = useRef<HTMLAudioElement>(null);
 
@@ -91,7 +105,7 @@ export function FocusTimer() {
       toast(active.size === "flow" ? "5 minutes done — a 1-minute stretch" : `${SIZES[active.size].focus} minutes of focus — well done. Take your break.`);
       void lockScreen("Focus complete ☕", active.size === "flow" ? "1-minute break — then the next 5." : `${SIZES[active.size].focus} minutes on “${active.name || "your focus"}”. Time for a break.`, true);
     } else {
-      toast(active.size === "flow" ? "Back to it — 5 minutes" : "Break over — ready for another?");
+      toast(active.size === "flow" ? "Break over — back to studying. Every 5 minutes earns another minute." : "Break over — ready for another?");
       void lockScreen(active.size === "flow" ? "Back to it" : "Break over", active.size === "flow" ? "5 minutes of focus." : "Order another when you're ready.");
     }
   }, [active, now]);
@@ -162,15 +176,16 @@ export function FocusTimer() {
   }
 
   /* ---------- At the table ---------- */
-  const unlimited = active.size === "unlimited";
+  const unlimited = active.size === "unlimited" || (active.size === "flow" && active.phase === "focus");
+  const earned = active.size === "flow" ? breakEarned(active, now) : 0;
   const left = leftOf(active, now);
   const total = totalOf(active);
   const pct = unlimited ? 0 : 1 - left / Math.max(1, total);
   const waitingBreak = active.phase === "break" && !active.endsAt && left === total;
   const scenes: Scene[] = ["focus", "social", "window"];
-  const si = scenes.indexOf(scene);
   return (
-    <div className={cn("fixed inset-0 z-[40] flex flex-col overflow-hidden", scene === "focus" ? "focus-table" : scene === "social" ? "bg-[radial-gradient(80%_60%_at_30%_20%,#f7dcc0,transparent_60%),radial-gradient(70%_60%_at_80%_40%,#f1e2c9,transparent_60%),#efe6d8]" : "bg-black")}>
+    <Portal>
+    <div className={cn("fixed inset-0 z-[85] flex flex-col overflow-hidden", scene === "focus" ? "focus-table" : scene === "social" ? "bg-[radial-gradient(80%_60%_at_30%_20%,#f7dcc0,transparent_60%),radial-gradient(70%_60%_at_80%_40%,#f1e2c9,transparent_60%),#efe6d8]" : "bg-black")}>
       {scene === "window" && (
         <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover">
           <source src="/focus/window-delhi.webm" type="video/webm" />
@@ -184,19 +199,27 @@ export function FocusTimer() {
       </audio>
 
       <div className="relative z-10 flex items-center justify-between px-4 pt-[max(14px,env(safe-area-inset-top))]">
-        <button type="button" onClick={() => { tap(); stop(); toast(unlimited ? "Saved to today" : active.phase === "focus" ? "Stopped — not recorded" : "Break skipped", { tone: "info" }); }} className="focus-sign" aria-label="Leave the table">☕ menu</button>
-        <span className="focus-sign">{SCENE_NAME[scene]}</span>
-        <span className="focus-sign tabular">{todayMinutes(done)} min today</span>
+        <Link href="/" className="focus-sign" aria-label="Back to RamAI — the timer keeps running">← Home</Link>
+        <div role="tablist" aria-label="Scene" className="focus-sign flex gap-0.5 !p-0.5">
+          {scenes.map((sc) => (
+            <button key={sc} type="button" role="tab" aria-selected={scene === sc} onClick={() => chooseScene(sc)} className={cn("rounded-full px-2.5 py-1 text-[12.5px] font-medium whitespace-nowrap transition-colors", scene === sc ? "bg-[#3f7d63] text-white" : "text-[#33443c]")}>
+              {SCENE_NAME[sc]}
+            </button>
+          ))}
+        </div>
+        <span className="focus-sign tabular hidden min-[420px]:inline">{todayMinutes(done)} min today</span>
       </div>
 
-      <button type="button" aria-label="Previous scene" onClick={() => chooseScene(scenes[(si + 2) % 3]!)} className="focus-arrow absolute top-1/2 left-3 z-10"><Icon name="arrow-left" size={20} /></button>
-      <button type="button" aria-label="Next scene" onClick={() => chooseScene(scenes[(si + 1) % 3]!)} className="focus-arrow absolute top-1/2 right-3 z-10"><Icon name="arrow-right" size={20} /></button>
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
-        {scene === "focus" && <div className="text-[88px] leading-none font-extralight tracking-tight text-[#24332c] tabular sm:text-[120px]" role="timer">{mmss(left)}</div>}
+        {scene === "focus" && (
+          <button type="button" onClick={() => setSecs((v) => !v)} title={secs ? "Hide seconds" : "Show seconds"} className="text-[88px] leading-none font-extralight tracking-tight text-[#24332c] tabular sm:text-[120px]" role="timer">
+            {secs ? mmss(left) : calmTime(left, unlimited)}
+          </button>
+        )}
         <p className={cn("mt-2 max-w-xs text-center text-[15px]", scene === "window" ? "rounded-full bg-black/40 px-3 py-1 text-white" : "text-[#56655d]")}>
           {active.phase === "break" ? (waitingBreak ? "focus done — take a break?" : "break") : active.name ? `I will ${active.name}` : unlimited ? "focusing" : "focus"}
-          {active.size === "flow" && ` · round ${active.rounds + (active.phase === "focus" ? 1 : 0)}`}
+          {active.size === "flow" && active.phase === "focus" && ` · ${earned} min break earned`}
         </p>
       </div>
 
@@ -214,13 +237,21 @@ export function FocusTimer() {
                 </svg>
               </>
             )}
+            {isRunning && <span aria-hidden className="focus-glow absolute inset-[-12%] rounded-full" />}
             <div className={isRunning ? "focus-breathe-cup" : undefined}>
+              <div className={isRunning ? "focus-stir" : undefined}>
               <Cup drink={active.drink} left={unlimited ? 1 : active.phase === "break" ? 1 : 1 - pct} size={170} />
+              </div>
             </div>
           </div>
         </div>
-        {scene !== "focus" && <div className="mt-1 font-mono text-[28px] font-medium text-[#24332c] tabular">{mmss(left)}</div>}
+        {scene !== "focus" && <button type="button" onClick={() => setSecs((v) => !v)} className="mt-1 text-[28px] font-light text-[#24332c] tabular">{secs ? mmss(left) : calmTime(left, unlimited)}</button>}
         <div className="mt-3 flex items-center gap-3">
+          {active.size === "flow" && active.phase === "focus" && (
+            <button type="button" disabled={earned < 1} onClick={() => { tap(); startBreak(); toast(`Enjoy your ${earned}-minute break`); }} className="focus-btn disabled:opacity-50">
+              {earned < 1 ? "break in 5 min" : `take my break · ${earned} min`}
+            </button>
+          )}
           {waitingBreak ? (
             <button type="button" onClick={() => { tap(); startBreak(); }} className="focus-btn">start {SIZES[active.size].brk}-min break</button>
           ) : (
@@ -241,6 +272,7 @@ export function FocusTimer() {
       </div>
       {scene === "window" && <p className="absolute right-2 bottom-1 z-10 text-[9px] text-black/40">Video: Yann Forget, CC BY 3.0 · Wikimedia Commons</p>}
     </div>
+    </Portal>
   );
 }
 
