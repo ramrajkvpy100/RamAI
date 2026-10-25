@@ -5,6 +5,8 @@ import { LegalPage, Section } from "@/components/legal/legal-page";
 import { PublicPage } from "@/components/shell/public-page";
 import { FAQ } from "@/lib/faq";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "FAQ — clinical case simulator for doctors and medical students",
   description: "What RamAI is, who it's for, what it costs, the Android app, Skills Lab, NEET PG and USMLE practice, and how cases are scored.",
