@@ -202,7 +202,8 @@ export function StackViewer({ id, slices, label, windows }: { id: string; slices
         aria-label={`${label} — ${plane}, slice ${counter.i + 1} of ${counter.of}. Drag up or down to scroll, sideways for contrast.`}
         role="img"
       >
-        <canvas ref={canvas} className={cn("mx-auto block w-full object-contain [image-rendering:auto]", full ? "h-full max-h-full" : "max-w-[520px]")} />
+        {/* Stretched to the box's true anatomical shape (set in draw) — never letterboxed into a thin strip. */}
+        <canvas ref={canvas} className={cn("mx-auto block object-fill [image-rendering:auto]", full ? "h-full w-auto max-w-full" : "w-full max-w-[520px]")} />
         {!ready && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[12.5px] text-white/80">
             <div className="h-1 w-40 overflow-hidden rounded-full bg-white/15">

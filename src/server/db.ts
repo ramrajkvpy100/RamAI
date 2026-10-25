@@ -655,22 +655,25 @@ function backend(): Promise<Backend> {
 }
 
 /**
- * Bump whenever SCHEMA or migrate() changes. A server starting against a
- * database already at this version (or newer) skips the setup: one quick read
- * instead of a dozen round trips to the cloud on every cold start.
+ * A fingerprint of SCHEMA and migrate(): any change to either (a new column, a new table) changes it, so the setup
+ * runs once on the next start — no version number to remember. A database already at this fingerprint skips the
+ * setup: one quick read instead of a dozen round trips to the cloud on every cold start.
  */
-const SCHEMA_VERSION = 30;
+const SCHEMA_VERSION = (() => {
+  let h = 2166136261;
+  for (const ch of SCHEMA + migrate.toString()) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return h;
+})();
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
   const b = remote ? await stableTurso(remote.url, remote.authToken) : await fileBackend();
-  const at = await b.get<{ value: number }>("SELECT value FROM meta WHERE key = 'schema'").catch(() => undefined);
-  if (at && at.value >= SCHEMA_VERSION) return b;
+  const at = await b.get<{ value: number }>("SELECT value FROM meta WHERE key = 'schema-fp'").catch(() => undefined);
+  if (at && at.value === SCHEMA_VERSION) return b;
   await b.exec(SCHEMA);
   await migrate(b);
   await b.exec("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value INTEGER NOT NULL)");
-  // Never lowers it: an older server still running during a deploy leaves the newer version in place.
-  await b.run("INSERT INTO meta (key, value) VALUES ('schema', ?) ON CONFLICT(key) DO UPDATE SET value = max(value, excluded.value)", SCHEMA_VERSION);
+  await b.run("INSERT INTO meta (key, value) VALUES ('schema-fp', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", SCHEMA_VERSION);
   return b;
 }
 

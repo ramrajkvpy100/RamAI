@@ -11,7 +11,8 @@ import { success, tap } from "@/lib/haptics";
 import { playSfx } from "@/lib/sfx";
 import { toast } from "@/lib/toast";
 
-import { CafeScene, StreetScene } from "./cafe-scene";
+import { LoopVideo } from "@/components/ui/loop-video";
+import { CafeScene, STREET_VIEWS, StreetScene, type StreetView } from "./cafe-scene";
 import { Cup, DRINKS } from "./cup";
 
 const mmss = (ms: number) => {
@@ -79,6 +80,7 @@ export function FocusTimer() {
   const [note, setNote] = useState("");
   const [scene, setScene] = useState<Scene>("focus");
   const [volume, setVolume] = useState(0.5);
+  const [street, setStreet] = useState<StreetView>(() => getPrefs().street ?? "cafe");
   /** Seconds ticking away can distract: minutes only, unless tapped. */
   const [secs, setSecs] = useState(false);
   const handled = useRef<number | null>(null);
@@ -187,7 +189,17 @@ export function FocusTimer() {
   return (
     <Portal>
     <div className={cn("fixed inset-0 z-[85] flex flex-col overflow-hidden", scene === "focus" ? "focus-table" : scene === "social" ? "bg-[radial-gradient(80%_60%_at_30%_20%,#f7dcc0,transparent_60%),radial-gradient(70%_60%_at_80%_40%,#f1e2c9,transparent_60%),#efe6d8]" : "bg-black")}>
-      {scene === "window" && <StreetScene />}
+      {scene === "focus" && <LoopVideo name="calm" className="absolute inset-0 h-full w-full" />}
+      {scene === "window" && <StreetScene view={street} />}
+      {scene === "window" && (
+        <div className="absolute top-[max(62px,calc(env(safe-area-inset-top)+50px))] right-4 z-20 flex gap-1 rounded-full bg-black/35 p-0.5 backdrop-blur" role="radiogroup" aria-label="Street view">
+          {(Object.keys(STREET_VIEWS) as StreetView[]).map((v) => (
+            <button key={v} type="button" role="radio" aria-checked={street === v} onClick={() => { tap(); setStreet(v); setPrefs({ street: v }); }} className={cn("rounded-full px-2.5 py-1 text-[12px] font-medium", street === v ? "bg-white text-[#24332c]" : "text-white/90")}>
+              {STREET_VIEWS[v]}
+            </button>
+          ))}
+        </div>
+      )}
       {scene === "social" && <CafeScene />}
       <audio ref={audio} loop preload="none">
         <source src="/focus/cafe.ogg" type="audio/ogg" />
@@ -216,8 +228,9 @@ export function FocusTimer() {
       </div>
 
       {/* The wooden table, and your drink emptying on it */}
-      <div className="focus-tabletop relative z-10 flex flex-col items-center pt-2 pb-[max(14px,env(safe-area-inset-bottom))]">
-        <div className="mt-3 transition-transform duration-1000" style={{ transform: `rotate(${pct * 40 - 20}deg)` }}>
+      {/* Café and Street: the scene gets most of the screen (about 75%) — a slim table along the bottom. */}
+      <div className={cn("focus-tabletop relative z-10 flex pb-[max(10px,env(safe-area-inset-bottom))]", scene === "focus" ? "flex-col items-center pt-2" : "focus-tabletop-slim flex-row items-center gap-3 px-4 pt-3")}>
+        <div className={cn("transition-transform duration-1000", scene === "focus" ? "mt-3" : "mt-1")} style={{ transform: `rotate(${pct * 40 - 20}deg)` }}>
           <div className="relative">
             {isRunning && (
               <>
@@ -236,42 +249,44 @@ export function FocusTimer() {
             {isRunning && <span aria-hidden className="focus-glow absolute inset-[-12%] rounded-full" />}
             <div className={isRunning ? "focus-breathe-cup" : undefined}>
               <div className={isRunning ? "focus-stir" : undefined}>
-              <Cup drink={active.drink} left={unlimited ? 1 : active.phase === "break" ? 1 : 1 - pct} size={170} />
+              <Cup drink={active.drink} left={unlimited ? 1 : active.phase === "break" ? 1 : 1 - pct} size={scene === "focus" ? 170 : 86} />
               </div>
             </div>
           </div>
         </div>
+        <div className={cn("flex flex-col", scene === "focus" ? "items-center" : "min-w-0 flex-1 items-start overflow-hidden")}>
         {/* Your target, under the drink. */}
-        <p className="on-wood mt-1 max-w-xs px-3 text-center text-[15.5px] font-semibold">
+        <p className={cn("on-wood mt-1 max-w-xs font-semibold", scene === "focus" ? "px-3 text-center text-[15.5px]" : "truncate text-[14px]")}>
           {active.phase === "break" ? (waitingBreak ? "focus done — take a break?" : "break") : active.name ? `I will ${active.name}` : unlimited ? "focusing" : "focus"}
           {active.size === "flow" && active.phase === "focus" && ` · ${earned} min break earned`}
         </p>
-        {scene !== "focus" && <button type="button" onClick={() => setSecs((v) => !v)} className="on-wood mt-1 text-[30px] font-light tabular">{secs ? mmss(left) : calmTime(left, unlimited)}</button>}
-        <div className="mt-3 flex items-center gap-3">
+        {scene !== "focus" && <button type="button" onClick={() => setSecs((v) => !v)} className="on-wood text-[26px] leading-tight font-light tabular">{secs ? mmss(left) : calmTime(left, unlimited)}</button>}
+        {scene !== "focus" && (
+          <label className="on-wood mt-1 flex items-center gap-1.5">
+            <Icon name="volume-off" size={13} />
+            <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => { const v = Number(e.target.value); setVolume(v); setPrefs({ volume: v }); }} aria-label="Café sound volume" className="w-24 accent-[#4a3a2c]" />
+            <Icon name="volume" size={13} />
+          </label>
+        )}
+        </div>
+        <div className={cn("flex items-center", scene === "focus" ? "mt-3 gap-3" : "shrink-0 gap-2")}>
           {active.size === "flow" && active.phase === "focus" && (
-            <button type="button" disabled={earned < 1} onClick={() => { tap(); startBreak(); toast(`Enjoy your ${earned}-minute break`); }} className="focus-btn disabled:opacity-50">
+            <button type="button" disabled={earned < 1} onClick={() => { tap(); startBreak(); toast(`Enjoy your ${earned}-minute break`); }} className={cn("focus-btn disabled:opacity-50", scene !== "focus" && "!px-3 !text-[13px]")}>
               {earned < 1 ? "break in 5 min" : `take my break · ${earned} min`}
             </button>
           )}
           {waitingBreak ? (
-            <button type="button" onClick={() => { tap(); startBreak(); }} className="focus-btn">start {SIZES[active.size].brk}-min break</button>
+            <button type="button" onClick={() => { tap(); startBreak(); }} className={cn("focus-btn", scene !== "focus" && "!px-3 !text-[13px]")}>{scene === "focus" ? "start " : ""}{SIZES[active.size].brk}-min break</button>
           ) : (
-            <button type="button" aria-label={isRunning ? "Pause" : "Resume"} onClick={() => { tap(); if (isRunning) pause(); else resume(); }} className="flex h-16 w-16 items-center justify-center rounded-full bg-[#3f7d63] text-[20px] font-bold text-white shadow-[0_10px_24px_-10px_rgba(63,125,99,0.8)]">
+            <button type="button" aria-label={isRunning ? "Pause" : "Resume"} onClick={() => { tap(); if (isRunning) pause(); else resume(); }} className={cn("flex items-center justify-center rounded-full bg-[#3f7d63] text-[20px] font-bold text-white shadow-[0_10px_24px_-10px_rgba(63,125,99,0.8)]", scene === "focus" ? "h-16 w-16" : "h-12 w-12")}>
               {isRunning ? "❚❚" : "▶"}
             </button>
           )}
-          <button type="button" aria-label="Stop" onClick={() => { tap(); stop(); toast(unlimited ? `${Math.floor(left / 60_000)} min saved` : active.phase === "focus" ? "Stopped — not recorded" : "Break skipped", { tone: "info" }); }} className="flex h-14 w-14 items-center justify-center rounded-full bg-white/70 text-[18px] text-[#24332c] shadow-sm backdrop-blur">■</button>
+          <button type="button" aria-label="Stop" onClick={() => { tap(); stop(); toast(unlimited ? `${Math.floor(left / 60_000)} min saved` : active.phase === "focus" ? "Stopped — not recorded" : "Break skipped", { tone: "info" }); }} className={cn("flex items-center justify-center rounded-full bg-white/70 text-[18px] text-[#24332c] shadow-sm backdrop-blur", scene === "focus" ? "h-14 w-14" : "h-11 w-11")}>■</button>
         </div>
-        {scene !== "focus" && (
-          <label className="on-wood mt-3 flex items-center gap-2">
-            <Icon name="volume-off" size={14} />
-            <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => { const v = Number(e.target.value); setVolume(v); setPrefs({ volume: v }); }} aria-label="Café sound volume" className="w-40 accent-[#24332c]" />
-            <Icon name="volume" size={14} />
-          </label>
-        )}
         {!unlimited && <div className="absolute inset-x-0 bottom-0 h-1.5 bg-[#00000010]"><div className="h-full bg-[#24332c]/60 transition-[width] duration-1000 ease-linear" style={{ width: `${pct * 100}%` }} /></div>}
       </div>
-      {scene === "window" && <p className="absolute right-2 bottom-1 z-10 text-[9px] text-black/40">Video: INakeii, CC BY-SA 4.0 · Wikimedia Commons</p>}
+
     </div>
     </Portal>
   );

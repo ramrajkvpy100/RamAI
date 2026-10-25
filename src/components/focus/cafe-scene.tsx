@@ -16,19 +16,20 @@ export function CafeScene() {
   );
 }
 
-/** Street: the view out of the café window — the city going by, through the glass. */
-export function StreetScene() {
+export type StreetView = "cafe" | "tokyo";
+export const STREET_VIEWS: Record<StreetView, string> = { cafe: "Café window", tokyo: "Tokyo traffic" };
+
+/**
+ * Street: real videos at real speed, filmed through real windows (no drawn frame) — a café window onto a calm street
+ * in Dali, or Tokyo's traffic from a window above Shibuya. Both from Pexels (free licence), looped with a crossfade.
+ */
+export function StreetScene({ view }: { view: StreetView }) {
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden bg-black">
-      <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover">
-        <source src="/focus/street-day.webm" type="video/webm" />
-        <source src="/focus/street-day.mp4" type="video/mp4" />
+      <video key={view} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover">
+        <source src={`/focus/street-${view}.webm`} type="video/webm" />
+        <source src={`/focus/street-${view}.mp4`} type="video/mp4" />
       </video>
-      {/* The window: a soft reflection on the glass, wooden frame and mullion. */}
-      <span className="absolute inset-0 bg-[linear-gradient(115deg,rgb(255_255_255/0.14)_0%,transparent_35%,transparent_60%,rgb(255_255_255/0.08)_75%,transparent_90%)]" />
-      <span className="absolute inset-0 shadow-[inset_0_0_0_14px_#6b4a33,inset_0_0_40px_14px_rgb(0_0_0/0.35)]" />
-      <span className="absolute top-0 bottom-0 left-1/2 w-3 -translate-x-1/2 bg-[#6b4a33] shadow-[0_0_12px_rgb(0_0_0/0.35)]" />
-      <span className="absolute inset-x-0 top-[38%] h-3 bg-[#6b4a33] shadow-[0_0_12px_rgb(0_0_0/0.35)]" />
     </div>
   );
 }

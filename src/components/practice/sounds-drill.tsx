@@ -75,11 +75,12 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
     setScore(0);
   }, [kind]);
 
-  const item = order?.[i];
+  // Just after switching heart ↔ breath, the old list is still here for one draw: show nothing from it.
+  const item = order?.[i]?.sound.kind === kind ? order[i] : undefined;
   const pool = keep(kind === "heart" ? HEART : LUNGS);
   const cases = keep(kind === "heart" ? HEART_CASES : LUNG_CASES);
   // Four findings to choose from: this one and three others (the answer is the finding).
-  const options = useMemo(() => (item ? shuffle([pool.find((p) => p.id === item.base)!, ...shuffle(pool.filter((p) => p.id !== item.base)).slice(0, 3)]) : []), [item, pool]);
+  const options = useMemo(() => (item ? shuffle([pool.find((p) => p.id === item.base), ...shuffle(pool.filter((p) => p.id !== item.base)).slice(0, 3)].filter((x): x is SoundItem => !!x)) : []), [item, pool]);
   // The sound itself, made on this device the first time it's played.
   const url = useMemo(() => {
     if (!item) return null;

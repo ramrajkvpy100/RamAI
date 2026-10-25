@@ -637,6 +637,7 @@ svg {
   background: linear-gradient(180deg, rgb(250 242 230 / 0.72) 0%, rgb(244 232 214 / 0.62) 60%, rgb(236 222 200 / 0.7) 100%);
 }
 .focus-tabletop .on-wood { color: #4a3a2c; }
+.focus-tabletop-slim { min-height: 0; max-height: 26vh; border-radius: 22px 22px 0 0; }
 }
 .focus-hand { font-family: "Segoe Print", "Bradley Hand", cursive; }
 @keyframes focus-float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-5px) rotate(1deg); } }

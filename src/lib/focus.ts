@@ -71,7 +71,7 @@ const emit = () => subs.forEach((f) => f());
 
 export const getActive = () => read<Active | null>(ACTIVE, null);
 export const getDone = () => read<Done[]>(DONE, []);
-export const getPrefs = () => read<{ drink?: Drink; size?: Size; scene?: Scene; volume?: number }>(PREFS, {});
+export const getPrefs = () => read<{ drink?: Drink; size?: Size; scene?: Scene; volume?: number; street?: "cafe" | "tokyo" }>(PREFS, {});
 export const setPrefs = (p: Partial<ReturnType<typeof getPrefs>>) => write(PREFS, { ...getPrefs(), ...p });
 
 const phaseMs = (size: Size, phase: Phase) => (phase === "focus" ? SIZES[size].focus : SIZES[size].brk) * 60_000;

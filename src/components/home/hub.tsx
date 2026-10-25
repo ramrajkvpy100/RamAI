@@ -17,6 +17,7 @@ import { useMe, type Me } from "@/lib/me-store";
 
 import { CompetenceRings } from "./competence-rings";
 import { FocusWidget } from "@/components/focus/focus-widget";
+import { AddWidgetButton } from "@/components/app/add-widget";
 import { useLauncher } from "./use-launcher";
 import { HomeTour, tourSeen, type TourStop } from "./home-tour";
 
@@ -146,6 +147,7 @@ export function Hub({ initial }: { initial: Me }) {
       </section>
       <CompetenceRings me={me} />
       <FocusWidget />
+      <AddWidgetButton />
 
       {/* Everything, as tiles */}
       <section aria-labelledby="hub-places">
