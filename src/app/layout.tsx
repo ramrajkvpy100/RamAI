@@ -1,4 +1,5 @@
 import { RefCapture } from "@/components/app/ref-capture";
+import { FocusPill } from "@/components/focus/focus-pill";
 import { Toaster } from "@/components/shell/toaster";
 import type { Metadata, Viewport } from "next";
 import { AndroidAppMarker } from "@/components/app/android-app";
@@ -65,6 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CopyGuard />
         <QuickSuggest />
         <Toaster />
+        <FocusPill />
       </body>
     </html>
   );

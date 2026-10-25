@@ -601,3 +601,25 @@ svg {
 /* Low-end phones: solid bars — a live blur costs them frames and battery. */
 .lite { --material-bar: var(--bg); }
 .lite .material-bar, .lite .glass { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* Focus timer — a café table: wood grain, a paper card, hand-drawn signs, halftone print. */
+.focus-table {
+  background:
+    radial-gradient(circle at 1px 1px, rgb(0 0 0 / 0.18) 1px, transparent 1.4px) 0 0 / 5px 5px,
+    repeating-linear-gradient(178deg, #8a4f22 0 6px, #a8642c 6px 14px, #6e3b18 14px 18px, #b87436 18px 30px, #7b431c 30px 34px),
+    #8a4f22;
+}
+@layer components {
+.focus-paper { background: #fff; border: 3px solid #1d1b19; border-radius: 6px 14px 8px 18px / 16px 6px 14px 8px; box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.55); }
+.focus-btn { min-width: 9rem; border-radius: 10px; background: #111; padding: 0.95rem 1.6rem; font-size: 17px; font-weight: 500; color: #fff; transition: transform 0.12s; }
+.focus-btn:active { transform: scale(0.97); }
+.focus-sign { border: 2.5px solid #1d1b19; background: #fff; padding: 0.35rem 0.8rem; font-size: 13.5px; color: #1d1b19; border-radius: 4px 8px 5px 9px; }
+.focus-arrow { display: flex; height: 3rem; width: 3rem; transform: translateY(-50%); align-items: center; justify-content: center; border-radius: 9999px; background: rgb(255 255 255 / 0.85); color: #1d1b19; box-shadow: 0 6px 18px -6px rgb(0 0 0 / 0.35); }
+.focus-tabletop { background: #fff; border-top: 3px solid #1d1b19; border-radius: 50% 50% 0 0 / 22% 22% 0 0; min-height: 34vh; }
+}
+.focus-hand { font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; }
+@keyframes focus-steam { 0% { transform: translateY(6px); opacity: 0; } 40% { opacity: 0.6; } 100% { transform: translateY(-10px); opacity: 0; } }
+.focus-steam { animation: focus-steam 2.6s ease-in-out infinite; }
+@keyframes focus-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.focus-bob { animation: focus-bob 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .focus-steam, .focus-bob { animation: none; } }
