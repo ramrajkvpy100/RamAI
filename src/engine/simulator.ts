@@ -2714,22 +2714,26 @@ function handleHint(ctx: TurnContext): TurnEffect[] {
   const test = def.investigations.find((i) => i.priority === "essential" && !hidden.investigations.some((x) => x.defId === i.id));
   const treatStep = def.rubric.idealTreatment.find((st) => !st.some((id) => done(hidden, id) || done(hidden, `drug:${id}`)));
   const rule = treatStep ? def.therapeutics.find((r) => treatStep.includes(r.id)) : undefined;
+  // What this patient came with, in their words — so the senior's reason is about this case, not cases in general.
+  const opening = def.opening.find((b) => (b as { role?: string }).role === "patient" || (b as { role?: string }).role === "attendant") as { text?: string } | undefined;
+  const said = (opening?.text ?? "").replace(/^((doctor|doc|sir|madam|ma'am|hello|hi|namaste|ji)[\s,!.]+)+/i, "").split(/[,.;!?—–]| and /)[0]!.trim();
+  const complaint = said && said.split(/\s+/).length >= 3 ? `“${said.slice(0, 60)}”` : "";
   let next: string, why: string, ask: string | undefined;
   let step: ResolvedIntent | undefined;
   if (history) {
     next = `Ask about ${history.label.toLowerCase()}.`;
-    why = HISTORY_WHY[history.group] ?? "it's one of the key questions in this case";
+    why = `${complaint ? `with ${complaint}, ` : ""}${HISTORY_WHY[history.group] ?? "it's one of the key questions in this case"}${history.importance === "essential" ? " — and here it's one of the questions that decides the diagnosis" : ""}`;
     ask = `Ask about ${history.label.toLowerCase()}`;
     step = { kind: "history", targetId: history.id, phrase: history.match[0] ?? history.label, matched: true };
   } else if (exam) {
     next = `Examine: ${exam.label.toLowerCase()}.`;
-    why = "the examination confirms or rules out what the history suggests";
+    why = exam.abnormal ? `there is something to find here — in ${complaint ? `a patient with ${complaint}` : "this patient"}, the ${exam.label.toLowerCase()} is where the problem shows` : `a normal ${exam.label.toLowerCase()} rules out the dangerous alternatives${complaint ? ` for ${complaint}` : ""}`;
     ask = `Examine ${exam.label.toLowerCase()}`;
     step = { kind: "exam", targetId: exam.id, phrase: `examine ${exam.match[0] ?? exam.label}`, matched: true };
   } else if (test) {
     const name = String(test.name ?? test.short ?? test.id);
     next = `Order ${name}.`;
-    why = "this result will confirm what you suspect, or change your mind";
+    why = `it's the test that settles this case — it confirms or rules out what the history and examination suggest${complaint ? ` about ${complaint}` : ""}, and changes what you give`;
     ask = `Order ${name}`;
     step = { kind: "investigation", targetId: test.id, phrase: name, matched: true };
   } else if (!hidden.diagnosis) {
@@ -2739,7 +2743,7 @@ function handleHint(ctx: TurnContext): TurnEffect[] {
     step = { kind: "diagnosis", phrase: ask, matched: true, payload: { text: def.truth.diagnosis } };
   } else if (rule) {
     next = `Treat: ${rule.label.replace(/\.$/, "")}.`;
-    why = "this is what the patient needs now — the usual dose and route";
+    why = rule.note ? rule.note.replace(/\.$/, "") : `it's the treatment ${def.truth.diagnosis} needs now — the usual dose and route`;
     ask = `Treat: ${rule.label.replace(/\.$/, "")}`;
     const drugId = rule.drugIds?.[0];
     step = drugId ? { kind: "drug", targetId: drugId, phrase: ask, matched: true, payload: { usual: true, mode: "given" } } : { kind: "action", targetId: rule.id, phrase: rule.match?.[0] ?? rule.label, matched: true };
@@ -2872,10 +2876,14 @@ function bareDiagnosis(def: ClinicalCaseDefinition, raw: string): string | null 
 
 export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record: ActionRecord): TurnEffect[] {
   const fx: TurnEffect[] = [];
-  // "Full history": every important question at once — fewer turns to the end of the case.
+  // "Full history": every important question at once — fewer turns to the end of the case — answered in one message.
+  let fullHistory: string[] | null = null;
   if (/^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(record.raw.trim())) {
     const todo = def.history.filter((h) => h.importance !== "minor" && hidden.history[h.id] === undefined);
-    if (todo.length) record = { ...record, intents: todo.map((h) => ({ kind: "history" as const, targetId: h.id, phrase: h.match[0] ?? h.label, matched: true })) };
+    if (todo.length) {
+      fullHistory = todo.map((h) => h.label);
+      record = { ...record, intents: todo.map((h) => ({ kind: "history" as const, targetId: h.id, phrase: h.match[0] ?? h.label, matched: true })) };
+    }
   }
   // The senior's button: exactly the step suggested.
   if (hidden.seniorStep && record.raw.trim() === hidden.seniorStep.text) {
@@ -3037,6 +3045,21 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   // Every message the doctor sends gets an answer from someone in the room.
   // (A "15 min later" divider marks time; it isn't an answer.)
   if (!tick && !hidden.closed && !fx.some((e, i) => i > 0 && e.type === "message" && !(e.kind === "status" && / later$/.test(e.text)))) fx.push(statusReply(def, hidden));
+
+  // Full history: the answers as short bullets in one message, not a dozen long replies.
+  if (fullHistory) {
+    const spoken = fx.filter((e): e is Extract<TurnEffect, { type: "message" }> => e.type === "message" && e.kind === "speech" && (e.role === "patient" || e.role === "attendant"));
+    if (spoken.length) {
+      const short = (t: string) => {
+        const first = t.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/).slice(0, 2).join(" ");
+        return first.length > 160 ? `${first.slice(0, 157).replace(/\s+\S*$/, "")}…` : first;
+      };
+      const lines = spoken.map((m, i) => `• ${spoken.length === fullHistory!.length ? `**${capitalise(fullHistory![i]!)}:** ` : ""}${short(m.text)}`);
+      const at = fx.indexOf(spoken[0]!);
+      for (const m of spoken) fx.splice(fx.indexOf(m), 1);
+      fx.splice(at, 0, { type: "message", role: "system", kind: "finding", text: `📋 History\n${lines.join("\n")}` });
+    }
+  }
 
   const stage = ctx.stages[ctx.stages.length - 1];
   if (stage) fx.push({ type: "stage", stage });

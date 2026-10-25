@@ -37,7 +37,7 @@ const toSummary = (r: ResultRow): CompletedCaseSummary => ({
 export const summaryFromRow = (row: Record<string, unknown>): CompletedCaseSummary => toSummary(row as unknown as ResultRow);
 
 export async function historyFor(userId: string): Promise<CompletedCaseSummary[]> {
-  return (await db.all<ResultRow>("SELECT * FROM results WHERE user_id = ? ORDER BY created_at ASC", userId)).map(toSummary);
+  return (await db.all<ResultRow>("SELECT * FROM results WHERE user_id = ? AND assisted = 0 ORDER BY created_at ASC", userId)).map(toSummary);
 }
 
 export async function progressFor(userId: string): Promise<PlayerProgress> {
@@ -50,7 +50,7 @@ export async function progressForMany(userIds: readonly string[]): Promise<Map<s
   const byUser = new Map<string, CompletedCaseSummary[]>(ids.map((id) => [id, []]));
   for (let i = 0; i < ids.length; i += 200) {
     const chunk = ids.slice(i, i + 200);
-    const rows = await db.all<ResultRow & { user_id: string }>(`SELECT * FROM results WHERE user_id IN (${chunk.map(() => "?").join(", ")}) ORDER BY created_at ASC`, ...chunk);
+    const rows = await db.all<ResultRow & { user_id: string }>(`SELECT * FROM results WHERE user_id IN (${chunk.map(() => "?").join(", ")}) AND assisted = 0 ORDER BY created_at ASC`, ...chunk);
     for (const r of rows) byUser.get(r.user_id)?.push(toSummary(r));
   }
   return new Map([...byUser].map(([id, history]) => [id, withDerived(history)]));
@@ -71,7 +71,7 @@ const RING_OF: Record<string, keyof Omit<Rings, "cases">> = {
 export async function ringsFor(userId: string, now = new Date()): Promise<Rings> {
   const ist = new Date(now.getTime() + 5.5 * 3_600_000);
   const start = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()) - 5.5 * 3_600_000;
-  const rows = await db.all<{ detail: string | null }>("SELECT detail FROM results WHERE user_id = ? AND created_at >= ?", userId, start).catch(() => []);
+  const rows = await db.all<{ detail: string | null }>("SELECT detail FROM results WHERE user_id = ? AND created_at >= ? AND assisted = 0", userId, start).catch(() => []);
   const sum = { triage: [0, 0], diagnosis: [0, 0], treatment: [0, 0] } as Record<keyof Omit<Rings, "cases">, [number, number]>;
   for (const r of rows) {
     try {

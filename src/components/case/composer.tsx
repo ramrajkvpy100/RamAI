@@ -29,6 +29,7 @@ export function Composer({
   country,
   watch,
   skin = false,
+  fullHistory = true,
 }: {
   onSend: (text: string) => Promise<boolean>;
   disabled?: boolean;
@@ -43,6 +44,8 @@ export function Composer({
   watch?: { label: string; minutes: number } | null;
   /** A skin complaint: one tap shows the rash or lesion. */
   skin?: boolean;
+  /** The one-tap full history: offered after the patient's first reply, until it's been taken. */
+  fullHistory?: boolean;
 }) {
   const { draft, setDraft, insert, inputRef } = useComposer();
   const [menu, setMenu] = useState<string | null>(null);
@@ -176,15 +179,15 @@ export function Composer({
 
       {/* The three things most needed, big and plain. */}
       {!phone && (
-        <div className="mb-2 grid grid-cols-3 gap-2">
+        <div className={cn("mb-2 grid gap-2", fullHistory ? "grid-cols-3" : "grid-cols-2")}>
           {!expert.on && (
             <button type="button" disabled={disabled || sending} onClick={() => { tap(); void onSend("Hint"); }} data-coach-target="senior" className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100")}>
               👩‍⚕️ <span className="truncate">Ask senior</span>
             </button>
           )}
-          <button type="button" disabled={disabled || sending} onClick={() => { tap(); void onSend("Take full history"); }} className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-line bg-surface text-fg")}>
+          {fullHistory && <button type="button" disabled={disabled || sending} onClick={() => { tap(); void onSend("Take full history"); }} className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-line bg-surface text-fg")}>
             📋 <span className="truncate">Full history</span>
-          </button>
+          </button>}
           {skin ? (
             <button type="button" disabled={disabled || sending} onClick={() => { tap(); void onSend("Examine the skin lesion"); }} className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-accent-line bg-accent-soft text-accent-text")}>
               📷 <span className="truncate">Show rash</span>

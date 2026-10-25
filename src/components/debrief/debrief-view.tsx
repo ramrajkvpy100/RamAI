@@ -162,7 +162,7 @@ function DeckButton({ text, onSave }: { text: string; onSave: (t: string) => voi
   const [saved, setSaved] = useState(false);
   useEffect(() => setSaved(inDeck(text)), [text]);
   return (
-    <button type="button" onClick={() => { if (!saved) { onSave(text); setSaved(true); } }} aria-label={saved ? "In your revision deck" : "Add to your revision deck"} title={saved ? "In your revision deck" : "Add to your revision deck"} className={cn("shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors", saved ? "bg-success-soft text-success" : "bg-surface-3 text-fg-2 hover:text-fg")}>
+    <button type="button" onClick={() => { if (!saved) { onSave(text); setSaved(true); } }} aria-label={saved ? "In your revision deck" : "Add to your revision deck"} title={saved ? "In your revision deck" : "Add to your revision deck"} className={cn("h-7 shrink-0 self-start rounded-full px-2.5 text-[11.5px] font-semibold whitespace-nowrap transition-colors", saved ? "bg-success-soft text-success" : "bg-surface-3 text-fg-2 hover:text-fg")}>
       {saved ? "✓ Saved" : "＋ Deck"}
     </button>
   );

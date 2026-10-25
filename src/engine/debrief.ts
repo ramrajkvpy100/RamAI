@@ -55,7 +55,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   /* Misses -------------------------------------------------------------- */
   const missed: DebriefMiss[] = [];
   const hints = hidden.actions.hint?.length ?? 0;
-  if (hints && !def.guided) missed.push({ what: `Used ${hints} hint${hints === 1 ? "" : "s"}.`, why: "Hints point to the next step an expert would take.", better: "Next time, try working through history, examination and investigations before asking.", severity: "minor" });
+  if (hints && !def.guided) missed.push({ what: `Asked the senior ${hints} time${hints === 1 ? "" : "s"} — this case is practice and doesn't count towards your progress.`, why: "The senior shows the next step an expert would take.", better: "Next time, try working through history, examination and investigations before asking.", severity: "minor" });
   // A miss written about the case notes ("No renal-function result is provided", "Not documented whether…") is put
   // to the doctor instead, in the plain words for what they didn't do — the why and the better way are kept.
   const own = (id: string, plain: DebriefMiss): DebriefMiss => {
@@ -187,6 +187,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     verdict,
     finalStatus: hidden.status,
     elapsedMin: hidden.closedAt ?? hidden.clock,
+    ...(hints && !def.guided ? { assisted: hints } : {}),
     spend: hidden.investigations.reduce((s, i) => s + i.cost, 0),
     orderedInvestigationIds: [...ordered],
     score,

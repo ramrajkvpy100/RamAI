@@ -60,7 +60,7 @@ export async function removeSubscription(userId: string, endpoint: string) {
 export function reminderFor(streakDays: number, dayKey: string, now: number): PushMessage {
   const hours = Math.max(1, Math.round((dailyEndsAt(dayKey) - now) / 3_600_000));
   const n = dailyNumber(dayKey);
-  if (streakDays > 0 && hours <= 6) return { title: `🔥 ${streakDays} days strong`, body: `${hours} ${hours === 1 ? "hour" : "hours"} left — one quick case keeps your streak.`, url: "/" };
+  if (streakDays > 0 && hours <= 6) return { title: `🔥 ${streakDays} ${streakDays === 1 ? "day" : "days"} strong`, body: `${hours} ${hours === 1 ? "hour" : "hours"} left — one quick case keeps your streak.`, url: "/" };
   if (streakDays > 0) return { title: `🔥 Day ${streakDays + 1} is waiting`, body: "Your next patient is in. 10 minutes, one diagnosis.", url: "/" };
   const lines = [
     { title: "🩺 Your patient is waiting", body: `Daily case #${n} — the same patient for every doctor today.` },

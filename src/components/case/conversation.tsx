@@ -1,5 +1,6 @@
 "use client";
 
+import { Rich } from "@/components/ui/rich-lines";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { FamilyFigure, NurseFigure, PatientFigure } from "@/components/game/caricature";
@@ -123,7 +124,7 @@ function NurseLine({ m, isNew }: { m: EncounterMessage; isNew: boolean }) {
         <NurseFigure alert size={30} className="mt-0.5" />
         <div className="min-w-0">
           <div className="text-[10.5px] font-semibold tracking-[0.08em] text-warning uppercase">Nurse</div>
-          <p className="text-[14.5px] leading-6 text-fg">{m.text}</p>
+          <p className="text-[14.5px] leading-6 whitespace-pre-line text-fg"><Rich text={m.text} /></p>
         </div>
       </div>
     );
@@ -173,7 +174,7 @@ function Finding({ m, state, isNew, highlightIds }: { m: EncounterMessage; state
         {isExam && <span className="truncate text-fg">· {head}</span>}
       </div>
       {/* With a picture, the doctor looks first: the written finding waits behind a button. */}
-      {!m.media && <p className={cn("px-3.5 py-2.5 text-[14.5px] leading-7 whitespace-pre-line", isObservation && "font-medium tabular")}>{isExam ? rest.join(" — ") : m.text}</p>}
+      {!m.media && <p className={cn("px-3.5 py-2.5 text-[14.5px] leading-7 whitespace-pre-line", isObservation && "font-medium tabular")}><Rich text={isExam ? rest.join(" — ") : m.text} /></p>}
       {m.media && (
         <div className="px-3 pt-3 pb-3">
           <MediaFigure media={m.media} viewerKey={m.id} title={isExam ? head : label} />
@@ -288,7 +289,7 @@ export function Conversation({
   const [pinned, setPinned] = useState(true);
   const [unseen, setUnseen] = useState(false);
   // Two threads: the patient (and family), and the team (nurse, senior, results). "All" shows both, as before.
-  const [thread, setThread] = useState<"all" | "patient" | "team">("all");
+  const thread = "all" as "all" | "patient" | "team";
   const shown = useMemo(() => {
     if (thread === "all") return state.messages;
     const isPatient = (r: string) => r === "patient" || r === "attendant" || r === "caller";
@@ -332,13 +333,6 @@ export function Conversation({
   let lastDay = 0;
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div role="tablist" aria-label="Conversation" className="glass mx-auto mt-2 flex shrink-0 gap-0.5 rounded-full p-0.5 text-[12.5px]">
-        {([["all", "All"], ["patient", "🧑 Patient"], ["team", "👩‍⚕️ Team"]] as const).map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={thread === id} onClick={() => setThread(id)} className={cn("rounded-full px-3 py-1 font-medium whitespace-nowrap transition-colors", thread === id ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
-            {label}
-          </button>
-        ))}
-      </div>
       <div ref={scroller} className="scroll-area min-h-0 flex-1">
         <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Encounter transcript" className="mx-auto flex w-full max-w-[760px] flex-col gap-4 px-4 pt-4 pb-10 sm:px-6">
           <PatientIntro state={state} />

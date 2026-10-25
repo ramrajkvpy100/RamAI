@@ -846,6 +846,8 @@ export interface CaseDebrief {
   finalStatus: PatientStatus;
   /** Sim minutes from arrival to closure. */
   elapsedMin: number;
+  /** How many times the senior was asked: a case finished with help is practice — it never counts towards progress. */
+  assisted?: number;
   /** Total spent on investigations, INR. */
   spend: number;
   /** Investigations the player ordered, by catalogue/case id. */

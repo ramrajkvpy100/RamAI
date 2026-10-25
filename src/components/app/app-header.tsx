@@ -53,6 +53,9 @@ export function AppHeader({ initial }: { initial: Me }) {
             </Link>
             <InstallButton />
           </NotInAndroidApp>
+          <Link href="/focus" aria-label="Focus timer" title="Focus timer" className={cn("flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/focus" ? "bg-emerald-600 text-white" : "bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300")}>
+            <span aria-hidden>☕</span><span className="hidden min-[380px]:inline">Focus</span>
+          </Link>
           <ThemeToggle />
           <StreakPill days={me.progress.streakDays} />
           <Link href="/profile" className="hidden items-center sm:flex" aria-label="Daily goal">
@@ -66,7 +69,7 @@ export function AppHeader({ initial }: { initial: Me }) {
     </header>
     {/* The tab bar sits outside the header: the header's blur would pin a fixed bar to itself. */}
       {/* Phones: a tab bar along the bottom, like an app. */}
-      <nav className="material-bar fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--material-stroke)] pb-[env(safe-area-inset-bottom)] sm:hidden" aria-label="Main">
+      <nav className="tabbar-solid fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--material-stroke)] pb-[env(safe-area-inset-bottom)] sm:hidden" aria-label="Main">
         {PHONE_NAV.map((n) => {
           const on = n.href === "/" ? path === "/" : path.startsWith(n.href);
           return (

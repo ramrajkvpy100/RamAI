@@ -120,7 +120,7 @@ async function standings(board: BoardId, period: Period, scope: Scope = null): P
   const rows = await db.all<{ userId: string; name: string; username: string; isDemo: number; xp: number; cases: number }>(
     `SELECT u.id AS userId, u.name, u.username, u.is_demo AS isDemo, SUM(r.xp) AS xp, COUNT(*) AS cases
      FROM results r JOIN users u ON u.id = r.user_id
-     WHERE r.created_at >= ? AND ${BOARDS[board].where}
+     WHERE r.created_at >= ? AND r.assisted = 0 AND ${BOARDS[board].where}
        AND u.is_guest = 0 AND (u.is_demo = 1 OR u.email_verified_at IS NOT NULL) AND (u.is_demo = 0 OR ? = 1)${local}
      GROUP BY u.id ORDER BY xp DESC, cases ASC, MIN(r.created_at) ASC`,
     since, scope ? 0 : demoPlayersEnabled() ? 1 : 0, ...(scope ? [scope.value] : []),
@@ -173,10 +173,10 @@ export async function recordCase(user: User, sessionId: string, debrief: CaseDeb
   const rescued = debrief.rescue.episodes.some((e) => e.rescued === "full" || e.rescued === "partial");
   const ranked = opts.daily && !user.isGuest && (await firstDailySession(user.id, opts.daily)) === sessionId ? opts.daily : null;
   await db.run(
-    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid, detail, summary)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    user.id, sessionId, debrief.caseRef, debrief.caseNumber, debrief.specialty, debrief.track, debrief.level, debrief.diagnosis, debrief.verdict, rescued ? 1 : 0, debrief.score.total, debrief.score.xp, Date.now(),
-    ranked, Math.round(debrief.elapsedMin), ranked ? squares(debrief.score) : null, JSON.stringify(caseDetail(debrief)), opts.state ? JSON.stringify(caseSummary(opts.state, debrief)) : null,
+    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid, detail, summary, assisted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    user.id, sessionId, debrief.caseRef, debrief.caseNumber, debrief.specialty, debrief.track, debrief.level, debrief.diagnosis, debrief.verdict, rescued ? 1 : 0, debrief.score.total, debrief.assisted ? 0 : debrief.score.xp, Date.now(),
+    ranked, Math.round(debrief.elapsedMin), ranked ? squares(debrief.score) : null, JSON.stringify(caseDetail(debrief)), opts.state ? JSON.stringify(caseSummary(opts.state, debrief)) : null, debrief.assisted ? 1 : 0,
   );
   const after = await progressFor(user.id);
   await ensureMembership(user);

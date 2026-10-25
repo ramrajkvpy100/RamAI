@@ -159,9 +159,10 @@ describe("the evening reminder", () => {
 
   it("puts a streak about to break first, and never mentions the case", () => {
     const now = Date.parse("2026-10-20T13:30:00Z");
-    expect(reminderFor(6, "2026-10-20", now)).toMatchObject({ title: "🔥 Your 6-day streak ends in 5 hours", url: "/" });
-    expect(reminderFor(0, "2026-10-20", now).title).toBe("🩺 Daily case #11 is waiting");
-    expect(reminderFor(1, "2026-10-20", Date.parse("2026-10-20T17:50:00Z")).title).toBe("🔥 Your 1-day streak ends in 1 hour");
+    expect(reminderFor(6, "2026-10-20", now)).toMatchObject({ title: "🔥 6 days strong", body: expect.stringMatching(/5 hours left/), url: "/" });
+    expect(reminderFor(0, "2026-10-20", now).title).toBe("🧠 Sharpen up — one case");
+    expect(reminderFor(1, "2026-10-20", Date.parse("2026-10-20T17:50:00Z"))).toMatchObject({ title: "🔥 1 day strong", body: expect.stringMatching(/1 hour left/) });
+    expect(reminderFor(3, "2026-10-20", Date.parse("2026-10-20T04:30:00Z")).title).toBe("🔥 Day 4 is waiting");
   });
 
   it("reaches only players who haven't played today, once a day, in the evening", async () => {
@@ -184,15 +185,15 @@ describe("the evening reminder", () => {
       return "sent" as const;
     };
 
-    expect(await sendDailyReminders({ now: Date.parse("2026-10-20T04:30:00Z"), send })).toMatchObject({ skipped: expect.stringMatching(/5 pm and 11 pm/), due: 0 });
+    expect(await sendDailyReminders({ now: Date.parse("2026-10-20T04:30:00Z"), send })).toMatchObject({ due: 0 }); // 10 am: before the 7 pm each of them chose
     expect(sent).toHaveLength(0);
 
     const run = await sendDailyReminders({ now: evening, send });
     expect(run).toMatchObject({ day: "2026-10-20", due: 3, played: 1, sent: 2 });
     expect(sent.map((s) => [s.userId, s.title]).sort()).toEqual(
       [
-        [lapsed.id, "🩺 Daily case #11 is waiting"],
-        [streaky.id, "🔥 Your 2-day streak ends in 5 hours"],
+        [lapsed.id, "🧠 Sharpen up — one case"],
+        [streaky.id, "🔥 2 days strong"],
       ].sort(),
     );
     expect(sent[0]!.ttl).toBe(5 * 3600);

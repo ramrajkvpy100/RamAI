@@ -721,6 +721,8 @@ async function migrate(b: Backend) {
   if (!resultColumns.includes("detail")) add.push("ALTER TABLE results ADD COLUMN detail TEXT");
   // The case as the doctor met it, for "Discuss this case" posts (JSON; CaseSummary).
   if (!resultColumns.includes("summary")) add.push("ALTER TABLE results ADD COLUMN summary TEXT");
+  // Finished with the senior's help: practice — kept for the doctor's history, left out of progress, rating and boards.
+  if (!resultColumns.includes("assisted")) add.push("ALTER TABLE results ADD COLUMN assisted INTEGER NOT NULL DEFAULT 0");
   // Sign-in moved to Supabase Auth: profiles link to their Supabase user.
   if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
   // The doctor's own specialty, asked once: NULL = not asked yet, 'mixed' = every specialty.
