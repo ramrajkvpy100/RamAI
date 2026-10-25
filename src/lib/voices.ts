@@ -128,6 +128,8 @@ function attendantSex(state: CaseState): Sex {
 /** Stage directions aren't read out; pauses become commas. */
 const spoken = (text: string) =>
   text
+    // Emojis and symbols are never read out ("smiling face").
+    .replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, "")
     .replace(/\([^)]*\)/g, " ")
     .replace(/[…]+|\.{3}/g, ", ")
     .replace(/\s+[—–]\s+/g, ", ")
@@ -154,6 +156,66 @@ const setSpeaking = (on: boolean) => {
   speaking.now = on;
   speaking.listeners.forEach((l) => l());
 };
+/** Whether a patient or relative is speaking right now (phone voice or natural voice). */
+export const isSpeaking = () => speaking.now || (typeof window !== "undefined" && "speechSynthesis" in window && window.speechSynthesis.speaking);
+
+/* Natural voice (OpenAI text-to-speech, for Talk live): lines are fetched and played in order. */
+let natural = false;
+export const setNaturalVoice = (on: boolean) => {
+  natural = on;
+  if (!on) {
+    queue.length = 0;
+    player?.pause();
+    setSpeaking(false);
+  }
+};
+const queue: Promise<Blob | null>[] = [];
+let player: HTMLAudioElement | null = null;
+let playing = false;
+function moodOf(text: string, state: CaseState, role: "patient" | "attendant"): "calm" | "pain" | "scared" | "ill" | "better" {
+  const t = text.toLowerCase();
+  if (role === "patient" && (state.patientStatus === "critical" || state.patientStatus === "deteriorating")) return "ill";
+  if (/\b(please|help|jaldi|bachao|scared|dar lag)\b|!/.test(t)) return "scared";
+  if (/\b(pain|hurts?|dard|ouch|burning|jalan|can'?t breathe|saans)\b/.test(t)) return "pain";
+  if (/\b(better|relief|thank|aaram|behtar|shukriya)\b/.test(t)) return "better";
+  return "calm";
+}
+async function playNext() {
+  if (playing) return;
+  const next = queue.shift();
+  if (!next) return setSpeaking(false);
+  playing = true;
+  setSpeaking(true);
+  const blob = await next.catch(() => null);
+  if (!blob || !natural) {
+    playing = false;
+    return void playNext();
+  }
+  player ??= new Audio();
+  player.src = URL.createObjectURL(blob);
+  player.onended = player.onerror = () => {
+    playing = false;
+    void playNext();
+  };
+  void player.play().catch(() => {
+    playing = false;
+    void playNext();
+  });
+}
+function sayNatural(text: string, state: CaseState, role: "patient" | "attendant"): boolean {
+  const words = spoken(text);
+  if (!words) return true;
+  const sex = role === "patient" ? (state.patient.sex === "Female" ? "Female" : "Male") : attendantSex(state);
+  setSpeaking(true);
+  queue.push(
+    fetch("/api/cases/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: words, sex, age: role === "patient" ? state.patient.age : 40, country: state.country ?? "IN", mood: moodOf(text, state, role), hinglish: state.lang === "hinglish" }) })
+      .then((r) => (r.ok ? r.blob() : null))
+      .catch(() => null),
+  );
+  void playNext();
+  return true;
+}
+
 /** Whether a patient or relative is speaking right now — the voice button shows it. */
 export function useSpeaking(): boolean {
   return useSyncExternalStore(
@@ -167,6 +229,7 @@ export function useSpeaking(): boolean {
 }
 
 function say(text: string, state: CaseState, role: "patient" | "attendant") {
+  if (natural && sayNatural(text, state, role)) return;
   const words = spoken(text);
   if (!words) return;
   const sex: Sex = role === "patient" ? (state.patient.sex === "Female" ? "Female" : "Male") : attendantSex(state);

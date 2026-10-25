@@ -77,11 +77,12 @@ export function openAIConfig() {
 /** One call — tried again once, straight away, if the connection drops or OpenAI has a passing fault (5xx, 429). */
 /** How hard the model thinks: false = the lightest setting, true = low, "medium" = medium (measured: no more accurate than low for reading the doctor, and seconds slower). */
 type Effort = boolean | "medium";
-export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful: Effort = false, timeout?: number): Promise<unknown> {
+/** `fast`: OpenAI's priority tier — about twice as quick, for the replies the doctor waits on during a case. */
+export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful: Effort = false, timeout?: number, fast = false): Promise<unknown> {
   const limit = timeout ?? openAIConfig().timeoutMs;
   const started = Date.now();
   try {
-    return await chatJSONOnce(messages, maxTokens, careful, limit);
+    return await chatJSONOnce(messages, maxTokens, careful, limit, fast);
   } catch (err) {
     const passing = (err instanceof TypeError && /fetch failed|network|socket|ECONNRESET/i.test(`${err.message} ${String((err as { cause?: unknown }).cause ?? "")}`))
       || (err instanceof UpstreamError && err.status !== undefined && (err.status >= 500 || err.status === 429));
@@ -93,11 +94,11 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
     }
     console.warn(`[ramai] AI call failed in passing after ${Date.now() - started} ms (${cause?.code ?? cause?.message ?? (err instanceof Error ? err.message : String(err))}); trying once more`);
     await new Promise((r) => setTimeout(r, 800));
-    return chatJSONOnce(messages, maxTokens, careful, left - 800);
+    return chatJSONOnce(messages, maxTokens, careful, left - 800, fast);
   }
 }
 
-async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful: Effort, timeout: number): Promise<unknown> {
+async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful: Effort, timeout: number, fast = false): Promise<unknown> {
   const { key, model, baseUrl } = openAIConfig();
   const timeoutMs = timeout ?? openAIConfig().timeoutMs;
   const controller = new AbortController();
@@ -110,7 +111,7 @@ async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful:
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, response_format: { type: "json_object" }, max_completion_tokens: maxTokens, ...effort }),
+      body: JSON.stringify({ model, messages, response_format: { type: "json_object" }, max_completion_tokens: maxTokens, ...effort, ...(fast && process.env.RAMAI_FAST_TIER !== "0" ? { service_tier: "priority" } : {}) }),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -820,7 +821,7 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
   try {
     // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
     const guess = ruled.filter((i) => i.kind !== "unknown").map((i) => `${i.kind}${i.targetId ? `:${i.targetId}` : ""}${i.payload && Object.keys(i.payload).length ? ` ${JSON.stringify(i.payload)}` : ""}`).join("; ");
-    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx, guess), 2400, true, 25_000);
+    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx, guess), 2400, true, 25_000, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
     const { speaker } = parsed.data;
@@ -913,6 +914,7 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
       1200,
       false,
       12_000,
+      true,
     )) as { results?: { test?: string; rows?: { analyte?: string; value?: unknown; unit?: string; reference?: string; flag?: string }[]; report?: string }[] };
     const out: Record<string, string> = {};
     for (const g of unique) {
@@ -958,6 +960,7 @@ async function voice(text: string, ctx: InterpretContext, ruled: ResolvedIntent[
       700 + 250 * items.length,
       false,
       20_000,
+      true,
     );
     const parsed = VoiceSchema.safeParse(raw);
     if (!parsed.success || parsed.data.replies.length !== items.length) return { intents: ruled };

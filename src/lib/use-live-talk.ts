@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { setVoicesEnabled } from "./voices";
+import { isSpeaking, setNaturalVoice, setVoicesEnabled } from "./voices";
 
 type Rec = { lang: string; continuous: boolean; interimResults: boolean; onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null; onend: (() => void) | null; onerror: ((e: { error: string }) => void) | null; start: () => void; stop: () => void; abort: () => void };
 const Ctor = () => (typeof window === "undefined" ? undefined : ((window as unknown as { SpeechRecognition?: new () => Rec; webkitSpeechRecognition?: new () => Rec }).SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition?: new () => Rec }).webkitSpeechRecognition));
@@ -19,6 +19,7 @@ export function useLiveTalk(onSend: (text: string) => Promise<boolean> | void, b
   const rec = useRef<Rec | null>(null);
   const live = useRef(false);
   const timer = useRef<number | undefined>(undefined);
+  const quietSince = useRef(0);
   const busyRef = useRef(busy);
   busyRef.current = busy;
   const send = useRef(onSend);
@@ -30,8 +31,15 @@ export function useLiveTalk(onSend: (text: string) => Promise<boolean> | void, b
     const C = Ctor();
     if (!C || rec.current || !live.current) return;
     // Wait while a reply is coming or the patient is still talking.
-    if (busyRef.current || speechSynthesis.speaking) {
-      window.setTimeout(listen, 400);
+    if (busyRef.current || isSpeaking()) {
+      quietSince.current = 0;
+      window.setTimeout(listen, 300);
+      return;
+    }
+    // A moment of quiet after the patient stops, so the end of their voice isn't caught.
+    if (!quietSince.current) quietSince.current = Date.now();
+    if (Date.now() - quietSince.current < 700) {
+      window.setTimeout(listen, 200);
       return;
     }
     const r = new C();
@@ -40,6 +48,8 @@ export function useLiveTalk(onSend: (text: string) => Promise<boolean> | void, b
     r.interimResults = true;
     let text = "";
     r.onresult = (e) => {
+      // The patient's own voice coming out of the speaker is never taken as the doctor's words.
+      if (isSpeaking() || busyRef.current) return;
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i]!;
@@ -54,7 +64,8 @@ export function useLiveTalk(onSend: (text: string) => Promise<boolean> | void, b
           const said = text.trim();
           text = "";
           setHeard("");
-          r.stop();
+          r.abort();
+          rec.current = null;
           void send.current(said);
         }, 900);
       }
@@ -82,11 +93,13 @@ export function useLiveTalk(onSend: (text: string) => Promise<boolean> | void, b
       live.current = false;
       setOn(false);
       setHeard("");
+      setNaturalVoice(false);
       rec.current?.abort();
       rec.current = null;
       return;
     }
     setVoicesEnabled(true);
+    setNaturalVoice(true);
     live.current = true;
     setOn(true);
     listen();
