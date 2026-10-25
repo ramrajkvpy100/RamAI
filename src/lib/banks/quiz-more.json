@@ -857,6 +857,402 @@
    ],
    "source": "TOXBASE: Phenobarbital; EXTRIP Workgroup: Recommendations for the use of extracorporeal treatments in poisoning with barbiturates (2021)",
    "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "acetaminophen-overdose-39",
+   "stem": "A 24-year-old presents 10 hours after a deliberate acetaminophen overdose. The serum concentration is above the treatment line on the nomogram, and liver tests are currently normal.",
+   "right": "Intravenous N-acetylcysteine",
+   "explain": "N-acetylcysteine replenishes **glutathione** and is indicated when the concentration is above the treatment line; give it even if liver tests are initially normal.",
+   "wrong": [
+    [
+     "Intravenous sodium bicarbonate",
+     "Used for selected sodium-channel-blocker toxicity, not acetaminophen poisoning."
+    ],
+    [
+     "Fomepizole",
+     "Used for toxic alcohol poisoning, not as the standard antidote here."
+    ],
+    [
+     "Deferoxamine",
+     "Used for severe iron poisoning."
+    ]
+   ],
+   "source": "NICE Clinical Guideline CG145, Self-harm: longer-term management (acetylcysteine for paracetamol poisoning); MHRA acetylcysteine guidance",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "tca-wide-complex-40",
+   "stem": "A patient who overdosed on amitriptyline is hypotensive and has a broad-complex tachycardia with a QRS duration of 160 ms.",
+   "right": "Intravenous sodium bicarbonate",
+   "explain": "Sodium bicarbonate treats **cardiac sodium-channel blockade**, narrowing the QRS and improving hypotension in tricyclic antidepressant toxicity.",
+   "wrong": [
+    [
+     "Intravenous calcium gluconate",
+     "Used for calcium-channel-blocker toxicity or hyperkalaemia, not TCA-induced QRS widening."
+    ],
+    [
+     "Intravenous magnesium sulfate",
+     "Used for torsades de pointes, not the primary treatment for this toxicity."
+    ],
+    [
+     "Flumazenil",
+     "Can precipitate seizures in TCA overdose and is not indicated."
+    ]
+   ],
+   "source": "AHA Focused Update on the Management of Patients With Cardiac Arrest or Life-Threatening Toxicity Due to Poisoning, 2023",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "opioid-overdose-41",
+   "stem": "A patient is found unresponsive with slow, shallow respirations, pinpoint pupils and a history of injecting heroin. Bag-mask ventilation is started.",
+   "right": "Naloxone",
+   "explain": "Naloxone reverses opioid-induced respiratory depression; **support ventilation first** and repeat or infuse naloxone if respiratory depression recurs.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "Reverses benzodiazepines, not opioids."
+    ],
+    [
+     "N-acetylcysteine",
+     "Treats acetaminophen poisoning."
+    ],
+    [
+     "Atropine",
+     "Treats symptomatic bradycardia or cholinergic toxicity, not opioid respiratory depression."
+    ]
+   ],
+   "source": "American Heart Association Guidelines for CPR and Emergency Cardiovascular Care, 2020; WHO, Community Management of Opioid Overdose, 2014",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "warfarin-intracranial-bleed-42",
+   "stem": "A patient taking warfarin presents with an intracerebral haemorrhage and an INR of 6.2. Rapid reversal is required.",
+   "right": "Four-factor prothrombin complex concentrate plus intravenous vitamin K",
+   "explain": "Four-factor PCC rapidly replaces vitamin K-dependent clotting factors; **intravenous vitamin K** sustains reversal as the infused factors are cleared.",
+   "wrong": [
+    [
+     "Fresh frozen plasma alone",
+     "Reverses warfarin more slowly and requires a larger infusion volume than PCC."
+    ],
+    [
+     "Protamine sulfate",
+     "Reverses unfractionated heparin, not warfarin."
+    ],
+    [
+     "Idarucizumab",
+     "Reverses dabigatran, not warfarin."
+    ]
+   ],
+   "source": "NICE NG24, Blood transfusion; ACC Expert Consensus Decision Pathway on Management of Bleeding in Patients on Oral Anticoagulants, 2020",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "dabigatran-major-bleed-43",
+   "stem": "A patient taking dabigatran develops a life-threatening gastrointestinal bleed; the last dose was taken two hours ago and renal function is impaired.",
+   "right": "Idarucizumab",
+   "explain": "Idarucizumab is a specific monoclonal antibody fragment that binds and reverses **dabigatran** rapidly.",
+   "wrong": [
+    [
+     "Andexanet alfa",
+     "Reverses factor Xa inhibitors, not dabigatran."
+    ],
+    [
+     "Vitamin K",
+     "Reverses vitamin K antagonists such as warfarin."
+    ],
+    [
+     "Protamine sulfate",
+     "Reverses unfractionated heparin, not dabigatran."
+    ]
+   ],
+   "source": "European Heart Rhythm Association Practical Guide on the Use of Non-Vitamin K Antagonist Oral Anticoagulants, 2021",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "sulfonylurea-hypoglycaemia-44",
+   "stem": "A patient with type 2 diabetes who accidentally took excess glibenclamide has recurrent severe hypoglycaemia despite intravenous dextrose.",
+   "right": "Octreotide",
+   "explain": "Octreotide suppresses pancreatic insulin release and prevents **recurrent sulfonylurea-induced hypoglycaemia** after initial correction with dextrose.",
+   "wrong": [
+    [
+     "Glucagon as repeated monotherapy",
+     "May raise glucose briefly but can stimulate further insulin release and does not reliably prevent recurrence."
+    ],
+    [
+     "Intravenous insulin",
+     "Would worsen hypoglycaemia."
+    ],
+    [
+     "Naloxone",
+     "Reverses opioid toxicity, not sulfonylurea-induced hypoglycaemia."
+    ]
+   ],
+   "source": "AACT/EAPCCT Position Paper: Octreotide for sulfonylurea-induced hypoglycemia, Clinical Toxicology, 2013",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "severe-iron-overdose-45",
+   "stem": "A child presents after ingesting iron tablets, with persistent vomiting, hypotension, metabolic acidosis and a markedly elevated serum iron concentration.",
+   "right": "Intravenous deferoxamine",
+   "explain": "Deferoxamine chelates circulating iron and is indicated in **severe systemic iron poisoning**, particularly with shock or metabolic acidosis.",
+   "wrong": [
+    [
+     "Dimercaprol",
+     "Used for selected heavy-metal poisonings, not iron toxicity."
+    ],
+    [
+     "Succimer",
+     "Used for lead poisoning, not severe iron poisoning."
+    ],
+    [
+     "N-acetylcysteine",
+     "Used for acetaminophen poisoning."
+    ]
+   ],
+   "source": "Royal Children’s Hospital Melbourne Clinical Practice Guideline: Iron poisoning",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "beta-blocker-overdose-46",
+   "stem": "A patient presents after a propranolol overdose with profound hypotension, bradycardia and depressed myocardial contractility despite initial resuscitation.",
+   "right": "High-dose insulin euglycaemia therapy",
+   "explain": "High-dose insulin improves myocardial energy use and contractility in severe beta-blocker poisoning; monitor **glucose and potassium** closely.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "Reverses benzodiazepines, not beta-blockers."
+    ],
+    [
+     "Atropine alone",
+     "May be tried for bradycardia but is often inadequate in severe beta-blocker poisoning."
+    ],
+    [
+     "Vitamin K",
+     "Reverses warfarin, not beta-blockers."
+    ]
+   ],
+   "source": "AHA Focused Update on the Management of Patients With Cardiac Arrest or Life-Threatening Toxicity Due to Poisoning, 2023",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "digoxin-antibody-fragments-47",
+   "stem": "A 72-year-old taking digoxin presents with vomiting, bradycardia and hypotension after an accidental overdose. ECG shows a regular wide-complex tachycardia, and serum potassium is 6.8 mmol/L.",
+   "right": "Digoxin-specific antibody fragments (digoxin immune Fab)",
+   "explain": "Life-threatening dysrhythmia, **haemodynamic instability** and hyperkalaemia are indications for digoxin immune Fab.",
+   "wrong": [
+    [
+     "Atropine alone",
+     "May temporarily improve bradycardia but does not neutralise digoxin or treat the underlying toxicity."
+    ],
+    [
+     "Intravenous calcium gluconate",
+     "Does not reverse digoxin toxicity; Fab is the specific treatment in this presentation."
+    ],
+    [
+     "Sodium bicarbonate",
+     "Is not the antidote for digoxin-induced dysrhythmia or hyperkalaemia."
+    ]
+   ],
+   "source": "AHA Scientific Statement: Management of Digoxin Toxicity, 2023",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "lithium-haemodialysis-48",
+   "stem": "A patient taking lithium presents with confusion, coarse tremor and ataxia after several days of vomiting and diarrhoea. The serum lithium concentration is markedly elevated and renal function is impaired.",
+   "right": "Haemodialysis",
+   "explain": "Severe neurological toxicity with impaired renal clearance warrants **extracorporeal treatment**, usually intermittent haemodialysis, to accelerate lithium removal.",
+   "wrong": [
+    [
+     "Urinary alkalinisation with sodium bicarbonate",
+     "Does not reliably enhance lithium elimination and is not the recommended extracorporeal treatment."
+    ],
+    [
+     "Flumazenil",
+     "Reverses benzodiazepines, not lithium toxicity."
+    ],
+    [
+     "N-acetylcysteine",
+     "Is used for acetaminophen poisoning, not lithium toxicity."
+    ]
+   ],
+   "source": "EXTRIP Workgroup: Recommendations for the management of lithium poisoning, 2015",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "salicylate-alkalinisation-49",
+   "stem": "A patient presents after taking a large quantity of aspirin, with tinnitus, tachypnoea and a mixed respiratory alkalosis and metabolic acidosis. The salicylate concentration is elevated.",
+   "right": "Intravenous sodium bicarbonate to alkalinise serum and urine",
+   "explain": "Bicarbonate-driven **urine alkalinisation** increases salicylate excretion; monitor potassium and urine pH closely.",
+   "wrong": [
+    [
+     "Acidify the urine with ammonium chloride",
+     "Urine acidification increases salicylate reabsorption and worsens toxicity."
+    ],
+    [
+     "Give activated charcoal as the sole treatment",
+     "Charcoal may reduce absorption in selected patients but does not replace alkalinisation in significant poisoning."
+    ],
+    [
+     "Administer flumazenil",
+     "This is not an antidote for salicylate poisoning."
+    ]
+   ],
+   "source": "American College of Medical Toxicology: Guidance Document—Management Priorities in Salicylate Toxicity, 2015",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "isoniazid-pyridoxine-50",
+   "stem": "A patient is brought in after ingesting a large quantity of isoniazid and develops recurrent seizures despite benzodiazepines, with severe metabolic acidosis. The amount ingested is known.",
+   "right": "Intravenous pyridoxine, gram-for-gram with the isoniazid ingested",
+   "explain": "Isoniazid depletes functional pyridoxine and impairs GABA synthesis; **pyridoxine is the specific antidote** for seizures and toxicity.",
+   "wrong": [
+    [
+     "Intravenous naloxone",
+     "Reverses opioid toxicity, not isoniazid-induced seizures."
+    ],
+    [
+     "Intravenous folinic acid",
+     "Is used for methotrexate toxicity, not isoniazid poisoning."
+    ],
+    [
+     "Intravenous sodium bicarbonate alone",
+     "May address severe acidaemia but does not replace pyridoxine antidote therapy."
+    ]
+   ],
+   "source": "TOXBASE: Isoniazid poisoning",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "calcium-channel-blocker-insuli-51",
+   "stem": "A patient with a suspected verapamil overdose is profoundly hypotensive and bradycardic, with hyperglycaemia despite initial intravenous calcium. The patient is in intensive care.",
+   "right": "High-dose insulin euglycaemia therapy",
+   "explain": "High-dose insulin with dextrose and close glucose and potassium monitoring is a key treatment for severe **calcium-channel-blocker cardiotoxicity**.",
+   "wrong": [
+    [
+     "Glucagon alone",
+     "Has a more established role in beta-blocker toxicity and is not preferred as sole treatment here."
+    ],
+    [
+     "Digoxin-specific antibody fragments",
+     "Treat digoxin toxicity, not verapamil overdose."
+    ],
+    [
+     "Intravenous lipid emulsion as first-line therapy",
+     "Is generally reserved for selected refractory cases, not the principal initial antidotal treatment."
+    ]
+   ],
+   "source": "AHA Focused Update on the Management of Patients With Cardiac Arrest or Life-Threatening Toxicity Due to Poisoning, 2023",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "valproate-carnitine-52",
+   "stem": "A patient presents after a large valproate overdose with depressed consciousness, hyperammonaemia and rising liver enzymes. The valproate concentration is markedly elevated.",
+   "right": "Intravenous L-carnitine",
+   "explain": "L-carnitine is used for significant valproate toxicity, particularly with **hyperammonaemia, hepatotoxicity or impaired consciousness**.",
+   "wrong": [
+    [
+     "Pyridoxine",
+     "Is the specific antidote for isoniazid-induced seizures, not valproate toxicity."
+    ],
+    [
+     "N-acetylcysteine as the sole specific antidote",
+     "Is the antidote for acetaminophen poisoning; it does not specifically reverse valproate toxicity."
+    ],
+    [
+     "Atropine",
+     "Treats muscarinic effects of cholinergic poisoning, not valproate overdose."
+    ]
+   ],
+   "source": "TOXBASE: Valproate poisoning",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "methotrexate-leucovorin-53",
+   "stem": "A patient accidentally takes a large dose of methotrexate daily instead of weekly and presents with mucositis and pancytopenia. The methotrexate concentration is detectable and toxicity is suspected.",
+   "right": "Leucovorin (folinic acid) rescue",
+   "explain": "Leucovorin bypasses methotrexate’s inhibition of folate metabolism and limits toxicity; give **prompt rescue therapy** with specialist guidance.",
+   "wrong": [
+    [
+     "Pyridoxine",
+     "Does not reverse methotrexate toxicity."
+    ],
+    [
+     "Digoxin-specific antibody fragments",
+     "Are specific to digoxin poisoning."
+    ],
+    [
+     "Protamine sulfate",
+     "Reverses heparin, not methotrexate."
+    ]
+   ],
+   "source": "BNF: Methotrexate—management of toxicity; eviQ: Methotrexate overdose management",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "apixaban-andexanet-54",
+   "stem": "A patient taking apixaban presents with an intracranial haemorrhage and neurological deterioration. The last dose was taken a few hours ago.",
+   "right": "Andexanet alfa",
+   "explain": "For life-threatening or uncontrolled bleeding from apixaban, andexanet alfa is a specific reversal agent; use **urgent reversal** alongside supportive haemostatic care.",
+   "wrong": [
+    [
+     "Vitamin K",
+     "Reverses vitamin K antagonists such as warfarin, not apixaban."
+    ],
+    [
+     "Idarucizumab",
+     "Specifically reverses dabigatran, not apixaban."
+    ],
+    [
+     "Protamine sulfate",
+     "Reverses unfractionated heparin, not apixaban."
+    ]
+   ],
+   "source": "NICE TA697: Andexanet alfa for reversing anticoagulation from apixaban or rivaroxaban, 2021",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "heparin-protamine-55",
+   "stem": "A patient receiving an unfractionated heparin infusion develops major bleeding. The activated partial thromboplastin time is markedly prolonged and the infusion was stopped moments ago.",
+   "right": "Protamine sulfate",
+   "explain": "Protamine binds and neutralises unfractionated heparin; dose according to the **amount of heparin recently administered**.",
+   "wrong": [
+    [
+     "Vitamin K",
+     "Reverses warfarin, not heparin."
+    ],
+    [
+     "Idarucizumab",
+     "Reverses dabigatran, not heparin."
+    ],
+    [
+     "Andexanet alfa",
+     "Reverses apixaban or rivaroxaban, not heparin."
+    ]
+   ],
+   "source": "BNF: Heparin—overdose and bleeding management",
+   "cat": "Poisons & chemicals"
+  },
+  {
+   "id": "hydrofluoric-acid-calcium-56",
+   "stem": "A laboratory worker splashes concentrated hydrofluoric acid onto a finger and develops severe deep pain with pallor despite prompt irrigation. The skin shows only a small area of erythema.",
+   "right": "Topical calcium gluconate gel",
+   "explain": "Hydrofluoric acid exposure requires decontamination followed by **calcium therapy** to bind fluoride; escalate route and monitoring according to severity.",
+   "wrong": [
+    [
+     "Sodium bicarbonate gel",
+     "Does not bind fluoride or treat the systemic effects of hydrofluoric acid."
+    ],
+    [
+     "Silver sulfadiazine cream",
+     "Is not the specific treatment for fluoride exposure."
+    ],
+    [
+     "Topical lidocaine alone",
+     "May reduce pain but does not neutralise fluoride or prevent tissue injury."
+    ]
+   ],
+   "source": "ATSDR Medical Management Guidelines: Hydrogen Fluoride",
+   "cat": "Poisons & chemicals"
   }
  ],
  "algorithms": []

@@ -881,5 +881,291 @@
   ],
   "describe": "A cream-coloured lump straddles the border between the clear cornea and the white of the eye.",
   "subject": "Eye"
+ },
+ {
+  "id": "cx-preseptal-cellulitis-80",
+  "label": "Preseptal cellulitis",
+  "key": "Look for **redness and swelling of one eyelid**, with the eye itself usually not pushed forward.",
+  "search": [
+   "preseptal cellulitis Wikimedia Commons",
+   "eyelid cellulitis Wikimedia Commons"
+  ],
+  "describe": "A swollen, red eyelid surrounds an eye that remains in its usual position.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-chemosis-81",
+  "label": "Conjunctival chemosis",
+  "key": "The conjunctiva appears as **soft, balloon-like swelling**, often bulging around the edge of the cornea.",
+  "search": [
+   "conjunctival chemosis Wikimedia Commons",
+   "chemosis eye Wikimedia Commons"
+  ],
+  "describe": "Clear or pink, fluid-filled conjunctiva protrudes around the eyeball.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-proptosis-82",
+  "label": "Proptosis",
+  "key": "Recognise an eye that **protrudes forward compared with the other eye or the surrounding orbital structures**; the eyelids may be unable to close fully.",
+  "search": [
+   "proptosis eye Wikimedia Commons",
+   "unilateral proptosis Wikimedia Commons"
+  ],
+  "describe": "One or both eyeballs project forward compared with the surrounding orbital structures.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-dermatochalasis-83",
+  "label": "Dermatochalasis",
+  "key": "Look for **loose, excess upper-eyelid skin** that hangs over the lid crease and may partly obscure the eye.",
+  "search": [
+   "dermatochalasis Wikimedia Commons",
+   "upper eyelid dermatochalasis Wikimedia Commons"
+  ],
+  "describe": "Redundant folds of upper-eyelid skin drape over the eyelid.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-eyelid-basal-cell-carcinoma-84",
+  "label": "Eyelid basal cell carcinoma",
+  "key": "A **pearly or shiny eyelid nodule with a rolled edge**, visible fine blood vessels, or loss of nearby eyelashes is suspicious.",
+  "search": [
+   "eyelid basal cell carcinoma Wikimedia Commons",
+   "basal cell carcinoma eyelid rolled edge"
+  ],
+  "describe": "A pearly nodule or ulcer sits on the eyelid, often near the lower lid or inner corner.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-eyelid-papilloma-85",
+  "label": "Eyelid papilloma",
+  "key": "Identify a **small, raised, skin-coloured or pigmented growth** on the eyelid, sometimes with a frond-like surface.",
+  "search": [
+   "eyelid papilloma Wikimedia Commons",
+   "eyelid squamous papilloma Wikimedia Commons"
+  ],
+  "describe": "A discrete, soft-looking growth projects from the eyelid skin or margin.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-corneal-foreign-body-86",
+  "label": "Corneal foreign body",
+  "key": "Look for a **tiny speck on the corneal surface**, sometimes surrounded by a local white ring or redness.",
+  "search": [
+   "corneal foreign body Wikimedia Commons",
+   "metallic corneal foreign body Wikimedia Commons"
+  ],
+  "describe": "A small dark or metallic particle is visibly lodged on the cornea.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-phthisis-bulbi-87",
+  "label": "Phthisis bulbi",
+  "key": "The affected eye is **shrunken and disorganised**, often with an irregular pupil or cloudy surface.",
+  "search": [
+   "phthisis bulbi Wikimedia Commons",
+   "shrunken eye phthisis bulbi Wikimedia Commons"
+  ],
+  "describe": "A markedly small, misshapen eye contrasts with the normal fellow eye.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-anisocoria-88",
+  "label": "Anisocoria",
+  "key": "Compare the pupils: **one is visibly larger than the other** under the same lighting conditions.",
+  "search": [
+   "anisocoria Wikimedia Commons",
+   "unequal pupils eye Wikimedia Commons"
+  ],
+  "describe": "The two pupils are clearly different in diameter.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-ocular-surface-squamous-neopla-89",
+  "label": "Ocular surface squamous neoplasia",
+  "key": "Look for a **raised, gelatinous or irregular white-red lesion** at the limbus, the boundary between cornea and sclera.",
+  "search": [
+   "ocular surface squamous neoplasia Wikimedia Commons",
+   "conjunctival squamous neoplasia limbus Wikimedia Commons"
+  ],
+  "describe": "A fleshy, irregular lesion extends across the conjunctiva near the corneal edge.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-conjunctival-cyst-90",
+  "label": "Conjunctival cyst",
+  "key": "Recognise a **smooth, translucent, fluid-filled bubble** on the conjunctiva, distinct from diffuse swelling.",
+  "search": [
+   "conjunctival cyst Wikimedia Commons",
+   "conjunctival inclusion cyst eye Wikimedia Commons"
+  ],
+  "describe": "A clear, rounded bubble sits on the white of the eye or inside the eyelid.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-herpes-labialis-91",
+  "label": "Herpes labialis",
+  "key": "Grouped **painful blisters and crusts** at the lip border are characteristic.",
+  "search": [
+   "Wikimedia herpes labialis",
+   "Wikimedia cold sore lip"
+  ],
+  "describe": "A cluster of small blisters or crusted sores appears on the lip border.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-oral-lichen-planus-92",
+  "label": "Oral lichen planus",
+  "key": "Fine white **lacy lines (Wickham striae)** on the inner cheek are a classic clue.",
+  "search": [
+   "Wikimedia oral lichen planus",
+   "Wikimedia Wickham striae mouth"
+  ],
+  "describe": "Lacy white lines form a network on the inner cheek, sometimes with red or ulcerated areas.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-oral-erythroplakia-93",
+  "label": "Oral erythroplakia",
+  "key": "A persistent, sharply defined **velvety red patch** on the oral mucosa is the key appearance.",
+  "search": [
+   "Wikimedia oral erythroplakia",
+   "Wikimedia red patch mouth"
+  ],
+  "describe": "A distinct red patch is visible on the tongue, floor of the mouth, or inner cheek.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-oral-squamous-cell-carcinoma-94",
+  "label": "Oral squamous cell carcinoma",
+  "key": "A persistent, non-healing ulcer or irregular oral mass is a concerning visual feature; it may have a rolled or irregular edge.",
+  "search": [
+   "Wikimedia oral squamous cell carcinoma",
+   "Wikimedia tongue cancer"
+  ],
+  "describe": "An irregular ulcer or growth is seen on the tongue or another part of the mouth.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-oral-mucocele-95",
+  "label": "Oral mucocele",
+  "key": "A smooth, dome-shaped **bluish or translucent swelling**, often on the lower lip, is typical.",
+  "search": [
+   "Wikimedia oral mucocele",
+   "Wikimedia lower lip mucocele"
+  ],
+  "describe": "A soft-looking, rounded blue or clear bump sits on the inner lower lip.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-ranula-96",
+  "label": "Ranula",
+  "key": "A **bluish, fluctuant swelling** in the floor of the mouth is the characteristic finding.",
+  "search": [
+   "Wikimedia ranula mouth",
+   "Wikimedia floor mouth ranula"
+  ],
+  "describe": "A smooth, often blue-tinged swelling bulges beneath the tongue.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-median-rhomboid-glossitis-97",
+  "label": "Median rhomboid glossitis",
+  "key": "A smooth, red, **midline patch on the back of the tongue** is the key feature.",
+  "search": [
+   "Wikimedia median rhomboid glossitis",
+   "Wikimedia red tongue patch midline"
+  ],
+  "describe": "A well-defined red, smooth area is visible in the middle of the posterior tongue.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-black-hairy-tongue-98",
+  "label": "Black hairy tongue",
+  "key": "Elongated papillae create a **dark, hair-like coating** on the upper surface of the tongue.",
+  "search": [
+   "Wikimedia black hairy tongue",
+   "Wikimedia lingua villosa nigra"
+  ],
+  "describe": "The tongue dorsum has a dark coating with a furry or hairy appearance.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-oral-fibroma-99",
+  "label": "Oral irritation fibroma",
+  "key": "A smooth, firm-looking **mucosa-coloured nodule** is a typical appearance.",
+  "search": [
+   "Wikimedia oral fibroma",
+   "Wikimedia irritation fibroma mouth"
+  ],
+  "describe": "A round, smooth, pink-coloured lump is visible, often along the inner cheek or lip.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-gingival-pyogenic-granuloma-100",
+  "label": "Gingival pyogenic granuloma",
+  "key": "A bright red, friable, often lobulated growth on the gum is characteristic.",
+  "search": [
+   "Wikimedia gingival pyogenic granuloma",
+   "Wikimedia gum pyogenic granuloma"
+  ],
+  "describe": "A red, lobulated gum growth protrudes between or beside the teeth.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-dental-caries-101",
+  "label": "Dental caries",
+  "key": "Visible **cavitations or darkened defects** in the tooth surface are typical clues.",
+  "search": [
+   "Wikimedia dental caries",
+   "Wikimedia tooth decay"
+  ],
+  "describe": "One or more teeth show brown or black areas, pits, or obvious cavities.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-dental-fluorosis-102",
+  "label": "Dental fluorosis",
+  "key": "Diffuse **white flecks or mottling** across multiple teeth are a characteristic pattern.",
+  "search": [
+   "Wikimedia dental fluorosis",
+   "Wikimedia fluorosis teeth"
+  ],
+  "describe": "Several teeth show symmetrical white streaks or mottled enamel.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-nasal-polyps-103",
+  "label": "Nasal polyps",
+  "key": "Smooth, pale, **grape-like masses** visible in the nasal passage suggest nasal polyps.",
+  "search": [
+   "Wikimedia nasal polyps",
+   "Wikimedia nasal polyp examination"
+  ],
+  "describe": "Pale, smooth masses are seen within one or both nostrils during examination.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-deviated-nasal-septum-104",
+  "label": "Deviated nasal septum",
+  "key": "A visibly **off-centre septum** narrowing one nasal passage is the key finding.",
+  "search": [
+   "Wikimedia deviated nasal septum",
+   "Wikimedia nasal septum deviation"
+  ],
+  "describe": "The septum is visibly displaced to one side when the nostrils are examined.",
+  "subject": "ENT & mouth"
+ },
+ {
+  "id": "cx-rhinophyma-105",
+  "label": "Rhinophyma",
+  "key": "A **bulbous, thickened nose with enlarged pores** is characteristic.",
+  "search": [
+   "Wikimedia rhinophyma",
+   "Wikimedia rhinophyma nose"
+  ],
+  "describe": "The nose appears enlarged and irregular, with thickened skin and prominent pores.",
+  "subject": "ENT & mouth"
  }
 ]

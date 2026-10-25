@@ -15,7 +15,7 @@ import { ALGORITHM_COUNT, ALGORITHM_IDS, ANTIDOTE_COUNT, ANTIDOTE_IDS, CALCULATI
 import { PracticeDrill } from "./practice-drill";
 import { QuizDrill } from "./quiz-drill";
 import { SkillBar } from "./progress-bar";
-import { HEART, LUNGS, SoundsDrill } from "./sounds-drill";
+import { HEART_CASES, LUNG_CASES, SoundsDrill } from "./sounds-drill";
 
 type Section = "spot" | "radiology" | "sounds" | "antidotes" | "algorithms" | "calculations";
 
@@ -78,7 +78,7 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
   const bar = (id: Section): [number, number] => {
     if (id === "spot") return [progress("spot:").mastered, MODALITY_IDS.reduce((n, m) => n + MODALITIES[m].items.length, 0)];
     if (id === "radiology") { const r = progress("radio:"); return [r.mastered, Math.max(r.tried, 40)]; }
-    if (id === "sounds") return [progress("sound:").mastered, HEART.length + LUNGS.length];
+    if (id === "sounds") return [progress("sound:").mastered, HEART_CASES.length + LUNG_CASES.length];
     if (id === "antidotes") return [progress("quiz:antidote-").mastered, ANTIDOTE_COUNT];
     if (id === "algorithms") return [progress("quiz:algo-").mastered, ALGORITHM_COUNT];
     return [progress("quiz:calc-").mastered, CALCULATION_COUNT];

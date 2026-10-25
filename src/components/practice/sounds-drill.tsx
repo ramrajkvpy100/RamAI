@@ -42,23 +42,34 @@ export const LUNGS: SoundItem[] = [
 
 const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 
+/**
+ * Each sound heard in different patients: the same finding at different heart or breathing rates, as it varies at
+ * the bedside — 50 heart and 56 breath sound cases. (The answer is the finding, whatever the rate.)
+ */
+const HEART_RATES = [0.7, 0.85, 1, 1.2, 1.4];
+const LUNG_RATES = [0.7, 0.8, 0.9, 1, 1.15, 1.3, 1.5];
+const vary = (xs: SoundItem[], rates: number[]): (SoundItem & { base: string })[] =>
+  xs.flatMap((x) => rates.map((r, n) => ({ ...x, base: x.id, id: `${x.id}@${n}`, sound: { ...x.sound, rate: Math.round(x.sound.rate * r) } as Auscultation })));
+export const HEART_CASES = vary(HEART, HEART_RATES);
+export const LUNG_CASES = vary(LUNGS, LUNG_RATES);
+
 /** Listen (headphones help), name the sound, see why — ten at a time. */
 /** Harder to tell apart — residents and specialists only. */
 const ADVANCED = new Set(["ar", "ms", "s4", "rub", "pleural-rub", "coarse"]);
 
 export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
-  const keep = (xs: SoundItem[]) => (level === "basic" ? xs.filter((x) => !ADVANCED.has(x.id)) : xs);
+  const keep = <T extends SoundItem & { base?: string }>(xs: T[]) => (level === "basic" ? xs.filter((x) => !ADVANCED.has(x.base ?? x.id)) : xs);
   const [kind, setKind] = useState<"heart" | "lungs">("heart");
-  const [order, setOrder] = useState<SoundItem[] | null>(null);
+  const [order, setOrder] = useState<(SoundItem & { base: string })[] | null>(null);
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [score, setScore] = useState(0);
-  const [wrong, setWrong] = useState<SoundItem[]>([]);
+  const [wrong, setWrong] = useState<(SoundItem & { base: string })[]>([]);
   const audio = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    setOrder(shuffle(keep(kind === "heart" ? HEART : LUNGS)));
+    setOrder(shuffle(keep(kind === "heart" ? HEART_CASES : LUNG_CASES)).slice(0, 10));
     setI(0);
     setPicked(null);
     setScore(0);
@@ -66,7 +77,9 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
 
   const item = order?.[i];
   const pool = keep(kind === "heart" ? HEART : LUNGS);
-  const options = useMemo(() => (item ? shuffle([item, ...shuffle(pool.filter((p) => p.id !== item.id)).slice(0, 3)]) : []), [item, pool]);
+  const cases = keep(kind === "heart" ? HEART_CASES : LUNG_CASES);
+  // Four findings to choose from: this one and three others (the answer is the finding).
+  const options = useMemo(() => (item ? shuffle([pool.find((p) => p.id === item.base)!, ...shuffle(pool.filter((p) => p.id !== item.base)).slice(0, 3)]) : []), [item, pool]);
   // The sound itself, made on this device the first time it's played.
   const url = useMemo(() => {
     if (!item) return null;
@@ -91,12 +104,12 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
           <div className="text-[44px] font-bold tabular">{score}/{order.length}</div>
           <div className="flex flex-wrap justify-center gap-2">
             {wrong.length > 0 && <button type="button" onClick={() => { setOrder(wrong); setWrong([]); setI(0); setScore(0); setPicked(null); }} className="h-11 rounded-full bg-accent px-6 text-[14px] font-semibold text-on-accent">↻ Replay the {wrong.length} wrong</button>}
-            <button type="button" onClick={() => { setOrder(shuffle(pool)); setWrong([]); setI(0); setScore(0); setPicked(null); }} className={cn("h-11 rounded-full px-6 text-[14px] font-semibold", wrong.length ? "bg-surface-3" : "bg-accent text-on-accent")}>Again</button>
+            <button type="button" onClick={() => { setOrder(shuffle(cases).slice(0, 10)); setWrong([]); setI(0); setScore(0); setPicked(null); }} className={cn("h-11 rounded-full px-6 text-[14px] font-semibold", wrong.length ? "bg-surface-3" : "bg-accent text-on-accent")}>Again</button>
           </div>
         </div>
       ) : (
         <article className="card flex flex-col gap-4 p-5">
-          <div className="text-[12px] text-fg-3 tabular">Sound {i + 1} of {order.length} · headphones help</div>
+          <div className="text-[12px] text-fg-3 tabular">Sound {i + 1} of {order.length} · {item.sound.kind === "heart" ? `heart rate ${item.sound.rate}` : `breathing ${item.sound.rate}/min`} · headphones help</div>
           <button type="button" onClick={() => (audio.current?.paused ? void audio.current.play() : audio.current?.pause())} aria-label={playing ? "Pause the sound" : "Play the sound"} className="mx-auto flex flex-col items-center gap-1">
             <OrganPicture sound={item.sound} playing={playing} />
             <span className="text-[12.5px] font-medium text-fg-2">{playing ? "Listening… tap to pause" : "▶ Tap to listen"}</span>
@@ -104,7 +117,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
           {url && <audio ref={audio} src={url} controls controlsList="nodownload noplaybackrate noremoteplayback" onContextMenu={(e) => e.preventDefault()} loop className="w-full" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />}
           <div className="grid gap-2">
             {options.map((o, n) => {
-              const right = o.id === item.id;
+              const right = o.id === item.base;
               const state = picked === null ? "idle" : right ? "right" : n === picked ? "wrong" : "other";
               return (
                 <button key={o.id} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (item) recordSkill(`sound:${item.id}`, right); if (right) setScore((s) => s + 1); else if (item) setWrong((w) => [...w, item]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
@@ -120,7 +133,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
               {options[picked]?.id !== item.id && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {options[picked]?.label}?</b> {options[picked]?.key}</p>}
               <p className="mt-2 text-[11.5px] text-fg-3">A teaching simulation of the sound, made by RamAI&apos;s stethoscope engine — real recordings vary. Source for the findings: Macleod&apos;s Clinical Examination.</p>
               <div className="mt-3 flex items-center justify-between gap-2">
-                <ReportProblem compact target={{ area: "skills", ref: `Heart & breath sounds · ${item.label}`, details: `Sound: ${item.label}\nOptions: ${options.map((o) => `${o.id === item.id ? "✓ " : ""}${o.label}`).join(" | ")}\nKey: ${item.key}` }} />
+                <ReportProblem compact target={{ area: "skills", ref: `Heart & breath sounds · ${item.label}`, details: `Sound: ${item.label}\nOptions: ${options.map((o) => `${o.id === item.base ? "✓ " : ""}${o.label}`).join(" | ")}\nKey: ${item.key}` }} />
                 <button type="button" onClick={() => { audio.current?.pause(); setPlaying(false); setPicked(null); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < order.length ? "Next" : "See your score"}</button>
               </div>
             </section>
