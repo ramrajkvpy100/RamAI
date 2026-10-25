@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Kbd } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import type { Country } from "@/engine/countries";
 import { menusFor, QUICK_ACTIONS } from "@/lib/tool-menus";
@@ -130,14 +129,6 @@ export function Composer({
   const active = QUICK_ACTIONS.find((a) => a.id === menu && (a.id !== "monitoring" || !!monitorAction));
   const categories = active ? menusFor(country).filter((c) => active.categories.includes(c.id)) : [];
 
-  // Quiet for a minute and a half: a hint is offered (never given unasked).
-  const [idle, setIdle] = useState(false);
-  useEffect(() => {
-    setIdle(false);
-    if (disabled) return;
-    const t = window.setTimeout(() => setIdle(true), 90_000);
-    return () => window.clearTimeout(t);
-  }, [draft, sending, disabled]);
 
   return (
     <div className="relative" ref={menuRef}>
@@ -156,18 +147,6 @@ export function Composer({
             )}
           </div>
         </div>
-      )}
-      {idle && !expert.on && !draft && !sending && !disabled && (
-        <button
-          type="button"
-          onClick={() => {
-            setIdle(false);
-            void onSend("Hint");
-          }}
-          className="absolute -top-11 left-1/2 z-10 flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50 px-4 text-[13px] font-semibold text-amber-800 shadow-md animate-enter dark:border-amber-400/30 dark:bg-[#2a2210] dark:text-amber-200"
-        >
-          👩‍⚕️ Stuck? Ask your senior
-        </button>
       )}
       {active && (
         <div className="popover absolute right-0 bottom-full left-0 z-20 mb-2 animate-enter rounded-2xl p-3.5" role="dialog" aria-label={`${active.label} shortcuts`}>
@@ -195,23 +174,41 @@ export function Composer({
         </div>
       )}
 
+      {/* The three things most needed, big and plain. */}
+      {!phone && (
+        <div className="mb-2 grid grid-cols-3 gap-2">
+          {!expert.on && (
+            <button type="button" disabled={disabled || sending} onClick={() => { tap(); void onSend("Hint"); }} data-coach-target="senior" className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100")}>
+              👩‍⚕️ <span className="truncate">Ask senior</span>
+            </button>
+          )}
+          <button type="button" disabled={disabled || sending} onClick={() => { tap(); void onSend("Take full history"); }} className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-line bg-surface text-fg")}>
+            📋 <span className="truncate">Full history</span>
+          </button>
+          {skin ? (
+            <button type="button" disabled={disabled || sending} onClick={() => { tap(); void onSend("Examine the skin lesion"); }} className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-accent-line bg-accent-soft text-accent-text")}>
+              📷 <span className="truncate">Show rash</span>
+            </button>
+          ) : talk.supported ? (
+            <button type="button" onClick={() => { tap(); talk.toggle(); }} aria-pressed={talk.on} className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", talk.on ? "pulse-ring bg-success text-white" : "border border-line bg-surface text-fg")}>
+              {talk.on ? "● Live" : "🎙 Talk live"}
+            </button>
+          ) : (
+            <button type="button" onClick={() => setMenu((m) => (m === "more" ? null : "more"))} className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[13.5px] font-semibold transition-transform active:scale-95 disabled:opacity-50", "border border-line bg-surface text-fg")}>
+              ＋ More
+            </button>
+          )}
+        </div>
+      )}
+
       <div
         data-coach-target="composer"
         className={cn(
-          "rounded-2xl border bg-surface shadow-sm transition-[border-color,box-shadow] duration-150",
-          speech.listening ? "border-danger shadow-[0_0_0_3px_var(--danger-soft)]" : "border-accent-line focus-within:border-accent-line focus-within:shadow-[0_0_0_3px_var(--accent-soft)]",
+          "flex items-end gap-1.5 rounded-2xl border bg-surface p-1.5 shadow-sm transition-[border-color,box-shadow] duration-150",
+          speech.listening ? "border-danger shadow-[0_0_0_3px_var(--danger-soft)]" : "border-line focus-within:border-accent-line focus-within:shadow-[0_0_0_3px_var(--accent-soft)]",
         )}
       >
-        {/* First time in a case: say plainly where to type. */}
-        {history.length === 0 ? (
-          <label htmlFor="composer" className="flex items-center gap-1.5 px-4 pt-3 text-[13px] font-semibold text-accent-text">
-            <span className="animate-bounce">👇</span> Type here — talk to the patient, examine, order tests or treat
-          </label>
-        ) : (
-          <label htmlFor="composer" className="sr-only">
-            Your next action
-          </label>
-        )}
+        <label htmlFor="composer" className="sr-only">Your next question or order</label>
         <textarea
           id="composer"
           ref={inputRef}
@@ -220,107 +217,47 @@ export function Composer({
           onKeyDown={onKeyDown}
           rows={1}
           disabled={disabled}
-          placeholder={speech.listening ? "Listening… speak your question or order" : phone ? "Type to the caller — e.g. What happened?" : "Type here… e.g. What brings you in today?"}
-          className="block max-h-[168px] min-h-[52px] w-full resize-none bg-transparent px-4 pt-[15px] pb-2 text-[15px] leading-6 text-fg outline-none placeholder:text-fg-3 disabled:opacity-60"
+          placeholder={speech.listening ? "Listening… speak your question or order" : phone ? "Type to the caller — e.g. What happened?" : "Ask, examine, order or treat…"}
+          className="block max-h-[168px] min-h-[44px] flex-1 resize-none bg-transparent px-2.5 py-2.5 text-[15px] leading-6 text-fg outline-none placeholder:text-fg-3 disabled:opacity-60"
           autoComplete="off"
           spellCheck
           enterKeyHint="send"
         />
-        <div className="flex items-center gap-2 px-2 pb-2">
-          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
-            {watch && (
-              <button
-                type="button"
-                disabled={disabled || sending}
-                onClick={() => void onSend(`Wait ${watch.minutes} minutes`)}
-                title={`Skip ahead ${watch.minutes} min to the ${watch.label.toLowerCase()}'s full effect — and see what it did`}
-                className="flex h-8 shrink-0 animate-enter items-center gap-1 rounded-full bg-accent px-3 text-[13px] font-semibold text-on-accent transition-opacity hover:opacity-90 disabled:opacity-60"
-              >
-                Skip {watch.minutes} min <Icon name="chevron-right" size={13} strokeWidth={2.4} />
-                <Icon name="chevron-right" size={13} strokeWidth={2.4} className="-ml-2" />
-              </button>
-            )}
-            {!expert.on && !phone && (
-              // Always in reach (Beginner mode): the senior gives the next step, why, and a button that does it.
-              <button
-                type="button"
-                disabled={disabled || sending}
-                onClick={() => { tap(); void onSend("Hint"); }}
-                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-3 text-[13px] font-semibold text-amber-800 transition-transform hover:bg-amber-100 active:scale-95 disabled:opacity-50 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
-              >
-                👩‍⚕️ Senior
-              </button>
-            )}
-            {skin && !phone && (
-              <button
-                type="button"
-                disabled={disabled || sending}
-                onClick={() => { tap(); void onSend("Examine the skin lesion"); }}
-                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-accent-line bg-accent-soft px-3 text-[13px] font-semibold text-accent-text transition-transform active:scale-95 disabled:opacity-50"
-              >
-                📷 Show the rash
-              </button>
-            )}
-            {!phone && (
-              // The whole important history in one tap: fewer turns to the end of the case.
-              <button
-                type="button"
-                disabled={disabled || sending}
-                onClick={() => { tap(); void onSend("Take full history"); }}
-                className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-line px-3 text-[13px] font-medium text-fg-2 transition-transform hover:bg-surface-3 hover:text-fg active:scale-95 disabled:opacity-50"
-              >
-                📋 Full history
-              </button>
-            )}
-            {actions.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                aria-expanded={menu === a.id}
-                aria-haspopup="dialog"
-                onClick={() => setMenu((m) => (m === a.id ? null : a.id))}
-                className={cn(
-                  "h-8 shrink-0 rounded-full border px-3 text-[13px] font-medium transition-colors duration-150",
-                  menu === a.id ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:bg-surface-3 hover:text-fg",
-                )}
-              >
-                {a.label}
-              </button>
-            ))}
-            {/* The rest, one tap away: kept out of the row so it stays short. */}
-            <button
-              type="button"
-              aria-expanded={menu === "more"}
-              onClick={() => setMenu((m) => (m === "more" ? null : "more"))}
-              className={cn("h-8 shrink-0 rounded-full border px-3 text-[13px] font-medium transition-colors", menu === "more" ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:bg-surface-3 hover:text-fg")}
-            >
-              More ▾
-            </button>
-
-          </div>
-          <span className="hidden items-center gap-1 text-[11px] text-fg-3 xl:flex">
-            <Kbd>↵</Kbd> send <span className="mx-0.5">·</span> <Kbd>⇧</Kbd>
-            <Kbd>↵</Kbd> new line
-          </span>
-          {talk.supported && !phone && (
-            <button type="button" onClick={() => { tap(); talk.toggle(); }} aria-pressed={talk.on} title="Talk to the patient hands-free — they answer out loud" className={cn("flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[12.5px] font-semibold transition-colors", talk.on ? "pulse-ring bg-success text-white" : "bg-surface-3 text-fg-2 hover:text-fg")}>
-              {talk.on ? "● Live" : "🎙 Talk live"}
-            </button>
-          )}
-          {speech.supported && (
-            <IconButton
-              label={speech.listening ? "Stop voice input" : "Speak instead of typing (uses your browser's speech service)"}
-              size="sm"
-              onClick={toggleMic}
-              className={cn("rounded-full", speech.listening ? "pulse-ring bg-danger text-white hover:bg-danger hover:text-white" : "text-fg-2")}
-            >
-              <Icon name="mic" size={16} />
-            </IconButton>
-          )}
-          <IconButton label="Send" variant="primary" size="sm" onClick={() => void submit()} disabled={!draft.trim() || disabled || sending} className="rounded-full">
-            <Icon name="arrow-up" size={15} strokeWidth={2} />
+        {speech.supported && (
+          <IconButton
+            label={speech.listening ? "Stop voice input" : "Speak instead of typing"}
+            size="sm"
+            onClick={toggleMic}
+            className={cn("mb-1 rounded-full", speech.listening ? "pulse-ring bg-danger text-white hover:bg-danger hover:text-white" : "text-fg-2")}
+          >
+            <Icon name="mic" size={17} />
           </IconButton>
-        </div>
+        )}
+        <IconButton label="Send" variant="primary" size="sm" onClick={() => void submit()} disabled={!draft.trim() || disabled || sending} className="mb-1 rounded-full">
+          <Icon name="arrow-up" size={16} strokeWidth={2.2} />
+        </IconButton>
+      </div>
+
+      {/* Everything else: one short row of tools. */}
+      <div className="mt-1.5 flex items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+        {watch && (
+          <button type="button" disabled={disabled || sending} onClick={() => void onSend(`Wait ${watch.minutes} minutes`)} className={cn("h-8 shrink-0 rounded-full px-3 text-[12.5px] font-medium transition-colors duration-150", "animate-enter bg-accent font-semibold text-on-accent disabled:opacity-60")}>
+            Skip {watch.minutes} min ››
+          </button>
+        )}
+        {actions.map((a) => (
+          <button key={a.id} type="button" aria-expanded={menu === a.id} aria-haspopup="dialog" onClick={() => setMenu((m) => (m === a.id ? null : a.id))} className={cn("h-8 shrink-0 rounded-full px-3 text-[12.5px] font-medium transition-colors duration-150", menu === a.id ? "bg-accent-soft text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg")}>
+            {a.label}
+          </button>
+        ))}
+        <button type="button" aria-expanded={menu === "more"} onClick={() => setMenu((m) => (m === "more" ? null : "more"))} className={cn("h-8 shrink-0 rounded-full px-3 text-[12.5px] font-medium transition-colors duration-150", menu === "more" ? "bg-accent-soft text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg")}>
+          More ▾
+        </button>
+        {skin && talk.supported && !phone && (
+          <button type="button" onClick={() => { tap(); talk.toggle(); }} aria-pressed={talk.on} className={cn("h-8 shrink-0 rounded-full px-3 text-[12.5px] font-medium transition-colors duration-150", "ml-auto", talk.on ? "pulse-ring bg-success text-white" : "text-fg-2 hover:bg-surface-3")}>
+            {talk.on ? "● Live" : "🎙 Live"}
+          </button>
+        )}
       </div>
       {talk.on && (
         <p role="status" className="mt-1.5 animate-enter px-2 text-[12.5px] text-success">
