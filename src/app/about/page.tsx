@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { A, LegalPage, List, Section } from "@/components/legal/legal-page";
 import { PublicPage } from "@/components/shell/public-page";
 
-export const metadata: Metadata = { title: "About", description: "RamAI is a clinical case simulator for doctors and medical students: real-feeling patients, hidden diagnoses, no hints." };
+export const metadata: Metadata = { title: "About", description: "RamAI is a clinical case simulator for doctors and medical students: real-feeling patients, hidden diagnoses, and a senior to help when you ask." };
 export const dynamic = "force-dynamic";
 
 export default function AboutPage() {
@@ -13,7 +13,7 @@ export default function AboutPage() {
         eyebrow="About RamAI"
         title="Think like a doctor, every day."
         updated={false}
-        intro="RamAI is a clinical case simulator for doctors and medical students. A patient walks in, calls, or is wheeled in — and you take it from there: no multiple choice, no hints, no diagnosis on the label."
+        intro="RamAI is a clinical case simulator for doctors and medical students. A patient walks in, calls, or is wheeled in — and you take it from there: no multiple choice and no diagnosis on the label — and a senior to ask when you're stuck."
       >
         <Section title="Why it exists">
           <p>

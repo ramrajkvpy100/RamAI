@@ -203,7 +203,7 @@ function SectionHead({ eyebrow, title, body }: { eyebrow: string; title: string;
 /** For a first-time visitor: what happens in a case, in three steps. */
 function HowItWorks() {
   const steps: { icon: IconName; title: string; body: string }[] = [
-    { icon: "user", title: "Meet the patient", body: "A patient arrives with a story — in the ER, the OPD or on the phone. The diagnosis is hidden. No hints, no multiple choice." },
+    { icon: "user", title: "Meet the patient", body: "A patient arrives with a story — in the ER, the OPD or on the phone. The diagnosis is hidden — no multiple choice. Stuck? Ask your senior." },
     { icon: "hand", title: "Do what a doctor does", body: "Type in plain English, or tap Ask, Examine, Tests and Treat. Take the history, examine — even listen with a stethoscope — order tests and treat. The patient gets better or worse." },
     { icon: "trophy", title: "See what you missed", body: "Name your diagnosis and end the case. You get a score out of 100, what you did well, what you missed, and the ideal approach." },
   ];

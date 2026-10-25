@@ -21,7 +21,8 @@ export const metadata: Metadata = {
   // Shared cards' link previews need absolute addresses.
   metadataBase: new URL(SITE.url),
   title: { default: "RamAI — Think like a doctor, every day", template: "%s · RamAI" },
-  description: "Clinical case simulation for doctors and medical students. Real patients, hidden diagnoses, no hints — from first-contact care to the world's hardest cases. India, USA and UK.",
+  description: "Clinical case simulator for doctors and medical students: virtual patients, real decisions, a scored debrief. Skills Lab (ECG, X-ray, CT, ultrasound, heart sounds) and NEET PG, USMLE and PLAB-style MCQs. Free — India, USA and UK.",
+  keywords: ["clinical case simulator", "virtual patient", "medical case simulation", "NEET PG preparation", "USMLE clinical cases", "PLAB", "ECG practice", "X-ray quiz", "medical student app", "clinical reasoning"],
   applicationName: "RamAI",
   // Added to an iPhone's Home Screen it opens full-screen, named RamAI.
   appleWebApp: { capable: true, title: "RamAI", statusBarStyle: "default" },

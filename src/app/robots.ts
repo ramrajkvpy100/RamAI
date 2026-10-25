@@ -4,13 +4,16 @@ import { SITE } from "@/lib/site";
 
 import { PUBLIC_PAGES } from "./sitemap";
 
-/** Search engines may see the public pages (listed in the sitemap); the app itself and the API stay out. AI crawlers see nothing. */
+/**
+ * Search engines and AI answer engines (ChatGPT search, Perplexity, Claude, Gemini answers) may read the public pages,
+ * so RamAI can be found and cited; the app itself and the API stay out. Crawlers that only collect training data see nothing.
+ */
 export default function robots(): MetadataRoute.Robots {
-  const AI_CRAWLERS = ["GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "Claude-Web", "anthropic-ai", "Google-Extended", "CCBot", "PerplexityBot", "Bytespider", "Amazonbot", "Applebot-Extended", "Meta-ExternalAgent", "cohere-ai", "Diffbot", "ImagesiftBot", "Omgilibot", "YouBot"];
+  const TRAINING_ONLY = ["GPTBot", "CCBot", "Bytespider", "anthropic-ai", "cohere-ai", "Diffbot", "ImagesiftBot", "Omgilibot", "Meta-ExternalAgent"];
   return {
     rules: [
-      ...AI_CRAWLERS.map((userAgent) => ({ userAgent, disallow: "/" })),
-      { userAgent: "*", allow: ["/$", "/s/", ...PUBLIC_PAGES.filter((p) => p !== "/")], disallow: "/" },
+      ...TRAINING_ONLY.map((userAgent) => ({ userAgent, disallow: "/" })),
+      { userAgent: "*", allow: ["/$", "/s/", "/llms.txt", ...PUBLIC_PAGES.filter((p) => p !== "/")], disallow: "/" },
     ],
     sitemap: `${SITE.url}/sitemap.xml`,
     host: SITE.url,
