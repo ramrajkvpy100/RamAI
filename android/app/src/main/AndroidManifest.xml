@@ -63,12 +63,14 @@
         <receiver android:name=".RamWidget" android:exported="false" android:label="RamAI">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.ramai.app.FOCUS_TOGGLE" />
+                <action android:name="com.ramai.app.FOCUS_DONE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_ramai_info" />
         </receiver>
 
         <service
-            android:name="com.google.androidbrowserhelper.trusted.DelegationService"
+            android:name=".RamDelegationService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
