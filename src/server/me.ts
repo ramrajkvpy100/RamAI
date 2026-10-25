@@ -6,7 +6,7 @@ import { dailyLimitFor } from "@/lib/plans";
 
 import { getCurrentUser, identityQuery, userFromRow, type User } from "./auth";
 import { db } from "./db";
-import { summaryFromRow } from "./progress";
+import { SUMMARY_COLUMNS, summaryFromRow } from "./progress";
 import { ringsFor } from "./progress";
 import { casesStartedToday, istDayStart, progressFor } from "./results";
 import { isAdmin, newSuggestionCount } from "./suggestions";
@@ -56,7 +56,7 @@ async function getMeUnchecked(): Promise<Me | null> {
   if (!who) return null;
   const [users, results, today, avatars] = await db.readMany([
     { sql: who.user, args: who.args },
-    { sql: `SELECT * FROM results WHERE user_id = ${who.id} ORDER BY created_at ASC`, args: who.args },
+    { sql: `SELECT ${SUMMARY_COLUMNS} FROM results WHERE user_id = ${who.id} AND assisted = 0 ORDER BY created_at ASC`, args: who.args },
     { sql: `SELECT COUNT(*) AS n FROM case_starts WHERE user_id = ${who.id} AND created_at >= ? AND tutorial = 0 AND daily_key IS NULL`, args: [...who.args, istDayStart()] },
     { sql: `SELECT style FROM user_avatars WHERE user_id = ${who.id}`, args: who.args },
   ]);

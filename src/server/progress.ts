@@ -34,10 +34,13 @@ const toSummary = (r: ResultRow): CompletedCaseSummary => ({
   completedISO: new Date(r.created_at).toISOString(),
 });
 
+/** Only what progress needs — never the big detail/summary JSON (it made every page slower with every case). */
+export const SUMMARY_COLUMNS = "case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at";
+
 export const summaryFromRow = (row: Record<string, unknown>): CompletedCaseSummary => toSummary(row as unknown as ResultRow);
 
 export async function historyFor(userId: string): Promise<CompletedCaseSummary[]> {
-  return (await db.all<ResultRow>("SELECT * FROM results WHERE user_id = ? AND assisted = 0 ORDER BY created_at ASC", userId)).map(toSummary);
+  return (await db.all<ResultRow>(`SELECT ${SUMMARY_COLUMNS} FROM results WHERE user_id = ? AND assisted = 0 ORDER BY created_at ASC`, userId)).map(toSummary);
 }
 
 export async function progressFor(userId: string): Promise<PlayerProgress> {
@@ -50,7 +53,7 @@ export async function progressForMany(userIds: readonly string[]): Promise<Map<s
   const byUser = new Map<string, CompletedCaseSummary[]>(ids.map((id) => [id, []]));
   for (let i = 0; i < ids.length; i += 200) {
     const chunk = ids.slice(i, i + 200);
-    const rows = await db.all<ResultRow & { user_id: string }>(`SELECT * FROM results WHERE user_id IN (${chunk.map(() => "?").join(", ")}) AND assisted = 0 ORDER BY created_at ASC`, ...chunk);
+    const rows = await db.all<ResultRow & { user_id: string }>(`SELECT user_id, ${SUMMARY_COLUMNS} FROM results WHERE user_id IN (${chunk.map(() => "?").join(", ")}) AND assisted = 0 ORDER BY created_at ASC`, ...chunk);
     for (const r of rows) byUser.get(r.user_id)?.push(toSummary(r));
   }
   return new Map([...byUser].map(([id, history]) => [id, withDerived(history)]));
