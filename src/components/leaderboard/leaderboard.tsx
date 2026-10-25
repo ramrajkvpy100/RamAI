@@ -1,5 +1,8 @@
 "use client";
 
+import { primeMe } from "@/lib/me-store";
+import { success } from "@/lib/haptics";
+import { toast } from "@/lib/toast";
 import { EmptyState } from "@/components/ui/primitives";
 import Link from "next/link";
 import { useEffect, useRef, useState, ViewTransition } from "react";
@@ -419,7 +422,29 @@ function GlobalRow({ r, me, index }: { r: LeaderRow; me: boolean; index: number 
 
 function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
   const [board, setBoard] = useState<BoardId>("overall");
-  const [scope, setScope] = useState<"all" | "city" | "college">("all");
+  const [scope, setScope] = useState<"all" | "near" | "college">("all");
+  const [locating, setLocating] = useState(false);
+  const [reload, setReload] = useState(0);
+  /** Asks the phone where it is (roughly), saves it rounded to ~10 km, and shows the board near there. */
+  const useLocation = () => {
+    if (!("geolocation" in navigator)) return toast("This phone can't share its location — add your city on your profile instead.", { tone: "warning" });
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const res = await fetch("/api/me/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ geo: { lat: pos.coords.latitude, lon: pos.coords.longitude } }) }).catch(() => null);
+        setLocating(false);
+        if (!res?.ok) return toast("Couldn't save your location — try again.", { tone: "danger" });
+        primeMe((await res.json()) as Me);
+        success();
+        setReload((n) => n + 1);
+      },
+      () => {
+        setLocating(false);
+        toast("Location is off — allow it, or add your city on your profile.", { tone: "warning" });
+      },
+      { enableHighAccuracy: false, maximumAge: 3_600_000, timeout: 15_000 },
+    );
+  };
   const [data, setData] = useState<Board | null | undefined>(undefined);
 
   useEffect(() => {
@@ -429,7 +454,7 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
     return () => {
       live = false;
     };
-  }, [board, scope]);
+  }, [board, scope, reload]);
 
   const rows = data?.rows ?? [];
   const rest = rows.slice(3);
@@ -455,7 +480,7 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
 
       {/* Compete with doctors near you: everyone, your city, your college (from your profile). */}
       <div role="radiogroup" aria-label="Who" className="flex gap-1 self-start rounded-full bg-surface-3 p-1 text-[13px]">
-        {([["all", "🌏 Everyone"], ["city", "📍 Near me"], ["college", "🏥 My college"]] as const).map(([id, label]) => (
+        {([["all", "🌏 Everyone"], ["near", "📍 Near me"], ["college", "🏥 My college"]] as const).map(([id, label]) => (
           <button key={id} type="button" role="radio" aria-checked={scope === id} onClick={() => setScope(id)} className={cn("rounded-full px-3.5 py-1.5 font-medium whitespace-nowrap transition-colors", scope === id ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
             {label}
           </button>
@@ -470,6 +495,8 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
               <div key={i} className="h-12 animate-breathe rounded-xl bg-surface-3" style={{ animationDelay: `${i * 120}ms` }} />
             ))}
           </div>
+        ) : data?.needs === "location" ? (
+          <EmptyState className="m-4 border-0" icon="globe" title="Find doctors near you" body="Share your rough location (rounded to about 10 km — never your exact spot) to see who's top within 50 km." action={{ label: locating ? "Finding you…" : "📍 Use my location", onClick: useLocation }} />
         ) : data?.needs ? (
           <EmptyState className="m-4 border-0" icon="users" title={data.needs === "city" ? "Add your city" : "Add your college"} body={`Say where you ${data.needs === "city" ? "are" : "study or work"} on your profile to compete with doctors ${data.needs === "city" ? "near you" : "from your college"}.`} action={{ label: "Open profile", href: "/profile" }} />
         ) : rows.length === 0 ? (

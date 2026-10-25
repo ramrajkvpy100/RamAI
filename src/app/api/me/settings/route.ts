@@ -1,6 +1,6 @@
 import type { Country } from "@/engine/countries";
 import type { PatientLang } from "@/engine/types";
-import { AuthError, requireUser, setCountry, setPatientLang, setProfileDetails, setSpecialty } from "@/server/auth";
+import { AuthError, requireUser, setCountry, setPatientLang, setGeo, setProfileDetails, setSpecialty } from "@/server/auth";
 import type { PreferredSpecialty } from "@/lib/specialty";
 import { meFor } from "@/server/me";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -36,6 +36,11 @@ export async function POST(req: Request) {
       if (body.bio !== undefined) next.bio = body.bio.trim() || null;
       if (body.city !== undefined) next.city = body.city.trim() || null;
       if (body.college !== undefined) next.college = body.college.trim() || null;
+    }
+    if (body.geo !== undefined) {
+      if (user.isGuest) throw new AuthError("UNAUTHENTICATED", "Sign up to compete with doctors near you.");
+      await setGeo(user.id, body.geo);
+      next.geo = body.geo ? { lat: Math.round(body.geo.lat * 10) / 10, lon: Math.round(body.geo.lon * 10) / 10 } : null;
     }
     return ok(await meFor(next));
   } catch (err) {

@@ -53,6 +53,8 @@ export interface User {
   /** Where they work or study — chosen by them; for the "near me" and "my college" boards. */
   city: string | null;
   college: string | null;
+  /** Rounded to 0.1° (~10 km) — for "Near me". */
+  geo: { lat: number; lon: number } | null;
 }
 
 interface UserRow {
@@ -74,6 +76,8 @@ interface UserRow {
   bio?: string | null;
   city?: string | null;
   college?: string | null;
+  geo_lat?: number | null;
+  geo_lon?: number | null;
 }
 
 function toUser(r: UserRow): User {
@@ -95,6 +99,7 @@ function toUser(r: UserRow): User {
     bio: r.bio ?? null,
     city: r.city ?? null,
     college: r.college ?? null,
+    geo: r.geo_lat != null && r.geo_lon != null ? { lat: r.geo_lat, lon: r.geo_lon } : null,
   };
 }
 
@@ -282,6 +287,12 @@ export async function setProfileDetails(userId: string, d: { bio?: string; city?
   const sets = (["bio", "city", "college"] as const).filter((k) => d[k] !== undefined);
   if (!sets.length) return;
   await db.run(`UPDATE users SET ${sets.map((k) => `${k} = ?`).join(", ")} WHERE id = ?`, ...sets.map((k) => clean(d[k]) ?? null), userId);
+}
+
+/** "Near me": the phone's position, rounded to about 10 km before it is stored; null forgets it. */
+export async function setGeo(userId: string, geo: { lat: number; lon: number } | null) {
+  const r = (x: number) => Math.round(x * 10) / 10;
+  await db.run("UPDATE users SET geo_lat = ?, geo_lon = ? WHERE id = ?", geo ? r(geo.lat) : null, geo ? r(geo.lon) : null, userId);
 }
 
 export async function setSpecialty(userId: string, specialty: PreferredSpecialty) {

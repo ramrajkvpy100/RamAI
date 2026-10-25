@@ -15,7 +15,7 @@ import type { AvatarStyle } from "./avatar-style";
 import type { PreferredSpecialty } from "./specialty";
 
 export interface Me {
-  user: { id: string; email: string; username: string; name: string; plan: PlanId; planExpiresAt: number | null; patientLang: PatientLang; createdAt: number; emailVerified: boolean; isGuest: boolean; leagueTier: number; country: Country; specialty: PreferredSpecialty | null; bio?: string | null; city?: string | null; college?: string | null };
+  user: { id: string; email: string; username: string; name: string; plan: PlanId; planExpiresAt: number | null; patientLang: PatientLang; createdAt: number; emailVerified: boolean; isGuest: boolean; leagueTier: number; country: Country; specialty: PreferredSpecialty | null; bio?: string | null; city?: string | null; college?: string | null; geo?: { lat: number; lon: number } | null };
   progress: PlayerProgress;
   /** The avatar they made; initials until then. */
   avatar?: AvatarStyle;

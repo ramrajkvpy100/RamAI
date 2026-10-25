@@ -39,6 +39,11 @@ export default function PrivacyPage() {
               the keys that encrypt them, and the last day we sent one.
             </li>
             <li>
+              <b className="text-fg">Approximate location (only if you choose):</b> when you tap “Use my location” on the Near me leaderboard, your
+              phone's position is rounded to about 10 km before it reaches us, and only that rounded area is stored — never your exact location. It's
+              used only to show doctors near you, and you can remove it by contacting us or deleting your account. You can also give a city instead.
+            </li>
+            <li>
               <b className="text-fg">Technical data:</b> your IP address is used briefly to stop abuse (such as too many sign-in attempts), and our
               hosting provider keeps standard server logs.
             </li>

@@ -112,18 +112,21 @@ export interface LeaderRow {
 
 /** Verified players only (no guests); demo doctors only when demo mode is on. */
 /** "Near me" (same city) or "My college": doctors who chose to say where they are. */
-export type Scope = { by: "city" | "college"; value: string } | null;
+export type Scope = { by: "city" | "college"; value: string } | { by: "near"; lat: number; lon: number } | null;
 
 async function standings(board: BoardId, period: Period, scope: Scope = null): Promise<Omit<LeaderRow, "rankTier" | "rankLabel">[]> {
   const since = period === "week" ? istWeekStart() : 0;
-  const local = scope ? ` AND lower(trim(u.${scope.by === "city" ? "city" : "college"})) = lower(trim(?))` : "";
+  // Near: within about 50 km (a box of ±0.45° latitude, widened for longitude).
+  const near = scope?.by === "near" ? { dLat: 0.45, dLon: 0.45 / Math.max(0.2, Math.cos((scope.lat * Math.PI) / 180)) } : null;
+  const local = !scope ? "" : scope.by === "near" ? " AND u.geo_lat BETWEEN ? AND ? AND u.geo_lon BETWEEN ? AND ?" : ` AND lower(trim(u.${scope.by === "city" ? "city" : "college"})) = lower(trim(?))`;
+  const localArgs = !scope ? [] : scope.by === "near" ? [scope.lat - near!.dLat, scope.lat + near!.dLat, scope.lon - near!.dLon, scope.lon + near!.dLon] : [scope.value];
   const rows = await db.all<{ userId: string; name: string; username: string; isDemo: number; xp: number; cases: number }>(
     `SELECT u.id AS userId, u.name, u.username, u.is_demo AS isDemo, SUM(r.xp) AS xp, COUNT(*) AS cases
      FROM results r JOIN users u ON u.id = r.user_id
      WHERE r.created_at >= ? AND r.assisted = 0 AND ${BOARDS[board].where}
        AND u.is_guest = 0 AND (u.is_demo = 1 OR u.email_verified_at IS NOT NULL) AND (u.is_demo = 0 OR ? = 1)${local}
      GROUP BY u.id ORDER BY xp DESC, cases ASC, MIN(r.created_at) ASC`,
-    since, scope ? 0 : demoPlayersEnabled() ? 1 : 0, ...(scope ? [scope.value] : []),
+    since, scope ? 0 : demoPlayersEnabled() ? 1 : 0, ...localArgs,
   );
   return rows.map(({ isDemo, ...r }, i) => ({ ...r, demo: isDemo === 1, position: i + 1 }));
 }

@@ -100,5 +100,6 @@ export const SettingsSchema = z
     bio: z.string().max(160).optional(),
     city: z.string().max(60).regex(/^[\p{L}\p{N} .,'()-]*$/u).optional(),
     college: z.string().max(100).regex(/^[\p{L}\p{N} .,'()&-]*$/u).optional(),
+    geo: z.union([z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }), z.null()]).optional(),
   })
-  .refine((s) => s.patientLang !== undefined || s.country !== undefined || s.specialty !== undefined || s.bio !== undefined || s.city !== undefined || s.college !== undefined, "Nothing to change.");
+  .refine((s) => s.patientLang !== undefined || s.country !== undefined || s.specialty !== undefined || s.bio !== undefined || s.city !== undefined || s.college !== undefined || s.geo !== undefined, "Nothing to change.");

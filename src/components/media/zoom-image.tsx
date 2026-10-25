@@ -8,6 +8,12 @@ import { tap } from "@/lib/haptics";
 
 /** A picture that opens full screen on tap, to pinch, wheel or double-tap zoom and drag around. */
 export function ZoomImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <Zoomable full={<img src={src} alt={alt} draggable={false} className="max-h-full max-w-full object-contain" />}><img src={src} alt={alt} className={`${className ?? ""} cursor-zoom-in`} draggable={false} /></Zoomable>;
+}
+
+/** Anything (a picture, an ECG) that opens full screen on tap, to pinch, wheel or double-tap zoom and pan. */
+export function Zoomable({ children, full }: { children: React.ReactNode; full?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [z, setZ] = useState({ s: 1, x: 0, y: 0 });
   const pts = useRef(new Map<number, { x: number; y: number }>());
@@ -17,8 +23,7 @@ export function ZoomImage({ src, alt, className }: { src: string; alt: string; c
   const clampS = (s: number) => Math.max(1, Math.min(6, s));
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} onClick={() => { tap(); setOpen(true); }} className={`${className ?? ""} cursor-zoom-in`} draggable={false} />
+      <div role="button" tabIndex={0} aria-label="Open full screen to zoom" onClick={() => { tap(); setOpen(true); }} onKeyDown={(e) => e.key === "Enter" && setOpen(true)} className="cursor-zoom-in">{children}</div>
       {open && (
         <Portal>
           <div role="dialog" aria-label="Zoomed picture" className="fixed inset-0 z-[95] flex animate-fade items-center justify-center bg-black/95 touch-none select-none"
@@ -43,8 +48,7 @@ export function ZoomImage({ src, alt, className }: { src: string; alt: string; c
             onPointerUp={(e) => { pts.current.delete(e.pointerId); start.current = null; }}
             onPointerCancel={(e) => { pts.current.delete(e.pointerId); start.current = null; }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt={alt} draggable={false} className="max-h-full max-w-full object-contain will-change-transform" style={{ transform: `translate(${z.x}px, ${z.y}px) scale(${z.s})` }} />
+            <div className="flex max-h-full max-w-full items-center justify-center will-change-transform" style={{ transform: `translate(${z.x}px, ${z.y}px) scale(${z.s})` }}>{full ?? children}</div>
             <button type="button" onClick={close} aria-label="Close" className="absolute top-[max(16px,env(safe-area-inset-top))] right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur">
               <Icon name="x" size={18} />
             </button>

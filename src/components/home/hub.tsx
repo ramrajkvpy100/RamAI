@@ -15,6 +15,7 @@ import { useMe, type Me } from "@/lib/me-store";
 
 import { CompetenceRings } from "./competence-rings";
 import { FocusWidget } from "@/components/focus/focus-widget";
+import { useLauncher } from "./use-launcher";
 import { HomeTour, tourSeen, type TourStop } from "./home-tour";
 
 const greeting = (h = new Date().getHours()) => (h < 5 ? "Late shift" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening");
@@ -39,6 +40,7 @@ const TOUR: TourStop[] = [
   { target: "hub-/practice", title: "Skills Lab", body: "Short drills: ECGs, X-rays, CT scrolls, clinical photos, heart and lung sounds, antidotes and calculations — with your progress in each." },
   { target: "hub-/exams", title: "Exam MCQs", body: "NEET PG, USMLE and PLAB-style questions — 5 or 10 at a time, any subjects, any difficulty." },
   { target: "hub-/leaderboard", title: "Compete", body: "Your weekly league — and boards for doctors near you and from your college." },
+  { target: "hub-hello", title: "Now try it", body: "Start with the 2-minute demo case: one patient, every step shown. Then the real cases are yours." },
 ];
 
 /**
@@ -69,6 +71,8 @@ export function Hub({ initial }: { initial: Me }) {
   const goalMet = p.dailyXp >= p.dailyGoal;
 
   const day = dailyKeyFor();
+  const { launch, starting } = useLauncher();
+  const firstTime = !active && p.casesCompleted === 0 && p.history.length === 0;
   return (
     <div className="flex flex-col gap-5 pb-4">
       {/* You — a bright welcome card */}
@@ -96,12 +100,19 @@ export function Hub({ initial }: { initial: Me }) {
             <div className="h-full rounded-full bg-white" style={{ width: `${Math.max(3, Math.round(toNext * 100))}%` }} />
           </div>
         </div>
-        <Link
-          href={active ? "/case" : "/cases"}
-          className="relative mt-5 flex h-13 items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[16px] font-bold text-[#3b3fd8] shadow-lg transition-transform active:scale-[0.98]"
-        >
-          <Icon name="pulse" size={18} /> {active ? "Continue your case" : "Start a case"}
-        </Link>
+        {firstTime ? (
+          // Never played: the 2-minute guided demo first — one patient, every step shown.
+          <button type="button" onClick={() => void launch({ tutorial: true })} disabled={starting} className="relative mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[16px] font-bold text-[#3b3fd8] shadow-lg transition-transform active:scale-[0.98] disabled:opacity-70">
+            <Icon name="pulse" size={18} /> {starting ? "Getting your patient…" : "Try the 2-minute demo case"}
+          </button>
+        ) : (
+          <Link
+            href={active ? "/case" : "/cases"}
+            className="relative mt-5 flex h-13 items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[16px] font-bold text-[#3b3fd8] shadow-lg transition-transform active:scale-[0.98]"
+          >
+            <Icon name="pulse" size={18} /> {active ? "Continue your case" : "Start a case"}
+          </Link>
+        )}
         {left !== null && <p className="relative mt-2.5 text-center text-[12.5px] text-white/85">{left} of {limit} free cases left today</p>}
       </section>
 

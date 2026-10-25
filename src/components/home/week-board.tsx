@@ -30,10 +30,10 @@ export interface Board {
   total: number;
   /** "Near me" / "My college": the place, or which detail the profile still needs. */
   place?: string;
-  needs?: "city" | "college";
+  needs?: "city" | "college" | "location";
 }
 
-export async function fetchBoard(board: string, period: "week" | "all", scope?: "city" | "college"): Promise<Board | null> {
+export async function fetchBoard(board: string, period: "week" | "all", scope?: "city" | "college" | "near"): Promise<Board | null> {
   const res = await fetch(`/api/leaderboard?board=${board}&period=${period}${scope ? `&scope=${scope}` : ""}`, { cache: "no-store" }).catch(() => null);
   return res?.ok ? ((await res.json()) as Board) : null;
 }

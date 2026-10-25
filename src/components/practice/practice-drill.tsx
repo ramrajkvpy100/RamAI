@@ -7,7 +7,7 @@ import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ZoomImage } from "@/components/media/zoom-image";
+import { ZoomImage, Zoomable } from "@/components/media/zoom-image";
 import { EcgTrace } from "@/components/media/ecg";
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
@@ -249,7 +249,9 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
           <ZoomImage key={item.image} src={item.image} alt={`${MODALITIES[modality].label} to name`} className="mx-auto block max-h-[52dvh] w-auto max-w-full animate-fade object-contain" />
         ) : item.ecg ? (
           <div className="bg-white">
-            <EcgTrace spec={item.ecg} seed={index + 3} className="block h-auto w-full" />
+            <Zoomable full={<div className="w-[min(1400px,96vw)] bg-white"><EcgTrace spec={item.ecg} seed={index + 3} className="block h-auto w-full" /></div>}>
+              <EcgTrace spec={item.ecg} seed={index + 3} className="block h-auto w-full" />
+            </Zoomable>
           </div>
         ) : null}
         {/* The source names the file (often the diagnosis): shown only once answered — the licence asks for the credit. */}
