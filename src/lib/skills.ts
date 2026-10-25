@@ -4,6 +4,7 @@
  * Harrison's); calculations are worked out here, with fresh numbers each time.
  */
 import { MORE_ALGORITHMS, MORE_ANTIDOTES } from "./banks/quiz";
+import EXTRA from "./banks/quiz-more.json";
 
 export interface QuizQuestion {
   id: string;
@@ -115,7 +116,13 @@ const ANTIDOTE_SOURCE: Record<string, string> = {
 const ALL_ANTIDOTES: [string, string, string, string, [string, string][], string][] = [
   ...ANTIDOTES.map(([id, stem, right, explain, wrong]): [string, string, string, string, [string, string][], string] => [id, stem, right, explain, wrong, ANTIDOTE_SOURCE[id] ?? "BNF; TOXBASE (UK National Poisons Information Service)"]),
   ...MORE_ANTIDOTES,
+  // Written by AI and checked by an AI examiner, filling each subcategory towards 50 (scripts/gen-quiz.mjs).
+  ...(EXTRA.antidotes as ExtraQ[]).map((q): [string, string, string, string, [string, string][], string] => [`x-${q.id}`, q.stem, q.right, q.explain, q.wrong as [string, string][], q.source]),
 ];
+interface ExtraQ { id: string; cat: string; stem: string; right: string; explain: string; wrong: string[][]; source: string }
+/** The subcategory each AI-written question was written for. */
+const EXTRA_CAT = new Map<string, string>([...(EXTRA.antidotes as ExtraQ[]).map((q) => [`antidote-x-${q.id}`, q.cat] as const), ...(EXTRA.algorithms as ExtraQ[]).map((q) => [`algo-x-${q.id}`, q.cat] as const)]);
+const EXTRA_ALGOS = (EXTRA.algorithms as ExtraQ[]).map((q): [string, string, string, string, [string, string][], string] => [`x-${q.id}`, q.stem, q.right, q.explain, q.wrong as [string, string][], q.source]);
 
 export const antidoteQuestions = (level: SkillLevel = "full", specialty?: string | null, cat?: string): QuizQuestion[] =>
   forDoctor(ALL_ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })).filter((x) => !cat || catOf(ANTIDOTE_CATS, x.id) === cat), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, src));
@@ -136,7 +143,7 @@ const ALGORITHMS: [string, string, string, string, [string, string][], string][]
 ];
 
 export const algorithmQuestions = (level: SkillLevel = "full", specialty?: string | null, cat?: string): QuizQuestion[] =>
-  forDoctor([...ALGORITHMS, ...MORE_ALGORITHMS].map((a) => ({ id: `algo-${a[0]}`, a })).filter((x) => !cat || catOf(ALGORITHM_CATS, x.id) === cat), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
+  forDoctor([...ALGORITHMS, ...MORE_ALGORITHMS, ...EXTRA_ALGOS].map((a) => ({ id: `algo-${a[0]}`, a })).filter((x) => !cat || catOf(ALGORITHM_CATS, x.id) === cat), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
 
 /* Clinical calculations ------------------------------------------------------ */
 
@@ -391,8 +398,14 @@ export const ALGORITHM_CATS: [string, RegExp][] = [
   ["Children", /dehydration-child|febrile|sam-child|sepsis-child|choking-infant|paeds/],
   ["Surgery & trauma", /trauma|acute-abdomen|testicular|compartment|hyperthermia|tension/],
 ];
-export const catOf = (cats: [string, RegExp][], id: string) => cats.find(([, re]) => re.test(id.replace(/^(antidote|algo)-/, "")))?.[0] ?? "Other";
+export const catOf = (cats: [string, RegExp][], id: string) => EXTRA_CAT.get(id) ?? cats.find(([, re]) => re.test(id.replace(/^(antidote|algo)-/, "")))?.[0] ?? "Other";
 
 /** Every question id in a drill, with its subcategory — for the subcategory chips and their progress. */
 export const ANTIDOTE_IDS = (): { id: string; cat: string }[] => ALL_ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, cat: catOf(ANTIDOTE_CATS, `antidote-${a[0]}`) }));
-export const ALGORITHM_IDS = (): { id: string; cat: string }[] => [...ALGORITHMS, ...MORE_ALGORITHMS].map((a) => ({ id: `algo-${a[0]}`, cat: catOf(ALGORITHM_CATS, `algo-${a[0]}`) }));
+export const ALGORITHM_IDS = (): { id: string; cat: string }[] => [...ALGORITHMS, ...MORE_ALGORITHMS, ...EXTRA_ALGOS].map((a) => ({ id: `algo-${a[0]}`, cat: catOf(ALGORITHM_CATS, `algo-${a[0]}`) }));
+
+/** Every antidote and algorithm stem, by subcategory — for tools that add questions without repeating any. */
+export const QUIZ_STEMS = () => ({
+  antidotes: ALL_ANTIDOTES.map((a) => ({ cat: catOf(ANTIDOTE_CATS, `antidote-${a[0]}`), stem: a[1] })),
+  algorithms: [...ALGORITHMS, ...MORE_ALGORITHMS, ...EXTRA_ALGOS].map((a) => ({ cat: catOf(ALGORITHM_CATS, `algo-${a[0]}`), stem: a[1] })),
+});

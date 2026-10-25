@@ -12,7 +12,7 @@ import { EcgTrace } from "@/components/media/ecg";
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
-import { CLINICAL_SUBJECTS, MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
+import { groupOf, groupsOf, MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
 import { playSfx } from "@/lib/sfx";
 import { success, warn } from "@/lib/haptics";
 
@@ -61,7 +61,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
     setLoading(true);
     setError(null);
     try {
-      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode, level, ...(modality === "clinical" && subject ? { subject } : {}) });
+      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode, level, ...(subject ? { subject } : {}) });
       if (r.items.length === 0) {
         setError(r.offline ? "Pictures for this one can't be gathered right now — the picture checker is offline. Try the ECGs meanwhile." : "The pictures for this one are still being gathered. Try the ECGs meanwhile, or come back in a minute.");
         return;
@@ -159,7 +159,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
                 key={id}
                 type="button"
                 aria-pressed={modality === id}
-                onClick={() => setModality(id)}
+                onClick={() => { setModality(id); setSubject(null); }}
                 className={cn("panel flex flex-col items-start gap-2 p-4 text-left transition-colors", modality === id ? "ring-2 ring-accent" : "hover:bg-surface-2")}
               >
                 <Icon name={ICON[id]} size={20} className="text-accent-text" />
@@ -171,12 +171,12 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
           })}
         </div>
         <div className="panel flex flex-col gap-4 p-5 sm:p-6">
-          {modality === "clinical" && (
-            <div role="radiogroup" aria-label="Subject" className="flex flex-wrap gap-2">
-              {[null, ...CLINICAL_SUBJECTS].map((s) => (
+          {groupsOf(modality).length > 1 && (
+            <div role="radiogroup" aria-label="Subcategory" className="flex flex-wrap gap-2">
+              {[null, ...groupsOf(modality)].map((s) => (
                 <button key={s ?? "all"} type="button" role="radio" aria-checked={subject === s} onClick={() => setSubject(s)} className={cn("rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors", subject === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
                   {s ?? "All subjects"}
-                  <span className="ml-1 text-fg-3 tabular">{s ? `${progress("spot:clinical:", MODALITIES.clinical.items.filter((i) => i.subject === s).map((i) => i.id)).mastered}/${MODALITIES.clinical.items.filter((i) => i.subject === s).length}` : MODALITIES.clinical.items.length}</span>
+                  <span className="ml-1 text-fg-3 tabular">{s ? `${progress(`spot:${modality}:`, MODALITIES[modality].items.filter((i) => groupOf(modality, i) === s).map((i) => i.id)).mastered}/${MODALITIES[modality].items.filter((i) => groupOf(modality, i) === s).length}` : MODALITIES[modality].items.length}</span>
                 </button>
               ))}
             </div>
@@ -197,7 +197,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
             ))}
           </div>
           <button type="button" onClick={() => void start()} disabled={loading} className="flex h-11 items-center justify-center rounded-full bg-accent text-[14.5px] font-semibold text-on-accent disabled:opacity-60">
-            {loading ? "Gathering pictures…" : `Start ${modality === "clinical" && subject ? `${subject} images` : MODALITIES[modality].label} ${mode === "rapid" ? "rapid-fire" : "practice"}`}
+            {loading ? "Gathering pictures…" : `Start ${subject ? `${MODALITIES[modality].label}: ${subject}` : MODALITIES[modality].label} ${mode === "rapid" ? "rapid-fire" : "practice"}`}
           </button>
           {loading && <FillingBar active expectedMs={modality === "ecg" ? 3_000 : 30_000} label="Gathering pictures" />}
           {error && (

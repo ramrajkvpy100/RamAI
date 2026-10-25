@@ -11,7 +11,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { MODALITIES, SPOT_COUNT, type DrillItem, type Modality, type PracticeItem, type PracticeMode } from "@/lib/practice";
+import { groupOf, MODALITIES, SPOT_COUNT, type DrillItem, type Modality, type PracticeItem, type PracticeMode } from "@/lib/practice";
 import type { PictureType } from "@/engine/types";
 
 import { reviewPicture, type PictureBrief } from "./ai-images";
@@ -19,7 +19,7 @@ import { db } from "./db";
 import { findRealImage, type Credit } from "./real-images";
 
 /** Pictures kept per diagnosis. */
-const PER_ITEM = 3;
+const PER_ITEM = 5;
 
 const TYPE: Record<Modality, PictureType> = { ecg: "photo", xray: "xray", ct: "ct", usg: "usg", smear: "slide", clinical: "photo" };
 const STYLE: Partial<Record<Modality, string>> = {
@@ -89,7 +89,7 @@ export async function addPicture(modality: Modality, itemId: string): Promise<bo
 export async function missingPictures(modality: Modality, limit = 3, subject?: string): Promise<string[]> {
   const counts = new Map((await db.all<{ item: string; n: number }>("SELECT item, COUNT(*) AS n FROM practice_images WHERE modality = ? AND source = 'commons' GROUP BY item", modality)).map((r) => [r.item, Number(r.n)]));
   return MODALITIES[modality].items
-    .filter((i) => !subject || i.subject === subject)
+    .filter((i) => !subject || groupOf(modality, i) === subject)
     .map((i) => ({ id: i.id, n: counts.get(i.id) ?? 0, drawn: !!i.ecg }))
     .filter((i) => i.n < PER_ITEM)
     .sort((a, b) => a.n - b.n || Number(a.drawn) - Number(b.drawn))
@@ -111,7 +111,7 @@ export async function round(modality: Modality, mode: PracticeMode, level: "basi
   // Students and interns: the classic, must-know pictures only.
   const all = MODALITIES[modality].items.filter((i) => level === "full" || !ADVANCED_SPOT.has(i.id));
   // One subject at a time when chosen — its options from the same subject, so they are real look-alikes.
-  const bank = subject ? all.filter((i) => i.subject === subject) : all;
+  const bank = subject ? all.filter((i) => groupOf(modality, i) === subject) : all;
   if (!removed) {
     removed = true;
     await db.run(`DELETE FROM practice_images WHERE id IN (${REMOVED.map(() => "?").join(", ")})`, ...REMOVED).catch(() => (removed = false));

@@ -1,6 +1,8 @@
 /** Clinical photographs — each diagnosis with its subject, so a doctor can practise one subject at a time. */
 import type { PracticeItem } from "../practice";
 
+import EXTRA from "./clinical-more.json";
+
 type C = [id: string, subject: ClinicalSubject, label: string, key: string, search: string[], describe: string];
 
 export const CLINICAL_SUBJECTS = ["Dermatology", "General medicine", "Eye", "ENT & mouth", "Paediatrics", "Surgery & ortho"] as const;
@@ -104,4 +106,10 @@ const C: C[] = [
   ["ganglion", "Surgery & ortho", "Ganglion cyst", "A **smooth, firm lump on the back of the wrist** that may transilluminate.", ["ganglion cyst wrist"], "a smooth lump on the back of the wrist"],
 ];
 
-export const CLINICAL_ITEMS: (PracticeItem & { subject: ClinicalSubject })[] = C.map(([id, subject, label, key, search, describe]) => ({ id, subject, label, key, search, describe }));
+/** Written by AI and checked by an AI examiner, filling each subject towards 50 (scripts/gen-clinical.mjs). */
+const MORE = (EXTRA as { id: string; subject: string; label: string; key: string; search: string[]; describe?: string }[]).filter((x) => (CLINICAL_SUBJECTS as readonly string[]).includes(x.subject));
+
+export const CLINICAL_ITEMS: (PracticeItem & { subject: ClinicalSubject })[] = [
+  ...C.map(([id, subject, label, key, search, describe]) => ({ id, subject, label, key, search, describe })),
+  ...MORE.map((x) => ({ id: x.id, subject: x.subject as ClinicalSubject, label: x.label, key: x.key, search: x.search.slice(0, 3), describe: x.describe ?? x.label })),
+];

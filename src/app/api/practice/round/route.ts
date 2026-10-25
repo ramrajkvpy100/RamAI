@@ -6,14 +6,14 @@ import { requireUser } from "@/server/auth";
 import { aiAnswering } from "@/server/ai-health";
 import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
-import { CLINICAL_SUBJECTS, MODALITY_IDS, type Modality } from "@/lib/practice";
+import { MODALITY_IDS, type Modality } from "@/lib/practice";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 /** The very first round of a modality may wait for its first pictures. */
 export const maxDuration = 60;
 
-const RoundRequest = z.object({ modality: z.enum(MODALITY_IDS as [Modality, ...Modality[]]), mode: z.enum(["spot", "rapid"]), level: z.enum(["basic", "full"]).optional(), subject: z.enum(CLINICAL_SUBJECTS).optional() });
+const RoundRequest = z.object({ modality: z.enum(MODALITY_IDS as [Modality, ...Modality[]]), mode: z.enum(["spot", "rapid"]), level: z.enum(["basic", "full"]).optional(), subject: z.string().max(60).optional() });
 
 /** POST /api/practice/round — a round of pictures to name. Open to everyone; scores are recorded only with a session. */
 export async function POST(req: Request) {

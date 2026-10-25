@@ -1,0 +1,379 @@
+[
+ {
+  "id": "cx-rosacea-0",
+  "label": "Rosacea",
+  "key": "Look for persistent **central facial redness** with visible small blood vessels and sometimes acne-like bumps.",
+  "search": [
+   "Wikimedia Commons rosacea face",
+   "Wikimedia Commons rhinophyma rosacea"
+  ],
+  "describe": "A photo typically shows redness and fine vessels across the cheeks and nose, sometimes with papules or pustules.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-tinea-pedis-1",
+  "label": "Tinea pedis (athlete’s foot)",
+  "key": "Recognise **scaling and peeling between the toes** or dry, scaly skin along the soles and sides of the feet.",
+  "search": [
+   "Wikimedia Commons tinea pedis toe webs",
+   "Wikimedia Commons athlete's foot sole"
+  ],
+  "describe": "A typical photo shows flaky, cracked skin between the toes or diffuse scaling on the sole.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-onychomycosis-2",
+  "label": "Onychomycosis (fungal nail infection)",
+  "key": "Look for a nail that is **thickened, discoloured, and crumbly**, often beginning at its edge.",
+  "search": [
+   "Wikimedia Commons onychomycosis toenail",
+   "Wikimedia Commons fungal nail infection"
+  ],
+  "describe": "A photo typically shows one or more thickened yellow-white nails with rough or crumbly edges.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-folliculitis-3",
+  "label": "Folliculitis",
+  "key": "Recognise **small red bumps or pustules centred on hair follicles**.",
+  "search": [
+   "Wikimedia Commons folliculitis skin",
+   "Wikimedia Commons bacterial folliculitis"
+  ],
+  "describe": "A typical photo shows clusters of small inflamed bumps, often with a hair visible at the centre.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-hidradenitis-suppurativa-4",
+  "label": "Hidradenitis suppurativa",
+  "key": "Look for **recurrent deep nodules, abscesses, and scarring** in skin folds such as the armpits or groin.",
+  "search": [
+   "Wikimedia Commons hidradenitis suppurativa axilla",
+   "Wikimedia Commons hidradenitis suppurativa scars"
+  ],
+  "describe": "A photo may show inflamed lumps, drainage openings, and rope-like scars in an armpit or groin.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-seborrheic-keratosis-5",
+  "label": "Seborrheic keratosis",
+  "key": "Recognise a **waxy, sharply edged growth that appears stuck onto the skin**.",
+  "search": [
+   "Wikimedia Commons seborrheic keratosis",
+   "Wikimedia Commons seborrheic keratosis close up"
+  ],
+  "describe": "A typical photo shows a tan-to-brown, slightly raised, waxy-looking lesion with a stuck-on appearance.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-actinic-keratosis-6",
+  "label": "Actinic keratosis",
+  "key": "Look for a **rough, sandpaper-like scaly patch** on sun-exposed skin.",
+  "search": [
+   "Wikimedia Commons actinic keratosis face",
+   "Wikimedia Commons actinic keratosis scalp"
+  ],
+  "describe": "A photo typically shows one or more small rough pink or skin-coloured patches on the face, ears, or scalp.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-cutaneous-squamous-cell-carcin-7",
+  "label": "Cutaneous squamous cell carcinoma",
+  "key": "Recognise a **firm, persistent scaly or crusted growth**, sometimes ulcerated, on sun-exposed skin.",
+  "search": [
+   "Wikimedia Commons cutaneous squamous cell carcinoma",
+   "Wikimedia Commons squamous cell carcinoma skin ear"
+  ],
+  "describe": "A typical photo shows a raised, rough red lesion or a non-healing crusted sore, often on the face or ear.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-dermatofibroma-8",
+  "label": "Dermatofibroma",
+  "key": "Look for a **small, firm, round pink-brown or brown papule or nodule**, often on a limb; it may dimple inward when compressed from the sides.",
+  "search": [
+   "Wikimedia Commons dermatofibroma leg",
+   "Wikimedia Commons dermatofibroma dimple sign"
+  ],
+  "describe": "A photo typically shows a solitary, round, pink-brown nodule on a limb.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-cherry-angioma-9",
+  "label": "Cherry angioma",
+  "key": "Recognise a **small, bright-red or purple dome-shaped spot** made up of blood vessels.",
+  "search": [
+   "Wikimedia Commons cherry angioma skin",
+   "Wikimedia Commons cherry angioma close up"
+  ],
+  "describe": "A typical photo shows one or more smooth, round, red spots on the trunk or limbs.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-epidermoid-cyst-10",
+  "label": "Epidermoid cyst",
+  "key": "Look for a **smooth, rounded lump beneath the skin**, often with a central dark pore.",
+  "search": [
+   "Wikimedia Commons epidermoid cyst skin",
+   "Wikimedia Commons epidermoid cyst punctum"
+  ],
+  "describe": "A photo typically shows a skin-coloured or slightly red dome-shaped lump, sometimes with a visible central opening.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-epidermal-nevus-11",
+  "label": "Epidermal nevus",
+  "key": "Look for a **well-defined, often linear or whorled band of thickened bumps** present from birth or early childhood.",
+  "search": [
+   "Wikimedia Commons epidermal nevus",
+   "Wikimedia Commons linear epidermal nevus"
+  ],
+  "describe": "A photo typically shows a tan or brown raised, rough plaque following a line or curved pattern on the skin.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-perioral-dermatitis-12",
+  "label": "Perioral dermatitis",
+  "key": "Recognise **small red bumps around the mouth with a narrow clear margin next to the lips**.",
+  "search": [
+   "Wikimedia Commons perioral dermatitis",
+   "Wikimedia Commons periorificial dermatitis face"
+  ],
+  "describe": "A typical photo shows clusters of small red papules around the mouth, sometimes extending beside the nose or eyes.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-hand-foot-mouth-disease-13",
+  "label": "Hand-foot-and-mouth disease",
+  "key": "Look for **small blisters or spots on the palms and soles**, often alongside a rash elsewhere.",
+  "search": [
+   "Wikimedia Commons hand foot mouth disease rash",
+   "Wikimedia Commons hand foot mouth disease palms"
+  ],
+  "describe": "A photo may show scattered small red spots or blisters on the hands and feet, sometimes with lesions around the mouth.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-acanthosis-nigricans-14",
+  "label": "Acanthosis nigricans",
+  "key": "Look for **dark, thickened, velvety skin**, most often in the neck folds or armpits.",
+  "search": [
+   "acanthosis nigricans neck",
+   "acanthosis nigricans axilla"
+  ],
+  "describe": "A photo typically shows velvety brown or grey thickening across the back of the neck or in an armpit.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-erythema-multiforme-15",
+  "label": "Erythema multiforme",
+  "key": "Recognise the distinctive **target-shaped lesions**, often with concentric rings and a darker centre.",
+  "search": [
+   "erythema multiforme target lesions",
+   "erythema multiforme hands"
+  ],
+  "describe": "A typical photo shows multiple round, three-zone target lesions, often on the backs of the hands or arms.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-tinea-capitis-16",
+  "label": "Tinea capitis",
+  "key": "Look for **patchy hair loss with scale**, sometimes with broken hairs or a scaly, inflamed area.",
+  "search": [
+   "tinea capitis scalp",
+   "tinea capitis hair loss"
+  ],
+  "describe": "A photo commonly shows a patchy bald area on the scalp with scaling and short broken hairs.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-xanthelasma-17",
+  "label": "Xanthelasma",
+  "key": "Identify **soft yellow plaques** near the inner corners of the eyelids.",
+  "search": [
+   "xanthelasma eyelids",
+   "xanthelasma clinical"
+  ],
+  "describe": "A typical photo shows flat or slightly raised yellow plaques on the upper or lower eyelids near the nose.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-furuncle-18",
+  "label": "Furuncle (boil)",
+  "key": "Look for a **tender, red, swollen lump** centred on a hair follicle, often with a pus-filled point.",
+  "search": [
+   "furuncle boil skin",
+   "skin boil clinical"
+  ],
+  "describe": "A photo typically shows a solitary inflamed nodule with a central pustule or drainage point.",
+  "subject": "Dermatology"
+ },
+ {
+  "id": "cx-plaque-psoriasis-19",
+  "label": "Plaque psoriasis",
+  "key": "Look for well-demarcated, raised **red plaques** covered by **silvery-white scale**.",
+  "search": [
+   "Wikimedia Commons plaque psoriasis",
+   "Wikimedia psoriasis plaques elbow"
+  ],
+  "describe": "A typical photo shows sharply defined scaly plaques, often on the elbows, knees, or scalp.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-vitiligo-20",
+  "label": "Vitiligo",
+  "key": "Recognise sharply bordered patches of **depigmented white skin**.",
+  "search": [
+   "Wikimedia Commons vitiligo",
+   "Wikimedia vitiligo hands"
+  ],
+  "describe": "A typical photo shows pale patches on the face, hands, or other areas of skin.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-acne-vulgaris-21",
+  "label": "Acne vulgaris",
+  "key": "Look for a mixture of **comedones**, inflamed papules, pustules, or nodules on acne-prone skin.",
+  "search": [
+   "Wikimedia Commons acne vulgaris",
+   "Wikimedia acne comedones"
+  ],
+  "describe": "A typical photo shows spots and comedones on the face, chest, or back.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-rosacea-22",
+  "label": "Rosacea",
+  "key": "Recognise persistent central facial **redness** with visible **telangiectasia**, sometimes with papules or pustules.",
+  "search": [
+   "Wikimedia Commons rosacea face",
+   "Wikimedia rosacea telangiectasia"
+  ],
+  "describe": "A typical photo shows redness across the cheeks and nose, sometimes with small inflamed bumps.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-herpes-zoster-23",
+  "label": "Herpes zoster (shingles)",
+  "key": "Look for grouped **vesicles** in a painful-looking band that usually follows one side of a dermatome.",
+  "search": [
+   "Wikimedia Commons herpes zoster",
+   "Wikimedia shingles dermatome"
+  ],
+  "describe": "A typical photo shows clustered blisters in a one-sided strip that does not cross the midline.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-erythema-nodosum-24",
+  "label": "Erythema nodosum",
+  "key": "Recognise multiple tender-looking **red nodules** over the fronts of the lower legs.",
+  "search": [
+   "Wikimedia Commons erythema nodosum",
+   "Wikimedia erythema nodosum legs"
+  ],
+  "describe": "A typical photo shows raised red or bruise-like nodules on both shins.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-tinea-corporis-25",
+  "label": "Tinea corporis (ringworm)",
+  "key": "Look for an **annular**, scaly lesion with a more active outer edge and relative central clearing.",
+  "search": [
+   "Wikimedia Commons tinea corporis",
+   "Wikimedia ringworm skin"
+  ],
+  "describe": "A typical photo shows one or more ring-shaped, scaly patches on the skin.",
+  "subject": "General medicine"
+ },
+ {
+  "i": 7,
+  "id": "cx-atopic-dermatitis-26",
+  "label": "Atopic dermatitis (eczema)",
+  "key": "Recognise dry, inflamed, often excoriated patches; chronic lesions may show skin thickening and accentuated skin markings.",
+  "search": [
+   "Wikimedia Commons atopic dermatitis",
+   "Wikimedia eczema flexural"
+  ],
+  "describe": "A typical photo shows dry, red, sometimes excoriated patches, commonly in the elbow or knee creases.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-seborrhoeic-dermatitis-27",
+  "label": "Seborrhoeic dermatitis",
+  "key": "Look for **greasy scale** and redness in areas such as the scalp, eyebrows, sides of the nose, or ears.",
+  "search": [
+   "Wikimedia Commons seborrhoeic dermatitis",
+   "Wikimedia seborrheic dermatitis face"
+  ],
+  "describe": "A typical photo shows flaky scalp or scale and redness around the eyebrows and nose.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-urticaria-28",
+  "label": "Urticaria (hives)",
+  "key": "Recognise raised, smooth **wheals** with variable shapes that may merge and change location.",
+  "search": [
+   "Wikimedia Commons urticaria",
+   "Wikimedia hives skin"
+  ],
+  "describe": "A typical photo shows scattered or confluent raised wheals on the skin.",
+  "subject": "General medicine"
+ },
+ {
+  "i": 10,
+  "id": "cx-cellulitis-29",
+  "label": "Cellulitis",
+  "key": "Look for a poorly defined area of **redness** and **swelling**, usually affecting one limb; warmth is a clinical feature but cannot be assessed from a photo.",
+  "search": [
+   "Wikimedia Commons cellulitis leg",
+   "Wikimedia cellulitis skin"
+  ],
+  "describe": "A typical photo shows one limb with a visibly red, swollen patch of skin.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-varicose-veins-30",
+  "label": "Varicose veins",
+  "key": "Recognise enlarged, tortuous, **superficial veins**, usually on the legs.",
+  "search": [
+   "Wikimedia Commons varicose veins",
+   "Wikimedia varicose veins leg"
+  ],
+  "describe": "A typical photo shows prominent, winding blue or purple veins on the lower leg.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-venous-stasis-dermatitis-31",
+  "label": "Venous stasis dermatitis",
+  "key": "Look for lower-leg **brown discoloration** with scaly, inflamed skin, often around the ankles.",
+  "search": [
+   "Wikimedia Commons stasis dermatitis",
+   "Wikimedia venous eczema ankle"
+  ],
+  "describe": "A typical photo shows discoloured, dry or inflamed skin around the lower leg and ankle.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-dupuytren-contracture-32",
+  "label": "Dupuytren contracture",
+  "key": "Recognise a firm **palmar cord** that pulls one or more fingers into flexion.",
+  "search": [
+   "Wikimedia Commons Dupuytren contracture",
+   "Wikimedia Dupuytren hand"
+  ],
+  "describe": "A typical photo shows a thickened palm and a finger, often the ring finger, bent toward the palm.",
+  "subject": "General medicine"
+ },
+ {
+  "i": 14,
+  "id": "cx-oral-candidiasis-33",
+  "label": "Oral candidiasis (thrush)",
+  "key": "Look for **creamy white plaques** on the tongue or oral mucosa that can usually be wiped or scraped away, often leaving an erythematous surface.",
+  "search": [
+   "Wikimedia Commons oral candidiasis",
+   "Wikimedia oral thrush tongue"
+  ],
+  "describe": "A typical photo shows creamy white patches on the tongue or inside the mouth.",
+  "subject": "General medicine"
+ }
+]

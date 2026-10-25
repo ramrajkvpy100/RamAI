@@ -1,0 +1,335 @@
+{
+ "antidotes": [
+  {
+   "id": "bupropion-overdose-seizure-0",
+   "stem": "A 30-year-old is brought in after a large bupropion XL overdose and has a generalised tonic–clonic seizure. Oxygenation and glucose are normal.",
+   "right": "IV benzodiazepine",
+   "explain": "Benzodiazepines are **first-line for seizures** caused by bupropion toxicity; treat recurrent seizures with escalating anticonvulsant therapy and supportive care.",
+   "wrong": [
+    [
+     "IV phenytoin",
+     "Phenytoin is generally ineffective for toxicological seizures and may worsen dysrhythmias."
+    ],
+    [
+     "Flumazenil",
+     "It reverses benzodiazepines, not bupropion toxicity, and can precipitate seizures."
+    ],
+    [
+     "Naloxone",
+     "It reverses opioid toxicity, not bupropion-induced seizures."
+    ]
+   ],
+   "source": "TOXBASE; Goldfrank’s Toxicologic Emergencies, 11th ed.",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "citalopram-torsades-1",
+   "stem": "A patient presents after a citalopram overdose with recurrent torsades de pointes and a prolonged QT interval. They remain conscious between episodes.",
+   "right": "IV magnesium sulfate",
+   "explain": "IV **magnesium sulfate** is the acute treatment for torsades de pointes, even if the serum magnesium is normal.",
+   "wrong": [
+    [
+     "IV calcium gluconate",
+     "Calcium is not the treatment for torsades caused by QT prolongation."
+    ],
+    [
+     "IV sodium bicarbonate",
+     "This is used for sodium-channel blockade with QRS widening, not isolated QT prolongation."
+    ],
+    [
+     "Adenosine",
+     "Adenosine treats selected supraventricular tachycardias, not torsades."
+    ]
+   ],
+   "source": "AHA ACLS 2020; TOXBASE: Citalopram overdose",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "carbamazepine-overdose-2",
+   "stem": "A patient has taken a large carbamazepine overdose and remains markedly drowsy, with a rising serum concentration and no ileus or bowel obstruction. The airway is protected.",
+   "right": "Multiple-dose activated charcoal",
+   "explain": "Carbamazepine undergoes **enterohepatic recirculation**; multiple-dose activated charcoal can enhance elimination in significant poisoning when the airway is protected.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "It does not reverse carbamazepine toxicity and may provoke seizures."
+    ],
+    [
+     "Whole-bowel irrigation as the sole measure",
+     "It may be considered in selected cases, but multiple-dose activated charcoal is the specific enhanced-elimination treatment here."
+    ],
+    [
+     "Urinary alkalinisation",
+     "This does not meaningfully enhance carbamazepine elimination."
+    ]
+   ],
+   "source": "TOXBASE: Carbamazepine overdose; AACT/EAPCCT position statement on multiple-dose activated charcoal",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "lamotrigine-qrs-widening-3",
+   "stem": "After a lamotrigine overdose, a patient develops hypotension and a markedly widened QRS complex on ECG. There is no evidence of hyperkalaemia.",
+   "right": "IV sodium bicarbonate",
+   "explain": "Sodium bicarbonate is used for suspected **sodium-channel blockade with QRS widening** in severe lamotrigine poisoning.",
+   "wrong": [
+    [
+     "IV magnesium sulfate",
+     "Magnesium is used for torsades, not QRS widening from sodium-channel blockade."
+    ],
+    [
+     "IV calcium gluconate",
+     "Calcium treats selected calcium-channel blocker toxicities and hyperkalaemia, not this ECG effect."
+    ],
+    [
+     "Flumazenil",
+     "It does not reverse lamotrigine toxicity and may precipitate seizures."
+    ]
+   ],
+   "source": "TOXBASE: Lamotrigine overdose; Goldfrank’s Toxicologic Emergencies, 11th ed.",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "quetiapine-overdose-hypotensio-4",
+   "stem": "A patient with a quetiapine overdose remains hypotensive after initial fluid resuscitation. ECG shows sinus tachycardia without QRS widening.",
+   "right": "IV noradrenaline (norepinephrine)",
+   "explain": "If hypotension persists after fluids, **noradrenaline** is an appropriate vasopressor for quetiapine-associated vasodilatory hypotension.",
+   "wrong": [
+    [
+     "IV propranolol",
+     "Beta-blockade may worsen hypotension and is not indicated for sinus tachycardia in this setting."
+    ],
+    [
+     "IV physostigmine",
+     "It is not routine treatment for quetiapine overdose and may cause serious adverse effects."
+    ],
+    [
+     "IV sodium bicarbonate",
+     "There is no QRS widening to indicate treatment for sodium-channel blockade."
+    ]
+   ],
+   "source": "TOXBASE: Quetiapine overdose",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "ibuprofen-overdose-acidosis-5",
+   "stem": "Following a massive ibuprofen overdose, a patient develops severe high-anion-gap metabolic acidosis and haemodynamic compromise. The airway and circulation are being supported.",
+   "right": "IV sodium bicarbonate for severe metabolic acidosis",
+   "explain": "There is no specific antidote; **IV sodium bicarbonate** may be used to correct severe, clinically significant acidaemia alongside supportive care.",
+   "wrong": [
+    [
+     "N-acetylcysteine",
+     "It is an antidote for paracetamol poisoning, not ibuprofen toxicity."
+    ],
+    [
+     "Urinary alkalinisation to enhance ibuprofen clearance",
+     "Alkalinisation is not an established method to enhance ibuprofen elimination."
+    ],
+    [
+     "Flumazenil",
+     "It has no role in NSAID poisoning."
+    ]
+   ],
+   "source": "TOXBASE: Ibuprofen overdose",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "venlafaxine-seizure-6",
+   "stem": "A patient presents after an extended-release venlafaxine overdose and has a generalised seizure. Point-of-care glucose and oxygenation are normal.",
+   "right": "IV benzodiazepine",
+   "explain": "Treat venlafaxine-related seizures promptly with a **benzodiazepine** and provide supportive airway and cardiorespiratory care.",
+   "wrong": [
+    [
+     "IV phenytoin",
+     "Phenytoin is generally not recommended for seizures caused by drug poisoning."
+    ],
+    [
+     "Flumazenil",
+     "It does not treat venlafaxine toxicity and may precipitate seizures."
+    ],
+    [
+     "Naloxone",
+     "It is not an antidote for venlafaxine-induced seizures."
+    ]
+   ],
+   "source": "TOXBASE: Venlafaxine overdose; Goldfrank’s Toxicologic Emergencies, 11th ed.",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "bupivacaine-lipid-rescue-7",
+   "stem": "During a regional anaesthetic, a patient develops a seizure followed by ventricular arrhythmia shortly after receiving bupivacaine. Local anaesthetic systemic toxicity is suspected.",
+   "right": "Give 20% intravenous lipid emulsion",
+   "explain": "For severe **local anaesthetic systemic toxicity**, administer 20% lipid emulsion alongside resuscitation and seizure control.",
+   "wrong": [
+    [
+     "Intravenous sodium bicarbonate",
+     "Used for sodium-channel blocker toxicity, not as the specific rescue treatment for bupivacaine toxicity."
+    ],
+    [
+     "Intravenous calcium gluconate",
+     "Does not reverse local anaesthetic systemic toxicity."
+    ],
+    [
+     "Intravenous naloxone",
+     "Reverses opioid toxicity, not bupivacaine toxicity."
+    ]
+   ],
+   "source": "ASRA Checklist for Treatment of Local Anesthetic Systemic Toxicity, 2020",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "methotrexate-folinic-acid-resc-8",
+   "stem": "A patient accidentally takes a large daily dose of methotrexate instead of the prescribed weekly dose and develops mucositis and pancytopenia. The serum methotrexate concentration is elevated.",
+   "right": "Folinic acid (leucovorin) rescue",
+   "explain": "Leucovorin bypasses the folate blockade and is the key **rescue treatment** after methotrexate toxicity; dosing is guided by the exposure and clinical context.",
+   "wrong": [
+    [
+     "Folic acid alone",
+     "It is not an adequate substitute for leucovorin rescue in significant methotrexate toxicity."
+    ],
+    [
+     "Uridine triacetate",
+     "This is an antidote for fluoropyrimidine toxicity, not methotrexate."
+    ],
+    [
+     "Methylene blue",
+     "Used for methaemoglobinaemia, not antifolate toxicity."
+    ]
+   ],
+   "source": "NHS Specialist Pharmacy Service, Managing interactions with methotrexate; EXTRIP Workgroup, Methotrexate recommendations",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "gabapentin-dialysis-9",
+   "stem": "A patient with end-stage kidney disease accidentally takes a large amount of gabapentin and becomes deeply obtunded, requiring mechanical ventilation. Gabapentin is predominantly renally eliminated.",
+   "right": "Intermittent haemodialysis",
+   "explain": "In severe gabapentin poisoning with **impaired kidney function**, extracorporeal removal is suggested; provide supportive care as well.",
+   "wrong": [
+    [
+     "Intravenous flumazenil",
+     "Gabapentin is not a benzodiazepine, and flumazenil will not reverse its effects."
+    ],
+    [
+     "Intravenous naloxone",
+     "Naloxone does not reverse gabapentin toxicity."
+    ],
+    [
+     "Activated charcoal as the sole treatment",
+     "It does not address severe established toxicity or impaired drug clearance."
+    ]
+   ],
+   "source": "EXTRIP Workgroup, Gabapentin and Pregabalin recommendations, 2022",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "baclofen-dialysis-10",
+   "stem": "A patient with advanced chronic kidney disease develops coma and respiratory depression after taking a therapeutic dose of baclofen. The presentation is attributed to baclofen accumulation.",
+   "right": "Extracorporeal treatment, preferably intermittent haemodialysis",
+   "explain": "EXTRIP suggests extracorporeal treatment for **baclofen toxicity in kidney impairment**, particularly when coma requires mechanical ventilation.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "Baclofen acts at GABA-B receptors; flumazenil reverses benzodiazepines."
+    ],
+    [
+     "Naloxone",
+     "This does not reverse baclofen toxicity."
+    ],
+    [
+     "Physostigmine",
+     "It is not an antidote for baclofen poisoning."
+    ]
+   ],
+   "source": "EXTRIP Workgroup, Baclofen recommendations, 2021",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "antipsychotic-acute-dystonia-11",
+   "stem": "A patient taking haloperidol develops painful torticollis and sustained upward eye deviation shortly after a dose increase. They are alert and have no fever or autonomic instability.",
+   "right": "Intravenous or intramuscular benztropine",
+   "explain": "This is an **acute dystonic reaction**; a parenteral anticholinergic such as benztropine rapidly relieves symptoms.",
+   "wrong": [
+    [
+     "Dantrolene",
+     "Used for malignant hyperthermia and sometimes neuroleptic malignant syndrome, not uncomplicated acute dystonia."
+    ],
+    [
+     "Bromocriptine",
+     "Used in neuroleptic malignant syndrome, which is not the presentation here."
+    ],
+    [
+     "Propranolol",
+     "Can help akathisia, but is not the preferred rapid treatment for acute dystonia."
+    ]
+   ],
+   "source": "Maudsley Prescribing Guidelines in Psychiatry, 14th edition",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "phenelzine-toxicity-control-12",
+   "stem": "A patient who overdosed on phenelzine is severely agitated, tachycardic and hypertensive, without evidence of end-organ injury. They are being managed in a monitored resuscitation area.",
+   "right": "Titrated intravenous benzodiazepines",
+   "explain": "Benzodiazepines are first-line for agitation and sympathetic overactivity in **MAOI poisoning**; use supportive care and manage persistent severe hypertension with specialist guidance.",
+   "wrong": [
+    [
+     "Intravenous physostigmine",
+     "It is not an antidote for MAOI poisoning and may cause serious adverse effects."
+    ],
+    [
+     "Oral activated charcoal as the only treatment",
+     "It does not control agitation or cardiovascular complications and may be unsafe in an unprotected airway."
+    ],
+    [
+     "Intravenous propranolol",
+     "Beta-blockade alone can be hazardous in severe sympathomimetic toxicity."
+    ]
+   ],
+   "source": "Goldfrank's Toxicologic Emergencies, 11th edition",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "antipsychotic-akathisia-13",
+   "stem": "After an increase in risperidone, a patient develops intense inner restlessness and an inability to sit still. There is no rigidity, fever or clonus.",
+   "right": "Propranolol",
+   "explain": "For antipsychotic-induced **akathisia**, propranolol is a commonly recommended symptomatic treatment, alongside reviewing the causative drug.",
+   "wrong": [
+    [
+     "Benztropine",
+     "More useful for acute dystonia or parkinsonism than akathisia."
+    ],
+    [
+     "Dantrolene",
+     "Used for malignant hyperthermia and sometimes neuroleptic malignant syndrome."
+    ],
+    [
+     "Cyproheptadine",
+     "Used in selected cases of serotonin toxicity, not antipsychotic-induced akathisia."
+    ]
+   ],
+   "source": "American Psychiatric Association, Practice Guideline for the Treatment of Patients With Schizophrenia, 3rd edition",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "colchicine-overdose-14",
+   "stem": "A patient presents early after a large colchicine overdose, with severe vomiting and abdominal pain. The ingestion is potentially life-threatening, but the patient is currently haemodynamically stable.",
+   "right": "Urgent toxicology consultation and supportive care; no established specific antidote",
+   "explain": "There is **no routinely available specific antidote** for colchicine poisoning; early specialist advice and intensive supportive management are essential.",
+   "wrong": [
+    [
+     "Intravenous folinic acid",
+     "This is used as rescue for methotrexate toxicity, not colchicine poisoning."
+    ],
+    [
+     "Intravenous vitamin K",
+     "It does not reverse colchicine toxicity."
+    ],
+    [
+     "Intravenous sodium bicarbonate",
+     "It is not a specific treatment for colchicine poisoning."
+    ]
+   ],
+   "source": "Goldfrank's Toxicologic Emergencies, 11th edition",
+   "cat": "Painkillers & psychiatric drugs"
+  }
+ ],
+ "algorithms": []
+}
