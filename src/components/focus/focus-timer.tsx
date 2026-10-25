@@ -45,6 +45,9 @@ function useWakeLock(on: boolean) {
   }, [on]);
 }
 
+/** What each scene is called. */
+const SCENE_NAME: Record<Scene, string> = { focus: "🌿 Quiet", social: "☕ Café", window: "🏙️ Street view" };
+
 /** Paper card on a wooden café table. */
 function Table({ children }: { children: React.ReactNode }) {
   return (
@@ -168,13 +171,21 @@ export function FocusTimer() {
   const si = scenes.indexOf(scene);
   return (
     <div className={cn("fixed inset-0 z-[40] flex flex-col overflow-hidden", scene === "focus" ? "focus-table" : scene === "social" ? "bg-[radial-gradient(80%_60%_at_30%_20%,#f7dcc0,transparent_60%),radial-gradient(70%_60%_at_80%_40%,#f1e2c9,transparent_60%),#efe6d8]" : "bg-black")}>
-      {scene === "window" && <video src="/focus/window-delhi.webm" autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />}
+      {scene === "window" && (
+        <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover">
+          <source src="/focus/window-delhi.webm" type="video/webm" />
+          <source src="/focus/window-delhi.mp4" type="video/mp4" />
+        </video>
+      )}
       {scene === "social" && <SocialScene />}
-      <audio ref={audio} src="/focus/cafe.ogg" loop preload="none" />
+      <audio ref={audio} loop preload="none">
+        <source src="/focus/cafe.ogg" type="audio/ogg" />
+        <source src="/focus/cafe.mp3" type="audio/mpeg" />
+      </audio>
 
       <div className="relative z-10 flex items-center justify-between px-4 pt-[max(14px,env(safe-area-inset-top))]">
         <button type="button" onClick={() => { tap(); stop(); toast(unlimited ? "Saved to today" : active.phase === "focus" ? "Stopped — not recorded" : "Break skipped", { tone: "info" }); }} className="focus-sign" aria-label="Leave the table">☕ menu</button>
-        <span className="focus-sign">{scene}</span>
+        <span className="focus-sign">{SCENE_NAME[scene]}</span>
         <span className="focus-sign tabular">{todayMinutes(done)} min today</span>
       </div>
 
@@ -192,7 +203,21 @@ export function FocusTimer() {
       {/* The table, and your drink emptying on it */}
       <div className="focus-tabletop relative z-10 flex flex-col items-center pt-2 pb-[max(14px,env(safe-area-inset-bottom))]">
         <div className="-mt-24 transition-transform duration-1000" style={{ transform: `rotate(${pct * 40 - 20}deg)` }}>
-          <Cup drink={active.drink} left={unlimited ? 1 : active.phase === "break" ? 1 : 1 - pct} size={170} steam={isRunning && active.phase === "focus"} />
+          <div className="relative">
+            {isRunning && (
+              <>
+                {/* Soothing: steam rising, ripples spreading, the cup breathing slowly. */}
+                <span aria-hidden className="focus-ripple absolute inset-[18%] rounded-full border-2 border-white/70" />
+                <span aria-hidden className="focus-ripple absolute inset-[18%] rounded-full border-2 border-white/60 [animation-delay:2s]" />
+                <svg aria-hidden viewBox="0 0 120 80" className="pointer-events-none absolute -top-16 left-1/2 w-28 -translate-x-1/2">
+                  {[30, 60, 90].map((x, i) => <path key={x} className="focus-wisp" style={{ animationDelay: `${i * 1.1}s` }} d={`M${x} 78 C ${x - 12} 58, ${x + 12} 44, ${x} 24 S ${x - 8} 6, ${x + 2} 0`} fill="none" stroke="#ffffff" strokeOpacity="0.8" strokeWidth="5" strokeLinecap="round" />)}
+                </svg>
+              </>
+            )}
+            <div className={isRunning ? "focus-breathe-cup" : undefined}>
+              <Cup drink={active.drink} left={unlimited ? 1 : active.phase === "break" ? 1 : 1 - pct} size={170} />
+            </div>
+          </div>
         </div>
         {scene !== "focus" && <div className="mt-1 font-mono text-[28px] font-medium text-[#24332c] tabular">{mmss(left)}</div>}
         <div className="mt-3 flex items-center gap-3">

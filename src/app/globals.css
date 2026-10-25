@@ -645,3 +645,12 @@ svg {
 @keyframes correct-pop { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
 .correct-pop { animation: correct-pop 0.35s ease-out; }
 @media (prefers-reduced-motion: reduce) { .page-enter, .correct-pop { animation: none; } button:active, a:active { transform: none; } }
+
+/* Focus: steam wisps rising, ripples spreading, the cup breathing — slow, like a long breath. */
+@keyframes focus-wisp { 0% { opacity: 0; transform: translateY(14px) scaleY(0.8); } 30% { opacity: 0.75; } 100% { opacity: 0; transform: translateY(-18px) scaleY(1.15); } }
+.focus-wisp { animation: focus-wisp 4.2s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom; filter: blur(1.5px); }
+@keyframes focus-ripple { 0% { transform: scale(0.7); opacity: 0.7; } 100% { transform: scale(1.35); opacity: 0; } }
+.focus-ripple { animation: focus-ripple 4s ease-out infinite; }
+@keyframes focus-breathe-cup { 0%, 100% { transform: scale(1) rotate(-1.5deg); } 50% { transform: scale(1.035) rotate(1.5deg); } }
+.focus-breathe-cup { animation: focus-breathe-cup 7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .focus-wisp, .focus-ripple, .focus-breathe-cup { animation: none; } }
