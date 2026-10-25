@@ -634,3 +634,14 @@ svg {
 @keyframes text-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 .shine-text { background: linear-gradient(90deg, rgb(254 243 199 / 0.45) 0%, #fff7d6 50%, rgb(254 243 199 / 0.45) 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: text-shimmer 2.6s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .shine-sweep::before, .shine-text { animation: none; } }
+
+/* Every button and link presses in a little — tactile, like a native app. */
+@layer base {
+  button:not(:disabled), a[href], [role="button"] { transition: transform 0.12s ease, background-color 0.15s, color 0.15s, box-shadow 0.15s, opacity 0.15s; -webkit-tap-highlight-color: transparent; }
+  button:not(:disabled):active, a[href]:active, [role="button"]:active { transform: scale(0.97); }
+}
+@keyframes page-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.page-enter { animation: page-enter 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes correct-pop { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.correct-pop { animation: correct-pop 0.35s ease-out; }
+@media (prefers-reduced-motion: reduce) { .page-enter, .correct-pop { animation: none; } button:active, a:active { transform: none; } }

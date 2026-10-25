@@ -1,5 +1,6 @@
 "use client";
 
+import { success, warn } from "@/lib/haptics";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ReportProblem } from "@/components/case/report-problem";
 import Link from "next/link";
@@ -76,6 +77,8 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
       const r = ref ? await examAnswer(ref.setId, ref.i, choice) : await examAnswer(set.id, index, choice);
       setChecked((c) => ({ ...c, [index]: { choice, ...r } }));
       playSfx(r.correct ? "correct" : "wrong");
+      if (r.correct) success();
+      else warn();
       // Their own tally, kept apart from cases, XP and rank.
       setStats((st) => {
         const base = st ?? { answered: 0, correct: 0, subjects: [] };

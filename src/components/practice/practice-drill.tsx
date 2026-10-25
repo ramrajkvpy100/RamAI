@@ -14,7 +14,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { CLINICAL_SUBJECTS, MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
 import { playSfx } from "@/lib/sfx";
-import { success } from "@/lib/haptics";
+import { success, warn } from "@/lib/haptics";
 
 interface Stat {
   modality: Modality;
@@ -117,6 +117,8 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
     const ok = i === item.answer;
     setPicked(i);
     playSfx(ok ? "correct" : "wrong");
+    if (ok) success();
+    else warn();
     setAnswered((a) => a + 1);
     if (ok) setRight((r) => r + 1);
     else setWrong((w) => [...w, item]);

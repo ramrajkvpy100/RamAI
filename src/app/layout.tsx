@@ -1,4 +1,5 @@
 import { RefCapture } from "@/components/app/ref-capture";
+import { HapticTouches } from "@/components/app/haptic-touches";
 import { FocusPill } from "@/components/focus/focus-pill";
 import { Toaster } from "@/components/shell/toaster";
 import type { Metadata, Viewport } from "next";
@@ -67,6 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <QuickSuggest />
         <Toaster />
         <FocusPill />
+        <HapticTouches />
       </body>
     </html>
   );
