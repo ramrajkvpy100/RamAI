@@ -14,6 +14,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { CLINICAL_SUBJECTS, MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
 import { playSfx } from "@/lib/sfx";
+import { success } from "@/lib/haptics";
 
 interface Stat {
   modality: Modality;
@@ -85,6 +86,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
   const finish = useCallback(() => {
     setOver(true);
     playSfx("win");
+    success();
   }, []);
 
   // Rapid-fire: the clock runs out.

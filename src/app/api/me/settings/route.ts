@@ -1,6 +1,6 @@
 import type { Country } from "@/engine/countries";
 import type { PatientLang } from "@/engine/types";
-import { requireUser, setCountry, setPatientLang, setSpecialty } from "@/server/auth";
+import { AuthError, requireUser, setCountry, setPatientLang, setProfileDetails, setSpecialty } from "@/server/auth";
 import type { PreferredSpecialty } from "@/lib/specialty";
 import { meFor } from "@/server/me";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -29,6 +29,13 @@ export async function POST(req: Request) {
     if (body.specialty) {
       await setSpecialty(user.id, body.specialty as PreferredSpecialty);
       next.specialty = body.specialty as PreferredSpecialty;
+    }
+    if (body.bio !== undefined || body.city !== undefined || body.college !== undefined) {
+      if (user.isGuest) throw new AuthError("UNAUTHENTICATED", "Sign up to fill in your profile.");
+      await setProfileDetails(user.id, { bio: body.bio, city: body.city, college: body.college });
+      if (body.bio !== undefined) next.bio = body.bio.trim() || null;
+      if (body.city !== undefined) next.city = body.city.trim() || null;
+      if (body.college !== undefined) next.college = body.college.trim() || null;
     }
     return ok(await meFor(next));
   } catch (err) {

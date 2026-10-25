@@ -111,21 +111,25 @@ export interface LeaderRow {
 }
 
 /** Verified players only (no guests); demo doctors only when demo mode is on. */
-async function standings(board: BoardId, period: Period): Promise<Omit<LeaderRow, "rankTier" | "rankLabel">[]> {
+/** "Near me" (same city) or "My college": doctors who chose to say where they are. */
+export type Scope = { by: "city" | "college"; value: string } | null;
+
+async function standings(board: BoardId, period: Period, scope: Scope = null): Promise<Omit<LeaderRow, "rankTier" | "rankLabel">[]> {
   const since = period === "week" ? istWeekStart() : 0;
+  const local = scope ? ` AND lower(trim(u.${scope.by === "city" ? "city" : "college"})) = lower(trim(?))` : "";
   const rows = await db.all<{ userId: string; name: string; username: string; isDemo: number; xp: number; cases: number }>(
     `SELECT u.id AS userId, u.name, u.username, u.is_demo AS isDemo, SUM(r.xp) AS xp, COUNT(*) AS cases
      FROM results r JOIN users u ON u.id = r.user_id
      WHERE r.created_at >= ? AND ${BOARDS[board].where}
-       AND u.is_guest = 0 AND (u.is_demo = 1 OR u.email_verified_at IS NOT NULL) AND (u.is_demo = 0 OR ? = 1)
+       AND u.is_guest = 0 AND (u.is_demo = 1 OR u.email_verified_at IS NOT NULL) AND (u.is_demo = 0 OR ? = 1)${local}
      GROUP BY u.id ORDER BY xp DESC, cases ASC, MIN(r.created_at) ASC`,
-    since, demoPlayersEnabled() ? 1 : 0,
+    since, scope ? 0 : demoPlayersEnabled() ? 1 : 0, ...(scope ? [scope.value] : []),
   );
   return rows.map(({ isDemo, ...r }, i) => ({ ...r, demo: isDemo === 1, position: i + 1 }));
 }
 
-export async function leaderboard(board: BoardId, period: Period, viewerId?: string, limit = 50) {
-  const all = await standings(board, period);
+export async function leaderboard(board: BoardId, period: Period, viewerId?: string, limit = 50, scope: Scope = null) {
+  const all = await standings(board, period, scope);
   const top = all.slice(0, limit);
   const meRow = viewerId ? all.find((r) => r.userId === viewerId) : undefined;
   const progress = await progressForMany([...top, ...(meRow ? [meRow] : [])].map((r) => r.userId));

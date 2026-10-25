@@ -28,10 +28,13 @@ export interface Board {
   rows: LeaderRow[];
   me?: LeaderRow;
   total: number;
+  /** "Near me" / "My college": the place, or which detail the profile still needs. */
+  place?: string;
+  needs?: "city" | "college";
 }
 
-export async function fetchBoard(board: string, period: "week" | "all"): Promise<Board | null> {
-  const res = await fetch(`/api/leaderboard?board=${board}&period=${period}`, { cache: "no-store" }).catch(() => null);
+export async function fetchBoard(board: string, period: "week" | "all", scope?: "city" | "college"): Promise<Board | null> {
+  const res = await fetch(`/api/leaderboard?board=${board}&period=${period}${scope ? `&scope=${scope}` : ""}`, { cache: "no-store" }).catch(() => null);
   return res?.ok ? ((await res.json()) as Board) : null;
 }
 

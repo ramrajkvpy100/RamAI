@@ -1,5 +1,6 @@
 "use client";
 
+import { DebriefPipeline } from "@/components/debrief/pipeline";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -308,6 +309,7 @@ function Workspace() {
             </Sheet>
 
             <EndCaseDialog open={ending} onClose={() => setEnding(false)} onConfirm={endCase} busy={!!snap.sending} />
+            {/^(end|close|finish)\b/i.test(snap.sending?.input ?? "") && <DebriefPipeline />}
           </div>
         </MediaViewerProvider>
       </LiveMonitorProvider>

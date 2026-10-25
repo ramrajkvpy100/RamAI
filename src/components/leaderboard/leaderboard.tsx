@@ -419,16 +419,17 @@ function GlobalRow({ r, me, index }: { r: LeaderRow; me: boolean; index: number 
 
 function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
   const [board, setBoard] = useState<BoardId>("overall");
+  const [scope, setScope] = useState<"all" | "city" | "college">("all");
   const [data, setData] = useState<Board | null | undefined>(undefined);
 
   useEffect(() => {
     let live = true;
     setData(undefined);
-    void fetchBoard(board, "all").then((d) => live && setData(d));
+    void fetchBoard(board, "all", scope === "all" ? undefined : scope).then((d) => live && setData(d));
     return () => {
       live = false;
     };
-  }, [board]);
+  }, [board, scope]);
 
   const rows = data?.rows ?? [];
   const rest = rows.slice(3);
@@ -452,6 +453,16 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
         ))}
       </div>
 
+      {/* Compete with doctors near you: everyone, your city, your college (from your profile). */}
+      <div role="radiogroup" aria-label="Who" className="flex gap-1 self-start rounded-full bg-surface-3 p-1 text-[13px]">
+        {([["all", "🌏 Everyone"], ["city", "📍 Near me"], ["college", "🏥 My college"]] as const).map(([id, label]) => (
+          <button key={id} type="button" role="radio" aria-checked={scope === id} onClick={() => setScope(id)} className={cn("rounded-full px-3.5 py-1.5 font-medium whitespace-nowrap transition-colors", scope === id ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {data?.place && <p className="-mt-3 text-[12.5px] text-fg-2">Doctors in <b className="text-fg">{data.place}</b></p>}
+
       <section className="panel overflow-hidden" aria-live="polite" aria-busy={data === undefined}>
         {data === undefined ? (
           <div className="flex flex-col gap-2 p-5">
@@ -459,6 +470,8 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
               <div key={i} className="h-12 animate-breathe rounded-xl bg-surface-3" style={{ animationDelay: `${i * 120}ms` }} />
             ))}
           </div>
+        ) : data?.needs ? (
+          <EmptyState className="m-4 border-0" icon="users" title={data.needs === "city" ? "Add your city" : "Add your college"} body={`Say where you ${data.needs === "city" ? "are" : "study or work"} on your profile to compete with doctors ${data.needs === "city" ? "near you" : "from your college"}.`} action={{ label: "Open profile", href: "/profile" }} />
         ) : rows.length === 0 ? (
           <EmptyState className="m-4 border-0" icon="trophy" title="No scores here yet" body={board === "hard" ? "Hard cases are the top three levels — teaching hospital and up. Finish one to take first place." : "Finish a case to take first place."} action={{ label: "Play a case", href: "/cases" }} />
         ) : (

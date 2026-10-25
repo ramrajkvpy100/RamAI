@@ -97,5 +97,8 @@ export const SettingsSchema = z
     patientLang: z.enum(PATIENT_LANGS as unknown as [string, ...string[]]).optional(),
     country: CountryField.optional(),
     specialty: z.enum(PREFERRED_SPECIALTIES as unknown as [string, ...string[]]).optional(),
+    bio: z.string().max(160).optional(),
+    city: z.string().max(60).regex(/^[\p{L}\p{N} .,'()-]*$/u).optional(),
+    college: z.string().max(100).regex(/^[\p{L}\p{N} .,'()&-]*$/u).optional(),
   })
-  .refine((s) => s.patientLang !== undefined || s.country !== undefined || s.specialty !== undefined, "Nothing to change.");
+  .refine((s) => s.patientLang !== undefined || s.country !== undefined || s.specialty !== undefined || s.bio !== undefined || s.city !== undefined || s.college !== undefined, "Nothing to change.");

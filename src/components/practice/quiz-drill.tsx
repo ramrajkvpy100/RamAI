@@ -7,6 +7,7 @@ import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
+import { success } from "@/lib/haptics";
 import type { QuizQuestion } from "@/lib/skills";
 
 /** A set of questions: pick one, see why — and why not the others — then the next. */
@@ -57,7 +58,7 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
           <ExplainMore key={q.id + i} drill={title} question={q.stem} options={q.options} answer={q.options[q.answer]!} explanation={q.explain} />
           <div className="mt-3 flex items-center justify-between gap-2">
             <ReportProblem compact target={{ area: "skills", ref: `${title} · ${q.stem.slice(0, 90)}`, details: `${q.stem}\n\nOptions: ${q.options.map((o, n) => `${n === q.answer ? "✓ " : ""}${o}`).join(" | ")}\n\nExplanation: ${q.explain}\nSource: ${q.source}` }} />
-            <button type="button" onClick={() => { setPicked(null); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < qs.length ? "Next" : "See your score"}</button>
+            <button type="button" onClick={() => { setPicked(null); if (i + 1 >= qs.length) success(); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < qs.length ? "Next" : "See your score"}</button>
           </div>
         </section>
       )}

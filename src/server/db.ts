@@ -725,6 +725,10 @@ async function migrate(b: Backend) {
   if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
   // The doctor's own specialty, asked once: NULL = not asked yet, 'mixed' = every specialty.
   if (!columns.includes("specialty")) add.push("ALTER TABLE users ADD COLUMN specialty TEXT");
+  // A short bio on the profile, and where they work or study — for "near me" and "my college" leaderboards.
+  if (!columns.includes("bio")) add.push("ALTER TABLE users ADD COLUMN bio TEXT");
+  if (!columns.includes("city")) add.push("ALTER TABLE users ADD COLUMN city TEXT");
+  if (!columns.includes("college")) add.push("ALTER TABLE users ADD COLUMN college TEXT");
   // Exam practice sets: previous-year pattern or concept practice.
   const examSetColumns = (await b.all<{ name: string }>("PRAGMA table_info(exam_sets)")).map((c) => c.name);
   if (!examSetColumns.includes("style")) add.push("ALTER TABLE exam_sets ADD COLUMN style TEXT NOT NULL DEFAULT 'concept'");

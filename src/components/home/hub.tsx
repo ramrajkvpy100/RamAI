@@ -13,6 +13,9 @@ import { cn } from "@/lib/cn";
 import { dailyKeyFor, dailyNumber } from "@/lib/daily";
 import { useMe, type Me } from "@/lib/me-store";
 
+import { FocusWidget } from "@/components/focus/focus-widget";
+import { HomeTour, tourSeen, type TourStop } from "./home-tour";
+
 const greeting = (h = new Date().getHours()) => (h < 5 ? "Late shift" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening");
 const firstName = (name: string) => name.replace(/^dr\.?\s+/i, "").split(/\s+/)[0] ?? name;
 
@@ -24,7 +27,18 @@ const PLACES = [
   { href: "/leaderboard", icon: "trophy", title: "Leaderboard", line: "Your weekly league and rank", tint: "from-emerald-500 to-teal-400", soft: "from-emerald-500/10 to-teal-400/5" },
   { href: "/community", icon: "users", title: "Community", line: "Ask, share and discuss cases", tint: "from-rose-500 to-pink-400", soft: "from-rose-500/10 to-pink-400/5" },
   { href: "/progress", icon: "award", title: "Progress", line: "Your strengths, gaps and report", tint: "from-sky-500 to-indigo-400", soft: "from-sky-500/10 to-indigo-400/5" },
+  { href: "/focus", icon: "clock", title: "Focus timer", line: "25-minute study sessions, then a break", tint: "from-stone-500 to-amber-500", soft: "from-stone-500/10 to-amber-500/5" },
 ] as const;
+
+/** The first-visit tour: one sentence per part of Home. */
+const TOUR: TourStop[] = [
+  { target: "hub-hello", title: "Your start button", body: "Start a case here — a new patient each time. Your rank and progress to the next one sit above it." },
+  { target: "hub-today", title: "Today", body: "Your streak and today's XP. Play a case a day to keep the streak going." },
+  { target: "hub-/cases", title: "Cases", body: "Choose OPD or Emergency and Easy, Medium or Hard. Stuck? Tap 👩‍⚕️ Senior — it gives the next step and a button that does it." },
+  { target: "hub-/practice", title: "Skills Lab", body: "Short drills: ECGs, X-rays, CT scrolls, clinical photos, heart and lung sounds, antidotes and calculations — with your progress in each." },
+  { target: "hub-/exams", title: "Exam MCQs", body: "NEET PG, USMLE and PLAB-style questions — 5 or 10 at a time, any subjects, any difficulty." },
+  { target: "hub-/leaderboard", title: "Compete", body: "Your weekly league — and boards for doctors near you and from your college." },
+];
 
 /**
  * Home, for a signed-in doctor: who you are and where you've got to, one clear next step, and every part of
@@ -36,6 +50,13 @@ export function Hub({ initial }: { initial: Me }) {
   const [hello, setHello] = useState("Welcome");
   useEffect(() => hydrate(me.user.id), [me.user.id]);
   useEffect(() => setHello(greeting()), []);
+  // New here: a quick tour, once.
+  const [tour, setTour] = useState(false);
+  useEffect(() => {
+    if (tourSeen()) return;
+    const t = window.setTimeout(() => setTour(true), 700);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const p = me.progress;
   const rank = rankFor(p.percent);
@@ -50,7 +71,7 @@ export function Hub({ initial }: { initial: Me }) {
   return (
     <div className="flex flex-col gap-5 pb-4">
       {/* You — a bright welcome card */}
-      <section className="bg-ai relative overflow-hidden rounded-[26px] p-5 text-white shadow-glow sm:p-7" aria-labelledby="hub-hello">
+      <section data-tour="hub-hello" className="bg-ai relative animate-rise overflow-hidden rounded-[26px] p-5 text-white shadow-glow sm:p-7" aria-labelledby="hub-hello">
         <svg aria-hidden viewBox="0 0 400 80" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 bottom-0 h-20 w-full opacity-25">
           <polyline fill="none" stroke="white" strokeWidth="2.5" strokeLinejoin="round" points="0,55 120,55 140,55 152,20 166,72 178,40 190,55 400,55" />
         </svg>
@@ -84,7 +105,7 @@ export function Hub({ initial }: { initial: Me }) {
       </section>
 
       {/* Today */}
-      <section className="grid grid-cols-2 gap-3" aria-label="Today">
+      <section data-tour="hub-today" className="grid animate-rise grid-cols-2 gap-3 [animation-delay:60ms]" aria-label="Today">
         <div className="panel flex items-center gap-3 p-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500/12">
             <Flame active={p.streakDays > 0} size={24} />
@@ -105,7 +126,7 @@ export function Hub({ initial }: { initial: Me }) {
           </div>
         </Link>
       </section>
-
+      <FocusWidget />
 
       {/* Everything, as tiles */}
       <section aria-labelledby="hub-places">
@@ -113,12 +134,14 @@ export function Hub({ initial }: { initial: Me }) {
           What would you like to do?
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          {PLACES.map((pl) => (
+          {PLACES.map((pl, n) => (
             <Link
               key={pl.href}
               href={pl.href}
               prefetch
-              className={cn("group relative flex min-h-[140px] flex-col gap-2 overflow-hidden rounded-[22px] border border-line bg-gradient-to-br p-4 transition-transform active:scale-[0.98] sm:p-5", pl.soft)}
+              data-tour={`hub-${pl.href}`}
+              style={{ animationDelay: `${100 + n * 40}ms` }}
+              className={cn("group relative flex animate-rise min-h-[140px] flex-col gap-2 overflow-hidden rounded-[22px] border border-line bg-gradient-to-br p-4 transition-transform active:scale-[0.98] sm:p-5", pl.soft)}
             >
               <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-md", pl.tint)}>
                 <Icon name={pl.icon} size={22} />
@@ -145,6 +168,7 @@ export function Hub({ initial }: { initial: Me }) {
         </span>
         <Icon name="arrow-right" size={18} className="shrink-0 text-fg-3 transition-transform group-hover:translate-x-0.5" />
       </Link>
+      <HomeTour stops={TOUR} open={tour} onClose={() => setTour(false)} />
     </div>
   );
 }

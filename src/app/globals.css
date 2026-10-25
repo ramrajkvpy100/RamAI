@@ -55,7 +55,7 @@
   --material-regular: rgb(255 255 255 / 0.6);
   --material-thick: rgb(250 250 252 / 0.88);
   --popover-bg: rgb(252 252 254);
-  --material-bar: rgb(248 248 250 / 0.985);
+  --material-bar: rgb(248 248 250 / 0.72);
   --material-edge: rgb(255 255 255 / 0.9);
   --material-stroke: rgb(0 0 0 / 0.07);
   /* The wallpaper the glass sits on. */
@@ -109,7 +109,7 @@
     --material-regular: rgb(30 30 34 / 0.58);
     --material-thick: rgb(36 36 40 / 0.88);
     --popover-bg: rgb(32 33 38);
-    --material-bar: rgb(18 18 22 / 0.985);
+    --material-bar: rgb(18 18 22 / 0.7);
     --material-edge: rgb(255 255 255 / 0.1);
     --material-stroke: rgb(255 255 255 / 0.1);
     --wall-1: rgb(10 132 255 / 0.3);
@@ -161,7 +161,7 @@
   --material-regular: rgb(30 30 34 / 0.58);
   --material-thick: rgb(36 36 40 / 0.88);
   --popover-bg: rgb(32 33 38);
-  --material-bar: rgb(18 18 22 / 0.985);
+  --material-bar: rgb(18 18 22 / 0.7);
   --material-edge: rgb(255 255 255 / 0.1);
   --material-stroke: rgb(255 255 255 / 0.1);
   --wall-1: rgb(10 132 255 / 0.3);
@@ -358,9 +358,11 @@
   box-shadow: inset 0 1px 0 var(--material-edge), var(--shadow-lg);
 }
 @utility material-bar {
+  /* Liquid glass: what's behind shows through, blurred and brightened, with a bright edge. */
   background: var(--material-bar);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.04);
+  backdrop-filter: blur(28px) saturate(200%) brightness(1.04);
+  box-shadow: inset 0 1px 0 var(--material-edge);
 }
 
 /* Glass surface with an inner top highlight. */
@@ -595,3 +597,7 @@ svg {
 @keyframes pulse-soft { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--accent-rgb, 79 70 229) / 0.35); } 50% { box-shadow: 0 0 0 6px rgb(var(--accent-rgb, 79 70 229) / 0); } }
 .pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .pulse-soft { animation: none; } }
+
+/* Low-end phones: solid bars — a live blur costs them frames and battery. */
+.lite { --material-bar: var(--bg); }
+.lite .material-bar, .lite .glass { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }

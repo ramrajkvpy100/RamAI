@@ -22,5 +22,10 @@ export async function GET(req: Request) {
   const board = (url.searchParams.get("board") ?? "overall") as BoardId;
   const period = (url.searchParams.get("period") === "week" ? "week" : "all") as Period;
   const id = board in BOARDS ? board : "overall";
-  return ok({ board: id, period, ...(await leaderboard(id, period, user?.id)) });
+  // Near me / my college: the viewer's own city or college (chosen in their profile).
+  const by = url.searchParams.get("scope");
+  const value = by === "city" ? user?.city : by === "college" ? user?.college : null;
+  if ((by === "city" || by === "college") && !value) return ok({ board: id, period, scope: by, needs: by, rows: [], total: 0 });
+  const scope = (by === "city" || by === "college") && value ? { by, value } as const : null;
+  return ok({ board: id, period, ...(scope ? { scope: scope.by, place: scope.value } : {}), ...(await leaderboard(id, period, user?.id, 50, scope)) });
 }

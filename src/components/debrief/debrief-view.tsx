@@ -3,7 +3,7 @@
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { Portal } from "@/components/ui/portal";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { CaseTopBar } from "@/components/case/case-top-bar";
 import { Timeline } from "@/components/case/timeline";
@@ -19,7 +19,12 @@ import { cn } from "@/lib/cn";
 import { money, STATUS_LABEL } from "@/lib/format";
 import { useStartingMessage } from "@/lib/use-starting-message";
 
+import { addCard, inDeck, removeCard } from "@/lib/revision-deck";
+import { tap } from "@/lib/haptics";
+import { toast } from "@/lib/toast";
+
 import { Bullets } from "./flow";
+import { SealedDebrief, tierFor } from "./sealed";
 import { DiseaseSection } from "./disease";
 import { LearnSection, useCoach } from "./learn";
 import { DailyShare } from "./daily-share";
@@ -152,6 +157,17 @@ function DemoDone({ name, won }: { name: string; won: boolean }) {
   );
 }
 
+/** "Save to revision deck" — a small bookmark that fills once saved. */
+function DeckButton({ text, onSave }: { text: string; onSave: (t: string) => void }) {
+  const [saved, setSaved] = useState(false);
+  useEffect(() => setSaved(inDeck(text)), [text]);
+  return (
+    <button type="button" onClick={() => { if (!saved) { onSave(text); setSaved(true); } }} aria-label={saved ? "In your revision deck" : "Add to your revision deck"} title={saved ? "In your revision deck" : "Add to your revision deck"} className={cn("shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors", saved ? "bg-success-soft text-success" : "bg-surface-3 text-fg-2 hover:text-fg")}>
+      {saved ? "✓ Saved" : "＋ Deck"}
+    </button>
+  );
+}
+
 const SEVERITY_RANK = { major: 3, moderate: 2, minor: 1 } as const;
 
 export function DebriefView({
@@ -197,6 +213,29 @@ export function DebriefView({
     window.location.assign(`/community?${params}`);
   };
 
+  // The sealed chart, opened once per case.
+  const sealKey = `ramai.sealed.${state.sessionId}`;
+  const [sealed, setSealed] = useState(() => {
+    try {
+      return typeof window !== "undefined" && !state.guided && sessionStorage.getItem(sealKey) !== "1";
+    } catch {
+      return false;
+    }
+  });
+  const unseal = () => {
+    try {
+      sessionStorage.setItem(sealKey, "1");
+    } catch {}
+    setSealed(false);
+  };
+  const tier = tierFor(d.score.total);
+  const deckFrom = `${d.diagnosis} · Case #${d.caseNumber}`;
+  const save = (text: string) => {
+    addCard(text, deckFrom);
+    tap();
+    toast("Added to your revision deck", { action: { label: "Undo", run: () => removeCard(text.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 80)) } });
+  };
+
   const verdict = VERDICT[d.verdict];
   const won = d.score.total >= 70 && (d.finalStatus === "improving" || d.finalStatus === "recovered" || d.finalStatus === "stable");
   const majors = d.missed.filter((m) => m.severity === "major").length;
@@ -223,6 +262,7 @@ export function DebriefView({
 
   return (
     <div className="min-h-dvh animate-fade">
+      {sealed && <SealedDebrief d={d} patient={state.patient.name ?? "Your patient"} onOpen={unseal} />}
       <CaseTopBar state={state} complete />
       <main className="selectable mx-auto w-full max-w-5xl px-4 pt-10 pb-32 sm:px-6 sm:pt-14">
         {state.duel && <DuelCard id={state.duel} className="mb-6" />}
@@ -242,6 +282,8 @@ export function DebriefView({
             </div>
             <div className="flex flex-col items-start gap-3 lg:items-center">
               <ScoreRing score={d.score.total} />
+              <span className={cn("animate-pop rounded-full bg-gradient-to-r px-3 py-1 text-[12.5px] font-semibold text-white shadow-sm [animation-delay:300ms]", tier.tone)}>{tier.label}</span>
+              <span className="text-[12.5px] text-fg-2">Patient: <b className="text-fg">{STATUS_LABEL[d.finalStatus]}</b></span>
             </div>
           </div>
         </section>
@@ -256,15 +298,37 @@ export function DebriefView({
               {takeaways.map((m, i) => (
                 <li key={m.what} className="flex gap-3">
                   <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white", m.severity === "major" ? "bg-danger" : m.severity === "moderate" ? "bg-warning" : "bg-fg-3")}>{i + 1}</span>
-                  <span className="min-w-0 text-[14.5px] leading-6">
-                    <span className="font-semibold">{m.what}</span>
-                    {m.better && <span className="block text-fg-2">→ {m.better}</span>}
+                  <span className="min-w-0 flex-1 text-[14.5px] leading-6">
+                    <span className="font-semibold"><Rich text={m.what} /></span>
+                    {m.why && <span className="block text-[13px] text-danger">Risk: <Rich text={m.why} /></span>}
+                    {m.better && <span className="block text-fg-2">→ <Rich text={m.better} /></span>}
                   </span>
+                  <DeckButton text={`${m.what} → ${m.better ?? ""}`.trim()} onSave={save} />
                 </li>
               ))}
             </ol>
           )}
-          <blockquote className="mt-4 border-l-2 border-accent pl-4 text-[15px] leading-7 text-pretty">💡 {d.pearl}</blockquote>
+          <div className="mt-4 flex items-start gap-2">
+            <blockquote className="flex-1 border-l-2 border-accent pl-4 text-[15px] leading-7 text-pretty">💡 <Rich text={d.pearl} /></blockquote>
+            <DeckButton text={d.pearl} onSave={save} />
+          </div>
+          {d.didWell.length > 0 && (
+            <div className="mt-4 rounded-xl bg-success-soft px-4 py-3">
+              <p className="text-[12px] font-semibold tracking-[0.08em] text-success uppercase">Complications you prevented</p>
+              <ul className="mt-1 flex flex-col gap-1 text-[13.5px] leading-6">
+                {d.didWell.slice(0, 3).map((w) => <li key={w}>✓ <Rich text={w} /></li>)}
+              </ul>
+            </div>
+          )}
+          {!state.guided && (
+            <button type="button" onClick={onNext} disabled={starting} className="mt-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-accent-soft px-4 py-3 text-left transition-transform active:scale-[0.99] disabled:opacity-60">
+              <span>
+                <span className="block text-[14.5px] font-semibold text-accent-text">{won ? `You handled ${d.diagnosis} well — try the next patient` : "Try another patient while it's fresh"}</span>
+                <span className="block text-[12.5px] text-fg-2">A new case — put what you just learned to work.</span>
+              </span>
+              <Icon name="arrow-right" size={18} className="shrink-0 text-accent-text" />
+            </button>
+          )}
         </section>
         {coach ? (
           <CoachFeedback coach={coach} />

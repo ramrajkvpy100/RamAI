@@ -287,7 +287,22 @@ export function Conversation({
   const scroller = useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = useState(true);
   const [unseen, setUnseen] = useState(false);
-  const blocks = useMemo(() => toBlocks(state.messages, state.arrivalMinuteOfDay), [state.messages, state.arrivalMinuteOfDay]);
+  // Two threads: the patient (and family), and the team (nurse, senior, results). "All" shows both, as before.
+  const [thread, setThread] = useState<"all" | "patient" | "team">("all");
+  const shown = useMemo(() => {
+    if (thread === "all") return state.messages;
+    const isPatient = (r: string) => r === "patient" || r === "attendant" || r === "caller";
+    const out: typeof state.messages = [];
+    state.messages.forEach((m, i) => {
+      if (m.role === "doctor") {
+        // A doctor's line goes with whoever answered it.
+        const reply = state.messages.slice(i + 1).find((x) => x.role !== "doctor");
+        if (!reply || isPatient(reply.role) === (thread === "patient")) out.push(m);
+      } else if (isPatient(m.role) === (thread === "patient")) out.push(m);
+    });
+    return out;
+  }, [state.messages, thread]);
+  const blocks = useMemo(() => toBlocks(shown, state.arrivalMinuteOfDay), [shown, state.arrivalMinuteOfDay]);
   const phone = state.track === "phone";
   const asking = !!sendingInput && /\?\s*$|^(any|do|does|did|how|what|when|where|why|are|is|have|has|tell)\b/i.test(sendingInput.trim());
 
@@ -317,8 +332,15 @@ export function Conversation({
   let lastDay = 0;
   return (
     <div className="relative min-h-0 flex-1">
+      <div role="tablist" aria-label="Conversation" className="glass absolute top-2 left-1/2 z-10 flex -translate-x-1/2 gap-0.5 rounded-full p-0.5 text-[12.5px]">
+        {([["all", "All"], ["patient", "🧑 Patient"], ["team", "👩‍⚕️ Team"]] as const).map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={thread === id} onClick={() => setThread(id)} className={cn("rounded-full px-3 py-1 font-medium whitespace-nowrap transition-colors", thread === id ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+            {label}
+          </button>
+        ))}
+      </div>
       <div ref={scroller} className="scroll-area h-full">
-        <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Encounter transcript" className="mx-auto flex w-full max-w-[760px] flex-col gap-4 px-4 pt-6 pb-10 sm:px-6">
+        <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Encounter transcript" className="mx-auto flex w-full max-w-[760px] flex-col gap-4 px-4 pt-14 pb-10 sm:px-6">
           <PatientIntro state={state} />
           {blocks.map((block) => {
             const sep = block.day !== lastDay;

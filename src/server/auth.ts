@@ -48,6 +48,11 @@ export interface User {
   country: Country;
   /** The doctor's specialty — their cases come from it. "mixed": every specialty. null: not asked yet. */
   specialty: PreferredSpecialty | null;
+  /** On their profile, in their own words. */
+  bio: string | null;
+  /** Where they work or study — chosen by them; for the "near me" and "my college" boards. */
+  city: string | null;
+  college: string | null;
 }
 
 interface UserRow {
@@ -66,6 +71,9 @@ interface UserRow {
   league_tier: number;
   country: string | null;
   specialty?: string | null;
+  bio?: string | null;
+  city?: string | null;
+  college?: string | null;
 }
 
 function toUser(r: UserRow): User {
@@ -84,6 +92,9 @@ function toUser(r: UserRow): User {
     leagueTier: r.league_tier ?? 0,
     country: isCountry(r.country) ? r.country : "IN",
     specialty: isPreferredSpecialty(r.specialty) ? r.specialty : null,
+    bio: r.bio ?? null,
+    city: r.city ?? null,
+    college: r.college ?? null,
   };
 }
 
@@ -263,6 +274,14 @@ export async function setPatientLang(userId: string, lang: PatientLang) {
 
 export async function setCountry(userId: string, country: Country) {
   await db.run("UPDATE users SET country = ? WHERE id = ?", country, userId);
+}
+
+/** Bio, city and college — what they choose to show; each trimmed, empty means none. */
+export async function setProfileDetails(userId: string, d: { bio?: string; city?: string; college?: string }) {
+  const clean = (x: string | undefined) => (x === undefined ? undefined : x.trim().replace(/\s+/g, " ") || null);
+  const sets = (["bio", "city", "college"] as const).filter((k) => d[k] !== undefined);
+  if (!sets.length) return;
+  await db.run(`UPDATE users SET ${sets.map((k) => `${k} = ?`).join(", ")} WHERE id = ?`, ...sets.map((k) => clean(d[k]) ?? null), userId);
 }
 
 export async function setSpecialty(userId: string, specialty: PreferredSpecialty) {

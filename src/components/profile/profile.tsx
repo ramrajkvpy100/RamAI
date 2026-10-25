@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileDetails } from "./profile-details";
 import { AvatarMaker } from "./avatar-maker";
 
 import Link from "next/link";
@@ -68,7 +69,7 @@ export function Profile({ initial }: { initial: Me }) {
       <section className="panel flex flex-col gap-6 p-6 md:flex-row md:items-center">
         <div className="flex min-w-0 items-center gap-4">
           <button type="button" onClick={() => setMaking(true)} aria-label="Make your avatar" className="group relative shrink-0 rounded-full">
-            <Avatar name={me.user.name} size={72} style={live?.avatar ?? me.avatar} />
+            <Avatar name={me.user.name} size={104} style={live?.avatar ?? me.avatar} />
             <span className="absolute -right-1 -bottom-1 rounded-full bg-accent px-1.5 py-0.5 text-[10.5px] font-semibold text-on-accent shadow ring-2 ring-surface">✏️ Edit</span>
           </button>
           {making && <AvatarMaker onClose={() => setMaking(false)} />}
@@ -77,6 +78,7 @@ export function Profile({ initial }: { initial: Me }) {
             <p className="mt-1 text-[13.5px] text-fg-2">
               @{me.user.username} · Joined {joined(me.user.createdAt)}
             </p>
+            {!me.user.isGuest && <ProfileDetails user={live?.user ?? me.user} />}
             <p className="mt-2 flex items-center gap-2 text-[12.5px]">
               {me.user.plan === "pro" ? (
                 <span className="bg-ai inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-semibold text-white">

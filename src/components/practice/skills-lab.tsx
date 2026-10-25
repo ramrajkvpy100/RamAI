@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { RadiologyReporting } from "@/components/radiology/radiology-reporting";
@@ -100,6 +101,7 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
         <header>
           <h1 className="text-[28px] font-semibold tracking-[-0.03em]">Skills Lab</h1>
           <p className="mt-1 text-[14.5px] text-fg-2">{level === "basic" ? "Must-know drills for your level — a few minutes each." : "Short drills — a few minutes each."}</p>
+          <Link href="/revision" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3.5 py-1.5 text-[13px] font-semibold ring-1 ring-line hover:bg-surface-3">📚 Revision deck</Link>
         </header>
         {groups.map(([title, note, ids]) => (
           <section key={title} className="flex flex-col gap-2.5">
