@@ -17,8 +17,8 @@ import { isPushEndpoint, sendPush, type PushMessage, type PushTarget } from "./p
 const MAX_DEVICES = 10;
 /** A browser whose push service keeps refusing is forgotten after this many evenings. */
 const MAX_FAILURES = 5;
-/** Reminders only go out in the evening, India time, whoever triggers the job. */
-const WINDOW_HOURS_IST = { from: 17, to: 23 };
+/** Reminder hours a doctor can choose, India time. */
+export const REMIND_HOURS = { from: 6, to: 23 };
 const IST_OFFSET_MS = 330 * 60_000;
 
 /** Why a subscription can't be stored, or null when it's sound. */
@@ -38,12 +38,12 @@ export function subscriptionProblem(sub: PushTarget): string | null {
 }
 
 /** Stores (or refreshes) this browser's subscription for the player. A browser belongs to whoever subscribed last. */
-export async function saveSubscription(userId: string, sub: PushTarget, now = Date.now()) {
+export async function saveSubscription(userId: string, sub: PushTarget, now = Date.now(), hour = 19) {
   await db.batch([
     {
-      sql: `INSERT INTO push_subscriptions (endpoint, user_id, p256dh, auth, seen_at, failures) VALUES (?, ?, ?, ?, ?, 0)
-            ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth, seen_at = excluded.seen_at, failures = 0`,
-      args: [sub.endpoint, userId, sub.p256dh, sub.auth, now],
+      sql: `INSERT INTO push_subscriptions (endpoint, user_id, p256dh, auth, seen_at, failures, remind_hour) VALUES (?, ?, ?, ?, ?, 0, ?)
+            ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth, seen_at = excluded.seen_at, failures = 0, remind_hour = excluded.remind_hour`,
+      args: [sub.endpoint, userId, sub.p256dh, sub.auth, now, hour],
     },
     {
       sql: `DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint NOT IN (SELECT endpoint FROM push_subscriptions WHERE user_id = ? ORDER BY seen_at DESC LIMIT ${MAX_DEVICES})`,
@@ -56,18 +56,18 @@ export async function removeSubscription(userId: string, endpoint: string) {
   await db.run("DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?", endpoint, userId);
 }
 
-/** The words: a streak about to break comes first. Never anything about the case itself. */
+/** The words: short, warm, a reason to open it now. A streak about to break comes first. Never anything about the case itself. */
 export function reminderFor(streakDays: number, dayKey: string, now: number): PushMessage {
   const hours = Math.max(1, Math.round((dailyEndsAt(dayKey) - now) / 3_600_000));
-  const daily = `Daily case #${dailyNumber(dayKey)}`;
-  if (streakDays > 0) {
-    return {
-      title: `🔥 Your ${streakDays}-day streak ends in ${hours} ${hours === 1 ? "hour" : "hours"}`,
-      body: `One case keeps it alive. ${daily} is waiting — the same patient for every doctor today.`,
-      url: "/",
-    };
-  }
-  return { title: `🩺 ${daily} is waiting`, body: "The same patient for every doctor today. Crack it and see where you rank.", url: "/" };
+  const n = dailyNumber(dayKey);
+  if (streakDays > 0 && hours <= 6) return { title: `🔥 ${streakDays} days strong`, body: `${hours} ${hours === 1 ? "hour" : "hours"} left — one quick case keeps your streak.`, url: "/" };
+  if (streakDays > 0) return { title: `🔥 Day ${streakDays + 1} is waiting`, body: "Your next patient is in. 10 minutes, one diagnosis.", url: "/" };
+  const lines = [
+    { title: "🩺 Your patient is waiting", body: `Daily case #${n} — the same patient for every doctor today.` },
+    { title: "☕ One case with your chai?", body: "Ten minutes. One patient. See how you'd handle it." },
+    { title: "🧠 Sharpen up — one case", body: `Daily case #${n} is open. Where will you rank today?` },
+  ];
+  return { ...lines[n % lines.length]!, url: "/" };
 }
 
 export interface ReminderRun {
@@ -90,14 +90,15 @@ export async function sendDailyReminders(opts: { now?: number; send?: typeof sen
   const day = dailyKeyFor(now);
   const run: ReminderRun = { day, due: 0, played: 0, sent: 0, gone: 0, failed: 0 };
   const hour = new Date(now + IST_OFFSET_MS).getUTCHours();
-  if (hour < WINDOW_HOURS_IST.from || hour >= WINDOW_HOURS_IST.to) return { ...run, skipped: "Reminders go out between 5 pm and 11 pm India time." };
+  if (hour < REMIND_HOURS.from || hour > REMIND_HOURS.to) return { ...run, skipped: "Reminders go out between 6 am and 11 pm India time." };
 
   const claimed = await db.all<PushTarget & { user_id: string }>(
     `UPDATE push_subscriptions SET last_sent_day = ?
-     WHERE (last_sent_day IS NULL OR last_sent_day != ?) AND user_id IN (SELECT id FROM users WHERE is_guest = 0)
+     WHERE (last_sent_day IS NULL OR last_sent_day != ?) AND remind_hour <= ? AND user_id IN (SELECT id FROM users WHERE is_guest = 0)
      RETURNING endpoint, p256dh, auth, user_id`,
     day,
     day,
+    hour,
   );
   run.due = claimed.length;
   if (!claimed.length) return run;

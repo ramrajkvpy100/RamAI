@@ -99,11 +99,26 @@ const pushSupported = () => "serviceWorker" in navigator && "PushManager" in win
 const unsupportedState = (): ReminderState => (isIos() && !isStandalone() ? "install-first" : "unsupported");
 
 /** When the reminder arrives, in the player's own time (the server sends it at about 7 pm India time). */
+/** The hour (this phone's own time, 6–23) the doctor wants the reminder; 7 pm unless chosen. */
+export function remindHour(): number {
+  try {
+    const h = Number(localStorage.getItem("ramai.remindHour"));
+    return h >= 6 && h <= 23 ? h : 19;
+  } catch {
+    return 19;
+  }
+}
+export function setRemindHour(h: number) {
+  try {
+    localStorage.setItem("ramai.remindHour", String(h));
+  } catch {}
+}
+/** The server counts in India time: the chosen local hour, there. */
+const istHour = (local: number) => Math.min(23, Math.max(6, Math.round(local + (330 + new Date().getTimezoneOffset()) / 60)));
+export const hourLabel = (h: number) => `${((h + 11) % 12) + 1} ${h < 12 ? "am" : "pm"}`;
+
 export function reminderTime(): string {
-  if (new Date().getTimezoneOffset() === -330) return "7 pm";
-  const at = new Date();
-  at.setUTCHours(13, 30, 0, 0);
-  return at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return hourLabel(remindHour());
 }
 
 let keyRequest: Promise<Uint8Array<ArrayBuffer>> | null = null;
@@ -211,7 +226,7 @@ export async function enableReminders(): Promise<ReminderState> {
   let sent = false;
   try {
     // The server sends a real reminder at once — the proof that evening reminders will reach this phone.
-    sent = !!(await tellServer("POST", sub.toJSON())).sent;
+    sent = !!(await tellServer("POST", { ...sub.toJSON(), hour: istHour(remindHour()) })).sent;
   } catch (err) {
     // Half on is worse than off: the browser would think it's subscribed.
     await sub.unsubscribe().catch(() => undefined);
@@ -239,4 +254,13 @@ export async function disableReminders(): Promise<void> {
     await sub.unsubscribe().catch(() => undefined);
   }
   setReminder(Notification.permission === "denied" ? "blocked" : "off");
+}
+
+/** A new hour for the reminder: saved here and on the server (reminders already on). */
+export async function changeRemindHour(h: number) {
+  setRemindHour(h);
+  if (reminder !== "on") return;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) await tellServer("POST", { ...sub.toJSON(), hour: istHour(h) });
 }

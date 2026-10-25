@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const b64url = z.string().max(200).regex(/^[A-Za-z0-9_-]+={0,2}$/);
-const SubscribeSchema = z.object({ endpoint: z.string().max(1000), keys: z.object({ p256dh: b64url, auth: b64url }) });
+const SubscribeSchema = z.object({ endpoint: z.string().max(1000), keys: z.object({ p256dh: b64url, auth: b64url }), hour: z.number().int().min(6).max(23).optional() });
 const UnsubscribeSchema = z.object({ endpoint: z.string().max(1000) });
 
 /** GET /api/push — the key browsers subscribe with. */
@@ -36,9 +36,9 @@ export async function POST(req: Request) {
     const sub = { endpoint: body.endpoint, p256dh: body.keys.p256dh.replace(/=+$/, ""), auth: body.keys.auth.replace(/=+$/, "") };
     const problem = subscriptionProblem(sub);
     if (problem) return apiError(400, "BAD_REQUEST", problem);
-    await saveSubscription(user.id, sub);
+    await saveSubscription(user.id, sub, Date.now(), body.hour ?? 19);
     // A notification at once, so the doctor knows reminders really reach this phone (and we learn if they don't).
-    const sent = await sendPush(sub, { title: "✅ Daily reminders are on", body: "We'll remind you each evening if you haven't played that day's case.", url: "/" }, 3600, "reminders-on")
+    const sent = await sendPush(sub, { title: "✅ You're all set", body: `A gentle nudge at ${(((body.hour ?? 19) + 11) % 12) + 1} ${(body.hour ?? 19) < 12 ? "am" : "pm"} — only on days you haven't played.`, url: "/" }, 3600, "reminders-on")
       .then((outcome) => outcome === "sent")
       .catch((err) => {
         console.error("[ramai] test reminder failed:", err instanceof Error ? err.message : err);

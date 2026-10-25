@@ -727,6 +727,9 @@ async function migrate(b: Backend) {
   if (!columns.includes("specialty")) add.push("ALTER TABLE users ADD COLUMN specialty TEXT");
   // A short bio on the profile, and where they work or study — for "near me" and "my college" leaderboards.
   if (!columns.includes("bio")) add.push("ALTER TABLE users ADD COLUMN bio TEXT");
+  // The hour (India time, 6–23) each phone wants its daily reminder.
+  const pushColumns = (await b.all<{ name: string }>("PRAGMA table_info(push_subscriptions)")).map((c) => c.name);
+  if (pushColumns.length && !pushColumns.includes("remind_hour")) add.push("ALTER TABLE push_subscriptions ADD COLUMN remind_hour INTEGER NOT NULL DEFAULT 19");
   if (!columns.includes("city")) add.push("ALTER TABLE users ADD COLUMN city TEXT");
   if (!columns.includes("college")) add.push("ALTER TABLE users ADD COLUMN college TEXT");
   // Exam practice sets: previous-year pattern or concept practice.

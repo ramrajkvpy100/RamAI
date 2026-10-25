@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
-import { disableReminders, enableReminders, promptInstall, useInstallRoute, useReminders } from "@/lib/app-install";
+import { changeRemindHour, disableReminders, enableReminders, hourLabel, promptInstall, remindHour, useInstallRoute, useReminders } from "@/lib/app-install";
+import { toast } from "@/lib/toast";
 
 import { InstallSheet } from "./install-sheet";
 
@@ -32,6 +33,8 @@ export function AppOptions({ guest, onNavigate }: { guest: boolean; onNavigate?:
   const [howTo, setHowTo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hour, setHour] = useState(19);
+  useEffect(() => setHour(remindHour()), []);
 
   const install = async () => {
     if (route === "prompt") await promptInstall();
@@ -76,6 +79,24 @@ export function AppOptions({ guest, onNavigate }: { guest: boolean; onNavigate?:
               <Switch on={reminder === "on"} busy={busy} label="Daily reminder" onChange={(on) => void toggle(on)} />
             )}
           </div>
+          {(reminder === "on" || reminder === "off") && (
+            <label className="mt-1.5 flex items-center justify-between gap-2 pl-[25px] text-[12.5px] text-fg-2">
+              Remind me at
+              <select
+                value={hour}
+                onChange={(e) => {
+                  const h = Number(e.target.value);
+                  setHour(h);
+                  void changeRemindHour(h).then(() => reminder === "on" && toast(`Reminder moved to ${hourLabel(h)}`)).catch(() => toast("Couldn't change the time — try again", { tone: "danger" }));
+                }}
+                className="rounded-lg border border-line bg-surface px-2 py-1 text-[13px] text-fg"
+              >
+                {Array.from({ length: 18 }, (_, i) => i + 6).map((h) => (
+                  <option key={h} value={h}>{hourLabel(h)}</option>
+                ))}
+              </select>
+            </label>
+          )}
           {reminder === "blocked" && <p className="mt-1 pl-[25px] text-[11.5px] leading-4 text-fg-3">Notifications are off for RamAI in this browser&apos;s settings.</p>}
           {error && (
             <p role="alert" className="mt-1 pl-[25px] text-[11.5px] leading-4 text-danger">
