@@ -59,6 +59,14 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/filepaths" />
         </provider>
 
+        <!-- Home-screen widget: today's daily case and quick links. -->
+        <receiver android:name=".RamWidget" android:exported="false" android:label="RamAI">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_ramai_info" />
+        </receiver>
+
         <service
             android:name="com.google.androidbrowserhelper.trusted.DelegationService"
             android:enabled="true"

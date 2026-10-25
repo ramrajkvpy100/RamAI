@@ -21,7 +21,7 @@ const PRESETS = [
  * image swapping, so scrolling stays smooth on any phone). Axial as acquired; sagittal and coronal reformatted from
  * the same slices; window/level by preset or by dragging sideways; full screen.
  */
-export function StackViewer({ id, slices, label }: { id: string; slices: number; label: string }) {
+export function StackViewer({ id, slices, label, windows }: { id: string; slices: number; label: string; /** True CT windows saved from the original scan ("soft", "lung", "bone"). */ windows?: string[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const vol = useRef<{ w: number; h: number; n: number; data: Uint8Array } | null>(null);
@@ -32,6 +32,8 @@ export function StackViewer({ id, slices, label }: { id: string; slices: number;
   const [loaded, setLoaded] = useState(0);
   const [counter, setCounter] = useState({ i: Math.floor(slices / 2), of: slices });
   const [preset, setPreset] = useState<string>("default");
+  /** Which saved window the slices come from (CT with true windows); "" = the stack as first shown. */
+  const [folder, setFolder] = useState("");
   const [full, setFull] = useState(false);
   const drag = useRef<{ x: number; y: number; at: number; w: number; l: number } | null>(null);
   const planeRef = useRef<Plane>("axial");
@@ -85,11 +87,12 @@ export function StackViewer({ id, slices, label }: { id: string; slices: number;
   // Load every slice once, as grey levels in one volume.
   useEffect(() => {
     let off = false;
+    const keep = vol.current ? { ...pos.current } : null;
     vol.current = null;
     setLoaded(0);
-    pos.current = { axial: Math.floor(slices / 2), sagittal: 0, coronal: 0 };
+    pos.current = keep ?? { axial: Math.floor(slices / 2), sagittal: 0, coronal: 0 };
     (async () => {
-      const urls = Array.from({ length: slices }, (_, n) => `/radiology/${id}/${String(n).padStart(3, "0")}.jpg`);
+      const urls = Array.from({ length: slices }, (_, n) => `/radiology/${id}/${folder ? `${folder}/` : ""}${String(n).padStart(3, "0")}.jpg`);
       let done = 0;
       const imgs = await Promise.all(
         urls.map((u) =>
@@ -116,14 +119,14 @@ export function StackViewer({ id, slices, label }: { id: string; slices: number;
         bm.close();
       });
       vol.current = { w, h, n: imgs.length, data };
-      pos.current = { axial: Math.floor(imgs.length / 2), sagittal: Math.floor(w / 2), coronal: Math.floor(h / 2) };
+      if (!keep) pos.current = { axial: Math.floor(imgs.length / 2), sagittal: Math.floor(w / 2), coronal: Math.floor(h / 2) };
       draw();
     })();
     return () => {
       off = true;
       cancelAnimationFrame(raf.current);
     };
-  }, [id, slices, draw]);
+  }, [id, slices, folder, draw]);
 
   useEffect(() => draw(), [plane, draw]);
 
@@ -212,7 +215,11 @@ export function StackViewer({ id, slices, label }: { id: string; slices: number;
       </div>
       <input type="range" min={0} max={Math.max(0, counter.of - 1)} value={counter.i} onChange={(e) => { pos.current[plane] = Number(e.target.value); draw(); }} aria-label="Slice" className="w-full accent-[var(--accent)]" />
       <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Window">
-        {PRESETS.map((p) => (
+        {windows?.length ? (["", ...windows] as string[]).map((w) => (
+          <button key={w || "shown"} type="button" role="radio" aria-checked={folder === w} onClick={() => { tap(); setFolder(w); setWindow(255, 128); }} className={cn("rounded-full border px-3 py-1 text-[12px] font-medium", folder === w ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2", full && folder !== w && "border-white/20 text-white/70")}>
+            {w === "" ? "As shown" : w === "soft" ? "Soft tissue" : w === "lung" ? "Lung window" : w === "bone" ? "Bone window" : w}
+          </button>
+        )) : PRESETS.map((p) => (
           <button key={p.id} type="button" role="radio" aria-checked={preset === p.id} onClick={() => { tap(); setPreset(p.id); setWindow(p.w, p.l); }} className={cn("rounded-full border px-3 py-1 text-[12px] font-medium", preset === p.id ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2", full && preset !== p.id && "border-white/20 text-white/70")}>
             {p.label}
           </button>

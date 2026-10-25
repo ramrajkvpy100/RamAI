@@ -14,7 +14,7 @@ import STACKS from "@/lib/radiology-stacks.json";
 
 import { StackViewer } from "./stack-viewer";
 
-type Item = DrillItem & { brief: RadiologyBrief; stack?: { id: string; slices: number; credit: string } };
+type Item = DrillItem & { brief: RadiologyBrief; stack?: { id: string; slices: number; credit: string; windows?: string[] } };
 type Tab = Modality | "mammo" | "mri";
 /** CT and MRI: scroll through the series (as at a workstation), or single images. */
 type View = "scroll" | "static";
@@ -42,7 +42,7 @@ const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 function stackItems(only: "CT" | "MR"): Item[] {
   return shuffle(STACKS.filter((s) => s.modality === only)).map((s) => {
     const options = shuffle(s.options);
-    return { item: s.id, image: null, ecg: null, options, answer: options.indexOf(s.diagnosis), key: s.key, credit: null, source: "commons" as const, brief: { history: s.history, question: s.question }, stack: { id: s.id, slices: s.slices, credit: s.credit } };
+    return { item: s.id, image: null, ecg: null, options, answer: options.indexOf(s.diagnosis), key: s.key, credit: null, source: "commons" as const, brief: { history: s.history, question: s.question }, stack: { id: s.id, slices: s.slices, credit: s.credit, ...("windows" in s && Array.isArray(s.windows) ? { windows: s.windows as string[] } : {}) } };
   });
 }
 
@@ -153,7 +153,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
           </section>
           {item.stack ? (
             <>
-              <StackViewer id={item.stack.id} slices={item.stack.slices} label="The study" />
+              <StackViewer id={item.stack.id} slices={item.stack.slices} label="The study" windows={item.stack.windows} />
               {picked !== null && <p className="-mt-1 text-[11px] text-fg-3">Study: {item.stack.credit}</p>}
             </>
           ) : (

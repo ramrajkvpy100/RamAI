@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import type { Country } from "@/engine/countries";
 import { menusFor, QUICK_ACTIONS } from "@/lib/tool-menus";
 import { useSpeech } from "@/lib/use-speech";
+import { useLiveTalk } from "@/lib/use-live-talk";
 
 import { useComposer } from "./composer-context";
 import { ToolMenu } from "./tool-menu";
@@ -49,6 +50,7 @@ export function Composer({
   const recall = useRef<number>(-1);
   const menuRef = useRef<HTMLDivElement>(null);
   const base = useRef("");
+  const talk = useLiveTalk(onSend, !!sending);
   const speech = useSpeech((text) => setDraft(base.current ? `${base.current} ${text}` : text));
   const actions = QUICK_ACTIONS.filter((a) => a.id !== "monitoring" && (!phone || a.id === "history" || a.id === "treatment"));
   const monitorAction = phone ? undefined : QUICK_ACTIONS.find((a) => a.id === "monitoring");
@@ -300,6 +302,11 @@ export function Composer({
             <Kbd>↵</Kbd> send <span className="mx-0.5">·</span> <Kbd>⇧</Kbd>
             <Kbd>↵</Kbd> new line
           </span>
+          {talk.supported && !phone && (
+            <button type="button" onClick={() => { tap(); talk.toggle(); }} aria-pressed={talk.on} title="Talk to the patient hands-free — they answer out loud" className={cn("flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[12.5px] font-semibold transition-colors", talk.on ? "pulse-ring bg-success text-white" : "bg-surface-3 text-fg-2 hover:text-fg")}>
+              {talk.on ? "● Live" : "🎙 Talk live"}
+            </button>
+          )}
           {speech.supported && (
             <IconButton
               label={speech.listening ? "Stop voice input" : "Speak instead of typing (uses your browser's speech service)"}
@@ -315,6 +322,11 @@ export function Composer({
           </IconButton>
         </div>
       </div>
+      {talk.on && (
+        <p role="status" className="mt-1.5 animate-enter px-2 text-[12.5px] text-success">
+          {sending ? "The patient is answering…" : talk.heard ? `“${talk.heard}”` : "Listening — just talk to the patient. Tap ● Live to stop."}
+        </p>
+      )}
       {speech.error && (
         <p role="status" className="mt-1.5 px-2 text-[12px] text-danger">
           {speech.error}

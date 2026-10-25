@@ -39,7 +39,12 @@
     "patient": "TCGA-DD-A3A4",
     "slices": 60,
     "series": "AXIAL",
-    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ"
+    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "covid-ct",
@@ -60,7 +65,12 @@
     "patient": "COVID-19-AR-16445144",
     "slices": 60,
     "series": "3MM",
-    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "normal-abdo-ct",
@@ -81,7 +91,12 @@
     "patient": "PANCREAS_0080",
     "slices": 61,
     "series": "Pancreas",
-    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "gbm-mri-2",
@@ -144,7 +159,12 @@
     "patient": "TCGA-G3-AAV4",
     "slices": 58,
     "series": "ARTERIAL LIVER",
-    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ"
+    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "covid-ct-2",
@@ -165,7 +185,12 @@
     "patient": "COVID-19-AR-16424071",
     "slices": 56,
     "series": "",
-    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "covid-ct-3",
@@ -186,7 +211,12 @@
     "patient": "COVID-19-AR-16434363",
     "slices": 49,
     "series": "3MM",
-    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "vs-mri-2",
@@ -228,7 +258,12 @@
     "patient": "PANCREAS_0046",
     "slices": 66,
     "series": "Pancreas",
-    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "normal-abdo-ct-3",
@@ -249,7 +284,12 @@
     "patient": "PANCREAS_0007",
     "slices": 67,
     "series": "Pancreas",
-    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "hcc-tace-ct",
@@ -270,7 +310,12 @@
     "patient": "HCC_058",
     "slices": 60,
     "series": "Recon 3: LIVER 3 PHASE (AP)",
-    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924"
+    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "lung-ca-ct-3",
@@ -291,7 +336,12 @@
     "patient": "C3N-00199",
     "slices": 51,
     "series": "ThoraxRoutine 3.0 B70f",
-    "credit": "Data from The Cancer Imaging Archive, CPTAC-LUAD collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.PAT12TBS"
+    "credit": "Data from The Cancer Imaging Archive, CPTAC-LUAD collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.PAT12TBS",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ]
   },
   {
     "id": "breast-mri-2",
