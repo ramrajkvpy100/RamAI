@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
   // Stamped into the page, so an open tab can tell when the site has moved on (see VersionCheck).
   env: { NEXT_PUBLIC_RAMAI_BUILD: process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "dev" },
   poweredByHeader: false,
+  // Pages already visited (or prefetched from the tab bar) open at once from the phone's memory, refreshed behind.
+  experimental: { staleTimes: { dynamic: 120, static: 600 } },
   // The share cards draw RamAI's heart from this picture: it must travel with the function.
   outputFileTracingIncludes: { "/api/share/**": ["./src/server/assets/**/*"] },
   async headers() {

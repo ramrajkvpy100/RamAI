@@ -861,7 +861,7 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
   try {
     // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
     const guess = ruled.filter((i) => i.kind !== "unknown").map((i) => `${i.kind}${i.targetId ? `:${i.targetId}` : ""}${i.payload && Object.keys(i.payload).length ? ` ${JSON.stringify(i.payload)}` : ""}`).join("; ");
-    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx, guess), 2400, true, 25_000, true);
+    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx, guess), 2400, true, 12_000, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
     const { speaker } = parsed.data;
@@ -1156,7 +1156,7 @@ export function createOpenAIProvider(): ClinicalProvider {
     async explainStep(step, ctx) {
       if (ctx.def.guided || step.stage === "end") return undefined;
       try {
-        const raw = (await chatJSON(stepPrompt(step, ctx, "why"), 300, false, 6_000, true)) as { why?: unknown };
+        const raw = (await chatJSON(stepPrompt(step, ctx, "why"), 300, false, 4_000, true)) as { why?: unknown };
         const why = typeof raw.why === "string" ? raw.why.trim() : "";
         if (!why || (step.stage !== "diagnosis" && step.stage !== "treatment" && leaksDiagnosis(ctx.def, why, ctx.transcript.map((m) => m.text).join(" ")))) return undefined;
         return why.slice(0, 400);
@@ -1195,7 +1195,7 @@ export function createOpenAIProvider(): ClinicalProvider {
       const rules = await mockProvider.interpret(text, ctx);
       // The senior's button and "Full history" are carried out exactly by the simulator — nothing to read.
       if (text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim())) return rules;
-      // Asking the senior: the rules pick the step; the model writes why it matters for this patient (6 s at most).
+      // Asking the senior: the rules pick the step; the model writes why it matters for this patient (4 s at most).
       if (rules.intents.length === 1 && rules.intents[0]!.kind === "hint" && this.explainStep) {
         const why = await this.explainStep(nextSeniorStep(ctx.def, ctx.hidden), ctx);
         return why ? { ...rules, generated: { ...rules.generated, [SENIOR_WHY_KEY]: why } } : rules;
@@ -1214,10 +1214,10 @@ export function createOpenAIProvider(): ClinicalProvider {
       const moreTests = testWords.length > ruled.filter((i) => i.kind === "investigation").length + 1 || (testWords.length === 2 && ruled.filter((i) => i.kind === "investigation").length === 1 && testWords.every((w) => w.length <= 6));
       const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || questionAsOrder || moreTests || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
       // Speed: a button (the senior's step, "Full history", a ready-made reply) or a plain order needs no rewording — the
-      // rules' words go straight back. Otherwise the patient's voice gets 1.5 s; past that, the rules' answer is shown.
+      // rules' words go straight back. Otherwise the patient's voice gets 0.8 s; past that, the rules' answer is shown.
       const button = text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim());
       const talk = ruled.some((i) => i.kind === "history" || i.kind === "greeting");
-      const quick = (p: Promise<Interpretation>): Promise<Interpretation> => Promise.race([p, new Promise<Interpretation>((resolve) => setTimeout(() => resolve({ intents: ruled }), 1500))]);
+      const quick = (p: Promise<Interpretation>): Promise<Interpretation> => Promise.race([p, new Promise<Interpretation>((resolve) => setTimeout(() => resolve({ intents: ruled }), 800))]);
       const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : button || !talk || ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : quick(voice(text, ctx, ruled));
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;

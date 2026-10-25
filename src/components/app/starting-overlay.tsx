@@ -1,7 +1,7 @@
 "use client";
 
 import { FillingBar } from "@/components/ui/filling-bar";
-import { Icon } from "@/components/ui/icon";
+import { LoopVideo } from "@/components/ui/loop-video";
 import { useCase } from "@/lib/case-store";
 import { useStartingMessage } from "@/lib/use-starting-message";
 
@@ -17,9 +17,7 @@ export function StartingOverlay() {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))] sm:bottom-auto sm:top-4" role="status" aria-live="polite">
       <div className="popover pointer-events-auto flex w-full max-w-sm animate-enter flex-col gap-3 rounded-2xl px-4 py-3.5 shadow-lg">
         <div className="flex items-center gap-3">
-          <span className="bg-ai flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
-            <Icon name="pulse" size={17} />
-          </span>
+          <LoopVideo name="monitor" className="h-12 w-12 shrink-0 rounded-xl" />
           <div className="min-w-0">
             <div className="text-[14px] font-semibold">Preparing your patient</div>
             <div className="truncate text-[12.5px] text-fg-2">{label}</div>

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { LoopVideo } from "@/components/ui/loop-video";
 import { useEffect, useState } from "react";
 
 import { DoctorFigure } from "@/components/game/caricature";
@@ -100,6 +102,10 @@ export function Hub({ initial }: { initial: Me }) {
             <div className="h-full rounded-full bg-white" style={{ width: `${Math.max(3, Math.round(toNext * 100))}%` }} />
           </div>
         </div>
+        {firstTime && (
+          // New here: how a case works, in 12 seconds (a Remotion animation), before the demo.
+          <LoopVideo name="how" loop={false} label="How RamAI works: talk to the patient, examine and order tests, diagnose and treat, see what you missed" className="relative mt-5 aspect-[5/4] w-full rounded-2xl" />
+        )}
         {firstTime ? (
           // Never played: the 2-minute guided demo first — one patient, every step shown.
           <button type="button" onClick={() => void launch({ tutorial: true })} disabled={starting} className="relative mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-[16px] font-bold text-[#3b3fd8] shadow-lg transition-transform active:scale-[0.98] disabled:opacity-70">

@@ -206,6 +206,24 @@ function SystemLine({ m, isNew }: { m: EncounterMessage; isNew: boolean }) {
       </div>
     );
   }
+  // The senior's advice: a card of its own — what to do, in bold, and why, easy to read.
+  const senior = m.kind === "status" ? m.text.match(/^\S*\s*Your senior:\s*([\s\S]*?)(?:\nWhy:\s*([\s\S]*))?$/) : null;
+  if (senior) {
+    return (
+      <div className={cn("rounded-2xl border border-amber-300/70 bg-amber-50 px-4 py-3 shadow-sm dark:border-amber-400/30 dark:bg-amber-400/10", isNew && "animate-enter")} role="note" aria-label="Your senior">
+        <div className="flex items-center gap-2 text-[11px] font-bold tracking-[0.08em] text-amber-700 uppercase dark:text-amber-300">
+          <span aria-hidden className="text-[16px]">🧑‍⚕️</span> Your senior
+        </div>
+        <p className="mt-1.5 text-[15px] leading-6 font-semibold text-fg">{senior[1]!.trim()}</p>
+        {senior[2] && (
+          <p className="mt-1.5 text-[14px] leading-6 text-fg-2">
+            <span className="font-semibold text-amber-800 dark:text-amber-200">Why: </span>
+            <Rich text={senior[2].trim()} />
+          </p>
+        )}
+      </div>
+    );
+  }
   if (m.kind === "status") {
     const later = /later$/.test(m.text);
     return (

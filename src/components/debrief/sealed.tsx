@@ -32,6 +32,8 @@ export function SealedDebrief({ d, patient, onOpen }: { d: CaseDebrief; patient:
     <div className="fixed inset-0 z-[60] flex animate-fade items-center justify-center bg-[radial-gradient(120%_80%_at_50%_30%,#2b2112_0%,#0b0906_70%)] px-5">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-1/4 mx-auto h-72 w-72 rounded-full bg-amber-400/20 blur-3xl" />
       <div className={`relative w-full max-w-sm transition-all duration-500 ${breaking ? "scale-[1.04] opacity-0 blur-sm" : "animate-rise"}`}>
+        {/* A tap anywhere on the chart opens it too — never stuck if the slide doesn't take on a phone. */}
+        <button type="button" aria-label="Open the debrief" onClick={() => !breaking && open()} className="absolute inset-x-0 top-0 bottom-24 z-10" />
         {/* The folder tab */}
         <div className="ml-6 h-7 w-32 rounded-t-xl bg-[#d9b979] shadow-inner" />
         <div className="relative overflow-hidden rounded-[22px] rounded-tl-none bg-[linear-gradient(165deg,#e8cf95_0%,#d4b06a_55%,#c49a52_100%)] p-6 text-[#3a2a10] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.5)]">
@@ -57,7 +59,7 @@ export function SealedDebrief({ d, patient, onOpen }: { d: CaseDebrief; patient:
               </svg>
             </span>
           </div>
-          <p className="relative mt-3 text-center text-[12.5px] font-medium opacity-70">Your score, the outcome and what you missed</p>
+          <p className="relative mt-3 text-center text-[12.5px] font-medium opacity-70">Your score, the outcome and what you missed — slide or tap</p>
         </div>
         {/* Slide to break the seal (a tap on the knob works too) */}
         <div ref={track} className="relative mt-5 h-16 overflow-hidden rounded-full border border-amber-200/20 bg-white/5 select-none touch-none" role="slider" aria-label="Slide to break the seal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((x / max()) * 100)} tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " " || e.key === "ArrowRight") && open()}>
@@ -69,7 +71,8 @@ export function SealedDebrief({ d, patient, onOpen }: { d: CaseDebrief; patient:
             onClick={() => x === 0 && open()}
             onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture(e.pointerId); drag.current = e.clientX - x; tap(); }}
             onPointerMove={(e) => { if (drag.current === null) return; setX(Math.max(0, Math.min(max(), e.clientX - drag.current))); }}
-            onPointerUp={() => { drag.current = null; if (x > max() * 0.75) { setX(max()); open(); } else setX(0); }}
+            onPointerUp={() => { drag.current = null; if (x > max() * 0.6) { setX(max()); open(); } else setX(0); }}
+            onPointerCancel={() => { drag.current = null; if (x > max() * 0.4) { setX(max()); open(); } else setX(0); }}
             className="absolute top-1.5 left-1.5 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[linear-gradient(145deg,#f6d98a,#c9962f)] text-[22px] text-[#3a2a10] shadow-[0_6px_16px_rgba(201,150,47,0.5)] transition-[left] duration-75"
             style={{ transform: `translateX(${x}px)` }}
           >

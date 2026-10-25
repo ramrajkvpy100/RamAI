@@ -217,7 +217,7 @@ export function FocusTimer() {
 
       {/* The wooden table, and your drink emptying on it */}
       <div className="focus-tabletop relative z-10 flex flex-col items-center pt-2 pb-[max(14px,env(safe-area-inset-bottom))]">
-        <div className="-mt-24 transition-transform duration-1000" style={{ transform: `rotate(${pct * 40 - 20}deg)` }}>
+        <div className="mt-3 transition-transform duration-1000" style={{ transform: `rotate(${pct * 40 - 20}deg)` }}>
           <div className="relative">
             {isRunning && (
               <>
@@ -231,6 +231,8 @@ export function FocusTimer() {
                 <span aria-hidden className="liquid-shine absolute inset-[24%] rounded-full" />
               </>
             )}
+            {/* The cup's shadow on the table. */}
+            <span aria-hidden className="absolute bottom-[-4%] left-1/2 h-[22%] w-[86%] -translate-x-1/2 rounded-[50%] bg-[#2a1606]/45 blur-[10px]" />
             {isRunning && <span aria-hidden className="focus-glow absolute inset-[-12%] rounded-full" />}
             <div className={isRunning ? "focus-breathe-cup" : undefined}>
               <div className={isRunning ? "focus-stir" : undefined}>
@@ -240,11 +242,11 @@ export function FocusTimer() {
           </div>
         </div>
         {/* Your target, under the drink. */}
-        <p className="mt-1 max-w-xs px-3 text-center text-[15px] font-medium text-[#3a2a1c]">
+        <p className="on-wood mt-1 max-w-xs px-3 text-center text-[15.5px] font-semibold">
           {active.phase === "break" ? (waitingBreak ? "focus done — take a break?" : "break") : active.name ? `I will ${active.name}` : unlimited ? "focusing" : "focus"}
           {active.size === "flow" && active.phase === "focus" && ` · ${earned} min break earned`}
         </p>
-        {scene !== "focus" && <button type="button" onClick={() => setSecs((v) => !v)} className="mt-1 text-[28px] font-light text-[#24332c] tabular">{secs ? mmss(left) : calmTime(left, unlimited)}</button>}
+        {scene !== "focus" && <button type="button" onClick={() => setSecs((v) => !v)} className="on-wood mt-1 text-[30px] font-light tabular">{secs ? mmss(left) : calmTime(left, unlimited)}</button>}
         <div className="mt-3 flex items-center gap-3">
           {active.size === "flow" && active.phase === "focus" && (
             <button type="button" disabled={earned < 1} onClick={() => { tap(); startBreak(); toast(`Enjoy your ${earned}-minute break`); }} className="focus-btn disabled:opacity-50">
@@ -261,7 +263,7 @@ export function FocusTimer() {
           <button type="button" aria-label="Stop" onClick={() => { tap(); stop(); toast(unlimited ? `${Math.floor(left / 60_000)} min saved` : active.phase === "focus" ? "Stopped — not recorded" : "Break skipped", { tone: "info" }); }} className="flex h-14 w-14 items-center justify-center rounded-full bg-white/70 text-[18px] text-[#24332c] shadow-sm backdrop-blur">■</button>
         </div>
         {scene !== "focus" && (
-          <label className="mt-3 flex items-center gap-2 text-[#24332c]">
+          <label className="on-wood mt-3 flex items-center gap-2">
             <Icon name="volume-off" size={14} />
             <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => { const v = Number(e.target.value); setVolume(v); setPrefs({ volume: v }); }} aria-label="Café sound volume" className="w-40 accent-[#24332c]" />
             <Icon name="volume" size={14} />

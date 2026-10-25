@@ -397,7 +397,8 @@ export async function submitDoctorAction(token: string, input: string, userId: s
     // An invented case's teaching: written in the background while it was played, or now if that didn't finish.
     let full = def;
     if (payload.src.kind === "generated" && !storedTeaching(payload)) {
-      const pack = teaching ?? (provider.teach ? await provider.teach(provider.resolveCase(payload.src)) : undefined);
+      // Never longer than 12 s: past that the debrief comes from the case file alone, so ending a case never hangs.
+      const pack = teaching ?? (provider.teach ? await Promise.race([provider.teach(provider.resolveCase(payload.src)).catch(() => undefined), new Promise<undefined>((r) => setTimeout(() => r(undefined), 12_000))]) : undefined);
       if (pack) {
         record.generated = { ...record.generated, [TEACH_KEY]: JSON.stringify(pack) };
         full = localizeCase(withTeaching(provider.resolveCase(payload.src), pack), country);

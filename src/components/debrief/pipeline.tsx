@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
+import { LoopVideo } from "@/components/ui/loop-video";
 import { cn } from "@/lib/cn";
 
 const STAGES = [
@@ -22,6 +23,7 @@ export function DebriefPipeline() {
   return (
     <div role="status" aria-live="polite" className="fixed inset-0 z-[70] flex animate-fade items-center justify-center bg-bg/80 px-6 backdrop-blur-xl">
       <div className="glass w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+        <LoopVideo name="monitor" className="mb-4 h-28 w-full rounded-2xl" />
         <p className="text-[12px] font-semibold tracking-[0.16em] text-fg-3 uppercase">Case closed</p>
         <h2 className="mt-1 text-[20px] font-semibold">Preparing your debrief</h2>
         <ol className="mt-5 flex flex-col gap-3.5">

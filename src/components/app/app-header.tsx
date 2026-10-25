@@ -36,7 +36,7 @@ export function AppHeader({ initial }: { initial: Me }) {
   return (
     <>
     <header className="material-bar sticky top-0 z-40 border-b border-[var(--material-stroke)]">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-3 sm:gap-6 sm:px-6">
         <Link href="/" aria-label="RamAI — home" className="rounded-lg">
           <Wordmark />
         </Link>
@@ -48,7 +48,7 @@ export function AppHeader({ initial }: { initial: Me }) {
           ))}
           <ExamMenu country={me.user.country} />
         </nav>
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2.5">
           <SearchButton />
           <NotInAndroidApp>
             <Link href="/support" aria-label="Donate to RamAI" className="flex h-8 items-center gap-1.5 rounded-full bg-rose-500/10 px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-500/15 dark:text-rose-400">
@@ -59,7 +59,7 @@ export function AppHeader({ initial }: { initial: Me }) {
           <Link href="/focus" aria-label="Focus timer" title="Focus timer" className={cn("flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/focus" ? "bg-emerald-600 text-white" : "bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300")}>
             <span aria-hidden>☕</span><span className="hidden min-[380px]:inline">Focus</span>
           </Link>
-          <ThemeToggle />
+          <span className="hidden sm:contents"><ThemeToggle /></span>
           <StreakPill days={me.progress.streakDays} />
           <Link href="/profile" className="hidden items-center sm:flex" aria-label="Daily goal">
             <GoalRing value={me.progress.dailyXp} goal={me.progress.dailyGoal} size={32} stroke={4}>
