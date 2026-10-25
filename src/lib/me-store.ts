@@ -20,6 +20,8 @@ export interface Me {
   /** The avatar they made; initials until then. */
   avatar?: AvatarStyle;
   usage: { casesToday: number; dailyLimit: number | null };
+  /** Today's competence rings, 0–1: triage & stabilisation, diagnostic precision, treatment & safety. */
+  rings?: { triage: number; diagnosis: number; treatment: number; cases: number };
   /** Runs the site: sees and answers everyone's suggestions. */
   admin?: boolean;
   /** For admins: suggestions nobody has looked at yet. */

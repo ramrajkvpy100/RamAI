@@ -55,3 +55,36 @@ export async function progressForMany(userIds: readonly string[]): Promise<Map<s
   }
   return new Map([...byUser].map(([id, history]) => [id, withDerived(history)]));
 }
+
+/** Today's three competence rings, 0–1 each: how well, and how much (two good cases close a ring). */
+export interface Rings {
+  triage: number;
+  diagnosis: number;
+  treatment: number;
+  cases: number;
+}
+const RING_OF: Record<string, keyof Omit<Rings, "cases">> = {
+  history: "triage", examination: "triage", reassessment: "triage", efficiency: "triage",
+  differential: "diagnosis", investigationSelection: "diagnosis", investigationInterpretation: "diagnosis",
+  treatment: "treatment", drugSafety: "treatment", outcome: "treatment",
+};
+export async function ringsFor(userId: string, now = new Date()): Promise<Rings> {
+  const ist = new Date(now.getTime() + 5.5 * 3_600_000);
+  const start = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()) - 5.5 * 3_600_000;
+  const rows = await db.all<{ detail: string | null }>("SELECT detail FROM results WHERE user_id = ? AND created_at >= ?", userId, start).catch(() => []);
+  const sum = { triage: [0, 0], diagnosis: [0, 0], treatment: [0, 0] } as Record<keyof Omit<Rings, "cases">, [number, number]>;
+  for (const r of rows) {
+    try {
+      for (const [cat, earned, max] of (JSON.parse(r.detail ?? "{}") as { l?: [string, number, number][] }).l ?? []) {
+        const ring = RING_OF[cat];
+        if (ring && max > 0) {
+          sum[ring][0] += earned;
+          sum[ring][1] += max;
+        }
+      }
+    } catch {}
+  }
+  const amount = Math.min(1, rows.length / 2);
+  const of = (k: keyof typeof sum) => (sum[k][1] ? Math.round((sum[k][0] / sum[k][1]) * amount * 100) / 100 : 0);
+  return { triage: of("triage"), diagnosis: of("diagnosis"), treatment: of("treatment"), cases: rows.length };
+}

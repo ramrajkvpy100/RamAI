@@ -72,7 +72,7 @@ export const LoginSchema = z.object({
 });
 
 export const CheckoutSchema = z.object({
-  period: z.enum(["monthly"]),
+  period: z.enum(["monthly", "yearly"]),
   /** The buyer asked for Pro to start at once (giving up a statutory cancellation period, where one applies). */
   startNow: z.literal(true, { error: "Please confirm you want Pro to start straight away." }),
 });

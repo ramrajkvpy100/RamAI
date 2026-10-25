@@ -56,7 +56,7 @@ export default function TermsPage() {
               <b className="text-fg">Free:</b> {PLANS.free.dailyCases} cases a day on the first three care levels.
             </li>
             <li>
-              <b className="text-fg">Pro:</b> unlimited cases at every level — {priceList("monthly")} for {PERIODS.monthly.days} days.
+              <b className="text-fg">Pro:</b> unlimited cases at every level — {priceList("yearly")} for {PERIODS.yearly.days} days, or {priceList("monthly")} for {PERIODS.monthly.days} days.
             </li>
             <li>Pro is a one-time payment for a fixed period. It does not renew automatically, so there's nothing to cancel.</li>
             <li>Prices are in the currency of the country you practise in — Indian rupees, US dollars or pounds sterling — and include applicable taxes. Payments are processed securely by Razorpay.</li>

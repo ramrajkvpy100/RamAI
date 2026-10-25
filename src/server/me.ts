@@ -7,6 +7,7 @@ import { dailyLimitFor } from "@/lib/plans";
 import { getCurrentUser, identityQuery, userFromRow, type User } from "./auth";
 import { db } from "./db";
 import { summaryFromRow } from "./progress";
+import { ringsFor } from "./progress";
 import { casesStartedToday, istDayStart, progressFor } from "./results";
 import { isAdmin, newSuggestionCount } from "./suggestions";
 
@@ -16,14 +17,16 @@ const HISTORY_SENT = 30;
 import { parseAvatar } from "@/lib/avatar-style";
 
 export async function meFor(user: User): Promise<Me> {
-  const [progress, casesToday, admin, avatar] = await Promise.all([
+  const [progress, casesToday, admin, avatar, rings] = await Promise.all([
     progressFor(user.id),
     casesStartedToday(user.id),
     user.isGuest ? false : isAdmin(user).catch(() => false),
     db.get<{ style: string }>("SELECT style FROM user_avatars WHERE user_id = ?", user.id).then((r) => (r ? parseAvatar(JSON.parse(r.style)) : null)).catch(() => null),
+    ringsFor(user.id).catch(() => undefined),
   ]);
   return {
     user,
+    ...(rings ? { rings } : {}),
     ...(avatar ? { avatar } : {}),
     progress: { ...progress, history: progress.history.slice(-HISTORY_SENT) },
     usage: { casesToday, dailyLimit: dailyLimitFor(user) },

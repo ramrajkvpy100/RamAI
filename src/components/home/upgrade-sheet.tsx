@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
 import { useInAndroidApp } from "@/lib/in-app";
 import { useMe } from "@/lib/me-store";
-import { PLANS, priceFor } from "@/lib/plans";
+import { formatPrice, PLANS, priceFor, yearlySaving } from "@/lib/plans";
 
 import type { Gate } from "./use-launcher";
 
@@ -22,6 +22,7 @@ export function UpgradeSheet({ gate, onClose }: { gate: Gate | null; onClose: ()
           <Icon name="crown" size={26} strokeWidth={1.8} />
         </span>
         <p className="mt-4 max-w-sm text-[14.5px] leading-6 text-fg-2">{gate?.message}</p>
+        {daily && <p className="mt-2 max-w-sm text-[14.5px] font-semibold">How many patients do you want to see this month? Your debriefs and progress stay yours either way.</p>}
         <ul className="mt-5 flex w-full flex-col gap-2 text-left">
           {PLANS.pro.features.slice(0, 3).map((f) => (
             <li key={f} className="flex items-center gap-2.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13.5px]">
@@ -31,8 +32,9 @@ export function UpgradeSheet({ gate, onClose }: { gate: Gate | null; onClose: ()
           ))}
         </ul>
         {!inApp && <Link href="/pricing" className="shine mt-6 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-semibold text-white shadow-glow">
-          Go Pro — {priceFor(country, "monthly").label}/month
+          Unlimited for a year — {priceFor(country, "yearly").label}
         </Link>}
+        {!inApp && <p className="mt-1.5 text-[12px] text-fg-3">That&apos;s about {formatPrice(Math.round(priceFor(country, "yearly").amount / 12), country)} a month · save {yearlySaving(country)}% · no auto-renewal</p>}
         <button type="button" onClick={onClose} className="mt-2 h-10 text-[13.5px] font-medium text-fg-2 hover:text-fg">
           Not now
         </button>

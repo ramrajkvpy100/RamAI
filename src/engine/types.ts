@@ -917,6 +917,10 @@ export interface PlayerProgress {
   percent: number;
   casesCompleted: number;
   streakDays: number;
+  /** Streak freezes left this month (missed days forgiven automatically). */
+  freezesLeft?: number;
+  /** Clinical rating: 1200 at the start, moved by each case's score against its difficulty. */
+  rating?: number;
   bestStreak: number;
   /** XP earned today (IST) and the daily goal. */
   dailyXp: number;

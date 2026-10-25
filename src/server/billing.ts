@@ -168,7 +168,7 @@ async function settle(orderId: string, payment: { id: string; method?: string | 
       payment.id, payment.method ?? null, now, now, orderId,
     );
     if (claimed.changes !== 1) return "already";
-    const days = row.period === "yearly" ? 365 : PERIODS.monthly.days;
+    const days = row.period === "yearly" ? PERIODS.yearly.days : PERIODS.monthly.days;
     await t.run(
       // From today, or from the end of the Pro they already have. (A Pro with no end date stays that way.)
       "UPDATE users SET plan = 'pro', plan_expires_at = (CASE WHEN plan = 'pro' AND (plan_expires_at IS NULL OR plan_expires_at > ?) THEN plan_expires_at ELSE ? END) + ? WHERE id = ?",
@@ -301,7 +301,7 @@ export async function handleWebhook(raw: string, signature: string | null, event
         const now = Date.now();
         await t.run("UPDATE payments SET status = ?, error = ?, updated_at = ? WHERE order_id = ?", full ? "refunded" : "paid", full ? null : `Partly refunded: ${refund.amount}`, now, row.order_id);
         if (full) {
-          const days = row.period === "yearly" ? 365 : PERIODS.monthly.days;
+          const days = row.period === "yearly" ? PERIODS.yearly.days : PERIODS.monthly.days;
           await t.run("UPDATE users SET plan_expires_at = max(?, plan_expires_at - ?) WHERE id = ? AND plan = 'pro' AND plan_expires_at IS NOT NULL", now, days * 86_400_000, row.user_id);
         }
         return "processed";

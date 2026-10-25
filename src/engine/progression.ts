@@ -91,16 +91,60 @@ function dayList(history: CompletedCaseSummary[]): string[] {
 const prevDay = (key: string) => new Date(Date.parse(`${key}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 
 /** Consecutive IST days with at least one completed case, ending today or yesterday. */
-export function computeStreak(history: CompletedCaseSummary[], now = new Date()): number {
+/** Missed days a month the streak forgives ("on call" days) — so a busy shift doesn't break it. */
+export const STREAK_FREEZES_PER_MONTH = 2;
+
+/**
+ * Consecutive IST days with at least one completed case, ending today or yesterday — with up to two missed days a
+ * month bridged automatically (a streak freeze). Frozen days keep the streak alive but don't add to it.
+ */
+export function streakWithFreezes(history: CompletedCaseSummary[], now = new Date()): { days: number; frozen: string[] } {
   const days = new Set(dayList(history));
   let cursor = istDayKey(now);
   if (!days.has(cursor)) cursor = prevDay(cursor);
+  const used = new Map<string, number>();
+  const frozen: string[] = [];
   let streak = 0;
-  while (days.has(cursor)) {
-    streak += 1;
-    cursor = prevDay(cursor);
+  for (;;) {
+    if (days.has(cursor)) {
+      streak += 1;
+      cursor = prevDay(cursor);
+      continue;
+    }
+    // A missed day: bridged only if a played day lies just beyond it and this month still has a freeze.
+    const month = cursor.slice(0, 7);
+    const before = prevDay(cursor);
+    const bridgeable = streak > 0 || frozen.length === 0;
+    if (bridgeable && (used.get(month) ?? 0) < STREAK_FREEZES_PER_MONTH && (days.has(before) || (days.has(prevDay(before)) && (used.get(month) ?? 0) === 0))) {
+      used.set(month, (used.get(month) ?? 0) + 1);
+      frozen.push(cursor);
+      cursor = before;
+      continue;
+    }
+    break;
   }
-  return streak;
+  // Freezes only count if they bridged into played days.
+  return streak ? { days: streak, frozen } : { days: 0, frozen: [] };
+}
+
+export function computeStreak(history: CompletedCaseSummary[], now = new Date()): number {
+  return streakWithFreezes(history, now).days;
+}
+
+/**
+ * Clinical rating (like a chess rating): starts at 1200; each case moves it by how the score compared with what's
+ * expected at that case's difficulty — a good score on a hard case lifts it most, a poor one on an easy case costs most.
+ */
+export function computeRating(history: CompletedCaseSummary[]): number {
+  const LEVEL_RATING: Record<string, number> = { phc: 950, chc: 1050, district: 1150, college: 1300, apex: 1450, grandrounds: 1650 };
+  let r = 1200;
+  for (const h of history) {
+    const opp = LEVEL_RATING[h.level] ?? 1150;
+    const expected = 1 / (1 + 10 ** ((opp - r) / 400));
+    const result = Math.max(0, Math.min(1, (h.score - 40) / 50));
+    r += 32 * (result - expected);
+  }
+  return Math.round(r);
 }
 
 export function computeBestStreak(history: CompletedCaseSummary[]): number {
@@ -150,6 +194,8 @@ export function withDerived(history: CompletedCaseSummary[], now = new Date()): 
     percent: computePercent(history),
     casesCompleted: history.length,
     streakDays: computeStreak(history, now),
+    freezesLeft: Math.max(0, STREAK_FREEZES_PER_MONTH - streakWithFreezes(history, now).frozen.filter((d) => d.slice(0, 7) === today.slice(0, 7)).length),
+    rating: computeRating(history),
     bestStreak,
     dailyXp: history.filter((h) => istDayKey(new Date(h.completedISO)) === today).reduce((s, h) => s + h.xp, 0),
     dailyGoal: DAILY_GOAL_XP,

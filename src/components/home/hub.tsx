@@ -13,6 +13,7 @@ import { cn } from "@/lib/cn";
 import { dailyKeyFor, dailyNumber } from "@/lib/daily";
 import { useMe, type Me } from "@/lib/me-store";
 
+import { CompetenceRings } from "./competence-rings";
 import { FocusWidget } from "@/components/focus/focus-widget";
 import { HomeTour, tourSeen, type TourStop } from "./home-tour";
 
@@ -126,6 +127,7 @@ export function Hub({ initial }: { initial: Me }) {
           </div>
         </Link>
       </section>
+      <CompetenceRings me={me} />
       <FocusWidget />
 
       {/* Everything, as tiles */}

@@ -65,17 +65,24 @@ export const dailyLimitFor = (user: { plan: PlanId; isGuest: boolean }): number 
  * What Pro costs, in the currency of the country the doctor practises in
  * (Razorpay charges it in the same currency). Amounts in major units.
  */
-export const PRICE_BOOK: Record<Country, { currency: "INR" | "USD" | "GBP"; locale: string; monthly: number }> = {
-  IN: { currency: "INR", locale: "en-IN", monthly: 299 },
-  US: { currency: "USD", locale: "en-US", monthly: 4.99 },
-  UK: { currency: "GBP", locale: "en-GB", monthly: 3.99 },
-  WW: { currency: "USD", locale: "en", monthly: 2.99 },
+export const PRICE_BOOK: Record<Country, { currency: "INR" | "USD" | "GBP"; locale: string; monthly: number; yearly: number }> = {
+  IN: { currency: "INR", locale: "en-IN", monthly: 299, yearly: 1999 },
+  US: { currency: "USD", locale: "en-US", monthly: 4.99, yearly: 34.99 },
+  UK: { currency: "GBP", locale: "en-GB", monthly: 3.99, yearly: 27.99 },
+  WW: { currency: "USD", locale: "en", monthly: 2.99, yearly: 19.99 },
 };
 
-/** Pro is bought a month at a time. */
+/** Pro is bought a year (the default, cheaper) or a month at a time — a one-time payment, never renewing. */
 export const PERIODS = {
   monthly: { per: "month", days: 30 },
+  yearly: { per: "year", days: 365 },
 } as const;
+
+/** "Save 44%" — the year against twelve months. */
+export function yearlySaving(country: Country): number {
+  const b = PRICE_BOOK[country] ?? PRICE_BOOK.IN;
+  return Math.round((1 - b.yearly / (b.monthly * 12)) * 100);
+}
 
 export type BillingPeriod = keyof typeof PERIODS;
 

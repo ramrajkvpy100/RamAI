@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { checkout, ClinicalEngineError, demoUpgrade, orderStatus, verifyPayment, type CheckoutOrder } from "@/lib/engine-client";
 import { refreshMe, useMe, type Me } from "@/lib/me-store";
 import type { Country } from "@/engine/countries";
-import { priceFor, PRO_FOR_EVERYONE } from "@/lib/plans";
+import { formatPrice, PRICE_BOOK, priceFor, PRO_FOR_EVERYONE, yearlySaving } from "@/lib/plans";
 
 import { PlanCards } from "./plan-cards";
 
@@ -78,7 +78,11 @@ export function Pricing({ initial, visitorCountry = "IN", billing = { available:
     [],
   );
 
-  const price = priceFor(country, "monthly");
+  // The year is the default (and the better buy); a month is one tap away.
+  const [period, setPeriod] = useState<"yearly" | "monthly">("yearly");
+  const price = priceFor(country, period);
+  const perMonth = formatPrice(Math.round((PRICE_BOOK[country] ?? PRICE_BOOK.IN).yearly / 12 * (price.currency === "INR" ? 1 : 100)) / (price.currency === "INR" ? 1 : 100), country);
+  const saving = yearlySaving(country);
   const abroad = price.currency !== "INR";
   const internationalBlocked = abroad && !billing.international;
   const testMode = billing.mode === "test";
@@ -151,7 +155,7 @@ export function Pricing({ initial, visitorCountry = "IN", billing = { available:
     }
     setPay({ step: "starting" });
     try {
-      const [res, Razorpay] = await Promise.all([checkout("monthly", true), loadRazorpay()]);
+      const [res, Razorpay] = await Promise.all([checkout(period, true), loadRazorpay()]);
       if (res.mode === "demo") {
         setDemo(true);
         setPay({ step: "idle" });
@@ -213,10 +217,16 @@ export function Pricing({ initial, visitorCountry = "IN", billing = { available:
       <div className="flex h-11 items-center justify-center gap-2 rounded-full bg-white/10 text-[14px] font-semibold">
         <Icon name="check" size={15} /> Your plan{until ? ` · until ${until}` : ""}
       </div>
-      {!PRO_FOR_EVERYONE && buyButton(`Extend by a month — ${price.label}`, "flex h-9 items-center justify-center gap-2 text-[13px] font-medium text-white/70 hover:text-white disabled:opacity-60")}
+      {!PRO_FOR_EVERYONE && buyButton(`Extend by a ${price.per} — ${price.label}`, "flex h-9 items-center justify-center gap-2 text-[13px] font-medium text-white/70 hover:text-white disabled:opacity-60")}
     </div>
   ) : (
-    buyButton(`Upgrade — ${price.label}`, BTN_DARK)
+    <div className="flex flex-col gap-2">
+      {period === "yearly" && <p className="text-center text-[12.5px] font-semibold text-emerald-300">Equals {perMonth}/month · save {saving}%</p>}
+      {buyButton(period === "yearly" ? `Get a year of Pro — ${price.label}` : `Get a month — ${price.label}`, BTN_DARK)}
+      <button type="button" onClick={() => setPeriod(period === "yearly" ? "monthly" : "yearly")} className="text-[12.5px] font-medium text-white/65 underline-offset-2 hover:text-white hover:underline">
+        {period === "yearly" ? "Prefer to pay monthly?" : `Back to yearly — save ${saving}%`}
+      </button>
+    </div>
   );
 
   const freeAction = !me ? (
@@ -293,7 +303,7 @@ export function Pricing({ initial, visitorCountry = "IN", billing = { available:
       )}
 
       <div className="mt-8 w-full">
-        <PlanCards free={freeAction} pro={proAction} country={country} />
+        <PlanCards period={period} free={freeAction} pro={proAction} country={country} />
       </div>
       <p className="mt-6 text-center text-[12.5px] leading-6 text-fg-3">
         One-time payment for 30 days — no auto-renewal. UPI, cards, netbanking and wallets through Razorpay. 7-day money-back guarantee.{" "}

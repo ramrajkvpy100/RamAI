@@ -19,8 +19,8 @@ function Feature({ children, dark }: { children: ReactNode; dark?: boolean }) {
 }
 
 /** Free and Pro side by side, in the country's currency. Calls to action are supplied by the page. */
-export function PlanCards({ free, pro, country = "IN" }: { free: ReactNode; pro: ReactNode; country?: Country }) {
-  const price = priceFor(country, "monthly");
+export function PlanCards({ free, pro, country = "IN", period = "yearly" }: { free: ReactNode; pro: ReactNode; country?: Country; period?: "monthly" | "yearly" }) {
+  const price = priceFor(country, period);
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="panel flex flex-col p-7">

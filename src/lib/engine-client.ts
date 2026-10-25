@@ -127,7 +127,7 @@ export interface CheckoutOrder {
   name: string;
   email: string;
 }
-export const checkout = (period: "monthly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: CheckoutOrder }>("/api/billing/checkout", { period, startNow });
+export const checkout = (period: "monthly" | "yearly", startNow: true) => call<{ mode: "demo" } | { mode: "razorpay"; order: CheckoutOrder }>("/api/billing/checkout", { period, startNow });
 export const verifyPayment = (body: { orderId: string; paymentId: string; signature: string }) => call<{ status: "paid" }>("/api/billing/verify", body);
 export const orderStatus = (orderId: string) => call<{ status: "created" | "paid" | "failed" | "refunded" }>("/api/billing/status", { orderId });
 export interface DonationOrder {
