@@ -7,7 +7,7 @@ import { authCookieOptions, hasAuthCookie, supabaseConfig } from "@/lib/server/s
 
 /** Pages anyone may open: the invite page, signing in, the legal pages and shared result cards. */
 // "/" for signed-out visitors is the public landing page (search engines must see it); the app behind it stays invite-only.
-const OPEN_PATHS = /^\/$|^\/(faq|llms\.txt|invite|login|signup|verify-email|forgot-password|reset-password|auth|privacy|terms|disclaimer|refund-policy|shipping-policy|delete-account|pricing|contact|about|s|models|radiology\/[^/]+\/)(\/|$|\?)|^\/(radiology\/.+\.(jpg|png)|.*\.(png|jpg|svg|webmanifest|txt|xml|ico))$/;
+const OPEN_PATHS = /^\/$|^\/(faq|llms\.txt|invite|login|signup|verify-email|forgot-password|reset-password|auth|privacy|terms|disclaimer|refund-policy|shipping-policy|delete-account|pricing|contact|about|s|models|radiology\/[^/]+\/)(\/|$|\?)|^\/focus\/[\w-]+\.(webm|ogg|mp3|mp4|jpg|png|webp)$|^\/(radiology\/.+\.(jpg|png)|.*\.(png|jpg|svg|webmanifest|txt|xml|ico))$/;
 
 /**
  * Keeps a Supabase session alive: its access token lasts an hour, so an

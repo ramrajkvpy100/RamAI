@@ -9,6 +9,7 @@ import { CaseTopBar } from "@/components/case/case-top-bar";
 import { Timeline } from "@/components/case/timeline";
 import { ShareSheet } from "@/components/share/share-sheet";
 import { Disclosure } from "@/components/ui/disclosure";
+import { Sheet } from "@/components/ui/sheet";
 import { CaseFeedback, ReportCase } from "@/components/case/case-feedback";
 import { DuelCard } from "@/components/duel/duel-card";
 import { Icon, type IconName } from "@/components/ui/icon";
@@ -196,6 +197,7 @@ export function DebriefView({
   const [sharing, setSharing] = useState(false);
   const { coach, writing: writingCoach } = useCoach(session.token, d.coach);
   const [discussing, setDiscussing] = useState(false);
+  const [asking, setAsking] = useState(false);
   // A community post about this case, its result card attached — the daily case's marked as a spoiler.
   const discuss = async () => {
     setDiscussing(true);
@@ -435,7 +437,7 @@ export function DebriefView({
               </button>
             </div>
           ) : (
-            <button type="button" onClick={onNext} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">
+            <button type="button" onClick={() => (state.guided ? onNext() : setAsking(true))} disabled={starting} className="shine inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-white shadow-glow disabled:opacity-70">
               {starting ? startingLabel : state.guided ? "Start your first real case" : "Next case"}
               {!starting && <Icon name="arrow-right" size={16} />}
             </button>
@@ -443,6 +445,25 @@ export function DebriefView({
         </div>
       </div>
       </Portal>
+      <Sheet open={asking} onClose={() => setAsking(false)} placement="bottom" title="What next?">
+        <div className="flex flex-col gap-2 pb-2">
+          <button type="button" onClick={() => { setAsking(false); onNext(); }} disabled={starting} className="flex items-center gap-3 rounded-2xl bg-accent px-4 py-3.5 text-left text-on-accent transition-transform active:scale-[0.99] disabled:opacity-60">
+            <span className="text-[22px]">🩺</span>
+            <span><span className="block text-[15px] font-semibold">A new patient</span><span className="block text-[12.5px] opacity-85">Start a fresh case now</span></span>
+          </button>
+          <Link href="/cases" onClick={onHome} className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5 transition-transform active:scale-[0.99]">
+            <span className="text-[22px]">🎛️</span>
+            <span><span className="block text-[15px] font-semibold">Choose a case</span><span className="block text-[12.5px] text-fg-2">Pick OPD or Emergency, and how hard</span></span>
+          </Link>
+          {onRetry && (
+            <button type="button" onClick={() => { setAsking(false); onRetry(); }} className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5 text-left transition-transform active:scale-[0.99]">
+              <span className="text-[22px]">↻</span>
+              <span><span className="block text-[15px] font-semibold">This patient again</span><span className="block text-[12.5px] text-fg-2">Try a different approach</span></span>
+            </button>
+          )}
+          <Link href="/" onClick={onHome} className="py-2.5 text-center text-[14px] font-medium text-fg-2">Not now — go home</Link>
+        </div>
+      </Sheet>
     </div>
   );
 }

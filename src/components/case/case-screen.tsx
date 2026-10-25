@@ -308,6 +308,7 @@ function Workspace() {
               {sheet === "timeline" && <Timeline events={state.timeline} />}
             </Sheet>
 
+            {ending && <PrefetchDebrief />}
             <EndCaseDialog open={ending} onClose={() => setEnding(false)} onConfirm={endCase} busy={!!snap.sending} />
             {/^(end|close|finish)\b/i.test(snap.sending?.input ?? "") && <DebriefPipeline />}
           </div>
@@ -318,6 +319,12 @@ function Workspace() {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/** End case was tapped: fetch the debrief screen now, so it opens the moment the case closes. */
+function PrefetchDebrief() {
+  useEffect(() => void loadDebrief().catch(() => undefined), []);
+  return null;
+}
 
 function NoCase({ onStart, starting, error }: { onStart: () => void; starting: boolean; error: string | null }) {
   const startingLabel = useStartingMessage(starting);
