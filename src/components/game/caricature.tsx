@@ -391,6 +391,10 @@ export const DOCTOR_NEXT: Record<number, string> = {
  */
 export function DoctorFigure({ tier, size = 72, className, seed, title = "Your doctor" }: { tier: number; size?: number; className?: string; seed?: string; title?: string }) {
   const t = Math.max(1, Math.min(10, Math.round(tier)));
+  // Your own doctor: a portrait for each level, the outfit growing with you (other players keep their drawn faces).
+  if (!seed)
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={`/levels/${t}.png`} width={size} height={size} alt={title} title={title} className={`${className ?? ""} object-cover object-top`} style={{ width: size, height: size }} draggable={false} />;
   const senior = t >= 7;
   const h = seed ? hashOf(seed) : 0;
   const styles: HairStyle[] = senior ? ["neat", "receding", "bun", "short"] : ["neat", "short", "bun", "long"];

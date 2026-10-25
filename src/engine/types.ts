@@ -923,6 +923,8 @@ export interface PlayerProgress {
   freezesLeft?: number;
   /** Clinical rating: 1200 at the start, moved by each case's score against its difficulty. */
   rating?: number;
+  /** How the last case moved it. */
+  ratingChange?: number;
   bestStreak: number;
   /** XP earned today (IST) and the daily goal. */
   dailyXp: number;

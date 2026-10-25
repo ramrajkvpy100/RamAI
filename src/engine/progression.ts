@@ -135,6 +135,17 @@ export function computeStreak(history: CompletedCaseSummary[], now = new Date())
  * Clinical rating (like a chess rating): starts at 1200; each case moves it by how the score compared with what's
  * expected at that case's difficulty — a good score on a hard case lifts it most, a poor one on an easy case costs most.
  */
+/** Rating bands, like chess titles — what the number means. */
+export const RATING_TIERS = [
+  { from: 0, label: "Intern" },
+  { from: 1100, label: "Resident" },
+  { from: 1250, label: "Senior resident" },
+  { from: 1400, label: "Registrar" },
+  { from: 1550, label: "Consultant" },
+  { from: 1700, label: "Professor" },
+] as const;
+export const ratingTier = (r: number) => [...RATING_TIERS].reverse().find((t) => r >= t.from)!;
+
 export function computeRating(history: CompletedCaseSummary[]): number {
   const LEVEL_RATING: Record<string, number> = { phc: 950, chc: 1050, district: 1150, college: 1300, apex: 1450, grandrounds: 1650 };
   let r = 1200;
@@ -196,6 +207,7 @@ export function withDerived(history: CompletedCaseSummary[], now = new Date()): 
     streakDays: computeStreak(history, now),
     freezesLeft: Math.max(0, STREAK_FREEZES_PER_MONTH - streakWithFreezes(history, now).frozen.filter((d) => d.slice(0, 7) === today.slice(0, 7)).length),
     rating: computeRating(history),
+    ratingChange: history.length ? computeRating(history) - computeRating(history.slice(0, -1)) : 0,
     bestStreak,
     dailyXp: history.filter((h) => istDayKey(new Date(h.completedISO)) === today).reduce((s, h) => s + h.xp, 0),
     dailyGoal: DAILY_GOAL_XP,
