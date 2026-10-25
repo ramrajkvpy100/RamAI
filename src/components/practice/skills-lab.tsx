@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -9,7 +10,7 @@ import { useMe } from "@/lib/me-store";
 import { MODALITIES, MODALITY_IDS, type Modality } from "@/lib/practice";
 import { useSkillProgress } from "@/lib/skill-progress";
 import type { PracticeStats } from "@/server/practice";
-import { ALGORITHM_COUNT, ANTIDOTE_COUNT, CALCULATION_COUNT, algorithmQuestions, antidoteQuestions, calculationQuestions, type SkillLevel } from "@/lib/skills";
+import { ALGORITHM_COUNT, ALGORITHM_IDS, ANTIDOTE_COUNT, ANTIDOTE_IDS, CALCULATION_COUNT, algorithmQuestions, antidoteQuestions, calculationQuestions, type SkillLevel } from "@/lib/skills";
 
 import { PracticeDrill } from "./practice-drill";
 import { QuizDrill } from "./quiz-drill";
@@ -83,8 +84,9 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
     return [progress("quiz:calc-").mastered, CALCULATION_COUNT];
   };
 
-  const antidotes = useCallback(() => antidoteQuestions(level, specialty), [level, specialty]);
-  const algorithms = useCallback(() => algorithmQuestions(level, specialty), [level, specialty]);
+  const [cat, setCat] = useState<string | null>(null);
+  const antidotes = useCallback(() => antidoteQuestions(level, specialty, cat ?? undefined), [level, specialty, cat]);
+  const algorithms = useCallback(() => algorithmQuestions(level, specialty, cat ?? undefined), [level, specialty, cat]);
   const calculations = useCallback(() => calculationQuestions(level, specialty), [level, specialty]);
 
   if (!section) {
@@ -135,7 +137,7 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
   return (
     <div className="flex flex-col gap-5 py-6">
       <header className="flex items-center gap-3">
-        <button type="button" onClick={() => setSection(null)} className="h-9 rounded-full border border-line bg-surface px-3.5 text-[13.5px] font-medium hover:bg-surface-2">
+        <button type="button" onClick={() => { setSection(null); setCat(null); }} className="h-9 rounded-full border border-line bg-surface px-3.5 text-[13.5px] font-medium hover:bg-surface-2">
           ← Skills Lab
         </button>
         <h1 className="text-[20px] font-semibold tracking-[-0.02em]">{SECTIONS[section][0]}</h1>
@@ -143,8 +145,20 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
       {section === "spot" && <PracticeDrill stats={stats} level={level} order={modalities} />}
       {section === "radiology" && <RadiologyReporting embedded />}
       {section === "sounds" && <SoundsDrill level={level} />}
-      {section === "antidotes" && <QuizDrill make={antidotes} title="Antidotes" />}
-      {section === "algorithms" && <QuizDrill make={algorithms} title="Emergency algorithms" />}
+      {(section === "antidotes" || section === "algorithms") && (
+        <div role="radiogroup" aria-label="Subcategory" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {[null, ...[...new Set((section === "antidotes" ? ANTIDOTE_IDS() : ALGORITHM_IDS()).map((x) => x.cat))]].map((c) => {
+            const ids = (section === "antidotes" ? ANTIDOTE_IDS() : ALGORITHM_IDS()).filter((x) => !c || x.cat === c).map((x) => x.id);
+            return (
+              <button key={c ?? "all"} type="button" role="radio" aria-checked={cat === c} onClick={() => setCat(c)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", cat === c ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                {c ?? "All"} <span className="text-fg-3 tabular">{progress("quiz:", ids).mastered}/{ids.length}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {section === "antidotes" && <QuizDrill key={`a-${cat}`} make={antidotes} title="Antidotes" />}
+      {section === "algorithms" && <QuizDrill key={`g-${cat}`} make={algorithms} title="Emergency algorithms" />}
       {section === "calculations" && <QuizDrill make={calculations} title="Clinical calculations" />}
     </div>
   );

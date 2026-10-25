@@ -117,8 +117,8 @@ const ALL_ANTIDOTES: [string, string, string, string, [string, string][], string
   ...MORE_ANTIDOTES,
 ];
 
-export const antidoteQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
-  forDoctor(ALL_ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, src));
+export const antidoteQuestions = (level: SkillLevel = "full", specialty?: string | null, cat?: string): QuizQuestion[] =>
+  forDoctor(ALL_ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })).filter((x) => !cat || catOf(ANTIDOTE_CATS, x.id) === cat), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, src));
 
 /* Emergency algorithms ------------------------------------------------------ */
 
@@ -135,8 +135,8 @@ const ALGORITHMS: [string, string, string, string, [string, string][], string][]
   ["stroke", "Sudden right-sided weakness and aphasia 90 minutes ago; glucose normal.", "Urgent non-contrast CT head, then thrombolysis if no bleed and no contraindication", "Time is brain: imaging to exclude haemorrhage, then alteplase/tenecteplase within 4.5 hours.", [["Aspirin straight away", "Not before a bleed is excluded and the thrombolysis decision is made."], ["MRI tomorrow", "Too late for thrombolysis."], ["Lower BP to 120/80 at once", "Aggressive lowering harms the penumbra."]], "AHA/ASA acute stroke guideline 2019"],
 ];
 
-export const algorithmQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
-  forDoctor([...ALGORITHMS, ...MORE_ALGORITHMS].map((a) => ({ id: `algo-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
+export const algorithmQuestions = (level: SkillLevel = "full", specialty?: string | null, cat?: string): QuizQuestion[] =>
+  forDoctor([...ALGORITHMS, ...MORE_ALGORITHMS].map((a) => ({ id: `algo-${a[0]}`, a })).filter((x) => !cat || catOf(ALGORITHM_CATS, x.id) === cat), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
 
 /* Clinical calculations ------------------------------------------------------ */
 
@@ -370,3 +370,29 @@ export const calculationQuestions = (level: SkillLevel = "full", specialty?: str
 export const ANTIDOTE_COUNT = ALL_ANTIDOTES.length;
 export const ALGORITHM_COUNT = ALGORITHMS.length + MORE_ALGORITHMS.length;
 export const CALCULATION_COUNT = CALCS.length;
+
+/** Subcategories, so a doctor can practise one area at a time and see progress in each. */
+export const ANTIDOTE_CATS: [string, RegExp][] = [
+  ["Painkillers & psychiatric drugs", /paracetamol|salicylate|opioid|benzo|tca|lithium|valproate|serotonin|nms|anticholinergic|clonidine/],
+  ["Heart & blood drugs", /digoxin|betablocker|ccb|warfarin|heparin|dabigatran|rivaroxaban|heparin-hit/],
+  ["Diabetes & metabolic", /sulfonylurea|insulin|metformin|methotrexate|isoniazid|theophylline|iron/],
+  ["Poisons & chemicals", /organophosphate|methanol|ethylene|cyanide|co\b|^co$|methb|lead|arsenic|mercury|paraquat|aluminium|kerosene|corrosive|local|lignocaine|dapsone|ethanol|mushroom|botulism/],
+  ["Bites & stings", /snake|krait|scorpion/],
+  ["Anaesthesia emergencies", /mh|lignocaine|local-methemoglobin/],
+];
+export const ALGORITHM_CATS: [string, RegExp][] = [
+  ["Cardiac arrest & rhythms", /vf|asystole|rosc|brady|svt|vt-|af-|paeds-arrest|hypothermia|drowning/],
+  ["Chest pain & heart", /stemi|acs|apo|tamponade|massive-pe|aortic|hypertensive/],
+  ["Airway & breathing", /asthma|copd|airway|choking|tension|anaphylaxis/],
+  ["Shock, sepsis & bleeding", /sepsis|haemorrhage|upper-gi|burns|anaphylaxis-refractory/],
+  ["Brain & nerves", /status|stroke|head-injury|c-spine|meningitis/],
+  ["Hormones & salts", /dka|hhs|hypoglyc|adrenal|thyroid|myxoedema|hyponat|hyperk/],
+  ["Women & babies", /pph|eclampsia|shoulder|cord|ectopic|neonatal/],
+  ["Children", /dehydration-child|febrile|sam-child|sepsis-child|choking-infant|paeds/],
+  ["Surgery & trauma", /trauma|acute-abdomen|testicular|compartment|hyperthermia|tension/],
+];
+export const catOf = (cats: [string, RegExp][], id: string) => cats.find(([, re]) => re.test(id.replace(/^(antidote|algo)-/, "")))?.[0] ?? "Other";
+
+/** Every question id in a drill, with its subcategory — for the subcategory chips and their progress. */
+export const ANTIDOTE_IDS = (): { id: string; cat: string }[] => ALL_ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, cat: catOf(ANTIDOTE_CATS, `antidote-${a[0]}`) }));
+export const ALGORITHM_IDS = (): { id: string; cat: string }[] => [...ALGORITHMS, ...MORE_ALGORITHMS].map((a) => ({ id: `algo-${a[0]}`, cat: catOf(ALGORITHM_CATS, `algo-${a[0]}`) }));
