@@ -329,6 +329,534 @@
    ],
    "source": "Goldfrank's Toxicologic Emergencies, 11th edition",
    "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "methadone-torsades-15",
+   "stem": "A patient with a methadone overdose develops recurrent torsades de pointes with marked QT prolongation. Their circulation is currently stable between episodes.",
+   "right": "IV magnesium sulfate",
+   "explain": "Give **IV magnesium sulfate** for torsades, even if the serum magnesium is normal. Correct contributing electrolyte abnormalities and stop QT-prolonging drugs.",
+   "wrong": [
+    [
+     "IV calcium gluconate",
+     "Calcium is not the first-line treatment for torsades unless there is a separate indication such as hypocalcaemia."
+    ],
+    [
+     "Sodium bicarbonate",
+     "This is used for sodium-channel blockade with QRS widening, not isolated QT prolongation and torsades."
+    ],
+    [
+     "Amiodarone",
+     "Amiodarone can further prolong the QT interval and worsen torsades."
+    ]
+   ],
+   "source": "AHA Guidelines for CPR and ECC, Adult Advanced Life Support; TOXBASE, Methadone poisoning",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "buprenorphine-overdose-16",
+   "stem": "A patient is deeply sedated with respiratory depression after taking a large amount of buprenorphine. Repeated standard doses of naloxone produce little improvement.",
+   "right": "High-dose naloxone followed by infusion",
+   "explain": "Buprenorphine’s high receptor affinity may require **larger naloxone doses**; a continuous infusion may be needed because its effects can outlast naloxone. Provide ventilatory support.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "Flumazenil reverses benzodiazepines, not opioid toxicity, and can provoke seizures in some overdoses."
+    ],
+    [
+     "Atropine",
+     "Atropine does not reverse opioid-induced respiratory depression."
+    ],
+    [
+     "Physostigmine",
+     "Physostigmine is not an opioid antidote and may cause serious adverse effects."
+    ]
+   ],
+   "source": "TOXBASE, Buprenorphine poisoning; Goldfrank’s Toxicologic Emergencies, 11th ed.",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "isolated-diazepam-overdose-17",
+   "stem": "A benzodiazepine-naive adult is found drowsy after an isolated accidental diazepam overdose. They have respiratory depression, and there is no evidence of dependence, seizure disorder or co-ingestion.",
+   "right": "Carefully titrated IV flumazenil",
+   "explain": "In a **selected isolated benzodiazepine overdose**, flumazenil can reverse sedation and respiratory depression. Avoid it when dependence, proconvulsant co-ingestion or seizure risk is present.",
+   "wrong": [
+    [
+     "Naloxone",
+     "Naloxone reverses opioid toxicity, not benzodiazepine effects."
+    ],
+    [
+     "Physostigmine",
+     "Physostigmine is not used to reverse benzodiazepines and may cause seizures or arrhythmias."
+    ],
+    [
+     "Flumazenil infusion in every case",
+     "Flumazenil is not appropriate in all overdoses; it can precipitate withdrawal or seizures in high-risk patients."
+    ]
+   ],
+   "source": "TOXBASE, Benzodiazepine poisoning; BNF, Flumazenil",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "baclofen-overdose-renal-failur-18",
+   "stem": "A patient with advanced kidney failure becomes comatose and hypoventilates after taking a therapeutic baclofen dose. The drug is renally cleared, and supportive care has not improved the encephalopathy.",
+   "right": "Intermittent haemodialysis",
+   "explain": "Baclofen is dialysable; **haemodialysis is suggested for toxicity with coma requiring mechanical ventilation, particularly with impaired kidney function**. Continue supportive care.",
+   "wrong": [
+    [
+     "Naloxone",
+     "Naloxone does not reliably reverse baclofen toxicity."
+    ],
+    [
+     "Flumazenil",
+     "Flumazenil does not reverse baclofen and may introduce seizure risk."
+    ],
+    [
+     "Urinary alkalinisation",
+     "This is not an effective method to enhance baclofen elimination."
+    ]
+   ],
+   "source": "EXTRIP Workgroup, Baclofen poisoning recommendations, Kidney International 2021",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "clozapine-overdose-hypotension-19",
+   "stem": "A patient with a clozapine overdose remains severely hypotensive despite IV fluids. There is no evidence of anaphylaxis or another cause of shock.",
+   "right": "IV norepinephrine",
+   "explain": "Use **norepinephrine** for persistent clozapine-associated hypotension. Avoid epinephrine where possible because clozapine’s alpha-blocking effect can produce paradoxical worsening of hypotension.",
+   "wrong": [
+    [
+     "IV epinephrine",
+     "Alpha-receptor blockade may cause epinephrine to worsen hypotension through unopposed beta-2 vasodilation."
+    ],
+    [
+     "Flumazenil",
+     "Flumazenil does not reverse clozapine toxicity."
+    ],
+    [
+     "Physostigmine",
+     "Physostigmine is not a treatment for clozapine-induced shock and can cause serious complications."
+    ]
+   ],
+   "source": "TOXBASE, Clozapine poisoning",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "tramadol-overdose-seizure-20",
+   "stem": "A patient develops a generalised seizure after a tramadol overdose. The seizure is ongoing, and there is no evidence of hypoglycaemia or another immediately reversible cause.",
+   "right": "IV benzodiazepine",
+   "explain": "Treat tramadol-associated seizures promptly with an **IV benzodiazepine** such as lorazepam or diazepam, while supporting airway and breathing.",
+   "wrong": [
+    [
+     "Phenytoin",
+     "Phenytoin is generally ineffective for toxicological seizures and may worsen some poisonings."
+    ],
+    [
+     "Flumazenil",
+     "Flumazenil can precipitate seizures and does not treat tramadol toxicity."
+    ],
+    [
+     "Naloxone as the sole treatment",
+     "Naloxone may be considered for opioid-related respiratory depression, but it is not the first-line anticonvulsant."
+    ]
+   ],
+   "source": "TOXBASE, Tramadol poisoning; BNF, Status epilepticus",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "clonidine-overdose-bradycardia-21",
+   "stem": "A child becomes markedly drowsy with bradycardia and hypotension after swallowing clonidine tablets. Airway and ventilatory support are being provided.",
+   "right": "Supportive care with close airway and haemodynamic monitoring",
+   "explain": "There is **no established specific antidote** for clonidine poisoning; management is supportive, with airway support and treatment of clinically significant bradycardia or hypotension as needed.",
+   "wrong": [
+    [
+     "Atropine as a specific antidote",
+     "Atropine may be considered for symptomatic bradycardia but does not reverse clonidine toxicity."
+    ],
+    [
+     "Flumazenil",
+     "Flumazenil reverses benzodiazepines, not clonidine."
+    ],
+    [
+     "Naloxone as a reliably curative antidote",
+     "Naloxone has inconsistent benefit and should not replace supportive care."
+    ]
+   ],
+   "source": "TOXBASE, Clonidine poisoning",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "sertraline-serotonin-toxicity-22",
+   "stem": "After a sertraline overdose, a patient develops agitation, diaphoresis, tremor and inducible clonus despite initial supportive measures. They can swallow safely and have no contraindication to enteral medication.",
+   "right": "Oral cyproheptadine",
+   "explain": "For clinically significant serotonin toxicity, **cyproheptadine** may be used as an adjunct to supportive care and benzodiazepines; it is given enterally because no parenteral formulation is available.",
+   "wrong": [
+    [
+     "Dantrolene",
+     "Dantrolene is used for malignant hyperthermia and is not the standard antidote for serotonin toxicity."
+    ],
+    [
+     "Bromocriptine",
+     "Bromocriptine is sometimes used in neuroleptic malignant syndrome and may worsen serotonin toxicity."
+    ],
+    [
+     "Flumazenil",
+     "Flumazenil does not treat serotonin toxicity and can provoke seizures in overdose."
+    ]
+   ],
+   "source": "TOXBASE, Serotonin syndrome; BNF, Cyproheptadine",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "lithium-nephrogenic-diabetes-i-23",
+   "stem": "A patient with chronic lithium exposure presents with polyuria, hypernatraemia and very dilute urine consistent with nephrogenic diabetes insipidus. They are haemodynamically stable and can take oral medication.",
+   "right": "Amiloride",
+   "explain": "**Amiloride** reduces lithium entry into collecting-duct cells via epithelial sodium channels and is commonly used for lithium-induced nephrogenic diabetes insipidus.",
+   "wrong": [
+    [
+     "Desmopressin",
+     "Nephrogenic diabetes insipidus is due to renal resistance to vasopressin, so desmopressin is usually ineffective."
+    ],
+    [
+     "Spironolactone",
+     "It does not block lithium entry into collecting-duct cells as amiloride does."
+    ],
+    [
+     "Acetazolamide",
+     "Acetazolamide is not the usual targeted treatment for lithium-induced nephrogenic diabetes insipidus."
+    ]
+   ],
+   "source": "BNF, Amiloride; UpToDate, Lithium-induced nephrogenic diabetes insipidus",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "morphine-overdose-naloxone-inf-24",
+   "stem": "A patient who took a large amount of sustained-release morphine initially responds to naloxone but repeatedly becomes apnoeic as the naloxone wears off. They require repeated rescue doses.",
+   "right": "Continuous IV naloxone infusion",
+   "explain": "For recurrent respiratory depression after a long-acting opioid, use a **naloxone infusion** after effective reversal, with ongoing respiratory monitoring because toxicity may recur.",
+   "wrong": [
+    [
+     "Flumazenil infusion",
+     "Flumazenil reverses benzodiazepines, not morphine."
+    ],
+    [
+     "Activated charcoal as the only treatment",
+     "Charcoal does not promptly reverse established respiratory depression and must not delay airway support or naloxone."
+    ],
+    [
+     "Discharge after one naloxone dose",
+     "Long-acting opioid effects can outlast naloxone, creating a risk of recurrent respiratory depression."
+    ]
+   ],
+   "source": "BNF, Naloxone; TOXBASE, Morphine poisoning",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "naproxen-overdose-25",
+   "stem": "A 32-year-old presents after swallowing a large quantity of naproxen tablets. They have nausea and epigastric pain but normal observations, renal function and acid–base status.",
+   "right": "Supportive care; there is no specific antidote.",
+   "explain": "Naproxen overdose is managed with **supportive care**, including assessment and monitoring for complications. No specific antidote is available.",
+   "wrong": [
+    [
+     "N-acetylcysteine",
+     "This is used for paracetamol poisoning, not naproxen overdose."
+    ],
+    [
+     "Sodium bicarbonate infusion",
+     "Urinary alkalinisation is used for salicylate poisoning, not routine NSAID overdose."
+    ],
+    [
+     "Deferoxamine",
+     "This chelator is used for significant iron poisoning."
+    ]
+   ],
+   "source": "TOXBASE; BNF, NSAID poisoning",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "celecoxib-overdose-26",
+   "stem": "A patient is brought to the emergency department after an intentional ingestion of a large quantity of celecoxib. They are alert and haemodynamically stable, with no evidence of co-ingestants.",
+   "right": "Supportive care and observation; no specific antidote.",
+   "explain": "There is **no specific antidote** for celecoxib overdose. Management is guided by symptoms and includes observation and supportive treatment.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "This may reverse benzodiazepine effects in selected cases, not celecoxib toxicity."
+    ],
+    [
+     "Naloxone",
+     "This reverses opioid toxicity, not NSAID toxicity."
+    ],
+    [
+     "Intravenous lipid emulsion",
+     "This is used in selected cases of local anaesthetic systemic toxicity, not celecoxib overdose."
+    ]
+   ],
+   "source": "TOXBASE; BNF, celecoxib",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "baclofen-overdose-27",
+   "stem": "A 40-year-old is found deeply comatose with hypotonia and respiratory depression after taking a large amount of baclofen. They require intubation and ventilatory support.",
+   "right": "Supportive care, including airway and ventilatory support.",
+   "explain": "Baclofen overdose can cause profound CNS depression; treatment is primarily **supportive**, with close monitoring and respiratory support as needed. There is no established specific antidote.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "It does not reverse baclofen toxicity and may provoke seizures in some poisonings."
+    ],
+    [
+     "Naloxone",
+     "It reverses opioid effects, not baclofen toxicity."
+    ],
+    [
+     "Physostigmine",
+     "It is not an antidote for baclofen-induced coma."
+    ]
+   ],
+   "source": "TOXBASE; EXTRIP Workgroup, baclofen poisoning recommendations",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "methylphenidate-overdose-28",
+   "stem": "A young adult presents after ingesting a large quantity of methylphenidate and is severely agitated, tachycardic and hypertensive. They have no hyperthermia or seizure at assessment.",
+   "right": "Benzodiazepines for agitation and sympathetic overactivity.",
+   "explain": "Benzodiazepines are first-line to control **agitation and adrenergic excess** in stimulant toxicity; provide supportive care and monitor for complications.",
+   "wrong": [
+    [
+     "Propranolol alone",
+     "Isolated beta-blockade is not first-line and may worsen vasoconstriction through unopposed alpha activity."
+    ],
+    [
+     "Naloxone",
+     "This treats opioid toxicity, not methylphenidate toxicity."
+    ],
+    [
+     "Flumazenil",
+     "This reverses benzodiazepines and has no role in methylphenidate poisoning."
+    ]
+   ],
+   "source": "TOXBASE; BNF, methylphenidate",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "atomoxetine-overdose-29",
+   "stem": "A teenager presents after taking a large overdose of atomoxetine and develops marked agitation, tachycardia and a generalised seizure. Airway and breathing are currently maintained.",
+   "right": "Intravenous benzodiazepines for the seizure.",
+   "explain": "Treat seizures from atomoxetine toxicity with **benzodiazepines** and provide supportive care, including monitoring of cardiovascular status.",
+   "wrong": [
+    [
+     "Phenytoin",
+     "It is generally not the preferred first-line treatment for toxicological seizures."
+    ],
+    [
+     "Naloxone",
+     "It does not reverse atomoxetine toxicity."
+    ],
+    [
+     "Flumazenil",
+     "It is not an antidote for atomoxetine and can precipitate seizures in susceptible patients."
+    ]
+   ],
+   "source": "TOXBASE; BNF, atomoxetine",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "dextromethorphan-overdose-30",
+   "stem": "A patient is brought in after a large ingestion of dextromethorphan and is markedly agitated with nystagmus and ataxia. They are maintaining their airway and have no features of opioid respiratory depression.",
+   "right": "Supportive care, with benzodiazepines if agitation is severe.",
+   "explain": "Dextromethorphan toxicity is managed with **supportive care**; benzodiazepines can be used for severe agitation or seizures. Naloxone is not routine in the absence of respiratory depression.",
+   "wrong": [
+    [
+     "N-acetylcysteine",
+     "This is used for paracetamol poisoning, not dextromethorphan."
+    ],
+    [
+     "Flumazenil",
+     "It does not reverse dextromethorphan toxicity."
+    ],
+    [
+     "Sodium bicarbonate",
+     "This is used for selected sodium-channel-blocking drug toxicities, not routine dextromethorphan poisoning."
+    ]
+   ],
+   "source": "TOXBASE; BNF, dextromethorphan",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "loperamide-overdose-torsades-31",
+   "stem": "A patient who has taken a very large amount of loperamide develops recurrent torsades de pointes with marked QT prolongation. They remain unstable despite initial magnesium and electrical treatment.",
+   "right": "Isoprenaline or temporary overdrive pacing, with specialist toxicology advice.",
+   "explain": "Loperamide can cause life-threatening QT prolongation and torsades. For recurrent episodes, **increase the heart rate** with isoprenaline or overdrive pacing, alongside standard resuscitation.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "This is not an antidote for loperamide-related arrhythmia."
+    ],
+    [
+     "Atropine",
+     "It does not treat the prolonged QT mechanism or recurrent torsades."
+    ],
+    [
+     "Amiodarone",
+     "It may further prolong the QT interval and worsen torsades risk."
+    ]
+   ],
+   "source": "TOXBASE; Resuscitation Council UK, Adult Advanced Life Support guidance",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "opioid-induced-chest-wall-rigi-32",
+   "stem": "Immediately after a rapid high-dose intravenous fentanyl administration, a patient develops severe chest-wall rigidity and cannot be ventilated effectively. Oxygenation is deteriorating.",
+   "right": "Naloxone, with neuromuscular blockade and ventilation if needed.",
+   "explain": "Fentanyl-induced rigidity can impair ventilation. **Naloxone** reverses opioid effects; severe cases may require neuromuscular blockade and assisted ventilation.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "It reverses benzodiazepines, not fentanyl."
+    ],
+    [
+     "Atropine",
+     "It does not reverse opioid-induced chest-wall rigidity."
+    ],
+    [
+     "Intravenous sodium bicarbonate",
+     "This is used for selected sodium-channel-blocking toxicities, not fentanyl rigidity."
+    ]
+   ],
+   "source": "TOXBASE; BNF, fentanyl",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "nsaid-overdose-metabolic-acido-33",
+   "stem": "After a massive mefenamic acid overdose, a patient develops a generalised seizure. Their airway is secured, and the seizure persists despite an initial benzodiazepine dose.",
+   "right": "Give further intravenous benzodiazepine treatment and manage in a resuscitation setting.",
+   "explain": "Seizures in mefenamic acid poisoning are treated with **benzodiazepines**, with airway support and toxicology consultation. There is no specific antidote.",
+   "wrong": [
+    [
+     "Naloxone",
+     "This does not treat seizures caused by mefenamic acid."
+    ],
+    [
+     "Flumazenil",
+     "It is not an anticonvulsant and may provoke seizures."
+    ],
+    [
+     "Deferoxamine",
+     "This is used for iron poisoning, not NSAID-induced seizures."
+    ]
+   ],
+   "source": "TOXBASE; BNF, mefenamic acid",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "pregabalin-overdose-normal-ren-34",
+   "stem": "A patient with normal baseline renal function is brought in after an isolated pregabalin overdose. They are drowsy but maintaining their airway, with stable observations and no co-ingestants identified.",
+   "right": "Supportive care and observation; no specific antidote.",
+   "explain": "Isolated pregabalin overdose is managed with **supportive care** and monitoring for CNS and respiratory depression. There is no specific antidote.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "It does not reverse pregabalin and may cause harm in mixed or uncertain overdoses."
+    ],
+    [
+     "Naloxone",
+     "It is not an antidote for pregabalin toxicity."
+    ],
+    [
+     "N-acetylcysteine",
+     "This is used for paracetamol poisoning, not pregabalin overdose."
+    ]
+   ],
+   "source": "TOXBASE; BNF, pregabalin",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "phenazopyridine-methaemoglobin-35",
+   "stem": "An adult is brought in after ingesting a large quantity of phenazopyridine tablets and develops cyanosis, chocolate-brown blood and a low pulse-oximeter reading that does not improve with oxygen. Co-oximetry confirms significant methaemoglobinaemia.",
+   "right": "Intravenous methylene blue",
+   "explain": "Methylene blue is the **specific treatment** for clinically significant drug-induced methaemoglobinaemia. Check for **G6PD deficiency**, which increases the risk of haemolysis and poor response.",
+   "wrong": [
+    [
+     "Intravenous sodium bicarbonate",
+     "Used for some drug-induced sodium-channel blockade, not methaemoglobinaemia."
+    ],
+    [
+     "N-acetylcysteine",
+     "The antidote for paracetamol poisoning, not phenazopyridine-induced methaemoglobinaemia."
+    ],
+    [
+     "Intravenous lipid emulsion",
+     "Used for selected cases of local anaesthetic systemic toxicity, not this presentation."
+    ]
+   ],
+   "source": "TOXBASE: Phenazopyridine; UK MHRA: Methylene blue—risk of haemolytic anaemia in G6PD deficiency",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "severe-phenobarbital-poisoning-36",
+   "stem": "A patient presents after a large phenobarbital overdose with coma and respiratory depression despite initial supportive care. The serum concentration remains high and the clinical course is prolonged.",
+   "right": "Intermittent haemodialysis",
+   "explain": "For **severe long-acting barbiturate poisoning**, extracorporeal treatment is recommended; **intermittent haemodialysis** is preferred when available. Continue supportive care and consider multiple-dose activated charcoal if the airway is protected.",
+   "wrong": [
+    [
+     "Urinary alkalinisation with sodium bicarbonate",
+     "Not recommended as the specific enhanced-elimination strategy for severe phenobarbital poisoning."
+    ],
+    [
+     "Flumazenil",
+     "Reverses benzodiazepine effects and may precipitate seizures; it does not reverse phenobarbital."
+    ],
+    [
+     "Intravenous naloxone",
+     "Reverses opioid toxicity, not barbiturate toxicity."
+    ]
+   ],
+   "source": "EXTRIP Workgroup: Recommendations for the use of extracorporeal treatments in poisoning with barbiturates (2021)",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "doxylamine-anticholinergic-tox-37",
+   "stem": "A young adult is brought in after a large doxylamine overdose with severe agitation, delirium, mydriasis and dry skin. The ECG shows a narrow QRS, and there is no history of seizure or chronic tricyclic antidepressant use.",
+   "right": "Carefully titrated intravenous physostigmine",
+   "explain": "With severe **anticholinergic delirium** and no ECG contraindication, physostigmine can reverse central toxicity. Give it with cardiac monitoring and expert oversight; avoid it when **QRS is widened** or tricyclic poisoning is suspected.",
+   "wrong": [
+    [
+     "Flumazenil",
+     "Reverses benzodiazepines, not antimuscarinic effects."
+    ],
+    [
+     "Naloxone",
+     "Reverses opioid toxicity, not doxylamine-induced delirium."
+    ],
+    [
+     "Intravenous sodium bicarbonate",
+     "Indicated for significant sodium-channel blockade with QRS widening, which is absent here."
+    ]
+   ],
+   "source": "TOXBASE: Doxylamine; American Academy of Clinical Toxicology / European Association of Poisons Centres and Clinical Toxicologists: Physostigmine position statement",
+   "cat": "Painkillers & psychiatric drugs"
+  },
+  {
+   "id": "phenobarbital-multiple-dose-ch-38",
+   "stem": "A patient with a severe phenobarbital overdose is drowsy but has a protected airway and stable haemodynamics. The ingestion was several hours ago, and the drug concentration remains elevated.",
+   "right": "Multiple-dose activated charcoal",
+   "explain": "Phenobarbital undergoes **enterohepatic recirculation** and is adsorbed by charcoal; multiple doses can enhance elimination in significant poisoning. Use only when the airway is protected and bowel function is adequate.",
+   "wrong": [
+    [
+     "Single-dose activated charcoal only",
+     "A single dose does not provide the enhanced elimination sought in significant phenobarbital poisoning."
+    ],
+    [
+     "Whole-bowel irrigation",
+     "Not the preferred enhanced-elimination method for phenobarbital."
+    ],
+    [
+     "Forced diuresis",
+     "Does not reliably enhance phenobarbital elimination and risks fluid and electrolyte complications."
+    ]
+   ],
+   "source": "TOXBASE: Phenobarbital; EXTRIP Workgroup: Recommendations for the use of extracorporeal treatments in poisoning with barbiturates (2021)",
+   "cat": "Painkillers & psychiatric drugs"
   }
  ],
  "algorithms": []

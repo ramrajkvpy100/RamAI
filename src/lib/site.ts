@@ -31,6 +31,7 @@ export const operator = () => (SITE.owner ? `${SITE.name}, run by ${SITE.owner}`
 export const LEGAL_LINKS = [
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
+  { href: "/learn", label: "Learn" },
   { href: "/contact", label: "Contact" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },

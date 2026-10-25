@@ -375,5 +375,511 @@
   ],
   "describe": "A typical photo shows creamy white patches on the tongue or inside the mouth.",
   "subject": "General medicine"
+ },
+ {
+  "id": "cx-bell-palsy-34",
+  "label": "Bell palsy",
+  "key": "Look for **one-sided facial weakness**, including a drooping mouth and inability to fully close the eye on that side.",
+  "search": [
+   "Bell palsy Wikimedia Commons",
+   "facial nerve palsy face Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows asymmetric facial movement, often with one corner of the mouth drooping.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-acromegaly-35",
+  "label": "Acromegaly",
+  "key": "Recognise **coarsened facial features**, especially an enlarged jaw, broad nose, and thickened lips.",
+  "search": [
+   "acromegaly face Wikimedia Commons",
+   "acromegaly facial features Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a broad, prominent lower face and enlarged facial features.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-osteoarthritis-nodes-36",
+  "label": "Heberden nodes of osteoarthritis",
+  "key": "Look for **bony enlargements at the distal finger joints**, near the fingertips.",
+  "search": [
+   "Heberden nodes Wikimedia Commons",
+   "hand osteoarthritis nodes Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows firm-looking bumps at the end joints of one or more fingers.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-impetigo-37",
+  "label": "Impetigo",
+  "key": "The characteristic clue is **golden, honey-coloured crusting**, often around the nose or mouth.",
+  "search": [
+   "impetigo honey crust Wikimedia Commons",
+   "facial impetigo Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows superficial red sores with yellow-brown crusts on the face or limbs.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-molluscum-contagiosum-38",
+  "label": "Molluscum contagiosum",
+  "key": "Recognise **small, smooth, pearly bumps with a central dimple**.",
+  "search": [
+   "molluscum contagiosum Wikimedia Commons",
+   "molluscum central umbilication Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a cluster of small dome-shaped skin-coloured or pink papules with central indentations.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-scabies-39",
+  "label": "Scabies",
+  "key": "Look for **thin, winding burrows and itchy papules**, often between the fingers or at the wrists.",
+  "search": [
+   "scabies burrows hand Wikimedia Commons",
+   "scabies rash Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows small itchy bumps and fine burrow lines on the hands or wrists.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-tinea-pedis-40",
+  "label": "Tinea pedis (athlete's foot)",
+  "key": "The visible clue is **scaling and cracking between the toes** or along the sole.",
+  "search": [
+   "tinea pedis between toes Wikimedia Commons",
+   "athlete's foot Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows flaky, whitish or reddened skin in the toe webs, sometimes with fissures.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-onychomycosis-41",
+  "label": "Onychomycosis (fungal nail infection)",
+  "key": "Look for **thickened, discoloured, brittle nails**, often with crumbly material beneath the nail.",
+  "search": [
+   "onychomycosis toenail Wikimedia Commons",
+   "fungal nail infection Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a toenail that is yellow-white, thickened, and irregular at the edge.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-erythema-migrans-42",
+  "label": "Erythema migrans of Lyme disease",
+  "key": "Recognise an **expanding red patch**, sometimes with central clearing, at the site of a tick bite.",
+  "search": [
+   "erythema migrans Wikimedia Commons",
+   "Lyme disease rash Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a gradually enlarging round or oval red patch on the skin.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-herpes-labialis-43",
+  "label": "Herpes labialis (cold sores)",
+  "key": "The characteristic feature is **grouped fluid-filled blisters** at the lip edge that may crust over.",
+  "search": [
+   "herpes labialis Wikimedia Commons",
+   "cold sore lip Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a cluster of small blisters or crusted sores at the border of the lip.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-aphthous-ulcer-44",
+  "label": "Aphthous ulcer (canker sore)",
+  "key": "Look for a **shallow, round ulcer with a pale centre and red rim** on the inside of the mouth.",
+  "search": [
+   "aphthous ulcer mouth Wikimedia Commons",
+   "canker sore Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a small, round sore on the inner lip, cheek, or tongue.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-oral-leukoplakia-45",
+  "label": "Oral leukoplakia",
+  "key": "Recognise a **persistent white patch in the mouth that does not wipe away**.",
+  "search": [
+   "oral leukoplakia Wikimedia Commons",
+   "leukoplakia tongue Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a well-defined white patch on the tongue or inner cheek.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-acute-conjunctivitis-46",
+  "label": "Acute conjunctivitis",
+  "key": "The key visible sign is **diffuse redness of the white of the eye**, often with discharge or watery tearing.",
+  "search": [
+   "conjunctivitis red eye Wikimedia Commons",
+   "acute conjunctivitis eye Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a red, irritated eye with watery or sticky discharge.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-hordeolum-47",
+  "label": "Hordeolum (stye)",
+  "key": "Look for a **tender, red lump at the eyelid margin**, sometimes with a small pustule.",
+  "search": [
+   "hordeolum stye Wikimedia Commons",
+   "eyelid stye Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows a localised swollen red bump on the upper or lower eyelid.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-parotid-enlargement-48",
+  "label": "Parotid gland enlargement",
+  "key": "Recognise **swelling in front of and below the ear**, which can obscure the angle of the jaw.",
+  "search": [
+   "parotid gland enlargement Wikimedia Commons",
+   "parotid swelling face Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows fullness over the cheek just in front of the ear, sometimes on both sides.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-angular-cheilitis-49",
+  "label": "Angular cheilitis",
+  "key": "Look for **redness, cracking, or crusting at one or both corners of the mouth**.",
+  "search": [
+   "angular cheilitis",
+   "cheilitis mouth corner Wikimedia Commons"
+  ],
+  "describe": "A typical photo shows irritated, fissured skin at the corner of the mouth, sometimes with a small crust.",
+  "subject": "General medicine"
+ },
+ {
+  "id": "cx-blepharitis-50",
+  "label": "Blepharitis",
+  "key": "Look for **red, crusted eyelid margins** with flakes or debris around the eyelashes.",
+  "search": [
+   "blepharitis eyelid crusts",
+   "blepharitis Wikimedia Commons"
+  ],
+  "describe": "A close-up typically shows red eyelid edges with crusting or flakes at the lash roots.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-ectropion-51",
+  "label": "Ectropion",
+  "key": "The **lower eyelid turns outward**, often exposing its inner surface and leaving the eye watery.",
+  "search": [
+   "ectropion lower eyelid",
+   "ectropion Wikimedia Commons"
+  ],
+  "describe": "The lower lid droops away from the eyeball, revealing pink inner lid tissue.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-entropion-52",
+  "label": "Entropion",
+  "key": "The **eyelid turns inward**, so the eyelashes point toward and may touch the eye.",
+  "search": [
+   "entropion eyelid inward",
+   "entropion Wikimedia Commons"
+  ],
+  "describe": "The lid margin rolls inward, with lashes visibly directed toward the eyeball.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-trichiasis-53",
+  "label": "Trichiasis",
+  "key": "One or more **misdirected eyelashes rub against the eye** instead of pointing outward.",
+  "search": [
+   "trichiasis eyelashes eye",
+   "trichiasis Wikimedia Commons"
+  ],
+  "describe": "A close-up shows lashes turning inward and contacting the eye surface.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-xanthelasma-54",
+  "label": "Xanthelasma",
+  "key": "Recognise **soft yellow plaques** on or near the inner parts of the eyelids.",
+  "search": [
+   "xanthelasma eyelids",
+   "xanthelasma Wikimedia Commons"
+  ],
+  "describe": "One or more flat, yellowish plaques are visible near the inner corners of the eyelids.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-pinguecula-55",
+  "label": "Pinguecula",
+  "key": "Look for a **small yellow-white raised patch** on the conjunctiva beside the cornea.",
+  "search": [
+   "pinguecula eye",
+   "pinguecula Wikimedia Commons"
+  ],
+  "describe": "A yellowish bump sits on the white of the eye, usually on the side nearest the nose.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-corneal-arcus-56",
+  "label": "Corneal arcus",
+  "key": "A **pale grey-white ring at the edge of the cornea** is the characteristic feature.",
+  "search": [
+   "corneal arcus eye",
+   "arcus senilis Wikimedia Commons"
+  ],
+  "describe": "A light-coloured arc or ring outlines the outer edge of the cornea.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-episcleritis-57",
+  "label": "Episcleritis",
+  "key": "The eye has a **sector of superficial redness**, often bright red and sharply localised.",
+  "search": [
+   "episcleritis eye redness",
+   "episcleritis Wikimedia Commons"
+  ],
+  "describe": "A patch of redness appears on the white of the eye, often without extensive swelling.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-scleritis-58",
+  "label": "Scleritis",
+  "key": "Look for **deep, diffuse redness** of the white of the eye, often with a dusky or violaceous hue.",
+  "search": [
+   "scleritis red eye",
+   "scleritis Wikimedia Commons"
+  ],
+  "describe": "The eye appears markedly and deeply red, sometimes with a purple-blue tint.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-hyphema-59",
+  "label": "Hyphema",
+  "key": "A **visible layer or pool of blood in front of the iris** is the key finding.",
+  "search": [
+   "hyphema eye blood",
+   "hyphema Wikimedia Commons"
+  ],
+  "describe": "Blood collects in the lower part of the front of the eye, behind the clear cornea.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-hypopyon-60",
+  "label": "Hypopyon",
+  "key": "A **white or yellow fluid level in front of the iris** settles at the bottom of the eye.",
+  "search": [
+   "hypopyon eye",
+   "hypopyon Wikimedia Commons"
+  ],
+  "describe": "A pale, horizontal collection is visible in the lower front chamber of the eye.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-thyroid-eye-disease-61",
+  "label": "Thyroid eye disease",
+  "key": "Recognise **prominent, staring eyes** with upper-lid retraction and a wide-eyed appearance.",
+  "search": [
+   "thyroid eye disease proptosis",
+   "Graves orbitopathy Wikimedia Commons"
+  ],
+  "describe": "The eyes may protrude, with retracted upper lids and increased white visible above the iris.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-anterior-uveitis-62",
+  "label": "Anterior uveitis",
+  "key": "Look for **redness concentrated around the cornea** with a small or irregular pupil.",
+  "search": [
+   "anterior uveitis eye",
+   "iritis Wikimedia Commons"
+  ],
+  "describe": "The eye shows a red ring around the cornea, and the pupil may look constricted or irregular.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-dacryocystitis-63",
+  "label": "Dacryocystitis",
+  "key": "A **red, tender-looking swelling below the inner corner of the eye** overlies the tear sac.",
+  "search": [
+   "dacryocystitis medial canthus",
+   "dacryocystitis Wikimedia Commons"
+  ],
+  "describe": "A localised red swelling is visible beside the nose, just below the inner corner of the eye.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-corneal-scar-64",
+  "label": "Corneal scar",
+  "key": "A **fixed white or grey opacity on the clear cornea** distinguishes a scar from a clear cornea.",
+  "search": [
+   "corneal scar eye",
+   "corneal opacity Wikimedia Commons"
+  ],
+  "describe": "A white or grey mark is visible on the normally transparent front surface of the eye.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-orbital-cellulitis-65",
+  "label": "Orbital cellulitis",
+  "key": "Look for **one-sided eyelid swelling and redness with a protruding eye**, often with restricted eye movement.",
+  "search": [
+   "orbital cellulitis eye",
+   "orbital cellulitis proptosis"
+  ],
+  "describe": "A swollen, red eyelid surrounds a visibly protruding eye, sometimes with the eye turned or movement limited.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-herpes-zoster-ophthalmicus-66",
+  "label": "Herpes zoster ophthalmicus",
+  "key": "Recognise **grouped blisters in the forehead and upper eyelid** on one side, usually following the ophthalmic branch of the trigeminal nerve.",
+  "search": [
+   "herpes zoster ophthalmicus eye",
+   "ophthalmic shingles eyelid"
+  ],
+  "describe": "A one-sided band of crusted or fluid-filled blisters covers the forehead and may involve the upper eyelid.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-eyelid-molluscum-contagiosum-67",
+  "label": "Eyelid molluscum contagiosum",
+  "key": "The characteristic lesion is a small, smooth, dome-shaped papule with a central **umbilication** on the eyelid.",
+  "search": [
+   "eyelid molluscum contagiosum",
+   "molluscum eyelid umbilicated"
+  ],
+  "describe": "A pearly, rounded eyelid bump has a tiny central dimple.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-conjunctival-nevus-68",
+  "label": "Conjunctival nevus",
+  "key": "Look for a **well-defined, flat or slightly raised pigmented spot** on the visible white of the eye, often with small cysts.",
+  "search": [
+   "conjunctival nevus eye",
+   "conjunctival naevus cysts"
+  ],
+  "describe": "A sharply bordered brown spot sits on the conjunctiva, often near the edge of the cornea.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-conjunctival-melanoma-69",
+  "label": "Conjunctival melanoma",
+  "key": "A suspicious lesion is a **raised, irregularly pigmented conjunctival mass**, sometimes with prominent feeding vessels.",
+  "search": [
+   "conjunctival melanoma eye",
+   "conjunctival melanoma pigmentation"
+  ],
+  "describe": "An uneven dark patch or nodule on the eye surface has visible blood vessels.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-iris-coloboma-70",
+  "label": "Iris coloboma",
+  "key": "The pupil has a keyhole appearance because of a **downward notch in the iris**.",
+  "search": [
+   "iris coloboma eye",
+   "keyhole pupil coloboma"
+  ],
+  "describe": "The normally round pupil extends downward through a gap in the iris.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-aniridia-71",
+  "label": "Aniridia",
+  "key": "Recognise a **markedly absent or underdeveloped iris**, leaving an unusually large, exposed-looking pupil.",
+  "search": [
+   "aniridia eye",
+   "congenital aniridia"
+  ],
+  "describe": "Both eyes may show very large dark pupils with little visible iris.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-heterochromia-iridis-72",
+  "label": "Heterochromia iridis",
+  "key": "The defining feature is **different iris colours** between the two eyes or distinct colour zones within one iris.",
+  "search": [
+   "heterochromia iridis eyes",
+   "complete heterochromia eye"
+  ],
+  "describe": "The two irises are visibly different colours, or one iris contains contrasting colour sectors.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-esotropia-73",
+  "label": "Esotropia",
+  "key": "One eye turns **inward toward the nose** while the other eye looks straight ahead or in another direction.",
+  "search": [
+   "esotropia eye",
+   "crossed eyes esotropia"
+  ],
+  "describe": "In a forward-looking face, one eye is visibly deviated toward the nose.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-exotropia-74",
+  "label": "Exotropia",
+  "key": "One eye turns **outward toward the temple** rather than aligning with the other eye.",
+  "search": [
+   "exotropia eye",
+   "outward turning eye exotropia"
+  ],
+  "describe": "One eye points outward while the other is directed forward.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-keratoconus-75",
+  "label": "Keratoconus",
+  "key": "In advanced cases, look for **Munson sign: a V-shaped bulge of the lower eyelid on downward gaze**.",
+  "search": [
+   "keratoconus eye Munson sign",
+   "advanced keratoconus cornea"
+  ],
+  "describe": "On downward gaze, the lower eyelid may form a V-shaped bulge over the steep, cone-shaped cornea.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-congenital-glaucoma-76",
+  "label": "Congenital glaucoma",
+  "key": "Look for an unusually **enlarged eye with a cloudy cornea**, especially in an infant.",
+  "search": [
+   "congenital glaucoma buphthalmos",
+   "infant congenital glaucoma cloudy cornea"
+  ],
+  "describe": "An infant’s eye appears enlarged and the normally clear cornea looks hazy.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-retinoblastoma-leukocoria-77",
+  "label": "Retinoblastoma presenting with leukocoria",
+  "key": "A key warning sign is **white rather than red pupil reflection** in a child, particularly when seen in photographs.",
+  "search": [
+   "retinoblastoma leukocoria eye",
+   "white pupil retinoblastoma child"
+  ],
+  "describe": "One pupil shows a white reflection instead of the usual red-eye reflection in a flash photograph.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-facial-nerve-palsy-lagophthalm-78",
+  "label": "Facial nerve palsy with lagophthalmos",
+  "key": "The affected eye does not close fully, leaving a visible **gap between the eyelids** when the patient attempts to shut it.",
+  "search": [
+   "facial nerve palsy lagophthalmos eye",
+   "lagophthalmos facial palsy"
+  ],
+  "describe": "On attempted eye closure, the eyelids remain partly open on the affected side.",
+  "subject": "Eye"
+ },
+ {
+  "id": "cx-limbal-dermoid-79",
+  "label": "Limbal dermoid",
+  "key": "Recognise a **pale, raised, rounded lesion at the corneal edge**, often present from birth.",
+  "search": [
+   "limbal dermoid eye",
+   "congenital limbal dermoid"
+  ],
+  "describe": "A cream-coloured lump straddles the border between the clear cornea and the white of the eye.",
+  "subject": "Eye"
  }
 ]

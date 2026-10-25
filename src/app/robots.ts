@@ -13,7 +13,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       ...TRAINING_ONLY.map((userAgent) => ({ userAgent, disallow: "/" })),
-      { userAgent: "*", allow: ["/$", "/s/", "/llms.txt", ...PUBLIC_PAGES.filter((p) => p !== "/")], disallow: "/" },
+      { userAgent: "*", allow: ["/$", "/s/", "/llms.txt", "/learn", ...PUBLIC_PAGES.filter((p) => p !== "/")], disallow: "/" },
     ],
     sitemap: `${SITE.url}/sitemap.xml`,
     host: SITE.url,
