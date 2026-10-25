@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/primitives";
 import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
@@ -145,7 +146,7 @@ export function SuggestionsPage({ who }: { who: "account" | "guest" | "visitor" 
           {items === null ? (
             <p className="mt-3 text-[14px] text-fg-3">Loading…</p>
           ) : items.length === 0 ? (
-            <p className="mt-3 text-[14px] text-fg-2">Nothing yet. What would you change first?</p>
+            <EmptyState compact className="mt-3" icon="bulb" title="No suggestions yet" body="What would you change first? Write it above." />
           ) : (
             <ul className="mt-4 flex flex-col gap-3">
               {items.map((s) => (

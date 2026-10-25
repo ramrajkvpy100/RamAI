@@ -1,4 +1,5 @@
 import { Icon } from "@/components/ui/icon";
+import { Rich } from "@/components/ui/rich-lines";
 import { cn } from "@/lib/cn";
 
 /** Renders "a → b → c" as a quiet causal chain. */
@@ -30,7 +31,7 @@ export function Steps({ steps, tone = "neutral", numbered = true }: { steps: str
           <span className={cn("relative flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border text-[10.5px] font-medium tabular", dot)}>
             {numbered ? i + 1 : <span className="h-1 w-1 rounded-full bg-current" />}
           </span>
-          <span className="pt-px text-[14px] leading-6">{s}</span>
+          <span className="pt-px text-[14px] leading-6"><Rich text={s} /></span>
         </li>
       ))}
     </ol>

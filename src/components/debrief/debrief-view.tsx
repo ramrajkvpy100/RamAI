@@ -1,6 +1,6 @@
 "use client";
 
-import { RichLines } from "@/components/ui/rich-lines";
+import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { Portal } from "@/components/ui/portal";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -126,7 +126,7 @@ function CoachFeedback({ coach }: { coach: NonNullable<CaseDebrief["coach"]> }) 
         {coach.nextTime.map((tip) => (
           <li key={tip} className="flex items-start gap-2 text-[13.5px] leading-6">
             <Icon name="arrow-right" size={13} className="mt-1.5 shrink-0 text-accent-text" />
-            {tip}
+            <span><Rich text={tip} /></span>
           </li>
         ))}
       </ul>

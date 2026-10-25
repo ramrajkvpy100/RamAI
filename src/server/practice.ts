@@ -36,6 +36,11 @@ const ADVANCED_SPOT = new Set([
   "edh", "sdh", "dissection", "pe", "pancreatitis",
   "ovarian-cyst", "dvt", "free-fluid",
   "spherocytes", "schistocytes", "target", "aml", "cll", "microfilaria", "megaloblastic",
+  "posterior-mi", "wellens", "de-winter", "brugada", "lafb", "tca-ecg", "low-voltage", "dextrocardia", "hypothermia-ecg", "mat", "rvh", "hypercal", "hypocal", "digoxin-effect", "early-repol",
+  "pneumomediastinum", "ngt-misplaced", "ett-low", "aortic-unfold", "osteosarcoma", "ankylosing", "epiglottitis",
+  "tuberculoma", "ivh", "empyema", "ct-bronchiectasis", "intussusception-ct", "hcc", "emphysematous-pyelo", "necrotising-panc", "mesenteric-ischaemia", "orbital-fracture",
+  "dermoid", "endometrioma", "molar", "anencephaly", "lung-sliding", "b-lines", "pkd",
+  "malariae", "ovale", "howell-jolly", "basophilic-stippling", "teardrop", "burr-cells", "acanthocytes", "elliptocytes", "agglutination", "apml", "hairy-cell", "giant-platelets", "trypanosome", "borrelia", "babesia", "leukoerythroblastic", "pelger", "loa-loa", "basophilia",
 ]);
 
 /** Kept pictures found to carry labels that name the answer — removed on sight. */
@@ -81,9 +86,10 @@ export async function addPicture(modality: Modality, itemId: string): Promise<bo
 }
 
 /** The diagnoses still short of pictures, fewest first — what the background fills next. */
-export async function missingPictures(modality: Modality, limit = 3): Promise<string[]> {
+export async function missingPictures(modality: Modality, limit = 3, subject?: string): Promise<string[]> {
   const counts = new Map((await db.all<{ item: string; n: number }>("SELECT item, COUNT(*) AS n FROM practice_images WHERE modality = ? AND source = 'commons' GROUP BY item", modality)).map((r) => [r.item, Number(r.n)]));
   return MODALITIES[modality].items
+    .filter((i) => !subject || i.subject === subject)
     .map((i) => ({ id: i.id, n: counts.get(i.id) ?? 0, drawn: !!i.ecg }))
     .filter((i) => i.n < PER_ITEM)
     .sort((a, b) => a.n - b.n || Number(a.drawn) - Number(b.drawn))
@@ -101,9 +107,11 @@ const shuffle = <T,>(xs: T[]): T[] => {
 };
 
 /** A round: every picture already kept (and each drawable ECG), shuffled, with four names to choose from. */
-export async function round(modality: Modality, mode: PracticeMode, level: "basic" | "full" = "full"): Promise<{ items: DrillItem[]; ready: number; total: number }> {
+export async function round(modality: Modality, mode: PracticeMode, level: "basic" | "full" = "full", subject?: string): Promise<{ items: DrillItem[]; ready: number; total: number }> {
   // Students and interns: the classic, must-know pictures only.
-  const bank = MODALITIES[modality].items.filter((i) => level === "full" || !ADVANCED_SPOT.has(i.id));
+  const all = MODALITIES[modality].items.filter((i) => level === "full" || !ADVANCED_SPOT.has(i.id));
+  // One subject at a time when chosen — its options from the same subject, so they are real look-alikes.
+  const bank = subject ? all.filter((i) => i.subject === subject) : all;
   if (!removed) {
     removed = true;
     await db.run(`DELETE FROM practice_images WHERE id IN (${REMOVED.map(() => "?").join(", ")})`, ...REMOVED).catch(() => (removed = false));

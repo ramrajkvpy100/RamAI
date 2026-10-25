@@ -1,6 +1,7 @@
 import { MediaFigure } from "@/components/media/media-figure";
+import { Rich } from "@/components/ui/rich-lines";
 import { Icon } from "@/components/ui/icon";
-import { Badge, Label } from "@/components/ui/primitives";
+import { Badge, EmptyState, Label } from "@/components/ui/primitives";
 import type { CaseDebrief, DrugMonograph, PracticalRoutine, SeverityBand } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { money } from "@/lib/format";
@@ -28,7 +29,7 @@ export function DiagnosisSection({ d }: { d: CaseDebrief }) {
               </span>
               <div>
                 <div className="micro mb-0.5 text-fg-3">{r.stage}</div>
-                <p className="text-[14px] leading-6">{r.text}</p>
+                <p className="text-[14px] leading-6"><Rich text={r.text} /></p>
               </div>
             </li>
           ))}
@@ -41,7 +42,7 @@ export function DiagnosisSection({ d }: { d: CaseDebrief }) {
 /* 03 ─ Misses ----------------------------------------------------------- */
 
 export function MissesSection({ d }: { d: CaseDebrief }) {
-  if (d.missed.length === 0) return <p className="text-[14px] text-fg-2">Nothing significant missed. That was a clean encounter.</p>;
+  if (d.missed.length === 0) return <EmptyState compact icon="check" title="Nothing missed" body="That was a clean encounter." />;
   return (
     <div className="flex flex-col gap-3">
       {d.missed.map((m, i) => (
@@ -57,7 +58,7 @@ export function MissesSection({ d }: { d: CaseDebrief }) {
             ].map((col, ci) => (
               <div key={col.label} className="relative bg-surface px-4 py-3">
                 <div className={cn("micro mb-1", ci === 2 ? "text-success" : "text-fg-3")}>{col.label}</div>
-                <p className="text-[13.5px] leading-[1.6]">{col.text}</p>
+                <p className="text-[13.5px] leading-[1.6]"><Rich text={col.text} /></p>
                 {ci < 2 && <Icon name="arrow-right" size={12} className="absolute top-3.5 -right-[7px] z-10 hidden rounded-full bg-surface text-fg-3 sm:block" />}
               </div>
             ))}
@@ -115,7 +116,7 @@ export function DecisionTreeSection({ d }: { d: CaseDebrief }) {
             <li key={i} className="flex items-center gap-2">
               <span className="flex max-w-[220px] items-start gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[12.5px] leading-[1.5]">
                 <span className="micro mt-px text-fg-3 tabular">{String(i + 1).padStart(2, "0")}</span>
-                {s}
+                <span><Rich text={s} /></span>
               </span>
               {i < d.treatmentFailure.steps.length - 1 && <Icon name="arrow-right" size={13} className="shrink-0 text-fg-3" />}
             </li>
@@ -275,7 +276,7 @@ function Monograph({ m }: { m: DrugMonograph }) {
         </div>
         <div className="sm:col-span-2">
           <dt className="micro mb-0.5 text-fg-3">Why it works</dt>
-          <dd className="text-[13.5px] leading-6">{m.whyItWorks}</dd>
+          <dd className="text-[13.5px] leading-6"><Rich text={m.whyItWorks} /></dd>
         </div>
         <div>
           <dt className="micro mb-1 text-fg-3">When not to use</dt>

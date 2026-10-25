@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { EmptyState } from "@/components/ui/primitives";
 import { useState } from "react";
 
 import { AchievementReveal, SharePrize, type Prize } from "@/components/game/achievement-reveal";
@@ -57,9 +57,7 @@ export function Achievements({ initial }: { initial: Me }) {
           Unlocked
         </h2>
         {unlocked.length === 0 ? (
-          <p className="panel p-5 text-[14px] text-fg-2">
-            None yet — <Link href="/cases" className="font-medium text-accent-text hover:underline">play a case</Link> to unlock your first.
-          </p>
+          <EmptyState icon="award" title="No achievements yet" body="Finish a case to unlock your first." action={{ label: "Play a case", href: "/cases" }} />
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {unlocked.map((b) => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { useEffect, useState } from "react";
 
 import { FillingBar } from "@/components/ui/filling-bar";
@@ -30,7 +31,7 @@ function Question({ q, n, token, onAnswered }: { q: Mcq; n: number; token: strin
         <span className="rounded-full bg-accent-soft px-2.5 py-0.5 font-medium text-accent-text">{q.topic}</span>
         <span className="text-fg-3 capitalize">{q.difficulty}</span>
       </div>
-      <p className="mt-3 text-[15px] leading-7 text-pretty">{q.stem}</p>
+      <p className="mt-3 text-[15px] leading-7 text-pretty"><Rich text={q.stem} /></p>
       <ol className="mt-3 flex flex-col gap-2">
         {q.options.map((option, i) => {
           const right = answered && i === q.answer;
@@ -49,7 +50,7 @@ function Question({ q, n, token, onAnswered }: { q: Mcq; n: number; token: strin
                 <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold", right ? "bg-success text-white" : wrong ? "bg-danger text-white" : "bg-surface-3 text-fg-2")}>
                   {right ? <Icon name="check" size={13} strokeWidth={2.6} /> : wrong ? <Icon name="x" size={13} strokeWidth={2.6} /> : LETTERS[i]}
                 </span>
-                <span className="min-w-0">{option}</span>
+                <span className="min-w-0"><Rich text={option} /></span>
               </button>
             </li>
           );
@@ -58,7 +59,7 @@ function Question({ q, n, token, onAnswered }: { q: Mcq; n: number; token: strin
       {answered && (
         <div className="mt-3 animate-enter rounded-xl bg-surface-2 px-4 py-3">
           <div className={cn("text-[12.5px] font-semibold", chosen === q.answer ? "text-success" : "text-danger")}>{chosen === q.answer ? "Correct" : `The answer is ${LETTERS[q.answer]}`}</div>
-          <p className="mt-1 text-[14px] leading-6 text-fg-2">{q.explanation}</p>
+          <RichLines text={q.explanation} className="mt-1 text-[14px] text-fg-2" />
         </div>
       )}
     </li>
@@ -112,7 +113,7 @@ export function LearnSection({ token }: { token: string }) {
               {pack.pearls.map((p) => (
                 <li key={p} className="flex items-start gap-2.5 text-[14.5px] leading-6">
                   <span aria-hidden className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
-                  {p}
+                  <span><Rich text={p} /></span>
                 </li>
               ))}
             </ul>

@@ -1,6 +1,6 @@
 "use client";
 
-import { RichLines } from "@/components/ui/rich-lines";
+import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ReportProblem } from "@/components/case/report-problem";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -264,7 +264,7 @@ function Question({
       <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
         <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${((n + (checked ? 1 : 0)) / total) * 100}%` }} />
       </div>
-      <p className="text-[16px] leading-7 whitespace-pre-wrap">{q.stem}</p>
+      <p className="text-[16px] leading-7 whitespace-pre-wrap"><Rich text={q.stem} /></p>
       <ol className="flex flex-col gap-2">
         {q.options.map((o, i) => {
           const state = !checked ? "idle" : i === checked.answer ? "right" : i === checked.choice ? "wrong" : "other";

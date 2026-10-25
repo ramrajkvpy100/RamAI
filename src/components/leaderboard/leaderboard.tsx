@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/primitives";
 import Link from "next/link";
 import { useEffect, useRef, useState, ViewTransition } from "react";
 
@@ -459,13 +460,7 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center px-6 py-14 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-3 text-fg-3">
-              <Icon name="trophy" size={22} />
-            </span>
-            <p className="mt-4 text-[15px] font-semibold">No scores here yet</p>
-            <p className="mt-1 max-w-xs text-[13.5px] text-fg-2">{board === "hard" ? "Hard cases are the top three levels — teaching hospital and up." : "Finish a case to take first place."}</p>
-          </div>
+          <EmptyState className="m-4 border-0" icon="trophy" title="No scores here yet" body={board === "hard" ? "Hard cases are the top three levels — teaching hospital and up. Finish one to take first place." : "Finish a case to take first place."} action={{ label: "Play a case", href: "/cases" }} />
         ) : (
           <>
             <div className="border-b border-line-2 bg-surface-2 px-4 pt-9 sm:px-10">

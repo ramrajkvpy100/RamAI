@@ -18,7 +18,7 @@ const DOT: Record<TimelineEvent["category"], string> = {
 };
 
 export function Timeline({ events }: { events: TimelineEvent[] }) {
-  if (events.length === 0) return <EmptyState title="No events" body="The encounter timeline builds as you work." />;
+  if (events.length === 0) return <EmptyState compact icon="timeline" title="No events yet" body="Take a history or examine the patient to start the timeline." />;
   let lastDay = -1;
   return (
     <ol className="relative flex flex-col" aria-label="Case timeline">

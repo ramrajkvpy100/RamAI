@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/primitives";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -138,16 +139,7 @@ export function CommunityFeed({ initial, more: initialMore, guest, signedIn, dra
 
       {error && <p className="text-[13.5px] text-danger">{error}</p>}
       {posts.length === 0 && !loading ? (
-        <div className="panel flex flex-col items-center gap-3 p-8 text-center">
-          <span className="bg-ai flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-glow">
-            <Icon name="chat" size={22} />
-          </span>
-          <p className="text-[15px] font-semibold">Start the first discussion</p>
-          <p className="max-w-sm text-[13.5px] leading-6 text-fg-2">Share a case you found tricky, a question from your exam prep, or how you approach a common presentation.</p>
-          <button type="button" onClick={() => setComposing(true)} className="bg-ai mt-1 inline-flex h-10 items-center gap-2 rounded-full px-5 text-[14px] font-semibold text-white shadow-glow">
-            <Icon name="plus" size={15} /> New post
-          </button>
-        </div>
+        <EmptyState icon="chat" title="No posts yet" body="Share a case you found tricky, a question from your exam prep, or how you approach a common presentation." action={{ label: "Write the first post", onClick: () => setComposing(true) }} />
       ) : (
         <ul className={cn("flex flex-col gap-3 transition-opacity", loading && "opacity-60")}>
           {posts.map((p) => (

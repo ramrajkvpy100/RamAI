@@ -6,14 +6,14 @@ import { requireUser } from "@/server/auth";
 import { aiAnswering } from "@/server/ai-health";
 import { addPicture, missingPictures, picturesAvailable, round } from "@/server/practice";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
-import { MODALITY_IDS, type Modality } from "@/lib/practice";
+import { CLINICAL_SUBJECTS, MODALITY_IDS, type Modality } from "@/lib/practice";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 /** The very first round of a modality may wait for its first pictures. */
 export const maxDuration = 60;
 
-const RoundRequest = z.object({ modality: z.enum(MODALITY_IDS as [Modality, ...Modality[]]), mode: z.enum(["spot", "rapid"]), level: z.enum(["basic", "full"]).optional() });
+const RoundRequest = z.object({ modality: z.enum(MODALITY_IDS as [Modality, ...Modality[]]), mode: z.enum(["spot", "rapid"]), level: z.enum(["basic", "full"]).optional(), subject: z.enum(CLINICAL_SUBJECTS).optional() });
 
 /** POST /api/practice/round — a round of pictures to name. Open to everyone; scores are recorded only with a session. */
 export async function POST(req: Request) {
@@ -24,16 +24,16 @@ export async function POST(req: Request) {
   try {
     // Invited, signed-in doctors only (the pictures and their answers are RamAI's).
     await requireUser();
-    let r: Awaited<ReturnType<typeof round>> & { offline?: boolean } = await round(body.modality, body.mode, body.level);
+    let r: Awaited<ReturnType<typeof round>> & { offline?: boolean } = await round(body.modality, body.mode, body.level, body.subject);
     // Nothing kept yet for this modality: find the first few now (the progress bar covers it).
     if (r.ready < 4 && picturesAvailable()) {
-      const first = withUsage({ kind: "practice" }, async () => Promise.all((await missingPictures(body.modality, 4)).map((id) => addPicture(body.modality, id).catch(() => false)))).catch((err) => {
+      const first = withUsage({ kind: "practice" }, async () => Promise.all((await missingPictures(body.modality, 4, body.subject)).map((id) => addPicture(body.modality, id).catch(() => false)))).catch((err) => {
         console.error("[ramai] practice pictures:", err instanceof Error ? err.message : err);
         return [] as boolean[];
       });
       // Whatever is ready by 35 s (well inside the minute the function has); the rest carries on in the background.
       const found = await Promise.race([first, new Promise<null>((resolve) => setTimeout(() => resolve(null), 35_000))]);
-      r = await round(body.modality, body.mode, body.level);
+      r = await round(body.modality, body.mode, body.level, body.subject);
       // Every search came back with nothing: the picture checker (the AI) isn't answering.
       if (r.items.length === 0 && found !== null && !found.some(Boolean)) r = { ...r, offline: !(await aiAnswering()) };
     }
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     if (picturesAvailable()) {
       after(() =>
         withUsage({ kind: "practice" }, async () => {
-          const next = await missingPictures(body.modality, 3);
+          const next = await missingPictures(body.modality, 3, body.subject);
           await Promise.all(next.map((id) => addPicture(body.modality, id).catch(() => false)));
         }),
       );

@@ -2,13 +2,22 @@ import { Fragment, type ReactNode } from "react";
 
 /** "**bold**" in a line becomes bold; a short "Label:" at the start of a line is bold too. */
 function line(text: string): ReactNode {
-  const label = text.match(/^((?:[•\-–]\s*)?[A-Z][^:]{1,28}:)\s/);
+  const label = text.match(/^((?:[•\-–]\s*)?[A-Z][^:,.*]{1,28}:)\s/);
   const rest = label ? text.slice(label[1]!.length) : text;
-  const parts = rest.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") && p.endsWith("**") ? <b key={i} className="font-semibold text-fg">{p.slice(2, -2)}</b> : <Fragment key={i}>{p}</Fragment>));
+  const parts = rest.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") && p.endsWith("**") ? <b key={i} className="font-semibold text-fg">{p.slice(2, -2)}</b> : <Fragment key={i}>{p.replace(/\*\*/g, "")}</Fragment>));
   return (
     <>
       {label && <b className="font-semibold text-fg">{label[1]}</b>}
       {parts}
+    </>
+  );
+}
+
+/** Inline text with "**bold**" shown as bold (and stray asterisks dropped) — for one-line items. */
+export function Rich({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") && p.endsWith("**") && p.length > 4 ? <b key={i} className="font-semibold text-fg">{p.slice(2, -2)}</b> : <Fragment key={i}>{p.replace(/\*\*/g, "")}</Fragment>))}
     </>
   );
 }

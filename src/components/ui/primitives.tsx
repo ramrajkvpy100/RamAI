@@ -1,5 +1,8 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
+import Link from "next/link";
+
+import { Icon, type IconName } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import type { Tone } from "@/lib/format";
 
@@ -60,11 +63,20 @@ export function Divider({ className }: { className?: string }) {
   return <div role="separator" className={cn("h-px w-full bg-line-2", className)} />;
 }
 
-export function EmptyState({ title, body, className }: { title: string; body: string; className?: string }) {
+/**
+ * The one "nothing here yet" layout for the whole app: an icon, what's missing, what to do — and, when there is one,
+ * the button that does it. Same words, same look everywhere.
+ */
+export function EmptyState({ title, body, icon = "sparkles", action, compact = false, className }: { title: string; body: string; icon?: IconName; action?: { label: string; href?: string; onClick?: () => void }; compact?: boolean; className?: string }) {
+  const btn = "mt-3 inline-flex h-10 items-center justify-center rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent transition-transform active:scale-[0.97]";
   return (
-    <div className={cn("flex flex-col items-start gap-1.5 rounded-lg border border-dashed border-line px-4 py-5", className)}>
-      <Label>{title}</Label>
-      <p className="text-ui text-fg-2">{body}</p>
+    <div role="status" className={cn("flex animate-enter flex-col items-center rounded-2xl border border-dashed border-line text-center", compact ? "px-4 py-5" : "px-6 py-10", className)}>
+      <span aria-hidden className={cn("flex items-center justify-center rounded-2xl bg-accent-soft text-accent-text", compact ? "h-10 w-10" : "h-12 w-12")}>
+        <Icon name={icon} size={compact ? 18 : 22} />
+      </span>
+      <p className={cn("font-semibold", compact ? "mt-2.5 text-[14px]" : "mt-4 text-[15px]")}>{title}</p>
+      <p className="mt-1 max-w-sm text-[13.5px] leading-6 text-fg-2">{body}</p>
+      {action && (action.href ? <Link href={action.href} className={btn}>{action.label}</Link> : <button type="button" onClick={action.onClick} className={btn}>{action.label}</button>)}
     </div>
   );
 }

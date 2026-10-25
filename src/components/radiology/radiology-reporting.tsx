@@ -1,6 +1,6 @@
 "use client";
 
-import { RichLines } from "@/components/ui/rich-lines";
+import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "@/components/practice/explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { Portal } from "@/components/ui/portal";
@@ -165,7 +165,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
               )}
               {picked !== item.answer && item.keys?.[picked] && (
                 <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100">
-                  <b>Why not {item.options[picked]}?</b> It would show {item.keys[picked]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())}.
+                  <b>Why not {item.options[picked]}?</b> It would show <Rich text={item.keys[picked]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())} />.
                 </div>
               )}
               <ExplainMore key={item.item} drill={`Radiology reporting (${modality})`} question={`${item.brief?.history ?? ""} ${item.brief?.question ?? ""}`.trim() || "Report the study."} options={item.options} answer={item.options[item.answer]!} explanation={item.key} />

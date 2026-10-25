@@ -1,6 +1,6 @@
 "use client";
 
-import { RichLines } from "@/components/ui/rich-lines";
+import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -9,7 +9,7 @@ import { EcgTrace } from "@/components/media/ecg";
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
-import { MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
+import { CLINICAL_SUBJECTS, MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
 import { playSfx } from "@/lib/sfx";
 
 interface Stat {
@@ -36,6 +36,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 export function PracticeDrill({ stats: initialStats, level = "full", order = MODALITY_IDS }: { stats: Stat[]; level?: "basic" | "full"; order?: readonly Modality[] }) {
   const [modality, setModality] = useState<Modality>(order[0] ?? "ecg");
   const [mode, setMode] = useState<PracticeMode>("spot");
+  const [subject, setSubject] = useState<string | null>(null);
   const [items, setItems] = useState<DrillItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
   const [now, setNow] = useState(() => Date.now());
   const [over, setOver] = useState(false);
   const [stats, setStats] = useState(initialStats);
+  const [wrong, setWrong] = useState<DrillItem[]>([]);
   const [readyNote, setReadyNote] = useState<string | null>(null);
   const reported = useRef(false);
 
@@ -54,13 +56,14 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
     setLoading(true);
     setError(null);
     try {
-      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode, level });
+      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode, level, ...(modality === "clinical" && subject ? { subject } : {}) });
       if (r.items.length === 0) {
         setError(r.offline ? "Pictures for this one can't be gathered right now — the picture checker is offline. Try the ECGs meanwhile." : "The pictures for this one are still being gathered. Try the ECGs meanwhile, or come back in a minute.");
         return;
       }
       setReadyNote(r.ready < r.total ? `${r.ready} of ${r.total} diagnoses ready — more pictures are being added.` : null);
       setItems(r.items);
+      setWrong([]);
       setIndex(0);
       setPicked(null);
       setRight(0);
@@ -110,8 +113,23 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
     playSfx(ok ? "correct" : "wrong");
     setAnswered((a) => a + 1);
     if (ok) setRight((r) => r + 1);
+    else setWrong((w) => [...w, item]);
     // Rapid-fire keeps moving: a beat to see the answer, then the next picture.
     if (mode === "rapid") setTimeout(() => next(), ok ? 450 : 1100);
+  };
+
+  /** The ones they got wrong, again — at their own pace. */
+  const replay = () => {
+    setItems(wrong);
+    setWrong([]);
+    setIndex(0);
+    setPicked(null);
+    setRight(0);
+    setAnswered(0);
+    setOver(false);
+    setMode("spot");
+    setEnds(null);
+    reported.current = true;
   };
 
   const next = () => {
@@ -143,6 +161,16 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
           })}
         </div>
         <div className="panel flex flex-col gap-4 p-5 sm:p-6">
+          {modality === "clinical" && (
+            <div role="radiogroup" aria-label="Subject" className="flex flex-wrap gap-2">
+              {[null, ...CLINICAL_SUBJECTS].map((s) => (
+                <button key={s ?? "all"} type="button" role="radio" aria-checked={subject === s} onClick={() => setSubject(s)} className={cn("rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors", subject === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                  {s ?? "All subjects"}
+                  <span className="ml-1 text-fg-3 tabular">{s ? MODALITIES.clinical.items.filter((i) => i.subject === s).length : MODALITIES.clinical.items.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div role="radiogroup" aria-label="Mode" className="grid gap-2 sm:grid-cols-2">
             {(
               [
@@ -159,7 +187,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
             ))}
           </div>
           <button type="button" onClick={() => void start()} disabled={loading} className="flex h-11 items-center justify-center rounded-full bg-accent text-[14.5px] font-semibold text-on-accent disabled:opacity-60">
-            {loading ? "Gathering pictures…" : `Start ${MODALITIES[modality].label} ${mode === "rapid" ? "rapid-fire" : "practice"}`}
+            {loading ? "Gathering pictures…" : `Start ${modality === "clinical" && subject ? `${subject} images` : MODALITIES[modality].label} ${mode === "rapid" ? "rapid-fire" : "practice"}`}
           </button>
           {loading && <FillingBar active expectedMs={modality === "ecg" ? 3_000 : 30_000} label="Gathering pictures" />}
           {error && (
@@ -180,7 +208,12 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
         <div className="text-[52px] font-semibold tabular">{mode === "rapid" ? right : `${right}/${answered}`}</div>
         <p className="text-[14.5px] text-fg-2">{mode === "rapid" ? `named correctly in ${RAPID_SECONDS} seconds (${pct}% of ${answered})` : pct >= 80 ? "Sharp eyes." : pct >= 50 ? "Good — read the key features of the ones you missed." : "Keep going — the key features are what to remember."}</p>
         <div className="mt-2 flex flex-wrap justify-center gap-2">
-          <button type="button" onClick={() => void start()} disabled={loading} className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">
+          {wrong.length > 0 && (
+            <button type="button" onClick={replay} className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">
+              ↻ Replay the {wrong.length} wrong
+            </button>
+          )}
+          <button type="button" onClick={() => void start()} disabled={loading} className={cn("h-10 rounded-full px-5 text-[14px] font-semibold", wrong.length ? "bg-surface-3" : "bg-accent text-on-accent")}>
             {loading ? "Loading…" : "Again"}
           </button>
           <button type="button" onClick={() => setItems(null)} className="h-10 rounded-full bg-surface-3 px-5 text-[14px] font-medium">
@@ -245,7 +278,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
           {picked !== item.answer && item.keys?.[picked] && (
             <div className="mt-3 rounded-xl border border-amber-300/50 bg-amber-50 px-3.5 py-2.5 dark:border-amber-400/30 dark:bg-amber-400/10">
               <div className="text-[11px] font-bold tracking-[0.08em] text-amber-800 uppercase dark:text-amber-200">Why not {item.options[picked]}?</div>
-              <p className="mt-1 text-[13.5px] leading-6 text-amber-900 dark:text-amber-100">{item.options[picked]} would show {item.keys[picked]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())} — not what this picture shows.</p>
+              <p className="mt-1 text-[13.5px] leading-6 text-amber-900 dark:text-amber-100">{item.options[picked]} would show <Rich text={item.keys[picked]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())} /> — not what this picture shows.</p>
             </div>
           )}
           {item.credit && (

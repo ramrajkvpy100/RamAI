@@ -12,7 +12,7 @@ import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
 import { ShareSheet } from "@/components/share/share-sheet";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { ProgressBar } from "@/components/ui/primitives";
+import { ProgressBar, EmptyState } from "@/components/ui/primitives";
 import { levelMeta, trackLabel } from "@/engine/levels";
 import { BADGE_LIST, nextRank, RANKS, rankFor, rankProgress } from "@/engine/progression";
 import { NotInAndroidApp } from "@/components/app/android-app";
@@ -212,7 +212,7 @@ export function Profile({ initial }: { initial: Me }) {
             Specialty mastery
           </h2>
           {mastery.length === 0 ? (
-            <p className="mt-4 text-[13.5px] text-fg-2">Your mastery appears here after your first case.</p>
+            <EmptyState compact className="mt-4" icon="target" title="No mastery yet" body="Finish a case to see your mastery by specialty." action={{ label: "Play a case", href: "/cases" }} />
           ) : (
             <ul className="mt-4 flex flex-col gap-3.5">
               {mastery.map((m) => (
@@ -236,7 +236,7 @@ export function Profile({ initial }: { initial: Me }) {
           Recent cases
         </h2>
         {recent.length === 0 ? (
-          <p className="px-6 pt-3 pb-6 text-[13.5px] text-fg-2">No cases yet — your history will appear here.</p>
+          <EmptyState compact className="mx-6 mt-3 mb-6" icon="clock" title="No cases yet" body="Finish a case to see it here." action={{ label: "Play a case", href: "/cases" }} />
         ) : (
           <ul className="mt-3 divide-y divide-line-2">
             {recent.map((h) => {

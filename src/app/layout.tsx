@@ -1,4 +1,5 @@
 import { RefCapture } from "@/components/app/ref-capture";
+import { Toaster } from "@/components/shell/toaster";
 import type { Metadata, Viewport } from "next";
 import { AndroidAppMarker } from "@/components/app/android-app";
 import { VersionCheck } from "@/components/app/version-check";
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <VersionCheck />
         <CopyGuard />
         <QuickSuggest />
+        <Toaster />
       </body>
     </html>
   );

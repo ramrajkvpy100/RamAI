@@ -8,7 +8,7 @@ import { ResultCard } from "./result-card";
 
 export function ResultsList({ state, highlightIds }: { state: CaseState; highlightIds: Set<string> }) {
   const items = [...state.investigations].sort((a, b) => (a.status === b.status ? b.orderedAt - a.orderedAt : a.status === "pending" ? -1 : 1));
-  if (items.length === 0) return <EmptyState title="No investigations" body="Tests you request will appear here." />;
+  if (items.length === 0) return <EmptyState compact icon="flask" title="No investigations yet" body="Order a test to see its result here." />;
   const spend = state.investigations.reduce((s, i) => s + (i.cost ?? 0), 0);
   return (
     <div className="flex flex-col gap-3">

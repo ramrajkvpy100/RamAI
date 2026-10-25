@@ -52,6 +52,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [score, setScore] = useState(0);
+  const [wrong, setWrong] = useState<SoundItem[]>([]);
   const audio = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -87,7 +88,10 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
       ) : !item ? (
         <div className="card flex flex-col items-center gap-3 p-8 text-center">
           <div className="text-[44px] font-bold tabular">{score}/{order.length}</div>
-          <button type="button" onClick={() => { setOrder(shuffle(pool)); setI(0); setScore(0); setPicked(null); }} className="h-11 rounded-full bg-accent px-6 text-[14px] font-semibold text-on-accent">Again</button>
+          <div className="flex flex-wrap justify-center gap-2">
+            {wrong.length > 0 && <button type="button" onClick={() => { setOrder(wrong); setWrong([]); setI(0); setScore(0); setPicked(null); }} className="h-11 rounded-full bg-accent px-6 text-[14px] font-semibold text-on-accent">↻ Replay the {wrong.length} wrong</button>}
+            <button type="button" onClick={() => { setOrder(shuffle(pool)); setWrong([]); setI(0); setScore(0); setPicked(null); }} className={cn("h-11 rounded-full px-6 text-[14px] font-semibold", wrong.length ? "bg-surface-3" : "bg-accent text-on-accent")}>Again</button>
+          </div>
         </div>
       ) : (
         <article className="card flex flex-col gap-4 p-5">
@@ -102,7 +106,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
               const right = o.id === item.id;
               const state = picked === null ? "idle" : right ? "right" : n === picked ? "wrong" : "other";
               return (
-                <button key={o.id} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (right) setScore((s) => s + 1); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
+                <button key={o.id} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (right) setScore((s) => s + 1); else if (item) setWrong((w) => [...w, item]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
                   {o.label}
                 </button>
               );

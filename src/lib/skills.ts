@@ -3,6 +3,7 @@
  * calculations. Answers follow standard references (BNF / Toxbase, AHA ACLS 2020–2025, NICE, WHO,
  * Harrison's); calculations are worked out here, with fresh numbers each time.
  */
+import { MORE_ALGORITHMS, MORE_ANTIDOTES } from "./banks/quiz";
 
 export interface QuizQuestion {
   id: string;
@@ -111,8 +112,13 @@ const ANTIDOTE_SOURCE: Record<string, string> = {
   lignocaine: "Association of Anaesthetists — local anaesthetic systemic toxicity guideline (lipid emulsion)",
 };
 
+const ALL_ANTIDOTES: [string, string, string, string, [string, string][], string][] = [
+  ...ANTIDOTES.map(([id, stem, right, explain, wrong]): [string, string, string, string, [string, string][], string] => [id, stem, right, explain, wrong, ANTIDOTE_SOURCE[id] ?? "BNF; TOXBASE (UK National Poisons Information Service)"]),
+  ...MORE_ANTIDOTES,
+];
+
 export const antidoteQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
-  forDoctor(ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, ANTIDOTE_SOURCE[id] ?? "BNF; TOXBASE (UK National Poisons Information Service)"));
+  forDoctor(ALL_ANTIDOTES.map((a) => ({ id: `antidote-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`antidote-${id}`, `${stem} The specific treatment?`, right, explain, wrong, src));
 
 /* Emergency algorithms ------------------------------------------------------ */
 
@@ -130,7 +136,7 @@ const ALGORITHMS: [string, string, string, string, [string, string][], string][]
 ];
 
 export const algorithmQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
-  forDoctor(ALGORITHMS.map((a) => ({ id: `algo-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
+  forDoctor([...ALGORITHMS, ...MORE_ALGORITHMS].map((a) => ({ id: `algo-${a[0]}`, a })), level, specialty, 10).map(({ a }) => a).map(([id, stem, right, explain, wrong, src]) => q(`algo-${id}`, `${stem} What comes next?`, right, explain, wrong, src));
 
 /* Clinical calculations ------------------------------------------------------ */
 
@@ -223,7 +229,7 @@ const CALCS: (() => QuizQuestion)[] = [
   () => {
     const ca = rint(70, 90) / 10, alb = rint(18, 34) / 10;
     const corr = Math.round((ca + 0.8 * (4 - alb)) * 10) / 10;
-    const opts = shuffle([corr, Math.round((corr + 0.6) * 10) / 10, Math.round((corr - 0.6) * 10) / 10, Math.round((ca) * 10) / 10].map((x) => x.toFixed(1)));
+    const opts = shuffle([corr, Math.round((corr + 0.6) * 10) / 10, Math.round((corr - 0.6) * 10) / 10, [corr, Math.round((corr + 0.6) * 10) / 10, Math.round((corr - 0.6) * 10) / 10].some((x) => x.toFixed(1) === ca.toFixed(1)) ? Math.round((corr + 1.2) * 10) / 10 : Math.round(ca * 10) / 10].map((x) => x.toFixed(1)));
     return { id: "ca", stem: `Calcium ${ca.toFixed(1)} mg/dL with albumin ${alb.toFixed(1)} g/dL. The corrected calcium?`, options: opts.map((o) => `${o} mg/dL`), answer: opts.indexOf(corr.toFixed(1)), explain: steps(
       `Corrected Ca = measured Ca + 0.8 × (4 − albumin in g/dL).`,
       `= ${ca.toFixed(1)} + 0.8 × (4 − ${alb.toFixed(1)}) = ${ca.toFixed(1)} + 0.8 × ${(4 - alb).toFixed(1)} = ${ca.toFixed(1)} + ${(0.8 * (4 - alb)).toFixed(1)} = ${corr.toFixed(1)} mg/dL.`,
@@ -274,6 +280,87 @@ const CALCS: (() => QuizQuestion)[] = [
       `What it means: ${asian} by the Asian cut-offs (normal 18.5–22.9, overweight 23–24.9, obese ≥ 25)${asian !== who ? ` — but ${who} by the WHO global ones (overweight 25–29.9, obese ≥ 30)` : ""}.`,
       `Trap: South Asians carry more risk at a lower BMI, so use the Asian cut-offs in India — and BMI misjudges muscular people; waist circumference adds to it.`,
     ), source: "WHO; ICMR Asian BMI cut-offs" };
+  },
+  () => {
+    const sbp = rint(80, 180), dbp = rint(45, 110);
+    const d = Math.min(dbp, sbp - 20), map = Math.round((sbp + 2 * d) / 3);
+    return num("map", `BP ${sbp}/${d} mmHg. Mean arterial pressure?`, map, steps(
+      `MAP = (systolic + 2 × diastolic) ÷ 3.`,
+      `= (${sbp} + 2 × ${d}) ÷ 3 = ${sbp + 2 * d} ÷ 3 ≈ **${map} mmHg**.`,
+      `What it means: ${map < 65 ? "**below 65** — organs are under-perfused; in sepsis, start a vasopressor if fluids haven't fixed it." : "**65 or more** — the usual target in shock."}`,
+      `Trap: diastole lasts twice as long as systole, so it counts twice.`,
+    ), 6, "Surviving Sepsis Campaign 2021", " mmHg");
+  },
+  () => {
+    const wt = rint(4, 40);
+    const rate = wt <= 10 ? 4 * wt : wt <= 20 ? 40 + 2 * (wt - 10) : 60 + (wt - 20);
+    return num("maint", `A ${wt} kg child is nil by mouth. Maintenance fluid rate (Holliday–Segar, 4-2-1)?`, rate, steps(
+      `4-2-1 rule: **4 mL/kg/h** for the first 10 kg, **2 mL/kg/h** for the next 10 kg, **1 mL/kg/h** for each kg above 20.`,
+      wt <= 10 ? `${wt} × 4 = **${rate} mL/h**.` : wt <= 20 ? `40 + (${wt} − 10) × 2 = **${rate} mL/h**.` : `40 + 20 + (${wt} − 20) × 1 = **${rate} mL/h**.`,
+      `Fluid: an isotonic one (0.9% saline with 5% dextrose).`,
+      `Trap: many sick children (meningitis, pneumonia, post-op) need **less** — they hold water (ADH).`,
+    ), 6, "NICE NG29 IV fluids in children", " mL/h");
+  },
+  () => {
+    const wt = rint(50, 90), tbsa = rint(15, 50);
+    const total = 4 * wt * tbsa, first = total / 2;
+    return num("parkland", `A ${wt} kg adult with ${tbsa}% burns. Parkland fluid in the first 8 hours from the burn?`, first, steps(
+      `Parkland = **4 mL × kg × %TBSA** in 24 h; **half in the first 8 h** from the time of the burn.`,
+      `4 × ${wt} × ${tbsa} = ${total} mL; half = **${first} mL**.`,
+      `Trap: count from the time of injury, not arrival — and titrate to urine output (0.5 mL/kg/h).`,
+    ), 400, "ATLS; ANZBA EMSB", " mL", 50);
+  },
+  () => {
+    const na = rint(130, 150), glu = rint(80, 600), urea = rint(15, 120);
+    const osm = Math.round(2 * na + glu / 18 + urea / 6);
+    return num("osm", `Na ${na}, glucose ${glu} mg/dL, urea ${urea} mg/dL. Calculated serum osmolality?`, osm, steps(
+      `Osmolality = **2 × Na + glucose ÷ 18 + urea ÷ 6** (glucose and urea in mg/dL).`,
+      `= ${2 * na} + ${(glu / 18).toFixed(0)} + ${(urea / 6).toFixed(0)} ≈ **${osm} mOsm/kg**.`,
+      `What it means: ${osm > 320 ? "**above 320** — think HHS; correct slowly." : osm < 275 ? "**low** — true hypotonic state." : "normal range 275–295."}`,
+      `Trap: if measured osmolality is more than 10 above this, think **toxic alcohols** (osmolar gap).`,
+    ), 6, "JBDS HHS guideline", " mOsm/kg");
+  },
+  () => {
+    const qt = rint(36, 52) * 10, hr = rint(50, 120);
+    const rr = 60 / hr, qtc = Math.round(qt / Math.sqrt(rr));
+    return num("qtc", `QT ${qt} ms at a heart rate of ${hr}. QTc (Bazett)?`, qtc, steps(
+      `QTc = **QT ÷ √RR**, RR in seconds = 60 ÷ HR.`,
+      `RR = 60 ÷ ${hr} = ${rr.toFixed(2)} s; √RR = ${Math.sqrt(rr).toFixed(2)}.`,
+      `${qt} ÷ ${Math.sqrt(rr).toFixed(2)} ≈ **${qtc} ms**.`,
+      `What it means: ${qtc > 500 ? "**over 500** — high risk of torsades; stop QT-prolonging drugs, check K and Mg." : qtc > 450 ? "**prolonged** (over 450 men / 460 women)." : "normal."}`,
+      `Trap: Bazett over-corrects at fast heart rates — use Fridericia above about 100/min.`,
+    ), 15, "AHA/ACCF QT guidance", " ms", 5);
+  },
+  () => {
+    const wt = rint(8, 30);
+    const dose = Math.round(wt * 0.01 * 100) / 100;
+    const opts = shuffle([dose, dose * 10, dose / 2, dose * 2].map((x) => x.toFixed(2)));
+    return { id: "adr-paed", stem: `A ${wt} kg child in anaphylaxis. IM adrenaline dose (1 mg/mL)?`, options: opts.map((o) => `${o} mg`), answer: opts.indexOf(dose.toFixed(2)), explain: steps(
+      `IM adrenaline = **0.01 mg/kg** of 1 mg/mL (1:1000), max **0.5 mg**.`,
+      `${wt} × 0.01 = **${dose.toFixed(2)} mg** = ${dose.toFixed(2)} mL of 1:1000.`,
+      `Trap: the **ten-times error** — 1:10,000 is the IV arrest strength, never for IM use.`,
+    ), source: "Resuscitation Council UK 2021" };
+  },
+  () => {
+    const pao2 = rint(55, 100), fio2 = [21, 28, 35, 40, 50, 60][rint(0, 5)]!;
+    const pf = Math.round(pao2 / (fio2 / 100));
+    return num("pf", `PaO₂ ${pao2} mmHg on FiO₂ ${fio2}%. P/F ratio?`, pf, steps(
+      `P/F = **PaO₂ ÷ FiO₂** (as a fraction).`,
+      `${pao2} ÷ ${(fio2 / 100).toFixed(2)} ≈ **${pf}**.`,
+      `What it means: ${pf <= 100 ? "**severe ARDS** (≤ 100)." : pf <= 200 ? "**moderate ARDS** range (100–200)." : pf <= 300 ? "**mild ARDS** range (200–300)." : "above 300 — not in the ARDS range."}`,
+      `Trap: ARDS needs PEEP ≥ 5, bilateral opacities and no heart-failure cause too (Berlin definition).`,
+    ), 25, "Berlin ARDS definition 2012");
+  },
+  () => {
+    const ua = rint(100, 300), cr = rint(1, 4), una = rint(10, 80), pna = rint(130, 145);
+    const fena = Math.round(((una * cr) / (pna * ua / 100)) * 10) / 10;
+    const opts = shuffle([fena, fena + 1.5, fena + 0.7, fena + 3].map((x) => x.toFixed(1)));
+    return { id: "fena", stem: `Plasma Na ${pna}, creatinine ${cr} mg/dL; urine Na ${una}, urine creatinine ${ua} mg/dL. FENa?`, options: opts.map((o) => `${o}%`), answer: opts.indexOf(fena.toFixed(1)), explain: steps(
+      `FENa = **(urine Na × plasma Cr) ÷ (plasma Na × urine Cr) × 100**.`,
+      `(${una} × ${cr}) ÷ (${pna} × ${ua}) × 100 ≈ **${fena.toFixed(1)}%**.`,
+      `What it means: ${fena < 1 ? "**under 1%** — prerenal (the kidney is holding salt)." : fena > 2 ? "**over 2%** — intrinsic renal injury (ATN)." : "**1–2%** — indeterminate."}`,
+      `Trap: diuretics raise FENa — use **FEUrea** (< 35% prerenal) instead.`,
+    ), source: "KDIGO AKI guideline" };
   },
 ];
 
