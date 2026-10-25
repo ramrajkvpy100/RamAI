@@ -1,5 +1,6 @@
 "use client";
 
+import { recordSkill } from "@/lib/skill-progress";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "@/components/practice/explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
@@ -19,6 +20,21 @@ type Tab = Modality | "mammo" | "mri";
 type View = "scroll" | "static";
 
 const TABS: [Tab, string][] = [["xray", "X-ray"], ["ct", "CT"], ["mri", "MRI"], ["usg", "Ultrasound"], ["mammo", "Mammography"]];
+
+/** Body systems, and the chapters within them — each study sorted by its id and diagnosis. */
+const SYSTEMS: [string, RegExp][] = [
+  ["Brain & spine", /edh|sdh|sah|ich|infarct|hydroceph|abscess-brain|brain|ncc|tubercul?oma|gbm|glio|ms\b|mri-ms|pituitar|meningio|schwannoma|vs-mri|skull|disc|spine|potts|c-spine|cerebr|ivh/i],
+  ["Chest & lungs", /cxr|pneumo(?!peritoneum)|tension|consolidation|effusion|oedema|edema|cardiomegaly|miliary|cavity|collapse|copd|emphysema|lung|bronch|ild|hilar|haemothorax|empyema|ground-glass|covid|pe\b|embol|mediastin|rib|b-lines|lung-sliding/i],
+  ["Liver", /liver|hcc|hepat|cirrhosis|hydatid|fatty|tace/i],
+  ["Gallbladder & pancreas", /gall|chole|gb-|cbd|pancrea|pseudocyst/i],
+  ["Kidney & bladder", /renal|kidney|kub|stone|calcul|hydroneph|pyelo|pkd|ckd|bladder|bph|prostat/i],
+  ["Bowel & abdomen", /normal-abdo|abdo|appendic|sbo|lbo|bowel|volvulus|intussus|diverticul|perforat|pneumoperitoneum|mesenteric|ascites|splen|fluoro|achalasia|crohn|hiatus|applecore|free-fluid|pyloric/i],
+  ["Bones & joints", /fracture|colles|nof|scaphoid|boxer|ankle|tibia|clavicle|shoulder|supracondylar|oa-|ra-|gout|ankylos|osteo|rickets|pelvic|acl|knee/i],
+  ["Women & pregnancy", /ectopic|iup|ovar|fibroid|pcos|dermoid|endometrioma|molar|miscarriage|twin|placenta|breech|anenceph|mammo|breast|fibroadenoma/i],
+  ["Vessels & heart", /dissection|aaa|aneurysm|dvt|pericardial|varicocele|testicular/i],
+  ["Neck & thyroid", /thyroid|lymph|graves|adenoma|nm-|epiglott|croup|sinus|orbital/i],
+];
+const systemOf = (it: { item: string; options: string[]; answer: number }) => SYSTEMS.find(([, re]) => re.test(`${it.item} ${it.options[it.answer] ?? ""}`))?.[0] ?? "Other";
 
 const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 
@@ -43,6 +59,8 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
   const [picked, setPicked] = useState<number | null>(null);
   const [zoom, setZoom] = useState(false);
   const [score, setScore] = useState(0);
+  const [system, setSystem] = useState<string | null>(null);
+  const [all, setAll] = useState<Item[] | null>(null);
 
   const load = useCallback(async (m: Tab, v: View) => {
     setItems(null);
@@ -50,15 +68,29 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
     setPicked(null);
     setFindings("");
     setScore(0);
+    setSystem(null);
     if ((m === "ct" || m === "mri") && v === "scroll") {
-      setItems(stackItems(m === "ct" ? "CT" : "MR"));
+      const st = stackItems(m === "ct" ? "CT" : "MR");
+      setAll(st);
+      setItems(st);
       return;
     }
     const res = await fetch("/api/radiology/round", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modality: m }) }).catch(() => null);
     const json = res?.ok ? ((await res.json()) as { items: Item[] }) : { items: [] };
-    setItems(shuffle(json.items));
+    const got = shuffle(json.items);
+    setAll(got);
+    setItems(got);
   }, []);
   useEffect(() => void load(modality, view), [modality, view, load]);
+  const systems = all ? [...new Set(all.map(systemOf))] : [];
+  const chooseSystem = (sys: string | null) => {
+    setSystem(sys);
+    setIndex(0);
+    setPicked(null);
+    setFindings("");
+    setScore(0);
+    setItems(all ? (sys ? all.filter((x) => systemOf(x) === sys) : all) : null);
+  };
 
   const item = items?.[index];
   const next = () => {
@@ -92,6 +124,15 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
           ))}
         </div>
       )}
+      {systems.length > 1 && (
+        <div role="radiogroup" aria-label="System" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {[null, ...systems].map((sys) => (
+            <button key={sys ?? "all"} type="button" role="radio" aria-checked={system === sys} onClick={() => chooseSystem(sys)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", system === sys ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+              {sys ?? "All systems"} <span className="text-fg-3 tabular">{sys ? all!.filter((x) => systemOf(x) === sys).length : all!.length}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {items === null && <div className="card h-80 animate-pulse" aria-busy="true" />}
       {items && items.length === 0 && <p className="card p-6 text-[14px] text-fg-2">Real studies for this section are being collected right now — try again in a minute, or open another tab.</p>}
       {items && items.length > 0 && !item && (
@@ -113,7 +154,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
           {item.stack ? (
             <>
               <StackViewer id={item.stack.id} slices={item.stack.slices} label="The study" />
-              <p className="-mt-1 text-[11.5px] text-fg-3">Real study · {item.stack.credit}</p>
+              {picked !== null && <p className="-mt-1 text-[11px] text-fg-3">Study: {item.stack.credit}</p>}
             </>
           ) : (
           <button type="button" onClick={() => setZoom(true)} className="overflow-hidden rounded-xl bg-black" aria-label="Open the image full size">
@@ -121,7 +162,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
             <img src={item.image!} alt="The study to report" className="mx-auto max-h-[60dvh] w-auto object-contain" />
           </button>
           )}
-          {item.credit && (
+          {item.credit && picked !== null && (
             <a href={item.credit.source} target="_blank" rel="noopener noreferrer" className="-mt-2 text-[11.5px] text-fg-3 underline">
               Real image · {item.credit.author} · {item.credit.license}
             </a>
@@ -142,6 +183,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
                     disabled={picked !== null}
                     onClick={() => {
                       setPicked(i);
+                      recordSkill(`radio:${item.item}`, i === item.answer);
                       if (i === item.answer) setScore((s) => s + 1);
                     }}
                     className={cn("min-h-11 rounded-xl border px-3 py-2 text-left text-[14px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}

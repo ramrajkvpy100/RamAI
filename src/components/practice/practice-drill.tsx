@@ -1,10 +1,13 @@
 "use client";
 
+import { recordSkill, useSkillProgress } from "@/lib/skill-progress";
+import { SkillBar } from "./progress-bar";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ZoomImage } from "@/components/media/zoom-image";
 import { EcgTrace } from "@/components/media/ecg";
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
@@ -37,6 +40,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
   const [modality, setModality] = useState<Modality>(order[0] ?? "ecg");
   const [mode, setMode] = useState<PracticeMode>("spot");
   const [subject, setSubject] = useState<string | null>(null);
+  const progress = useSkillProgress();
   const [items, setItems] = useState<DrillItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +118,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
     setAnswered((a) => a + 1);
     if (ok) setRight((r) => r + 1);
     else setWrong((w) => [...w, item]);
+    recordSkill(`spot:${modality}:${item.item}`, ok);
     // Rapid-fire keeps moving: a beat to see the answer, then the next picture.
     if (mode === "rapid") setTimeout(() => next(), ok ? 450 : 1100);
   };
@@ -156,6 +161,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
                 <Icon name={ICON[id]} size={20} className="text-accent-text" />
                 <span className="text-[15px] font-semibold">{MODALITIES[id].label}</span>
                 <span className="text-[12px] text-fg-3 tabular">{st && st.total ? `${Math.round((st.correct / st.total) * 100)}% · best ${st.best}` : `${MODALITIES[id].items.length} diagnoses`}</span>
+                <SkillBar mastered={progress(`spot:${id}:`).mastered} total={MODALITIES[id].items.length} className="w-full" />
               </button>
             );
           })}
@@ -166,7 +172,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
               {[null, ...CLINICAL_SUBJECTS].map((s) => (
                 <button key={s ?? "all"} type="button" role="radio" aria-checked={subject === s} onClick={() => setSubject(s)} className={cn("rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors", subject === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
                   {s ?? "All subjects"}
-                  <span className="ml-1 text-fg-3 tabular">{s ? MODALITIES.clinical.items.filter((i) => i.subject === s).length : MODALITIES.clinical.items.length}</span>
+                  <span className="ml-1 text-fg-3 tabular">{s ? `${progress("spot:clinical:", MODALITIES.clinical.items.filter((i) => i.subject === s).map((i) => i.id)).mastered}/${MODALITIES.clinical.items.filter((i) => i.subject === s).length}` : MODALITIES.clinical.items.length}</span>
                 </button>
               ))}
             </div>
@@ -238,16 +244,14 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
       {readyNote && index === 0 && <p className="text-[12px] text-fg-3">{readyNote}</p>}
       <figure className="overflow-hidden rounded-2xl bg-black ring-1 ring-line">
         {item.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={item.image} src={item.image} alt={`${MODALITIES[modality].label} to name`} className="mx-auto block max-h-[52dvh] w-auto max-w-full animate-fade object-contain" />
+          <ZoomImage key={item.image} src={item.image} alt={`${MODALITIES[modality].label} to name`} className="mx-auto block max-h-[52dvh] w-auto max-w-full animate-fade object-contain" />
         ) : item.ecg ? (
           <div className="bg-white">
             <EcgTrace spec={item.ecg} seed={index + 3} className="block h-auto w-full" />
           </div>
         ) : null}
-        <figcaption className="bg-black px-3 py-1.5 text-[10.5px] text-white/55">
-          {item.credit ? `Real image · ${item.credit.author} · ${item.credit.license}, Wikimedia Commons` : "RamAI drawn tracing"}
-        </figcaption>
+        {/* The source names the file (often the diagnosis): shown only once answered — the licence asks for the credit. */}
+        {picked !== null && item.credit && <figcaption className="bg-black px-3 py-1 text-[10px] text-white/40">Image: {item.credit.author} · {item.credit.license}</figcaption>}
       </figure>
       <div className="grid gap-2 sm:grid-cols-2">
         {item.options.map((o, i) => {

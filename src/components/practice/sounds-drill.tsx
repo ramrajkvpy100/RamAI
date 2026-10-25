@@ -1,5 +1,6 @@
 "use client";
 
+import { recordSkill } from "@/lib/skill-progress";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -15,7 +16,7 @@ interface SoundItem {
 }
 
 /** Heart and breath sounds, made by RamAI's stethoscope engine in the browser (no AI, nothing downloaded). */
-const HEART: SoundItem[] = [
+export const HEART: SoundItem[] = [
   { id: "normal-heart", label: "Normal heart sounds", sound: { kind: "heart", rate: 72 }, key: "Crisp S1 and S2 with silent systole and diastole." },
   { id: "as", label: "Aortic stenosis (ejection systolic murmur)", sound: { kind: "heart", rate: 76, murmur: { phase: "systolic", shape: "diamond" } }, key: "A crescendo–decrescendo (diamond) murmur between S1 and S2, loudest at the right upper sternal edge, radiating to the carotids." },
   { id: "mr", label: "Mitral regurgitation (pansystolic murmur)", sound: { kind: "heart", rate: 84, murmur: { phase: "systolic", shape: "plateau" } }, key: "A plateau murmur filling all of systole, loudest at the apex, radiating to the axilla." },
@@ -28,7 +29,7 @@ const HEART: SoundItem[] = [
   { id: "muffled", label: "Muffled heart sounds", sound: { kind: "heart", rate: 120, soft: true }, key: "Faint, distant heart sounds — pericardial effusion or tamponade (with hypotension and raised JVP: Beck's triad)." },
 ];
 
-const LUNGS: SoundItem[] = [
+export const LUNGS: SoundItem[] = [
   { id: "vesicular", label: "Normal vesicular breathing", sound: { kind: "lungs", rate: 14, breath: "vesicular" }, key: "Soft, rustling inspiration fading early in expiration, with no gap." },
   { id: "fine", label: "Fine crackles", sound: { kind: "lungs", rate: 20, breath: "vesicular", crackles: "fine" }, key: "Fine, high-pitched end-inspiratory crackles ('Velcro') — pulmonary fibrosis or early pulmonary oedema." },
   { id: "coarse", label: "Coarse crackles", sound: { kind: "lungs", rate: 22, breath: "vesicular", crackles: "coarse" }, key: "Low-pitched, bubbling crackles that may change with coughing — secretions: bronchiectasis, pneumonia." },
@@ -100,13 +101,13 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
             <OrganPicture sound={item.sound} playing={playing} />
             <span className="text-[12.5px] font-medium text-fg-2">{playing ? "Listening… tap to pause" : "▶ Tap to listen"}</span>
           </button>
-          {url && <audio ref={audio} src={url} controls loop className="w-full" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />}
+          {url && <audio ref={audio} src={url} controls controlsList="nodownload noplaybackrate noremoteplayback" onContextMenu={(e) => e.preventDefault()} loop className="w-full" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />}
           <div className="grid gap-2">
             {options.map((o, n) => {
               const right = o.id === item.id;
               const state = picked === null ? "idle" : right ? "right" : n === picked ? "wrong" : "other";
               return (
-                <button key={o.id} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (right) setScore((s) => s + 1); else if (item) setWrong((w) => [...w, item]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
+                <button key={o.id} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (item) recordSkill(`sound:${item.id}`, right); if (right) setScore((s) => s + 1); else if (item) setWrong((w) => [...w, item]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
                   {o.label}
                 </button>
               );

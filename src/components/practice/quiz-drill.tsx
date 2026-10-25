@@ -1,5 +1,6 @@
 "use client";
 
+import { recordSkill } from "@/lib/skill-progress";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
@@ -39,7 +40,7 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
         {q.options.map((o, n) => {
           const state = picked === null ? "idle" : n === q.answer ? "right" : n === picked ? "wrong" : "other";
           return (
-            <button key={o} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (n === q.answer) setScore((s) => s + 1); else setWrong((w) => [...w, q]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
+            <button key={o} type="button" disabled={picked !== null} onClick={() => { setPicked(n); recordSkill(`quiz:${q.id}`, n === q.answer); if (n === q.answer) setScore((s) => s + 1); else setWrong((w) => [...w, q]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
               {o}
             </button>
           );

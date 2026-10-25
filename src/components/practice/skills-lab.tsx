@@ -5,13 +5,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RadiologyReporting } from "@/components/radiology/radiology-reporting";
 import { useCareerStage } from "@/lib/career-stage";
 import { useMe } from "@/lib/me-store";
-import { MODALITY_IDS, type Modality } from "@/lib/practice";
+import { MODALITIES, MODALITY_IDS, type Modality } from "@/lib/practice";
+import { useSkillProgress } from "@/lib/skill-progress";
 import type { PracticeStats } from "@/server/practice";
-import { algorithmQuestions, antidoteQuestions, calculationQuestions, type SkillLevel } from "@/lib/skills";
+import { ALGORITHM_COUNT, ANTIDOTE_COUNT, CALCULATION_COUNT, algorithmQuestions, antidoteQuestions, calculationQuestions, type SkillLevel } from "@/lib/skills";
 
 import { PracticeDrill } from "./practice-drill";
 import { QuizDrill } from "./quiz-drill";
-import { SoundsDrill } from "./sounds-drill";
+import { SkillBar } from "./progress-bar";
+import { HEART, LUNGS, SoundsDrill } from "./sounds-drill";
 
 type Section = "spot" | "radiology" | "sounds" | "antidotes" | "algorithms" | "calculations";
 
@@ -69,6 +71,17 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
     return [...first, ...MODALITY_IDS.filter((m) => !first.includes(m))];
   }, [specialty]);
 
+  const progress = useSkillProgress();
+  // Mastered of total, per section (radiology: of the studies tried, as its bank grows).
+  const bar = (id: Section): [number, number] => {
+    if (id === "spot") return [progress("spot:").mastered, MODALITY_IDS.reduce((n, m) => n + MODALITIES[m].items.length, 0)];
+    if (id === "radiology") { const r = progress("radio:"); return [r.mastered, Math.max(r.tried, 40)]; }
+    if (id === "sounds") return [progress("sound:").mastered, HEART.length + LUNGS.length];
+    if (id === "antidotes") return [progress("quiz:antidote-").mastered, ANTIDOTE_COUNT];
+    if (id === "algorithms") return [progress("quiz:algo-").mastered, ALGORITHM_COUNT];
+    return [progress("quiz:calc-").mastered, CALCULATION_COUNT];
+  };
+
   const antidotes = useCallback(() => antidoteQuestions(level, specialty), [level, specialty]);
   const algorithms = useCallback(() => algorithmQuestions(level, specialty), [level, specialty]);
   const calculations = useCallback(() => calculationQuestions(level, specialty), [level, specialty]);
@@ -104,6 +117,7 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold">{words.join(" ")}</span>
                       <span className="block text-[12.5px] leading-5 text-fg-2">{sub}</span>
+                      <SkillBar mastered={bar(id)[0]} total={bar(id)[1]} className="mt-1.5" />
                     </span>
                     <span aria-hidden className="text-fg-3 transition-transform group-hover:translate-x-0.5">›</span>
                   </button>

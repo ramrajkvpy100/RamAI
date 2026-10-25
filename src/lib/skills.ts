@@ -366,3 +366,7 @@ const CALCS: (() => QuizQuestion)[] = [
 
 export const calculationQuestions = (level: SkillLevel = "full", specialty?: string | null): QuizQuestion[] =>
   forDoctor(CALCS.map((make) => make()).map((x) => ({ ...x, id: `calc-${x.id}` })), level, specialty, 8);
+
+export const ANTIDOTE_COUNT = ALL_ANTIDOTES.length;
+export const ALGORITHM_COUNT = ALGORITHMS.length + MORE_ALGORITHMS.length;
+export const CALCULATION_COUNT = CALCS.length;
