@@ -62,6 +62,18 @@ export function Composer({
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
   }, [draft, inputRef]);
 
+  // "/" anywhere on the case screen jumps to the order box (as in an EMR).
+  useEffect(() => {
+    const onSlash = (e: globalThis.KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable))) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    };
+    document.addEventListener("keydown", onSlash);
+    return () => document.removeEventListener("keydown", onSlash);
+  }, [inputRef]);
+
   // Close the quick-action menu on outside click / Escape.
   useEffect(() => {
     if (!menu) return;

@@ -6,6 +6,25 @@ import { useEffect } from "react";
 const BUILT = process.env.NEXT_PUBLIC_RAMAI_BUILD ?? "dev";
 
 export function VersionCheck() {
+  // A new version went live while the app was open: a missing code file — reload once instead of an error page.
+  useEffect(() => {
+    const stale = (e: unknown) => /ChunkLoadError|Failed to load chunk|Loading chunk|dynamically imported module|Importing a module script failed/i.test(String((e as { message?: string; reason?: { message?: string } })?.message ?? (e as { reason?: { message?: string } })?.reason?.message ?? e));
+    const onErr = (e: ErrorEvent | PromiseRejectionEvent) => {
+      if (!stale(e)) return;
+      try {
+        if (Date.now() - Number(sessionStorage.getItem("ramai.reloaded") ?? 0) < 30_000) return;
+        sessionStorage.setItem("ramai.reloaded", String(Date.now()));
+      } catch {}
+      window.location.reload();
+    };
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onErr);
+    return () => {
+      window.removeEventListener("error", onErr);
+      window.removeEventListener("unhandledrejection", onErr);
+    };
+  }, []);
+
   useEffect(() => {
     if (BUILT === "dev") return;
     let last = 0;
