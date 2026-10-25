@@ -661,3 +661,18 @@ svg {
 @keyframes focus-glow { 0%, 100% { opacity: 0.35; transform: scale(0.95); } 50% { opacity: 0.7; transform: scale(1.05); } }
 .focus-glow { background: radial-gradient(circle, rgb(255 226 180 / 0.65), transparent 65%); animation: focus-glow 8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .focus-stir, .focus-glow { animation: none; } }
+
+/* Café scene: rain running down the window, lamps swaying, their glow breathing. */
+@keyframes cafe-rain { 0% { transform: translateY(-30px); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(230px); opacity: 0; } }
+.cafe-rain { animation: cafe-rain 2s linear infinite; }
+@keyframes cafe-lamp { 0%, 100% { transform: rotate(-1.6deg); } 50% { transform: rotate(1.6deg); } }
+.cafe-lamp { animation: cafe-lamp 7s ease-in-out infinite; transform-box: view-box; }
+@keyframes cafe-glow { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+.cafe-glow { animation: cafe-glow 5s ease-in-out infinite; }
+/* Steam: soft puffs that rise, swell, sway and fade. */
+@keyframes steam-puff { 0% { transform: translate(0, 10px) scale(0.5); opacity: 0; filter: blur(6px); } 20% { opacity: 0.55; } 60% { transform: translate(8px, -50px) scale(1.2); opacity: 0.35; } 100% { transform: translate(-6px, -100px) scale(1.7); opacity: 0; filter: blur(12px); } }
+.steam-puff { animation: steam-puff 6s ease-out infinite; opacity: 0; }
+/* A slow sheen gliding over the drink's surface. */
+@keyframes liquid-shine { to { transform: rotate(360deg); } }
+.liquid-shine { background: conic-gradient(from 0deg, transparent 0 70%, rgb(255 255 255 / 0.35) 80%, transparent 90%); mix-blend-mode: soft-light; animation: liquid-shine 12s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .cafe-rain, .cafe-lamp, .cafe-glow, .steam-puff, .liquid-shine { animation: none; } }

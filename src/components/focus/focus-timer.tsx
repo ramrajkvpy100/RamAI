@@ -11,6 +11,7 @@ import { success, tap } from "@/lib/haptics";
 import { playSfx } from "@/lib/sfx";
 import { toast } from "@/lib/toast";
 
+import { CafeScene } from "./cafe-scene";
 import { Cup, DRINKS } from "./cup";
 
 const mmss = (ms: number) => {
@@ -188,11 +189,11 @@ export function FocusTimer() {
     <div className={cn("fixed inset-0 z-[85] flex flex-col overflow-hidden", scene === "focus" ? "focus-table" : scene === "social" ? "bg-[radial-gradient(80%_60%_at_30%_20%,#f7dcc0,transparent_60%),radial-gradient(70%_60%_at_80%_40%,#f1e2c9,transparent_60%),#efe6d8]" : "bg-black")}>
       {scene === "window" && (
         <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover">
-          <source src="/focus/window-delhi.webm" type="video/webm" />
-          <source src="/focus/window-delhi.mp4" type="video/mp4" />
+          <source src="/focus/window-rain.webm" type="video/webm" />
+          <source src="/focus/window-rain.mp4" type="video/mp4" />
         </video>
       )}
-      {scene === "social" && <SocialScene />}
+      {scene === "social" && <CafeScene />}
       <audio ref={audio} loop preload="none">
         <source src="/focus/cafe.ogg" type="audio/ogg" />
         <source src="/focus/cafe.mp3" type="audio/mpeg" />
@@ -229,12 +230,14 @@ export function FocusTimer() {
           <div className="relative">
             {isRunning && (
               <>
-                {/* Soothing: steam rising, ripples spreading, the cup breathing slowly. */}
-                <span aria-hidden className="focus-ripple absolute inset-[18%] rounded-full border-2 border-white/70" />
-                <span aria-hidden className="focus-ripple absolute inset-[18%] rounded-full border-2 border-white/60 [animation-delay:2s]" />
-                <svg aria-hidden viewBox="0 0 120 80" className="pointer-events-none absolute -top-16 left-1/2 w-28 -translate-x-1/2">
-                  {[30, 60, 90].map((x, i) => <path key={x} className="focus-wisp" style={{ animationDelay: `${i * 1.1}s` }} d={`M${x} 78 C ${x - 12} 58, ${x + 12} 44, ${x} 24 S ${x - 8} 6, ${x + 2} 0`} fill="none" stroke="#ffffff" strokeOpacity="0.8" strokeWidth="5" strokeLinecap="round" />)}
-                </svg>
+                {/* Soothing: soft steam puffs drifting up and swaying, ripples spreading slowly across the drink. */}
+                <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-28 w-28 -translate-x-1/2">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <span key={i} className="steam-puff absolute bottom-0 rounded-full bg-white" style={{ left: `${22 + ((i * 13) % 50)}%`, width: 18 + (i % 3) * 8, height: 18 + (i % 3) * 8, animationDelay: `${i * 0.9}s`, animationDuration: `${5 + (i % 3)}s` }} />
+                  ))}
+                </div>
+                {[0, 1, 2].map((i) => <span key={i} aria-hidden className="focus-ripple absolute inset-[26%] rounded-full border border-white/80" style={{ animationDelay: `${i * 2.2}s` }} />)}
+                <span aria-hidden className="liquid-shine absolute inset-[24%] rounded-full" />
               </>
             )}
             {isRunning && <span aria-hidden className="focus-glow absolute inset-[-12%] rounded-full" />}
@@ -270,7 +273,7 @@ export function FocusTimer() {
         )}
         {!unlimited && <div className="absolute inset-x-0 bottom-0 h-1.5 bg-[#00000010]"><div className="h-full bg-[#24332c]/60 transition-[width] duration-1000 ease-linear" style={{ width: `${pct * 100}%` }} /></div>}
       </div>
-      {scene === "window" && <p className="absolute right-2 bottom-1 z-10 text-[9px] text-black/40">Video: Yann Forget, CC BY 3.0 · Wikimedia Commons</p>}
+      {scene === "window" && <p className="absolute right-2 bottom-1 z-10 text-[9px] text-black/40">Video: Vjatseslav Robtsenkov, CC0 · Wikimedia Commons</p>}
     </div>
     </Portal>
   );
@@ -278,23 +281,4 @@ export function FocusTimer() {
 
 function TodayLine({ minutes, sessions }: { minutes: number; sessions: number }) {
   return <p className="mt-6 text-center text-[13px] text-[#56655d]">{minutes ? `Today: ${minutes} min focused · ${sessions} session${sessions === 1 ? "" : "s"}` : "Kept on this phone. Breaks don't count — only focus."}</p>;
-}
-
-/** Social: the warm, blurred light of a busy café — the sound does the rest. */
-function SocialScene() {
-  const lights = [
-    { x: 12, y: 18, s: 120, c: "#ffd59e" },
-    { x: 70, y: 10, s: 160, c: "#ffc98a" },
-    { x: 40, y: 32, s: 90, c: "#fbe3b8" },
-    { x: 85, y: 38, s: 110, c: "#f6b98a" },
-    { x: 22, y: 46, s: 80, c: "#ffe7c4" },
-  ];
-  return (
-    <div aria-hidden className="absolute inset-0 overflow-hidden">
-      {lights.map((l, i) => (
-        <span key={i} className="focus-breathe absolute rounded-full blur-2xl" style={{ left: `${l.x}%`, top: `${l.y}%`, width: l.s, height: l.s, background: l.c, animationDelay: `${i * 1.3}s` }} />
-      ))}
-      <p className="absolute inset-x-0 top-[38%] text-center text-[13px] tracking-[0.2em] text-[#8a6a48]/70 uppercase">café murmur · cups · quiet chatter</p>
-    </div>
-  );
 }
