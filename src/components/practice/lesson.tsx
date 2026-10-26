@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Sheet } from "@/components/ui/sheet";
 import { Rich } from "@/components/ui/rich-lines";
 import { LESSONS } from "@/lib/lessons";
+import { referenceFor } from "@/lib/lesson-reference";
 import { cn } from "@/lib/cn";
 import { tap } from "@/lib/haptics";
 
@@ -13,8 +14,10 @@ export function LessonButton({ ids, className }: { ids: string[]; className?: st
   const [open, setOpen] = useState(false);
   const [which, setWhich] = useState<string | null>(ids.length === 1 ? ids[0]! : null);
   const [i, setI] = useState(0);
+  const [mode, setMode] = useState<"basics" | "all">("basics");
   const lesson = which ? LESSONS[which] : null;
-  const close = () => { setOpen(false); setI(0); if (ids.length > 1) setWhich(null); };
+  const reference = useMemo(() => (which && mode === "all" ? referenceFor(which) : []), [which, mode]);
+  const close = () => { setOpen(false); setI(0); setMode("basics"); if (ids.length > 1) setWhich(null); };
   return (
     <>
       <button type="button" onClick={() => { tap(); setOpen(true); }} className={cn("inline-flex h-9 items-center gap-1.5 rounded-full border border-accent-line bg-accent-soft px-3.5 text-[13.5px] font-semibold text-accent-text", className)}>
@@ -32,6 +35,30 @@ export function LessonButton({ ids, className }: { ids: string[]; className?: st
           </div>
         ) : (
           <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-3 p-1 text-[13px]" role="tablist">
+              {([["basics", "🧒 The basics"], ["all", "📘 Everything for this drill"]] as const).map(([m, label]) => (
+                <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={cn("rounded-full py-1.5 font-semibold", mode === m ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>{label}</button>
+              ))}
+            </div>
+            {mode === "all" ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-[13px] text-fg-2">Every answer this drill can ask, with the reason — read a group, then practise it.</p>
+                {reference.map((g) => (
+                  <details key={g.group} className="rounded-2xl border border-line bg-surface" open={reference.length === 1}>
+                    <summary className="cursor-pointer list-none px-4 py-3 text-[14.5px] font-semibold">{g.group} <span className="font-normal text-fg-3">· {g.items.length}</span></summary>
+                    <ul className="flex flex-col gap-2.5 border-t border-line px-4 py-3">
+                      {g.items.map((it) => (
+                        <li key={it.title} className="text-[14px] leading-6">
+                          <div className="font-semibold"><Rich text={it.title} /></div>
+                          <div className="text-fg-2"><Rich text={it.text} /></div>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ))}
+                {!reference.length && <p className="text-[13px] text-fg-3">Nothing to list here yet.</p>}
+              </div>
+            ) : (<>
             <div className="flex gap-1" aria-hidden>
               {lesson.cards.map((_, k) => <span key={k} className={cn("h-1.5 flex-1 rounded-full", k <= i ? "bg-accent" : "bg-surface-3")} />)}
             </div>
@@ -53,6 +80,7 @@ export function LessonButton({ ids, className }: { ids: string[]; className?: st
                 <button type="button" onClick={() => { tap(); close(); }} className="h-11 rounded-full bg-accent px-6 text-[14.5px] font-semibold text-on-accent">Start practising ✓</button>
               )}
             </div>
+            </>)}
             <p className="text-[11.5px] text-fg-3">📚 {lesson.source}</p>
           </div>
         )}

@@ -29,6 +29,8 @@ public class RamLauncherActivity extends LauncherActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Opening the app refreshes the progress and planner widgets.
+        try { ProgressWidget.refreshAll(this); } catch (Exception ignored) { }
         if (savedInstanceState != null) { openApp(); return; }
         new Handler(Looper.getMainLooper()).postDelayed(this::openApp, 2500);
         try {

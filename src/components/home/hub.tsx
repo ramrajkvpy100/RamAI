@@ -87,7 +87,9 @@ export function Hub({ initial }: { initial: Me }) {
         </svg>
         <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-2xl" />
         <div className="relative flex items-center gap-4">
-          <DoctorFigure tier={rank.tier} size={76} className="shrink-0 rounded-full bg-white/15 ring-2 ring-white/40" />
+          <Link href="/profile" prefetch aria-label="Your profile" className="shrink-0 rounded-full transition-transform active:scale-95">
+            <DoctorFigure tier={rank.tier} size={76} className="shrink-0 rounded-full bg-white/15 ring-2 ring-white/40" />
+          </Link>
           <div className="min-w-0">
             <p className="text-[13.5px] text-white/85">{hello},</p>
             <h1 id="hub-hello" className="truncate text-[26px] leading-tight font-bold tracking-[-0.02em] sm:text-[30px]">

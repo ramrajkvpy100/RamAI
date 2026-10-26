@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
-import { AppShell } from "@/components/app/app-shell";
+import { ClientShell } from "@/components/app/client-shell";
 import { FocusTimer } from "@/components/focus/focus-timer";
-import { getMe } from "@/server/me";
 
+// Per-request (the page carries this visit's security nonce) — but it waits on nothing.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Focus timer", description: "A calm 25-minute focus timer for study, with short breaks — kept on your phone." };
 
-export default async function FocusPage() {
-  const me = await getMe();
-  if (!me) redirect("/");
+export default function FocusPage() {
   return (
-    <AppShell me={me}>
+    <ClientShell>
       <FocusTimer />
-    </AppShell>
+    </ClientShell>
   );
 }

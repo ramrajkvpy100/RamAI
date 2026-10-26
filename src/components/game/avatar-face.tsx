@@ -1,18 +1,21 @@
-import { BGS, HAIR_COLORS, SKIN, type AvatarStyle } from "@/lib/avatar-style";
+import type React from "react";
+
+import { BGS, HAIR_COLORS, outfitFor, SKIN, type AvatarStyle } from "@/lib/avatar-style";
 
 /** The doctor's avatar, drawn: a round face, hair, eyes, mouth and one extra, on a coloured disc. */
-export function AvatarFace({ style: a, size = 32, className }: { style: AvatarStyle; size?: number; className?: string }) {
+export function AvatarFace({ style: a, size = 32, className, tier }: { style: AvatarStyle; size?: number; className?: string; /** Your rank (1–10): which outfits are unlocked. */ tier?: number }) {
   const skin = SKIN[a.skin]!;
+  const outfit = tier ? outfitFor(a, tier) : a.outfit !== undefined && a.outfit >= 0 ? a.outfit : 1;
   const hair = HAIR_COLORS[a.hairColor]!;
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={className} aria-hidden>
       <circle cx="50" cy="50" r="50" fill={BGS[a.bg]} />
+      {outfit === 9 && <circle cx="50" cy="46" r="34" fill="none" stroke="#fde68a" strokeWidth="5" opacity="0.85" />}
       {/* Hair behind the head */}
       {a.hair === "long" && <path d="M18 48 C14 14 86 14 82 48 L86 90 C70 96 30 96 14 90 Z" fill={hair} />}
       {a.hair === "hijab" && <path d="M16 56 C10 4 90 4 84 56 L88 100 L12 100 Z" fill="#0f766e" />}
-      {/* Shoulders */}
-      <path d="M18 100 C20 80 34 74 50 74 C66 74 80 80 82 100 Z" fill="#f8fafc" />
-      <path d="M44 74 L50 86 L56 74" fill="#cbd5e1" />
+      {/* Shoulders: the rank's outfit */}
+      <Outfit n={outfit} />
       {/* Neck and face */}
       <rect x="43" y="62" width="14" height="14" rx="5" fill={skin} />
       <ellipse cx="50" cy="48" rx="22" ry="24" fill={skin} />
@@ -73,4 +76,65 @@ export function AvatarFace({ style: a, size = 32, className }: { style: AvatarSt
       )}
     </svg>
   );
+}
+
+const BODY = "M18 100 C20 80 34 74 50 74 C66 74 80 80 82 100 Z";
+const LEFT_LAPEL = "M34 77 L46 100 L30 100 C24 92 26 82 34 77 Z";
+const RIGHT_LAPEL = "M66 77 L54 100 L70 100 C76 92 74 82 66 77 Z";
+
+/** The ten rank outfits, drawn on the shoulders (the same clothes as the rank pictures). */
+function Outfit({ n }: { n: number }) {
+  const coat = (shirt: string, extra?: React.ReactNode, trim?: string) => (
+    <>
+      <path d={BODY} fill={shirt} />
+      <path d={LEFT_LAPEL} fill="#ffffff" stroke={trim ?? "#e2e8f0"} strokeWidth={trim ? 1.6 : 0.8} />
+      <path d={RIGHT_LAPEL} fill="#ffffff" stroke={trim ?? "#e2e8f0"} strokeWidth={trim ? 1.6 : 0.8} />
+      <path d="M18 100 C20 80 30 76 34 77 L30 100 Z M82 100 C80 80 70 76 66 77 L70 100 Z" fill="#ffffff" />
+      {extra}
+    </>
+  );
+  const tie = (c: string) => <path d="M48 78 L52 78 L53.5 92 L50 97 L46.5 92 Z" fill={c} />;
+  switch (n) {
+    case 0: // Student
+      return (
+        <>
+          <path d={BODY} fill="#60a5fa" />
+          <path d="M43 75 L50 83 L57 75" fill="#93c5fd" />
+          <path d="M40 76 L48 92 M60 76 L52 92" stroke="#1d4ed8" strokeWidth="1.6" />
+          <rect x="45" y="91" width="10" height="8" rx="1.5" fill="#f8fafc" stroke="#1d4ed8" strokeWidth="1" />
+        </>
+      );
+    case 1: // Intern
+      return coat("#bfdbfe", <path d="M44 75 L50 84 L56 75" fill="#93c5fd" />);
+    case 2: // Junior Resident — scrubs
+      return (
+        <>
+          <path d={BODY} fill="#14b8a6" />
+          <path d="M42 75 L50 88 L58 75" fill="#0f766e" />
+          <path d="M28 92 H38" stroke="#0f766e" strokeWidth="1.4" />
+        </>
+      );
+    case 3: // Senior Resident — coat over navy scrubs
+      return coat("#1e3a8a", <path d="M44 75 L50 86 L56 75" fill="#172554" />);
+    case 4: // Assistant Professor — shirt & tie
+      return coat("#bfdbfe", tie("#1e3a8a"));
+    case 5: // Associate Professor — tie and a name badge
+      return coat("#dbeafe", <>{tie("#7f1d1d")}<rect x="60" y="86" width="9" height="5" rx="1" fill="#2563eb" /></>);
+    case 6: // Professor — pens in the pocket
+      return coat("#e0e7ff", <>{tie("#334155")}<rect x="59" y="88" width="10" height="7" rx="1" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="0.8" /><path d="M61 84 V89 M64 83 V89 M67 85 V89" stroke="#2563eb" strokeWidth="1.4" /></>);
+    case 7: // Head of Department — suit under the coat
+      return coat("#1f2937", <><path d="M42 76 L50 90 L58 76" fill="#f8fafc" />{tie("#991b1b")}</>);
+    case 8: // Dean — navy blazer & tie
+      return (
+        <>
+          <path d={BODY} fill="#1e3a8a" />
+          <path d="M42 76 L50 90 L58 76" fill="#f8fafc" />
+          {tie("#b91c1c")}
+          <path d="M34 77 L46 100 M66 77 L54 100" stroke="#172554" strokeWidth="1.6" />
+          <circle cx="62" cy="88" r="1.6" fill="#fbbf24" />
+        </>
+      );
+    default: // Master Clinician — gold-trimmed coat
+      return coat("#dbeafe", <>{tie("#b45309")}<path d="M38 80 C36 90 48 94 50 87 M62 80 C64 90 52 94 50 87" stroke="#d97706" strokeWidth="2.2" fill="none" /></>, "#f59e0b");
+  }
 }

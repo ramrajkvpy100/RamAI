@@ -164,7 +164,9 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
           </p>
           <div className="mt-4 flex items-center gap-4">
             <span className="relative shrink-0">
-              <DoctorFigure tier={rank.tier} size={84} className="rounded-full ring-2 ring-white/15" />
+              <Link href="/profile" prefetch aria-label="Your profile" className="shrink-0 rounded-full transition-transform active:scale-95">
+                <DoctorFigure tier={rank.tier} size={84} className="rounded-full ring-2 ring-white/15" />
+              </Link>
               <RankBadge tier={rank.tier} size={26} className="absolute -right-1.5 -bottom-1" />
             </span>
             <div className="min-w-0">

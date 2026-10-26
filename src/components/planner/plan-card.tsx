@@ -18,7 +18,7 @@ export function PlanCard() {
       .catch(() => setInfo({ left: 0 }));
   }, []);
   return (
-    <Link href="/plan" className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
+    <Link href="/plan" prefetch className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
       <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 text-[20px]">⭐</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] font-semibold">{info?.mit ? (info.mitDone ? `✓ ${info.mit}` : info.mit) : "Plan your day"}</span>

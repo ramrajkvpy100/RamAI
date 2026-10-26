@@ -18,13 +18,13 @@ android {
         applicationId "com.ramai.app"
         minSdk 24
         targetSdk 36
-        versionCode 8
-        versionName "1.5.0"
+        versionCode 9
+        versionName "1.6.0"
 
         manifestPlaceholders = [
             hostName: site,
             // The app tells the site its version, so the site only asks for what this version can do (alarms, widgets).
-            defaultUrl: "https://${site}/?source=android&app=8",
+            defaultUrl: "https://${site}/?source=android&app=9",
         ]
         resValue "string", "app_name", "RamAI"
         // (Quotes escaped: Android's resource compiler strips bare ones, which would break the JSON.)

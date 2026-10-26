@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Planner widget: today's most important task, the next to-dos, habits done — tap to open the planner. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/plan_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_plan_bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⭐ MOST IMPORTANT TODAY" android:textColor="#B45309" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+    <TextView android:id="@+id/plan_mit" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:maxLines="2" android:ellipsize="end" android:text="Tap to plan your day" android:textColor="#1F2937" android:textSize="17sp" android:textStyle="bold" />
+    <TextView android:id="@+id/plan_todo1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:maxLines="1" android:ellipsize="end" android:textColor="#374151" android:textSize="13sp" android:visibility="gone" />
+    <TextView android:id="@+id/plan_todo2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:maxLines="1" android:ellipsize="end" android:textColor="#374151" android:textSize="13sp" android:visibility="gone" />
+    <TextView android:id="@+id/plan_todo3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:maxLines="1" android:ellipsize="end" android:textColor="#374151" android:textSize="13sp" android:visibility="gone" />
+    <TextView android:id="@+id/plan_foot" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="" android:textColor="#92400E" android:textSize="12sp" />
+</LinearLayout>

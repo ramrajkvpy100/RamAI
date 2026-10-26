@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { AvatarFace } from "@/components/game/avatar-face";
-import { BGS, DEFAULT_AVATAR, EXTRA, EYES, HAIR, HAIR_COLORS, MOUTH, SKIN, type AvatarStyle } from "@/lib/avatar-style";
+import { BGS, DEFAULT_AVATAR, EXTRA, EYES, HAIR, HAIR_COLORS, MOUTH, OUTFITS, outfitFor, SKIN, type AvatarStyle } from "@/lib/avatar-style";
+import { RANKS, rankFor } from "@/engine/progression";
 import { cn } from "@/lib/cn";
 import { primeMe, useMe, type Me } from "@/lib/me-store";
 
-const TABS = ["Skin", "Hair", "Colour", "Eyes", "Mouth", "Extra", "Background"] as const;
+const TABS = ["Outfit", "Skin", "Hair", "Colour", "Eyes", "Mouth", "Extra", "Background"] as const;
 type Tab = (typeof TABS)[number];
 
 const LABEL: Record<string, string> = {
@@ -22,7 +23,9 @@ const LABEL: Record<string, string> = {
 export function AvatarMaker({ onClose }: { onClose: () => void }) {
   const me = useMe();
   const [a, setA] = useState<AvatarStyle>(me?.avatar ?? DEFAULT_AVATAR);
-  const [tab, setTab] = useState<Tab>("Hair");
+  const [tab, setTab] = useState<Tab>("Outfit");
+  // Outfits unlock with rank: one for each rank reached.
+  const tier = me ? rankFor(me.progress.percent).tier : 1;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<AvatarStyle>) => setA((x) => ({ ...x, ...patch }));
@@ -35,6 +38,7 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
       mouth: MOUTH[Math.floor(Math.random() * MOUTH.length)]!,
       extra: EXTRA[Math.floor(Math.random() * EXTRA.length)]!,
       bg: Math.floor(Math.random() * BGS.length),
+      outfit: a.outfit,
     });
 
   const save = async () => {
@@ -58,7 +62,7 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
       {values.map((v) => (
         <button key={String(v)} type="button" aria-pressed={a[key] === v} onClick={() => set({ [key]: v } as Partial<AvatarStyle>)} className={cn("flex flex-col items-center gap-1 rounded-2xl border p-2 text-[11.5px] font-medium transition-transform active:scale-95", a[key] === v ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}>
-          <AvatarFace style={{ ...a, [key]: v }} size={52} />
+          <AvatarFace style={{ ...a, [key]: v }} size={52} tier={tier} />
           {LABEL[String(v)] ?? String(v)}
         </button>
       ))}
@@ -79,7 +83,7 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
       <div className="flex max-h-[92dvh] w-full max-w-lg animate-enter flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl sm:rounded-3xl">
         <div className="flex flex-col items-center gap-3 bg-[radial-gradient(60%_80%_at_50%_0%,var(--accent-soft),transparent)] px-5 pt-6 pb-4">
           <div key={JSON.stringify(a)} className="animate-pop">
-            <AvatarFace style={a} size={128} className="drop-shadow-xl" />
+            <AvatarFace style={a} size={128} tier={tier} className="drop-shadow-xl" />
           </div>
           <button type="button" onClick={random} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-[12.5px] font-semibold hover:bg-surface-2">🎲 Surprise me</button>
         </div>
@@ -91,6 +95,27 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {tab === "Outfit" && (
+            <div className="flex flex-col gap-2">
+              <button type="button" aria-pressed={(a.outfit ?? -1) < 0} onClick={() => set({ outfit: -1 })} className={cn("rounded-2xl border px-3 py-2.5 text-left text-[13.5px] font-medium", (a.outfit ?? -1) < 0 ? "border-accent-line bg-accent-soft text-accent-text" : "border-line")}>
+                ✨ Always my newest outfit <span className="text-fg-3">— changes as you rank up</span>
+              </button>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {OUTFITS.map((name, i) => {
+                  const locked = i > tier - 1;
+                  const on = outfitFor(a, tier) === i && (a.outfit ?? -1) >= 0;
+                  return (
+                    <button key={name} type="button" disabled={locked} aria-pressed={on} onClick={() => set({ outfit: i })} title={locked ? `Unlocks at ${RANKS[i]!.label}` : name} className={cn("relative flex flex-col items-center gap-1 rounded-2xl border p-2 text-center text-[11px] font-medium leading-tight", on ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2", locked && "opacity-55")}>
+                      <span className={cn(locked && "grayscale")}><AvatarFace style={{ ...a, outfit: i }} size={52} /></span>
+                      {RANKS[i]!.label}
+                      {locked && <span className="absolute top-1.5 right-1.5 text-[12px]" aria-label="Locked">🔒</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[12px] text-fg-3">Each rank unlocks its outfit — the same one as its rank picture. Reach the next rank to unlock the next.</p>
+            </div>
+          )}
           {tab === "Skin" && swatches(SKIN, a.skin, (i) => set({ skin: i }))}
           {tab === "Hair" && pieces("hair", HAIR)}
           {tab === "Colour" && swatches(HAIR_COLORS, a.hairColor, (i) => set({ hairColor: i }))}

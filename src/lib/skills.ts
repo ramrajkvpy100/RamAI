@@ -427,3 +427,20 @@ export const QUIZ_STEMS = () => ({
   antidotes: ALL_ANTIDOTES.map((a) => ({ cat: catOf(ANTIDOTE_CATS, `antidote-${a[0]}`), stem: a[1] })),
   algorithms: [...ALGORITHMS, ...MORE_ALGORITHMS, ...EXTRA_ALGOS].map((a) => ({ cat: catOf(ALGORITHM_CATS, `algo-${a[0]}`), stem: a[1] })),
 });
+
+/**
+ * The whole drill as a study sheet, for its Learn module: every scenario with its answer and why, grouped by
+ * subcategory — reading it covers everything the drill asks.
+ */
+export function quizReference(kind: "antidotes" | "algorithms" | "calculations"): { group: string; items: { title: string; text: string }[] }[] {
+  const groups = new Map<string, { title: string; text: string }[]>();
+  const put = (g: string, item: { title: string; text: string }) => groups.set(g, [...(groups.get(g) ?? []), item]);
+  if (kind === "antidotes") for (const [id, stem, right, explain] of ALL_ANTIDOTES) put(catOf(ANTIDOTE_CATS, `antidote-${id}`), { title: stem, text: `**${right}** — ${explain}` });
+  if (kind === "algorithms") for (const [id, stem, right, explain] of [...ALGORITHMS, ...MORE_ALGORITHMS, ...EXTRA_ALGOS]) put(catOf(ALGORITHM_CATS, `algo-${id}`), { title: stem, text: `**${right}** — ${explain}` });
+  if (kind === "calculations")
+    for (const make of CALCS) {
+      const q = make();
+      put(catOf(CALC_CATS, q.id), { title: q.stem, text: `**${q.options[q.answer]}** — ${q.explain}` });
+    }
+  return [...groups].map(([group, items]) => ({ group, items }));
+}

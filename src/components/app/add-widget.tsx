@@ -9,6 +9,7 @@ import { toast } from "@/lib/toast";
 
 const WIDGETS = [
   { kind: "focus", emoji: "☕", title: "Focus timer", note: "25 or 50 minutes, counting down on your home screen" },
+  { kind: "plan", emoji: "⭐", title: "Planner", note: "Today's most important task, to-dos and habits" },
   { kind: "progress", emoji: "🔥", title: "Daily progress", note: "Streak, XP towards today's goal, rating" },
   { kind: "ramai", emoji: "🩺", title: "RamAI", note: "Today's case and quick links" },
 ] as const;
@@ -21,7 +22,7 @@ export function AddWidgetButton({ className }: { className?: string }) {
   const add = async (kind: string) => {
     tap();
     let t = "";
-    if (kind === "progress") {
+    if (kind === "progress" || kind === "plan") {
       // A read-only key so the widget can show your streak and XP (made fresh each time; only its hash is kept).
       const r = await fetch("/api/widget/token", { method: "POST" }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
       if (!r?.token) return toast("Couldn't link the widget — try again", { tone: "info" });
@@ -35,7 +36,7 @@ export function AddWidgetButton({ className }: { className?: string }) {
         <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-[20px]">🧩</span>
         <span className="min-w-0 flex-1">
           <span className="block text-[14.5px] font-semibold">Add a RamAI widget</span>
-          <span className="block text-[12.5px] text-fg-2">Focus timer, daily progress or today&apos;s case — on your home screen</span>
+          <span className="block text-[12.5px] text-fg-2">Focus timer, planner, daily progress or today&apos;s case — on your home screen</span>
         </span>
         <span aria-hidden className={cn("text-fg-3 transition-transform", open && "rotate-90")}>›</span>
       </button>

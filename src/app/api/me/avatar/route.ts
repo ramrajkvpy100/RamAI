@@ -3,6 +3,8 @@ import { z } from "zod";
 import { parseAvatar } from "@/lib/avatar-style";
 import { requireUser } from "@/server/auth";
 import { db } from "@/server/db";
+import { progressFor } from "@/server/progress";
+import { rankFor } from "@/engine/progression";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 
 export const runtime = "nodejs";
@@ -17,7 +19,10 @@ export async function POST(req: Request) {
   if (body instanceof Response) return body;
   try {
     const user = await requireUser();
-    const style = parseAvatar(body.style)!;
+    const parsed = parseAvatar(body.style)!;
+    // An outfit is only worn once its rank is reached.
+    const tier = rankFor((await progressFor(user.id)).percent).tier;
+    const style = { ...parsed, outfit: parsed.outfit !== undefined && parsed.outfit > tier - 1 ? -1 : parsed.outfit };
     await db.run("INSERT INTO user_avatars (user_id, style, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET style = excluded.style, updated_at = excluded.updated_at", user.id, JSON.stringify(style), Date.now());
     return ok({ style });
   } catch (err) {

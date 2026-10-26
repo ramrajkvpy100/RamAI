@@ -131,6 +131,14 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_focus_info" />
         </receiver>
 
+        <!-- Planner widget: today's most important task, to-dos and habits. -->
+        <receiver android:name=".PlanWidget" android:exported="false" android:label="RamAI Planner">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_plan_info" />
+        </receiver>
+
         <!-- Daily progress widget: streak, XP today, rating. -->
         <receiver android:name=".ProgressWidget" android:exported="false" android:label="RamAI Progress">
             <intent-filter>

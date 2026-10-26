@@ -56,7 +56,10 @@ export function AppHeader({ initial }: { initial: Me }) {
             </Link>
             <InstallButton />
           </NotInAndroidApp>
-          <Link href="/focus" aria-label="Focus timer" title="Focus timer" className={cn("flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/focus" ? "bg-emerald-600 text-white" : "bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300")}>
+          <Link href="/plan" prefetch aria-label="Planner" title="Planner" className={cn("flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/plan" ? "bg-amber-500 text-white" : "bg-amber-500/12 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300")}>
+            <span aria-hidden>⭐</span><span className="hidden min-[430px]:inline">Plan</span>
+          </Link>
+          <Link href="/focus" prefetch aria-label="Focus timer" title="Focus timer" className={cn("flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/focus" ? "bg-emerald-600 text-white" : "bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300")}>
             <span aria-hidden>☕</span><span className="hidden min-[380px]:inline">Focus</span>
           </Link>
           <span className="hidden sm:contents"><ThemeToggle /></span>

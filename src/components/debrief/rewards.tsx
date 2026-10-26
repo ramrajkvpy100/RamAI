@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect } from "react";
 
 import { DoctorFigure } from "@/components/game/caricature";
@@ -72,6 +74,7 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
           <div>
             <div className="text-[12px] font-medium tracking-[0.08em] text-cyan-300 uppercase">Promoted</div>
             <div className="text-[19px] font-semibold tracking-[-0.01em]">You&apos;re now {/^[AEIOU]/.test(rewards.rankAfter) ? "an" : "a"} {rewards.rankAfter}</div>
+            <Link href="/profile" className="mt-1 inline-block text-[13px] font-medium text-amber-200 underline">👔 New outfit unlocked — your avatar can wear it</Link>
           </div>
         </div>
       )}

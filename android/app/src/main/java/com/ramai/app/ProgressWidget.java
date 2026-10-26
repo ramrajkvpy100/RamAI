@@ -40,20 +40,23 @@ public class ProgressWidget extends AppWidgetProvider {
     static void refreshAll(Context context) {
         AppWidgetManager m = AppWidgetManager.getInstance(context);
         int[] ids = m.getAppWidgetIds(new ComponentName(context, ProgressWidget.class));
+        int[] plans = m.getAppWidgetIds(new ComponentName(context, PlanWidget.class));
         new Thread(() -> {
             fetch(context);
             for (int id : ids) m.updateAppWidget(id, views(context));
+            for (int id : plans) m.updateAppWidget(id, PlanWidget.views(context));
         }).start();
     }
 
     /** Fetches the numbers into the widget's preferences (silently keeps the last ones on any failure). */
-    private static void fetch(Context context) {
+    static void fetch(Context context) {
         SharedPreferences p = context.getSharedPreferences("widget", Context.MODE_PRIVATE);
         String token = p.getString("token", null);
         if (token == null) return;
         HttpURLConnection c = null;
         try {
-            c = (HttpURLConnection) new URL(SITE + "/api/widget?t=" + URLEncoder.encode(token, "UTF-8")).openConnection();
+            String day = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date());
+            c = (HttpURLConnection) new URL(SITE + "/api/widget?t=" + URLEncoder.encode(token, "UTF-8") + "&d=" + day).openConnection();
             c.setConnectTimeout(6000);
             c.setReadTimeout(6000);
             if (c.getResponseCode() != 200) return;
@@ -63,6 +66,18 @@ public class ProgressWidget extends AppWidgetProvider {
                 while ((line = r.readLine()) != null) sb.append(line);
             }
             JSONObject j = new JSONObject(sb.toString());
+            JSONObject plan = j.optJSONObject("plan");
+            if (plan != null) {
+                SharedPreferences.Editor e = p.edit();
+                e.putString("mit", plan.isNull("mit") ? "" : plan.optString("mit", ""))
+                    .putBoolean("mitDone", plan.optBoolean("mitDone"))
+                    .putInt("left", plan.optInt("left"))
+                    .putInt("habitsDone", plan.optInt("habitsDone"))
+                    .putInt("habits", plan.optInt("habits"));
+                org.json.JSONArray todos = plan.optJSONArray("todos");
+                for (int k = 0; k < 3; k++) e.putString("todo" + k, todos != null && k < todos.length() ? todos.optString(k, "") : "");
+                e.apply();
+            }
             p.edit()
                 .putInt("streak", j.optInt("streak"))
                 .putInt("xp", j.optInt("xpToday"))

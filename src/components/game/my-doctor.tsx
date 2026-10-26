@@ -42,7 +42,7 @@ export function MyDoctor({ tier, size, className, title, portrait = false }: { t
     return (
       <span className={`relative inline-flex shrink-0 items-center justify-center rounded-full ${className ?? ""}`} style={{ width: size, height: size, background: `conic-gradient(${ring} ${t * 10}%, rgb(255 255 255 / 0.22) 0)`, padding: Math.max(2, size * 0.05) }} title={title} role="img" aria-label={title}>
         <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white">
-          <AvatarFace style={me.avatar} size={size * 0.9} />
+          <AvatarFace style={me.avatar} size={size * 0.9} tier={t} />
         </span>
         <span className="absolute -right-0.5 -bottom-0.5 flex items-center justify-center rounded-full font-bold text-white ring-2 ring-white tabular" style={{ background: ring, width: size * 0.34, height: size * 0.34, fontSize: Math.max(9, size * 0.17) }}>
           {t}

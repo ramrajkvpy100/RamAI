@@ -46,18 +46,23 @@ export function Planner() {
   const [history, setHistory] = useState<Record<string, Day | null>>({});
   const timer = useRef<number | undefined>(undefined);
 
-  // The day shown, its habits, and the last 70 days (for streaks).
+  // The day shown and its habits first (one small read); the last 70 days, for streaks, follow in the background.
   useEffect(() => {
     let off = false;
-    const past = Array.from({ length: 70 }, (_, n) => `day:${dayKey(addDays(new Date(), -n))}`);
-    load([...new Set(["habits", `day:${key}`, ...past])])
+    const kept = (() => { try { return JSON.parse(localStorage.getItem(`ramai.plan.${key}`) ?? "null") as { habits: Habit[]; day: Day } | null; } catch { return null; } })();
+    if (kept) { setHabits(kept.habits); setDay({ ...EMPTY_DAY, ...kept.day }); }
+    load(["habits", `day:${key}`])
       .then((docs) => {
         if (off) return;
-        setHabits((docs.habits as Habit[] | null) ?? []);
-        setDay({ ...EMPTY_DAY, ...((docs[`day:${key}`] as Day | null) ?? {}) });
-        setHistory(Object.fromEntries(past.map((p) => [p.slice(4), docs[p] as Day | null])));
+        const h = (docs.habits as Habit[] | null) ?? [];
+        const d = { ...EMPTY_DAY, ...((docs[`day:${key}`] as Day | null) ?? {}) };
+        setHabits(h);
+        setDay(d);
+        try { localStorage.setItem(`ramai.plan.${key}`, JSON.stringify({ habits: h, day: d })); } catch {}
+        const past = Array.from({ length: 70 }, (_, n) => `day:${dayKey(addDays(new Date(), -n))}`);
+        return load(past).then((more) => !off && setHistory(Object.fromEntries(past.map((p) => [p.slice(4), more[p] as Day | null]))));
       })
-      .catch(() => !off && toast("Couldn't load your planner — check the connection", { tone: "info" }));
+      .catch(() => !off && !kept && toast("Couldn't load your planner — check the connection", { tone: "info" }));
     return () => { off = true; };
   }, [key]);
 
@@ -65,9 +70,10 @@ export function Planner() {
   const changeDay = useCallback((next: Day) => {
     setDay(next);
     setHistory((h) => ({ ...h, [key]: next }));
+    try { localStorage.setItem(`ramai.plan.${key}`, JSON.stringify({ habits, day: next })); } catch {}
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => void save(`day:${key}`, next).catch(() => toast("Not saved — retrying when you edit again", { tone: "info" })), 500);
-  }, [key]);
+  }, [key, habits]);
   const changeHabits = (next: Habit[]) => {
     setHabits(next);
     void save("habits", next).catch(() => toast("Not saved", { tone: "info" }));

@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
-import { AppShell } from "@/components/app/app-shell";
+import { ClientShell } from "@/components/app/client-shell";
 import { Planner } from "@/components/planner/planner";
-import { getMe } from "@/server/me";
 
+// Per-request (the page carries this visit's security nonce) — but it waits on nothing.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Planner", description: "Your most important task, to-dos, habits and an evening review." };
 
-export default async function PlanPage() {
-  const me = await getMe();
-  if (!me) redirect("/");
+export default function PlanPage() {
   return (
-    <AppShell me={me}>
+    <ClientShell>
       <Planner />
-    </AppShell>
+    </ClientShell>
   );
 }

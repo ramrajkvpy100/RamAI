@@ -1,20 +1,18 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
-import { AppShell } from "@/components/app/app-shell";
+import { ClientShell } from "@/components/app/client-shell";
 import { RevisionDeck } from "@/components/practice/revision-deck";
-import { getMe } from "@/server/me";
 
+// Per-request (the page carries this visit's security nonce) — but it waits on nothing.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Revision deck" };
 
-export default async function RevisionPage() {
-  const me = await getMe();
-  if (!me) redirect("/");
+/** Kept on the phone: nothing to wait for from the server. */
+export default function RevisionPage() {
   return (
-    <AppShell me={me}>
+    <ClientShell>
       <RevisionDeck />
-    </AppShell>
+    </ClientShell>
   );
 }
