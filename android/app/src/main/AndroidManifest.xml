@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- The progress widget reads your streak and XP from RamAI. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The focus timer vibrates when it ends, even with the phone locked. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Lets the focus timer end on time with the phone locked (the user grants it once). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:allowBackup="true"
@@ -85,6 +89,22 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_ramai_info" />
         </receiver>
+
+        <!-- The site's focus timer, kept by Android: ramai://focus?ends=… sets an alarm clock; it vibrates when done. -->
+        <activity
+            android:name=".FocusAlarm$Set"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ramai" android:host="focus" />
+            </intent-filter>
+        </activity>
+        <receiver android:name=".FocusAlarm" android:exported="false" />
 
         <!-- Focus timer widget: 25 / 50 minutes, counting down on the home screen. -->
         <receiver android:name=".FocusWidget" android:exported="false" android:label="RamAI Focus">

@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/(.*)", headers: SECURITY_HEADERS },
+      // Focus scenes, drinks, animations and level pictures: kept by the phone for a week (they rarely change).
+      { source: "/:dir(focus|anim|levels|radiology)/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }] },
       // Account data must never be cached by a browser or CDN. (Share cards and practice pictures are public — they set their own.)
       { source: "/api/:path((?!share/|practice/image/).*)", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
     ];

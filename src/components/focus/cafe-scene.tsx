@@ -3,9 +3,9 @@ export function CafeScene() {
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden bg-[#f6eedd]">
       <picture>
-        <source media="(min-aspect-ratio: 1/1)" srcSet="/focus/cafe-wide.jpg" />
+        <source media="(min-aspect-ratio: 1/1)" srcSet="/focus/cafe-wide.webp" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/focus/cafe-tall.jpg" alt="" className="cafe-drift absolute inset-0 h-full w-full object-cover object-top" draggable={false} />
+        <img src="/focus/cafe-tall.webp" alt="" className="cafe-drift absolute inset-0 h-full w-full object-cover object-top" draggable={false} />
       </picture>
       <span className="cafe-glow absolute top-[6%] left-[30%] h-40 w-40 rounded-full bg-[radial-gradient(circle,rgb(255_230_170/0.55),transparent_65%)]" />
       <span className="cafe-glow absolute top-[6%] right-[20%] h-40 w-40 rounded-full bg-[radial-gradient(circle,rgb(255_230_170/0.55),transparent_65%)] [animation-delay:2.5s]" />
@@ -26,7 +26,8 @@ export const STREET_VIEWS: Record<StreetView, string> = { cafe: "Café window", 
 export function StreetScene({ view }: { view: StreetView }) {
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden bg-black">
-      <video key={view} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover">
+      {/* The first frame shows at once (a small picture); the video takes over as soon as it can play. */}
+      <video key={view} autoPlay muted loop playsInline preload="auto" poster={`/focus/street-${view}-poster.webp`} className="absolute inset-0 h-full w-full object-cover">
         <source src={`/focus/street-${view}.webm`} type="video/webm" />
         <source src={`/focus/street-${view}.mp4`} type="video/mp4" />
       </video>

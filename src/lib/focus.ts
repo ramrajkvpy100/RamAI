@@ -8,6 +8,8 @@
  */
 import { useEffect, useState } from "react";
 
+import { androidAppVersion } from "./in-app";
+
 export type Drink = "chai" | "americano" | "matcha" | "cappuccino" | "latte" | "black-tea";
 export type Size = "tall" | "grande" | "flow" | "unlimited";
 export type Phase = "focus" | "break";
@@ -67,7 +69,29 @@ const write = (k: string, v: unknown) => {
 };
 
 const subs = new Set<() => void>();
-const emit = () => subs.forEach((f) => f());
+const emit = () => {
+  syncAlarm();
+  subs.forEach((f) => f());
+};
+
+/**
+ * In the Android app (1.5.0+): Android itself keeps the timer — an alarm clock set to when this phase ends, so it
+ * vibrates and notifies even with the phone locked. Sent only when the end time changes.
+ */
+let alarmSent: string | null = null;
+function syncAlarm() {
+  if (typeof window === "undefined" || androidAppVersion() < 8) return;
+  const a = getActive();
+  const ends = a && !countsUp(a) && a.endsAt && a.endsAt > Date.now() ? a.endsAt : null;
+  const key = String(ends);
+  if (key === alarmSent) return;
+  const first = alarmSent === null;
+  alarmSent = key;
+  if (first && !ends) return; // nothing was set by this page; nothing to clear
+  const label = a?.phase === "break" ? "Break over — back to focus 📚" : "Focus done ☕ — time for a break";
+  const q = ends ? `ends=${ends}&label=${encodeURIComponent(label)}` : "stop=1";
+  window.location.href = `intent://focus?${q}#Intent;scheme=ramai;package=com.ramai.app;end`;
+}
 
 export const getActive = () => read<Active | null>(ACTIVE, null);
 export const getDone = () => read<Done[]>(DONE, []);

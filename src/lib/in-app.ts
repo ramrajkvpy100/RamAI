@@ -20,6 +20,18 @@ export function inAndroidApp(): boolean {
   }
 }
 
+/** The Android app's version code (from ?app=N on its first page); 0 when unknown or older than 1.5.0. */
+export function androidAppVersion(): number {
+  if (!inAndroidApp()) return 0;
+  try {
+    const v = new URLSearchParams(location.search).get("app");
+    if (v) sessionStorage.setItem("ramai-android-version", v);
+    return Number(sessionStorage.getItem("ramai-android-version") ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** False on the server and the first render, then whether this tab is the Android app. */
 export function useInAndroidApp(): boolean {
   const [inApp, setInApp] = useState(false);

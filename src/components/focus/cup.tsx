@@ -23,7 +23,7 @@ export function Cup({ drink, left = 1, size = 140, steam = false }: { drink: Dri
         </svg>
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/focus/${drink}.png`} alt={DRINKS[drink].label} draggable={false} className={`${left < 1 ? "h-[84%] w-[84%]" : "h-full w-full"} object-contain drop-shadow-[0_12px_18px_rgba(60,40,20,0.22)] ${steam ? "focus-float" : ""}`} />
+      <img src={`/focus/${drink}.webp`} alt={DRINKS[drink].label} draggable={false} className={`${left < 1 ? "h-[84%] w-[84%]" : "h-full w-full"} object-contain drop-shadow-[0_12px_18px_rgba(60,40,20,0.22)] ${steam ? "focus-float" : ""}`} />
     </span>
   );
 }

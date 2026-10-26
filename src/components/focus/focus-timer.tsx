@@ -103,6 +103,8 @@ export function FocusTimer() {
     handled.current = active.endsAt;
     const what = complete();
     success();
+    // A clear buzz so it's felt even with the phone face-down (where the device allows it).
+    try { navigator.vibrate?.([400, 200, 400, 200, 700]); } catch {}
     playSfx(what === "focus-done" ? "win" : "reveal");
     if (what === "focus-done") {
       toast(active.size === "flow" ? "5 minutes done — a 1-minute stretch" : `${SIZES[active.size].focus} minutes of focus — well done. Take your break.`);
