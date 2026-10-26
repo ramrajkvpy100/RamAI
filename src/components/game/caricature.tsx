@@ -11,6 +11,7 @@
  */
 "use client";
 
+import { MyDoctor } from "./my-doctor";
 import { useId, type CSSProperties, type ReactNode } from "react";
 
 import type { PatientIdentity, PatientStatus } from "@/engine/types";
@@ -389,12 +390,10 @@ export const DOCTOR_NEXT: Record<number, string> = {
  * gets their own face — skin tone, hair, glasses — for leaderboards; without
  * one it's "your doctor".
  */
-export function DoctorFigure({ tier, size = 72, className, seed, title = "Your doctor" }: { tier: number; size?: number; className?: string; seed?: string; title?: string }) {
+export function DoctorFigure({ tier, size = 72, className, seed, title = "Your doctor", portrait }: { tier: number; size?: number; className?: string; seed?: string; title?: string; portrait?: boolean }) {
   const t = Math.max(1, Math.min(10, Math.round(tier)));
-  // Your own doctor: a portrait for each level, the outfit growing with you (other players keep their drawn faces).
-  if (!seed)
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={`/levels/${t}.png`} width={size} height={size} alt={title} title={title} className={`${className ?? ""} object-cover object-top`} style={{ width: size, height: size }} draggable={false} />;
+  // Your own doctor: your avatar framed in your level's colour — or the level's portrait, male or female (other players keep their drawn faces).
+  if (!seed) return <MyDoctor tier={t} size={size} className={className} title={title} portrait={portrait} />;
   const senior = t >= 7;
   const h = seed ? hashOf(seed) : 0;
   const styles: HairStyle[] = senior ? ["neat", "receding", "bun", "short"] : ["neat", "short", "bun", "long"];

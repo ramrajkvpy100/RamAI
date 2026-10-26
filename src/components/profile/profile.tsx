@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { Avatar } from "@/components/game/avatar";
 import { DoctorFigure } from "@/components/game/caricature";
+import { LookChoice } from "@/components/game/look-choice";
 import { LEVEL_STYLE, levelGradient } from "@/components/game/level-style";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
@@ -136,8 +137,9 @@ export function Profile({ initial }: { initial: Me }) {
           <h2 id="doctor-heading" className="text-[16px] font-semibold">
             Your doctor
           </h2>
-          <span className="text-[12.5px] text-fg-3">A new outfit with every rank</span>
+          <LookChoice />
         </div>
+        <p className="mt-1 text-[12.5px] text-fg-3">A new outfit with every rank. With your own avatar (made below), it wears your rank's colour and number everywhere.</p>
         <ul className="mt-4 grid grid-cols-5 gap-3 sm:grid-cols-10">
           {RANKS.map((r) => {
             const unlocked = r.tier <= rank.tier;
@@ -145,7 +147,7 @@ export function Profile({ initial }: { initial: Me }) {
               <li key={r.id} className="flex flex-col items-center text-center" title={unlocked ? r.label : `Unlocks at ${r.label}`}>
                 <span className={cn("relative rounded-full", r.tier === rank.tier && "ring-2 ring-accent ring-offset-2 ring-offset-surface")}>
                   <span className={cn("block", !unlocked && "opacity-40 grayscale")}>
-                    <DoctorFigure tier={r.tier} size={56} />
+                    <DoctorFigure tier={r.tier} size={56} portrait />
                   </span>
                   {!unlocked && (
                     <span className="absolute -right-0.5 -bottom-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-surface-3 text-fg-3 ring-2 ring-surface">

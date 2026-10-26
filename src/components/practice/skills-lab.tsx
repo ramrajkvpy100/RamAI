@@ -1,5 +1,7 @@
 "use client";
 
+import { LessonButton } from "./lesson";
+
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -140,7 +142,8 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
         <button type="button" onClick={() => { setSection(null); setCat(null); }} className="h-9 rounded-full border border-line bg-surface px-3.5 text-[13.5px] font-medium hover:bg-surface-2">
           ← Skills Lab
         </button>
-        <h1 className="text-[20px] font-semibold tracking-[-0.02em]">{SECTIONS[section][0]}</h1>
+        <h1 className="min-w-0 flex-1 text-[20px] font-semibold tracking-[-0.02em]">{SECTIONS[section][0]}</h1>
+        <LessonButton key={section} ids={section === "spot" ? ["ecg", "xray", "ct", "usg", "smear", "clinical"] : [section]} />
       </header>
       {section === "spot" && <PracticeDrill stats={stats} level={level} order={modalities} />}
       {section === "radiology" && <RadiologyReporting embedded />}

@@ -27,6 +27,7 @@ const PAGES: SearchItem[] = [
   { t: "Emergency algorithms", s: "Skills Lab", h: "/practice?drill=algorithms", k: "acls bls resuscitation" },
   { t: "Clinical calculations", s: "Skills Lab", h: "/practice?drill=calculations", k: "dose fluids score" },
   { t: "Exam MCQs", s: "Exams", h: "/exams", k: "mcq questions pyq" },
+  { t: "Planner", s: "To-do & habits", h: "/plan", k: "todo to-do habit tracker most important task reflection review positives negatives improvements" },
   { t: "Focus timer", s: "Pomodoro", h: "/focus", k: "pomodoro study timer cafe street flowmodoro chai" },
   { t: "Leaderboard", s: "Rankings", h: "/leaderboard", k: "rank near me college" },
   { t: "Community", s: "Doctors", h: "/community", k: "groups friends" },

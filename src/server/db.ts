@@ -212,6 +212,15 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 
 -- Practice questions answered after cases (the first answer to each counts), for progress and the report.
+-- The planner: habits, each day's to-dos and evening reflection (JSON documents, one per user and key).
+CREATE TABLE IF NOT EXISTS planner_docs (
+  user_id TEXT NOT NULL,
+  doc TEXT NOT NULL,
+  data TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, doc)
+);
+
 -- Home-screen progress widget: a read-only key (only its hash is kept) that shows one doctor's streak and XP.
 CREATE TABLE IF NOT EXISTS widget_tokens (
   token_hash TEXT PRIMARY KEY,
