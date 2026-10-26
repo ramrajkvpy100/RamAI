@@ -1,5 +1,7 @@
 "use client";
 
+import { CrowdBanner, keyOf, OptionPct, useCrowd } from "@/components/practice/crowd";
+import { DeckSave } from "@/components/practice/deck-save";
 import { success, warn } from "@/lib/haptics";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ReportProblem } from "@/components/case/report-problem";
@@ -255,6 +257,7 @@ function Question({
   subject: string;
   right: number;
 }) {
+  const crowd = useCrowd(`exam:${keyOf(q.stem + q.options.join("|"))}`, q.options, checked ? q.options[checked.choice]! : null, checked ? q.options[checked.answer]! : "");
   return (
     <div className="panel flex animate-enter flex-col gap-4 p-5 sm:p-6">
       <div className="flex items-center justify-between text-[12.5px] text-fg-2 tabular">
@@ -288,7 +291,7 @@ function Question({
                 <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold", state === "right" ? "bg-success text-white" : state === "wrong" ? "bg-danger text-white" : "bg-surface-3 text-fg-2")}>
                   {state === "right" ? <Icon name="check" size={13} /> : state === "wrong" ? <Icon name="x" size={13} /> : LETTERS[i]}
                 </span>
-                <span>{o}</span>
+                <span>{o}<OptionPct stats={crowd} option={o} /></span>
               </button>
             </li>
           );
@@ -297,7 +300,9 @@ function Question({
       {checked && (
         <div className="selectable animate-enter rounded-xl bg-surface-2 p-4">
           <div className={cn("text-[14px] font-semibold", checked.correct ? "text-success" : "text-danger")}>{checked.correct ? "Correct" : `The answer is ${LETTERS[checked.answer]}`}</div>
-          <RichLines text={checked.explanation} className="mt-1.5 text-[14px] text-fg" />
+          <CrowdBanner stats={crowd} className="mt-2" />
+          <div className="mt-2"><DeckSave stem={q.stem} options={q.options} answer={q.options[checked.answer]!} explanation={checked.explanation} from={`${q.pattern ?? "Exam MCQ"} · ${q.topic}`} source="exam" wrong={!checked.correct} /></div>
+          <RichLines text={checked.explanation} className="mt-2 text-[14px] text-fg" />
           <div className="mt-3 flex items-center justify-between gap-2">
             <ReportProblem compact target={{ area: "exam", ref: `${q.pattern ?? "Exam MCQ"} · ${q.topic} · Q${n + 1}`, details: `${q.stem}\n\nOptions: ${q.options.map((o, i) => `${i === checked.answer ? "✓ " : ""}${LETTERS[i]}. ${o}`).join(" | ")}\n\nExplanation: ${checked.explanation}` }} />
             <button type="button" onClick={onNext} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">

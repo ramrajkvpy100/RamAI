@@ -783,7 +783,7 @@ function learnPrompt(def: ClinicalCaseDefinition, country: Country): ChatMessage
 Write, for a doctor preparing for ${exam.name}:
 - "pearls": 3–5 high-yield clinical pearls this case teaches — specific, practical and memorable, one sentence each, with the 1–3 key words of each in **bold**.
 - "mcqs": 5 questions in ${exam.style}. Test what this case needs: the diagnosis, the right investigation, management, a complication, and one closely related high-yield fact. Exactly one best answer each; plausible, homogeneous distractors; no "all of the above" or "none of the above". In explanations, refer to options by their content, never by letter or position.
-Each question: {"stem","options":[${exam.options} options],"answer": the 0-based index of the best answer,"explanation":"short lines (one point per line, separated by \\n, key words in **bold**): why it's right, then one line for each other option saying why it isn't","topic":"a short tag, e.g. 'STEMI — reperfusion'","difficulty":"easy"|"medium"|"hard"}
+Each question: {"stem","options":[${exam.options} options],"answer": the 0-based index of the best answer,"explanation":"short lines (one point per line, separated by \\n, key words in **bold**): why it's right, then one line for each other option saying why it isn't; when the point compares things (origins, features, drugs, types), end with a small markdown table — a header row then 2–5 rows, e.g. | Feature | A | B | — short cells","topic":"a short tag, e.g. 'STEMI — reperfusion'","difficulty":"easy"|"medium"|"hard"}
 Return {"pearls":[…],"mcqs":[…]}`,
     },
   ];

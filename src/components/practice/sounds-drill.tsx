@@ -1,6 +1,7 @@
 "use client";
 
 import { recordSkill } from "@/lib/skill-progress";
+import { CrowdBanner, OptionPct, useCrowd } from "./crowd";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -81,6 +82,8 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
   const cases = keep(kind === "heart" ? HEART_CASES : LUNG_CASES);
   // Four findings to choose from: this one and three others (the answer is the finding).
   const options = useMemo(() => (item ? shuffle([pool.find((p) => p.id === item.base), ...shuffle(pool.filter((p) => p.id !== item.base)).slice(0, 3)].filter((x): x is SoundItem => !!x)) : []), [item, pool]);
+  const labels = options.map((o) => o.label);
+  const crowd = useCrowd(item ? `sound:${item.base}` : "none", labels, item && picked !== null ? options[picked]?.label ?? null : null, item?.label ?? "");
   // The sound itself, made on this device the first time it's played.
   const url = useMemo(() => {
     if (!item) return null;
@@ -123,6 +126,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
               return (
                 <button key={o.id} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (item) recordSkill(`sound:${item.id}`, right); if (right) setScore((s) => s + 1); else if (item) setWrong((w) => [...w, item]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
                   {o.label}
+                  <OptionPct stats={crowd} option={o.label} />
                 </button>
               );
             })}
@@ -130,7 +134,8 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
           {picked !== null && (
             <section className="selectable animate-enter rounded-xl border border-line p-4">
               <div className={cn("text-[14px] font-semibold", options[picked]?.id === item.base ? "text-success" : "text-danger")}>{options[picked]?.id === item.base ? "Correct" : `It's ${item.label}`}</div>
-              <p className="mt-1 text-[14px] leading-6">{item.key}</p>
+              <CrowdBanner stats={crowd} className="mt-2" />
+              <p className="mt-2 text-[14px] leading-6">{item.key}</p>
               {options[picked]?.id !== item.base && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {options[picked]?.label}?</b> {options[picked]?.key}</p>}
               <p className="mt-2 text-[11.5px] text-fg-3">A teaching simulation of the sound, made by RamAI&apos;s stethoscope engine — real recordings vary. Source for the findings: Macleod&apos;s Clinical Examination.</p>
               <div className="mt-3 flex items-center justify-between gap-2">

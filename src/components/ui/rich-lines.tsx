@@ -36,18 +36,45 @@ export function Rich({ text }: { text: string }) {
  * its full stops, and the key words in bold.
  */
 export function RichLines({ text, className = "" }: { text: string; className?: string }) {
-  const lines = text
-    .split(/\n+/)
-    .flatMap((l) => (l.length > 160 && !/^\s*[•\-–]/.test(l) ? l.split(/(?<=[.;])\s+(?=[A-Z])/) : [l]))
-    .map((l) => l.trim())
-    .filter(Boolean);
+  // A markdown table ("| Feature | A | B |" rows) becomes a real table; the rest stays short lines.
+  const blocks: ({ kind: "line"; text: string } | { kind: "table"; rows: string[][] })[] = [];
+  for (const raw of text.split(/\n+/)) {
+    const l = raw.trim();
+    if (!l) continue;
+    if (/^\|.*\|$/.test(l)) {
+      if (/^\|[\s:|-]+\|$/.test(l)) continue; // the |---|---| divider
+      const cells = l.slice(1, -1).split("|").map((c) => c.trim());
+      const last = blocks[blocks.length - 1];
+      if (last?.kind === "table") last.rows.push(cells);
+      else blocks.push({ kind: "table", rows: [cells] });
+      continue;
+    }
+    for (const part of l.length > 160 && !/^\s*[•\-–]/.test(l) ? l.split(/(?<=[.;])\s+(?=[A-Z])/) : [l]) if (part.trim()) blocks.push({ kind: "line", text: part.trim() });
+  }
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      {lines.map((l, i) => (
-        <p key={i} className="leading-6">
-          {line(l)}
-        </p>
-      ))}
+      {blocks.map((b, i) =>
+        b.kind === "line" ? (
+          <p key={i} className="leading-6">
+            {line(b.text)}
+          </p>
+        ) : (
+          <div key={i} className="my-1.5 overflow-x-auto rounded-xl border border-line">
+            <table className="w-full border-collapse text-left text-[13.5px] leading-5">
+              <thead className="bg-surface-3">
+                <tr>{b.rows[0]!.map((c, j) => <th key={j} className="border-b border-line px-3 py-2 font-semibold">{bolded(c)}</th>)}</tr>
+              </thead>
+              <tbody>
+                {b.rows.slice(1).map((r, k) => (
+                  <tr key={k} className="even:bg-surface-2">
+                    {r.map((c, j) => <td key={j} className={`border-t border-line px-3 py-2 align-top ${j === 0 ? "font-medium" : ""}`}>{bolded(c)}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ),
+      )}
     </div>
   );
 }

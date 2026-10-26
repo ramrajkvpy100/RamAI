@@ -1,6 +1,8 @@
 "use client";
 
 import { recordSkill } from "@/lib/skill-progress";
+import { CrowdBanner, keyOf, OptionPct, useCrowd } from "./crowd";
+import { DeckSave } from "./deck-save";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "./explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
@@ -20,6 +22,9 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
   const restart = (set: QuizQuestion[]) => { setQs(set); setI(0); setScore(0); setPicked(null); setWrong([]); };
   // Made in the browser only: the numbers are random, so the server's copy would never match.
   useEffect(() => setQs(make()), [make]);
+  const cur = qs?.[i];
+  // How every doctor answered (the same question and options — calculations differ each time, so they're keyed by both).
+  const stats = useCrowd(cur ? `quiz:${cur.id}:${keyOf(cur.stem + cur.options.join("|"))}` : "none", cur?.options ?? [], cur && picked !== null ? cur.options[picked]! : null, cur ? cur.options[cur.answer]! : "");
   if (!qs) return <div className="card h-64 animate-pulse" aria-busy="true" />;
   const q = qs[i];
   if (!q)
@@ -43,6 +48,7 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
           return (
             <button key={o} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (n === q.answer) success(); else warn(); recordSkill(`quiz:${q.id}`, n === q.answer); if (n === q.answer) setScore((s) => s + 1); else setWrong((w) => [...w, q]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "correct-pop border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
               {o}
+              <OptionPct stats={stats} option={o} />
             </button>
           );
         })}
@@ -50,7 +56,9 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
       {picked !== null && (
         <section className="selectable animate-enter rounded-xl border border-line p-4">
           <div className={cn("text-[14px] font-semibold", picked === q.answer ? "text-success" : "text-danger")}>{picked === q.answer ? "Correct" : `Answer: ${q.options[q.answer]}`}</div>
-          <RichLines text={q.explain} className="mt-1 text-[14px]" />
+          <CrowdBanner stats={stats} className="mt-2" />
+          <div className="mt-2"><DeckSave stem={q.stem} options={q.options} answer={q.options[q.answer]!} explanation={q.explain} from={title} source="skills" wrong={picked !== q.answer} /></div>
+          <RichLines text={q.explain} className="mt-2 text-[14px]" />
           {picked !== q.answer && q.whyNot?.[picked] && (
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] leading-6 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100"><b>Why not {q.options[picked]}?</b> {q.whyNot[picked]}</p>
           )}

@@ -1,6 +1,8 @@
 "use client";
 
 import { recordSkill, useSkillProgress } from "@/lib/skill-progress";
+import { CrowdBanner, OptionPct, useCrowd } from "./crowd";
+import { DeckSave } from "./deck-save";
 import { SkillBar } from "./progress-bar";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "./explain-more";
@@ -148,6 +150,9 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
     setPicked(null);
   };
 
+  const cur = items?.[index];
+  const crowd = useCrowd(cur ? `spot:${modality}:${cur.item}` : "none", cur?.options ?? [], cur && picked !== null ? cur.options[picked]! : null, cur ? cur.options[cur.answer]! : "");
+
   if (!items) {
     return (
       <div className="flex flex-col gap-6">
@@ -277,10 +282,13 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
               )}
             >
               {o}
+              <OptionPct stats={crowd} option={o} />
             </button>
           );
         })}
       </div>
+      {picked !== null && <CrowdBanner stats={crowd} />}
+      {picked !== null && cur && <div><DeckSave stem={`${MODALITIES[modality].label}: how do you recognise ${cur.options[cur.answer]}?`} options={[]} answer={cur.options[cur.answer]!} explanation={cur.key} from={`Spot the diagnosis · ${MODALITIES[modality].label}`} source="skills" wrong={picked !== cur.answer} /></div>}
       {picked !== null && mode === "spot" && (
         <div className="selectable panel animate-enter p-4">
           <div className={cn("text-[14px] font-semibold", picked === item.answer ? "text-success" : "text-danger")}>{picked === item.answer ? "Correct" : `It's ${item.options[item.answer]}`}</div>

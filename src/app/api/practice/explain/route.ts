@@ -23,7 +23,7 @@ const Ask = z.object({
 
 const Teaching = z.object({
   findings: z.string().min(1).max(1200),
-  why: z.string().min(1).max(1200),
+  why: z.string().min(1).max(2000),
   others: z.array(z.object({ option: z.string().max(200), why: z.string().max(400) })).max(7).default([]),
   next: z.string().max(800).default(""),
   pearl: z.string().max(400).default(""),
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         [
           {
             role: "system",
-            content: `You are a senior clinician teaching doctors and medical students in India, the USA and the UK. Explain a practice question's answer in detail, plainly, accurately and briefly, following standard references (Harrison's, Grainger & Allison, BNF, NICE, WHO, ICMR, AHA). The stated answer is correct and final — never contradict it, never hedge it. Don't invent patient details or image findings that the question and key don't support; describe what is typically seen. Write every field as short lines (one point per line, under 15 words), never paragraphs, and wrap the key words of each line in **double asterisks** so they show in bold. Output JSON only.`,
+            content: `You are a senior clinician teaching doctors and medical students in India, the USA and the UK. Explain a practice question's answer in detail, plainly, accurately and briefly, following standard references (Harrison's, Grainger & Allison, BNF, NICE, WHO, ICMR, AHA). The stated answer is correct and final — never contradict it, never hedge it. Don't invent patient details or image findings that the question and key don't support; describe what is typically seen. Write every field as short lines (one point per line, under 15 words), never paragraphs, and wrap the key words of each line in **double asterisks** so they show in bold. In "why", when the answer compares things (origins, features, drugs, types), add a small markdown table after the lines — a header row then 2–5 rows, e.g. | Feature | A | B | — short cells. Output JSON only.`,
           },
           {
             role: "user",

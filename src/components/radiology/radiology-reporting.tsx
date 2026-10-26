@@ -1,6 +1,7 @@
 "use client";
 
 import { recordSkill } from "@/lib/skill-progress";
+import { CrowdBanner, OptionPct, useCrowd } from "@/components/practice/crowd";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "@/components/practice/explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
@@ -93,6 +94,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
   };
 
   const item = items?.[index];
+  const crowd = useCrowd(item ? `radio:${item.item}` : "none", item?.options ?? [], item && picked !== null ? item.options[picked]! : null, item ? item.options[item.answer]! : "");
   const next = () => {
     setPicked(null);
     setFindings("");
@@ -189,6 +191,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
                     className={cn("min-h-11 rounded-xl border px-3 py-2 text-left text-[14px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}
                   >
                     {o}
+                    <OptionPct stats={crowd} option={o} />
                   </button>
                 );
               })}
@@ -197,6 +200,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
           {picked !== null && (
             <section className="selectable animate-enter rounded-xl border border-line p-4">
               <div className={cn("text-[14px] font-semibold", picked === item.answer ? "text-success" : "text-danger")}>{picked === item.answer ? "Correct" : `Impression: ${item.options[item.answer]}`}</div>
+              <CrowdBanner stats={crowd} className="mt-2" />
               <div className="mt-2 text-[11px] font-bold tracking-[0.1em] text-fg-3 uppercase">Model report — key findings</div>
               <RichLines text={item.key} className="mt-1 text-[14px]" />
               {findings.trim() && (

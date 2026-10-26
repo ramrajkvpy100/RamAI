@@ -212,6 +212,16 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 
 -- Practice questions answered after cases (the first answer to each counts), for progress and the report.
+-- How everyone answered each Skills Lab and exam question: one vote per doctor per question, counted per option.
+CREATE TABLE IF NOT EXISTS answer_votes (
+  qkey TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  choice TEXT NOT NULL,
+  correct INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (qkey, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS mcq_answers (
   user_id TEXT NOT NULL,
   session_id TEXT NOT NULL,
