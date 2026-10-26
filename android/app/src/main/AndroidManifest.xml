@@ -19,9 +19,9 @@
 
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
 
-        <!-- Opens the site in a Trusted Web Activity: full screen, no browser bar. -->
+        <!-- Opens the site in a Trusted Web Activity — after offering Play's in-app update when there is one. -->
         <activity
-            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:name=".RamLauncherActivity"
             android:exported="true">
             <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="${defaultUrl}" />
             <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR" android:resource="@color/background" />
@@ -31,7 +31,20 @@
             <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION" android:value="300" />
             <meta-data android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY" android:value="com.ramai.app.fileprovider" />
             <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION" android:value="portrait" />
-
+        </activity>
+        <!-- The old launcher name stays (as an alias), so home-screen icons and links keep working after updating. -->
+        <activity-alias
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:targetActivity=".RamLauncherActivity"
+            android:exported="true">
+            <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="${defaultUrl}" />
+            <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR" android:resource="@color/background" />
+            <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR" android:resource="@color/background" />
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE" android:resource="@drawable/splash" />
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR" android:resource="@color/background" />
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION" android:value="300" />
+            <meta-data android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY" android:value="com.ramai.app.fileprovider" />
+            <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION" android:value="portrait" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -43,7 +56,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="${hostName}" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <!-- "Site settings" (clear data, notifications) for the app's site; the launcher adds a shortcut to it on first run. -->
         <activity
