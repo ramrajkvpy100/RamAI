@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Focus widget: warm café — cream into soft coffee. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="270" android:startColor="#FFF6EA" android:centerColor="#F3E2CB" android:endColor="#E2C6A2" />
+    <corners android:radius="26dp" />
+</shape>

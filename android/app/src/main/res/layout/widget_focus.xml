@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Focus timer widget: a cup, the minutes left (counting down), 25 / 50 to start, ■ to stop. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/focus_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_focus_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <TextView android:id="@+id/focus_cup" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☕" android:textSize="40sp" />
+
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/focus_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Focus" android:textColor="#7A5A3A" android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.08" />
+        <Chronometer android:id="@+id/focus_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2E2116" android:textSize="30sp" android:visibility="gone" />
+        <TextView android:id="@+id/focus_idle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ready when you are" android:textColor="#2E2116" android:textSize="17sp" android:textStyle="bold" />
+        <TextView android:id="@+id/focus_today" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 sessions today" android:textColor="#8A6A4A" android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">
+        <TextView android:id="@+id/focus_25" android:layout_width="64dp" android:layout_height="32dp" android:background="@drawable/widget_btn_green" android:gravity="center" android:text="25 min" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
+        <TextView android:id="@+id/focus_50" android:layout_width="64dp" android:layout_height="32dp" android:layout_marginTop="6dp" android:background="@drawable/widget_btn_soft" android:gravity="center" android:text="50 min" android:textColor="#2E2116" android:textSize="13sp" android:textStyle="bold" />
+        <TextView android:id="@+id/focus_stop" android:layout_width="64dp" android:layout_height="32dp" android:background="@drawable/widget_btn_soft" android:gravity="center" android:text="■ Stop" android:textColor="#2E2116" android:textSize="13sp" android:textStyle="bold" android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_description">The daily case and quick links to cases, Skills Lab, the focus timer and MCQs.</string>
+    <string name="widget_focus_description">A calm focus timer: 25 or 50 minutes, right on your home screen.</string>
+    <string name="widget_progress_description">Your streak, today\'s XP towards your goal, your rating — and today\'s case.</string>
 </resources>

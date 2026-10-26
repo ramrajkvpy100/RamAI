@@ -212,6 +212,13 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 
 -- Practice questions answered after cases (the first answer to each counts), for progress and the report.
+-- Home-screen progress widget: a read-only key (only its hash is kept) that shows one doctor's streak and XP.
+CREATE TABLE IF NOT EXISTS widget_tokens (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
 -- How everyone answered each Skills Lab and exam question: one vote per doctor per question, counted per option.
 CREATE TABLE IF NOT EXISTS answer_votes (
   qkey TEXT NOT NULL,
