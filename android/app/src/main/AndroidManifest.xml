@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Lets the focus timer end on time with the phone locked (the user grants it once). -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- The daily reminder is set again after the phone restarts. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -66,6 +68,8 @@
         </activity>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
+        <!-- Lets the site ask for notification permission on Android 13+ (the daily reminder). -->
+        <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
 
         <!-- "Add widget" in the app: ramai://widget asks the launcher to place the home-screen widget. -->
         <activity
@@ -118,6 +122,28 @@
             </intent-filter>
         </activity>
         <receiver android:name=".FocusAlarm" android:exported="false" />
+
+        <!-- The daily reminder, kept by Android: ramai://remind?hour=19 (or ?off=1). -->
+        <activity
+            android:name=".DailyReminder$Set"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ramai" android:host="remind" />
+            </intent-filter>
+        </activity>
+        <receiver android:name=".DailyReminder" android:exported="false" />
+        <receiver android:name=".DailyReminder$Boot" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Focus timer widget: 25 / 50 minutes, counting down on the home screen. -->
         <receiver android:name=".FocusWidget" android:exported="false" android:label="RamAI Focus">
