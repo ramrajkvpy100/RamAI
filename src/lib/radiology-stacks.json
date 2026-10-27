@@ -8,7 +8,7 @@
     "diagnosis": "Glioblastoma",
     "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
     "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
-    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect — typical of glioblastoma.",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect \u2014 typical of glioblastoma.",
     "options": [
       "Glioblastoma",
       "Cerebral abscess",
@@ -16,6 +16,7 @@
       "Meningioma"
     ],
     "patient": "UPENN-GBM-00283",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.269607322454961545178354587485557855557",
     "slices": 60,
     "series": "AXIAL 3D GAD: Processed_CaPTk",
     "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
@@ -29,7 +30,7 @@
     "diagnosis": "Hepatocellular carcinoma",
     "history": "63-year-old man with hepatitis B cirrhosis, rising alpha-fetoprotein and weight loss.",
     "question": "CT abdomen (liver protocol): findings?",
-    "key": "A focal liver mass in a cirrhotic liver, enhancing in the arterial phase with washout later — hepatocellular carcinoma.",
+    "key": "A focal liver mass in a cirrhotic liver, enhancing in the arterial phase with washout later \u2014 hepatocellular carcinoma.",
     "options": [
       "Hepatocellular carcinoma",
       "Liver abscess",
@@ -37,14 +38,15 @@
       "Fatty liver"
     ],
     "patient": "TCGA-DD-A3A4",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.3344.4008.318213088887555473161313082190",
     "slices": 60,
     "series": "AXIAL",
-    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ",
     "windows": [
       "soft",
       "lung",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ"
   },
   {
     "id": "covid-ct",
@@ -53,9 +55,9 @@
     "doi": "10.7937/tcia.2020.py71-5978",
     "modality": "CT",
     "diagnosis": "COVID-19 pneumonia",
-    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO₂ 89% on air.",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO\u2082 89% on air.",
     "question": "CT chest (lung windows): findings?",
-    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation — the typical pattern of COVID-19 pneumonia.",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation \u2014 the typical pattern of COVID-19 pneumonia.",
     "options": [
       "COVID-19 pneumonia",
       "Lobar pneumonia",
@@ -63,14 +65,15 @@
       "Miliary tuberculosis"
     ],
     "patient": "COVID-19-AR-16445144",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.9999.103.1120265812971473099017869831733",
     "slices": 60,
     "series": "3MM",
-    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978",
     "windows": [
-      "soft",
       "lung",
+      "soft",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
   },
   {
     "id": "normal-abdo-ct",
@@ -89,14 +92,15 @@
       "Renal cell carcinoma"
     ],
     "patient": "PANCREAS_0080",
+    "seriesUid": "1.2.826.0.1.3680043.2.1125.1.41202274843063370955090296887703130",
     "slices": 61,
     "series": "Pancreas",
-    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU",
     "windows": [
       "soft",
       "lung",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
   },
   {
     "id": "gbm-mri-2",
@@ -107,7 +111,7 @@
     "diagnosis": "Glioblastoma",
     "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
     "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
-    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect — typical of glioblastoma.",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect \u2014 typical of glioblastoma.",
     "options": [
       "Glioblastoma",
       "Cerebral abscess",
@@ -115,6 +119,7 @@
       "Meningioma"
     ],
     "patient": "UPENN-GBM-00005",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.30539063893056268949252835826857084584",
     "slices": 64,
     "series": "t1 axial stealth-post : Processed_CaPTk",
     "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
@@ -128,7 +133,7 @@
     "diagnosis": "Glioblastoma",
     "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
     "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
-    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect — typical of glioblastoma.",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect \u2014 typical of glioblastoma.",
     "options": [
       "Glioblastoma",
       "Cerebral abscess",
@@ -136,6 +141,7 @@
       "Meningioma"
     ],
     "patient": "UPENN-GBM-00068",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.163373806474245898343880434691881540829",
     "slices": 64,
     "series": "t1 axial stealth-post : Processed_CaPTk",
     "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
@@ -149,7 +155,7 @@
     "diagnosis": "Hepatocellular carcinoma",
     "history": "63-year-old man with hepatitis B cirrhosis, rising alpha-fetoprotein and weight loss.",
     "question": "CT abdomen (liver protocol): findings?",
-    "key": "A focal liver mass in a cirrhotic liver, enhancing in the arterial phase with washout later — hepatocellular carcinoma.",
+    "key": "A focal liver mass in a cirrhotic liver, enhancing in the arterial phase with washout later \u2014 hepatocellular carcinoma.",
     "options": [
       "Hepatocellular carcinoma",
       "Liver abscess",
@@ -157,14 +163,15 @@
       "Fatty liver"
     ],
     "patient": "TCGA-G3-AAV4",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1079.4008.153956053674628255368772115120",
     "slices": 58,
     "series": "ARTERIAL LIVER",
-    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ",
     "windows": [
       "soft",
       "lung",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, TCGA-LIHC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.IMMQW8UQ"
   },
   {
     "id": "covid-ct-2",
@@ -173,9 +180,9 @@
     "doi": "10.7937/tcia.2020.py71-5978",
     "modality": "CT",
     "diagnosis": "COVID-19 pneumonia",
-    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO₂ 89% on air.",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO\u2082 89% on air.",
     "question": "CT chest (lung windows): findings?",
-    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation — the typical pattern of COVID-19 pneumonia.",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation \u2014 the typical pattern of COVID-19 pneumonia.",
     "options": [
       "COVID-19 pneumonia",
       "Lobar pneumonia",
@@ -183,14 +190,15 @@
       "Miliary tuberculosis"
     ],
     "patient": "COVID-19-AR-16424071",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.9999.103.2529449006689786062134624053596",
     "slices": 56,
     "series": "",
-    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978",
     "windows": [
-      "soft",
       "lung",
+      "soft",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
   },
   {
     "id": "covid-ct-3",
@@ -199,9 +207,9 @@
     "doi": "10.7937/tcia.2020.py71-5978",
     "modality": "CT",
     "diagnosis": "COVID-19 pneumonia",
-    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO₂ 89% on air.",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO\u2082 89% on air.",
     "question": "CT chest (lung windows): findings?",
-    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation — the typical pattern of COVID-19 pneumonia.",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation \u2014 the typical pattern of COVID-19 pneumonia.",
     "options": [
       "COVID-19 pneumonia",
       "Lobar pneumonia",
@@ -209,14 +217,15 @@
       "Miliary tuberculosis"
     ],
     "patient": "COVID-19-AR-16434363",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.9999.103.2662364088204600381919162376574",
     "slices": 49,
     "series": "3MM",
-    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978",
     "windows": [
-      "soft",
       "lung",
+      "soft",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
   },
   {
     "id": "vs-mri-2",
@@ -227,7 +236,7 @@
     "diagnosis": "Vestibular schwannoma",
     "history": "48-year-old woman with gradual hearing loss and tinnitus in one ear, and unsteadiness.",
     "question": "MRI internal auditory meati (high-resolution T2): findings?",
-    "key": "A well-defined mass in the internal auditory canal extending into the cerebellopontine angle ('ice-cream cone') — vestibular schwannoma.",
+    "key": "A well-defined mass in the internal auditory canal extending into the cerebellopontine angle ('ice-cream cone') \u2014 vestibular schwannoma.",
     "options": [
       "Vestibular schwannoma",
       "Meningioma",
@@ -235,6 +244,7 @@
       "Normal MRI"
     ],
     "patient": "VS-MC-RC-010",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.119735850701334032527688008282417647395",
     "slices": 48,
     "series": "_T2_3D FIESTA Hi Res",
     "credit": "Data from The Cancer Imaging Archive, Vestibular-Schwannoma-MC-RC collection (CC BY 4.0), doi:10.7937/HRZH-2N82"
@@ -256,14 +266,15 @@
       "Renal cell carcinoma"
     ],
     "patient": "PANCREAS_0046",
-    "slices": 66,
+    "seriesUid": "1.2.826.0.1.3680043.2.1125.1.38961098789292192421591953675838102",
+    "slices": 50,
     "series": "Pancreas",
-    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU",
     "windows": [
       "soft",
       "lung",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
   },
   {
     "id": "normal-abdo-ct-3",
@@ -282,14 +293,15 @@
       "Renal cell carcinoma"
     ],
     "patient": "PANCREAS_0007",
-    "slices": 67,
+    "seriesUid": "1.2.826.0.1.3680043.2.1125.1.58131248254082703382225469714340957",
+    "slices": 51,
     "series": "Pancreas",
-    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU",
     "windows": [
       "soft",
       "lung",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
   },
   {
     "id": "hcc-tace-ct",
@@ -300,7 +312,7 @@
     "diagnosis": "Hepatocellular carcinoma",
     "history": "66-year-old man with alcohol-related cirrhosis and a rising alpha-fetoprotein.",
     "question": "Multiphase CT liver: findings?",
-    "key": "A focal mass in a cirrhotic liver with arterial enhancement and washout — hepatocellular carcinoma.",
+    "key": "A focal mass in a cirrhotic liver with arterial enhancement and washout \u2014 hepatocellular carcinoma.",
     "options": [
       "Hepatocellular carcinoma",
       "Liver abscess",
@@ -308,14 +320,15 @@
       "Liver metastases"
     ],
     "patient": "HCC_058",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1706.8374.290062330829423574724461670850",
     "slices": 60,
     "series": "Recon 3: LIVER 3 PHASE (AP)",
-    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924",
     "windows": [
       "soft",
       "lung",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924"
   },
   {
     "id": "lung-ca-ct-3",
@@ -326,7 +339,7 @@
     "diagnosis": "Lung cancer",
     "history": "67-year-old woman, ex-smoker, with persistent cough, weight loss and one episode of haemoptysis.",
     "question": "CT chest (lung windows): findings?",
-    "key": "A spiculated soft-tissue mass in the lung, sometimes with nodal enlargement or pleural involvement — primary lung cancer.",
+    "key": "A spiculated soft-tissue mass in the lung, sometimes with nodal enlargement or pleural involvement \u2014 primary lung cancer.",
     "options": [
       "Lung cancer",
       "Lobar pneumonia",
@@ -334,14 +347,15 @@
       "Pulmonary embolism"
     ],
     "patient": "C3N-00199",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.7085.2626.236122904735810038414144273186",
     "slices": 51,
     "series": "ThoraxRoutine 3.0 B70f",
-    "credit": "Data from The Cancer Imaging Archive, CPTAC-LUAD collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.PAT12TBS",
     "windows": [
-      "soft",
       "lung",
+      "soft",
       "bone"
-    ]
+    ],
+    "credit": "Data from The Cancer Imaging Archive, CPTAC-LUAD collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.PAT12TBS"
   },
   {
     "id": "breast-mri-2",
@@ -352,7 +366,7 @@
     "diagnosis": "Breast cancer",
     "history": "49-year-old woman with a palpable lump in one breast; mammogram was dense and inconclusive.",
     "question": "Breast MRI (post-contrast): findings?",
-    "key": "An irregular, enhancing mass with spiculated margins in the breast — suspicious for breast carcinoma (BI-RADS 5).",
+    "key": "An irregular, enhancing mass with spiculated margins in the breast \u2014 suspicious for breast carcinoma (BI-RADS 5).",
     "options": [
       "Breast cancer",
       "Fibroadenoma",
@@ -360,6 +374,7 @@
       "Normal breast MRI"
     ],
     "patient": "TCGA-EW-A1IZ",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1869.4002.731323513579042907984050272294",
     "slices": 56,
     "series": "fl3d_dynamic_5 min_SUB",
     "credit": "Data from The Cancer Imaging Archive, TCGA-BRCA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.AB2NAZRP"
@@ -373,7 +388,7 @@
     "diagnosis": "Breast cancer",
     "history": "49-year-old woman with a palpable lump in one breast; mammogram was dense and inconclusive.",
     "question": "Breast MRI (post-contrast): findings?",
-    "key": "An irregular, enhancing mass with spiculated margins in the breast — suspicious for breast carcinoma (BI-RADS 5).",
+    "key": "An irregular, enhancing mass with spiculated margins in the breast \u2014 suspicious for breast carcinoma (BI-RADS 5).",
     "options": [
       "Breast cancer",
       "Fibroadenoma",
@@ -381,8 +396,452 @@
       "Normal breast MRI"
     ],
     "patient": "TCGA-EW-A3E8",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1869.4002.270456109919779160266814745506",
     "slices": 56,
     "series": "SUB3 min",
     "credit": "Data from The Cancer Imaging Archive, TCGA-BRCA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.AB2NAZRP"
+  },
+  {
+    "id": "covid-ct-4",
+    "collection": "COVID-19-AR",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/tcia.2020.py71-5978",
+    "modality": "CT",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO\u2082 89% on air.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation \u2014 the typical pattern of COVID-19 pneumonia.",
+    "options": [
+      "COVID-19 pneumonia",
+      "Lobar pneumonia",
+      "Pulmonary oedema",
+      "Miliary tuberculosis"
+    ],
+    "patient": "COVID-19-AR-16406513",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.9999.103.1217409760838081713893393545698",
+    "slices": 60,
+    "series": "3MM",
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+  },
+  {
+    "id": "lung-ca-ct-4",
+    "collection": "CPTAC-LUAD",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/K9/TCIA.2018.PAT12TBS",
+    "modality": "CT",
+    "diagnosis": "Lung cancer",
+    "history": "67-year-old woman, ex-smoker, with persistent cough, weight loss and one episode of haemoptysis.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "A spiculated soft-tissue mass in the lung, sometimes with nodal enlargement or pleural involvement \u2014 primary lung cancer.",
+    "options": [
+      "Lung cancer",
+      "Lobar pneumonia",
+      "Tuberculous cavity",
+      "Pulmonary embolism"
+    ],
+    "patient": "C3L-02515",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1427.5885.145059037457770992892166124258",
+    "slices": 60,
+    "series": "lung 2.5",
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, CPTAC-LUAD collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.PAT12TBS"
+  },
+  {
+    "id": "hcc-tace-ct-2",
+    "collection": "HCC-TACE-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.5FNA-0924",
+    "modality": "CT",
+    "diagnosis": "Hepatocellular carcinoma",
+    "history": "66-year-old man with alcohol-related cirrhosis and a rising alpha-fetoprotein.",
+    "question": "Multiphase CT liver: findings?",
+    "key": "A focal mass in a cirrhotic liver with arterial enhancement and washout \u2014 hepatocellular carcinoma.",
+    "options": [
+      "Hepatocellular carcinoma",
+      "Liver abscess",
+      "Hepatic haemangioma",
+      "Liver metastases"
+    ],
+    "patient": "HCC_052",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1706.8374.212665247771039281214268872539",
+    "slices": 61,
+    "series": "Recon 3: LIVER 3 PHASE (AP)",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924"
+  },
+  {
+    "id": "hcc-tace-ct-3",
+    "collection": "HCC-TACE-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.5FNA-0924",
+    "modality": "CT",
+    "diagnosis": "Hepatocellular carcinoma",
+    "history": "66-year-old man with alcohol-related cirrhosis and a rising alpha-fetoprotein.",
+    "question": "Multiphase CT liver: findings?",
+    "key": "A focal mass in a cirrhotic liver with arterial enhancement and washout \u2014 hepatocellular carcinoma.",
+    "options": [
+      "Hepatocellular carcinoma",
+      "Liver abscess",
+      "Hepatic haemangioma",
+      "Liver metastases"
+    ],
+    "patient": "HCC_065",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1706.8374.442591155369734729751111676106",
+    "slices": 59,
+    "series": "VENOUS",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924"
+  },
+  {
+    "id": "adrenal-ca-ct-2",
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "45-year-old woman with weight gain, new hypertension and facial plethora; cortisol is high and not suppressed.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "A large, heterogeneous soft-tissue mass above the kidney, separate from it, displacing nearby organs \u2014 an adrenal mass (here an adrenocortical carcinoma).",
+    "options": [
+      "Adrenal mass",
+      "Renal cell carcinoma",
+      "Splenic cyst",
+      "Normal CT abdomen"
+    ],
+    "patient": "Adrenal_Ki67_Seg_005",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.219655481936237051418226308185706834385",
+    "slices": 61,
+    "series": "No series description",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "pancreatic-ca-ct-4",
+    "collection": "CPTAC-PDA",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2018.SC20FO18",
+    "modality": "CT",
+    "diagnosis": "Pancreatic adenocarcinoma",
+    "history": "68-year-old woman with painless jaundice, weight loss and new-onset diabetes.",
+    "question": "CT abdomen (pancreas protocol): findings?",
+    "key": "A poorly defined hypodense mass in the pancreas, often with a dilated pancreatic and/or common bile duct \u2014 pancreatic adenocarcinoma.",
+    "options": [
+      "Pancreatic adenocarcinoma",
+      "Acute pancreatitis",
+      "Pancreatic pseudocyst",
+      "Normal pancreas"
+    ],
+    "patient": "C3L-03350",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1078.3273.276600767339720383069669777437",
+    "slices": 60,
+    "series": "57 DRY ABD AXIAL 3X2",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, CPTAC-PDA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2018.SC20FO18"
+  },
+  {
+    "id": "gbm-mri-5",
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect \u2014 typical of glioblastoma.",
+    "options": [
+      "Glioblastoma",
+      "Cerebral abscess",
+      "Brain metastasis",
+      "Meningioma"
+    ],
+    "patient": "UPENN-GBM-00291",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.210873510624712460128344936282114638889",
+    "slices": 59,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
+  },
+  {
+    "id": "vs-mri-5",
+    "collection": "Vestibular-Schwannoma-MC-RC",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/HRZH-2N82",
+    "modality": "MR",
+    "diagnosis": "Vestibular schwannoma",
+    "history": "48-year-old woman with gradual hearing loss and tinnitus in one ear, and unsteadiness.",
+    "question": "MRI internal auditory meati (high-resolution T2): findings?",
+    "key": "A well-defined mass in the internal auditory canal extending into the cerebellopontine angle ('ice-cream cone') \u2014 vestibular schwannoma.",
+    "options": [
+      "Vestibular schwannoma",
+      "Meningioma",
+      "Glioblastoma",
+      "Normal MRI"
+    ],
+    "patient": "VS-SEG-172",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.249494974924233523194555710879293113681",
+    "slices": 58,
+    "series": "_T2_Ax 3D FIESTA-C",
+    "credit": "Data from The Cancer Imaging Archive, Vestibular-Schwannoma-MC-RC collection (CC BY 4.0), doi:10.7937/HRZH-2N82"
+  },
+  {
+    "id": "covid-ct-5",
+    "avoid": {},
+    "collection": "COVID-19-AR",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/tcia.2020.py71-5978",
+    "modality": "CT",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO\u2082 89% on air.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation \u2014 the typical pattern of COVID-19 pneumonia.",
+    "options": [
+      "COVID-19 pneumonia",
+      "Lobar pneumonia",
+      "Pulmonary oedema",
+      "Miliary tuberculosis"
+    ],
+    "patient": "COVID-19-AR-16445138",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.9999.103.3125812321537614785025843239681",
+    "slices": 58,
+    "series": "3MM",
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+  },
+  {
+    "id": "covid-ct-7",
+    "avoid": {},
+    "collection": "COVID-19-AR",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/tcia.2020.py71-5978",
+    "modality": "CT",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "52-year-old man with 8 days of fever, dry cough and breathlessness; SpO\u2082 89% on air.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "Bilateral, peripheral, posterior ground-glass opacities with some consolidation \u2014 the typical pattern of COVID-19 pneumonia.",
+    "options": [
+      "COVID-19 pneumonia",
+      "Lobar pneumonia",
+      "Pulmonary oedema",
+      "Miliary tuberculosis"
+    ],
+    "patient": "COVID-19-AR-16445168",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.9999.103.2512629351435775951698018710952",
+    "slices": 64,
+    "series": "",
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-AR collection (CC BY 4.0), doi:10.7937/tcia.2020.py71-5978"
+  },
+  {
+    "id": "lung-ca-ct-6",
+    "avoid": {},
+    "collection": "CPTAC-LUAD",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/K9/TCIA.2018.PAT12TBS",
+    "modality": "CT",
+    "diagnosis": "Lung cancer",
+    "history": "67-year-old woman, ex-smoker, with persistent cough, weight loss and one episode of haemoptysis.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "A spiculated soft-tissue mass in the lung, sometimes with nodal enlargement or pleural involvement \u2014 primary lung cancer.",
+    "options": [
+      "Lung cancer",
+      "Lobar pneumonia",
+      "Tuberculous cavity",
+      "Pulmonary embolism"
+    ],
+    "patient": "C3N-04382",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.7085.5885.386808179643815847559023978454",
+    "slices": 56,
+    "series": "CHEST  3.0  B40f",
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, CPTAC-LUAD collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.PAT12TBS"
+  },
+  {
+    "id": "hcc-tace-ct-5",
+    "avoid": {},
+    "collection": "HCC-TACE-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.5FNA-0924",
+    "modality": "CT",
+    "diagnosis": "Hepatocellular carcinoma",
+    "history": "66-year-old man with alcohol-related cirrhosis and a rising alpha-fetoprotein.",
+    "question": "Multiphase CT liver: findings?",
+    "key": "A focal mass in a cirrhotic liver with arterial enhancement and washout \u2014 hepatocellular carcinoma.",
+    "options": [
+      "Hepatocellular carcinoma",
+      "Liver abscess",
+      "Hepatic haemangioma",
+      "Liver metastases"
+    ],
+    "patient": "HCC_075",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1706.8374.937868213453950964734050568980",
+    "slices": 63,
+    "series": "LIVER 3 PHASE (AP)",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924"
+  },
+  {
+    "id": "adrenal-ca-ct-4",
+    "avoid": {},
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "45-year-old woman with weight gain, new hypertension and facial plethora; cortisol is high and not suppressed.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "A large, heterogeneous soft-tissue mass above the kidney, separate from it, displacing nearby organs \u2014 an adrenal mass (here an adrenocortical carcinoma).",
+    "options": [
+      "Adrenal mass",
+      "Renal cell carcinoma",
+      "Splenic cyst",
+      "Normal CT abdomen"
+    ],
+    "patient": "Adrenal_Ki67_Seg_045",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.247256176177765134365226405562917135882",
+    "slices": 63,
+    "series": "CHEST,ABD WITH",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "adrenal-ca-ct-5",
+    "avoid": {},
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "45-year-old woman with weight gain, new hypertension and facial plethora; cortisol is high and not suppressed.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "A large, heterogeneous soft-tissue mass above the kidney, separate from it, displacing nearby organs \u2014 an adrenal mass (here an adrenocortical carcinoma).",
+    "options": [
+      "Adrenal mass",
+      "Renal cell carcinoma",
+      "Splenic cyst",
+      "Normal CT abdomen"
+    ],
+    "patient": "Adrenal_Ki67_Seg_017",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.38270773728917251357882668305287562324",
+    "slices": 57,
+    "series": "ABD (2.5MM SOFT)",
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "gbm-mri-4",
+    "avoid": {},
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect \u2014 typical of glioblastoma.",
+    "options": [
+      "Glioblastoma",
+      "Cerebral abscess",
+      "Brain metastasis",
+      "Meningioma"
+    ],
+    "patient": "UPENN-GBM-00263",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.149535003298172005278901576115724126751",
+    "slices": 63,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
+  },
+  {
+    "id": "gbm-mri-6",
+    "avoid": {},
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect \u2014 typical of glioblastoma.",
+    "options": [
+      "Glioblastoma",
+      "Cerebral abscess",
+      "Brain metastasis",
+      "Meningioma"
+    ],
+    "patient": "UPENN-GBM-00009",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.170870999839860708966191655293902879313",
+    "slices": 64,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
+  },
+  {
+    "id": "gbm-mri-7",
+    "avoid": {},
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect \u2014 typical of glioblastoma.",
+    "options": [
+      "Glioblastoma",
+      "Cerebral abscess",
+      "Brain metastasis",
+      "Meningioma"
+    ],
+    "patient": "UPENN-GBM-00002",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.308898184688192356793390586849973896265",
+    "slices": 64,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
   }
 ]

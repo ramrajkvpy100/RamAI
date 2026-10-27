@@ -32,8 +32,14 @@ export function StackViewer({ id, slices, label, windows }: { id: string; slices
   const [loaded, setLoaded] = useState(0);
   const [counter, setCounter] = useState({ i: Math.floor(slices / 2), of: slices });
   const [preset, setPreset] = useState<string>("default");
-  /** Which saved window the slices come from (CT with true windows); "" = the stack as first shown. */
-  const [folder, setFolder] = useState("");
+  /** Which saved window the slices come from (CT: soft/, lung/, bone/ — the first is the one it opens in); "" = MRI, as acquired. */
+  const [folder, setFolder] = useState(windows?.[0] ?? "");
+  // Another study: open in its own first window.
+  const [shownId, setShownId] = useState(id);
+  if (shownId !== id) {
+    setShownId(id);
+    setFolder(windows?.[0] ?? "");
+  }
   const [full, setFull] = useState(false);
   const drag = useRef<{ x: number; y: number; at: number; w: number; l: number } | null>(null);
   const planeRef = useRef<Plane>("axial");
@@ -217,9 +223,9 @@ export function StackViewer({ id, slices, label, windows }: { id: string; slices
       </div>
       <input type="range" min={0} max={Math.max(0, counter.of - 1)} value={counter.i} onChange={(e) => { pos.current[plane] = Number(e.target.value); draw(); }} aria-label="Slice" className="w-full accent-[var(--accent)]" />
       <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Window">
-        {windows?.length ? (["", ...windows] as string[]).map((w) => (
+        {windows?.length ? windows.map((w) => (
           <button key={w || "shown"} type="button" role="radio" aria-checked={folder === w} onClick={() => { tap(); setFolder(w); setWindow(255, 128); }} className={cn("rounded-full border px-3 py-1 text-[12px] font-medium", folder === w ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2", full && folder !== w && "border-white/20 text-white/70")}>
-            {w === "" ? "As shown" : w === "soft" ? "Soft tissue" : w === "lung" ? "Lung window" : w === "bone" ? "Bone window" : w}
+            {w === "soft" ? "Soft tissue" : w === "lung" ? "Lung window" : w === "bone" ? "Bone window" : w}
           </button>
         )) : PRESETS.map((p) => (
           <button key={p.id} type="button" role="radio" aria-checked={preset === p.id} onClick={() => { tap(); setPreset(p.id); setWindow(p.w, p.l); }} className={cn("rounded-full border px-3 py-1 text-[12px] font-medium", preset === p.id ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2", full && preset !== p.id && "border-white/20 text-white/70")}>
