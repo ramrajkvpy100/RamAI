@@ -85,8 +85,53 @@ export function AvatarFace({ style: a, size = 32, className, tier }: { style: Av
           <path d="M48 48 H52" />
         </g>
       )}
-      {a.extra === "stethoscope" && <path d="M38 76 C36 88 48 92 50 84 M62 76 C64 88 52 92 50 84 M50 84 V92" stroke="#334155" strokeWidth="2.6" fill="none" strokeLinecap="round" />}
-      {a.extra === "stethoscope" && <circle cx="50" cy="94" r="3.5" fill="#64748b" />}
+      {(a.extra === "stethoscope" || a.extra === "goldscope") && <path d="M38 76 C36 88 48 92 50 84 M62 76 C64 88 52 92 50 84 M50 84 V92" stroke={a.extra === "goldscope" ? "#d97706" : "#334155"} strokeWidth="2.6" fill="none" strokeLinecap="round" />}
+      {(a.extra === "stethoscope" || a.extra === "goldscope") && <circle cx="50" cy="94" r="3.5" fill={a.extra === "goldscope" ? "#fbbf24" : "#64748b"} stroke={a.extra === "goldscope" ? "#b45309" : "none"} />}
+      {a.extra === "goldscope" && <circle cx="48.8" cy="92.8" r="1" fill="#fff" opacity="0.8" />}
+      {a.extra === "penlight" && (
+        <>
+          <rect x="62" y="80" width="3.2" height="13" rx="1.6" fill="#1e293b" transform="rotate(8 63.6 86)" />
+          <circle cx="62.6" cy="80" r="2" fill="#fde047" />
+        </>
+      )}
+      {a.extra === "hammer" && (
+        <>
+          <path d="M35 97 L40 77" stroke="#cbd5e1" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M31 77 Q40 69 49 75 Q40 82 31 77 Z" fill="#ef4444" stroke="#b91c1c" strokeWidth="0.9" />
+        </>
+      )}
+      {a.extra === "mirror" && (
+        <>
+          <path d="M27 36 Q50 26 73 36" stroke="#475569" strokeWidth="2.5" fill="none" />
+          <circle cx="50" cy="28" r="7.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="1.6" />
+          <circle cx="47.5" cy="25.5" r="2.4" fill="#ffffff" opacity="0.9" />
+          <circle cx="50" cy="28" r="1.4" fill="#334155" />
+        </>
+      )}
+      {a.extra === "clipboard" && (
+        <g transform="rotate(-10 34 84)">
+          <rect x="26" y="74" width="17" height="21" rx="2" fill="#a16207" />
+          <rect x="28.5" y="78" width="12" height="15" fill="#ffffff" />
+          <path d="M30.5 82 H38.5 M30.5 85.5 H38.5 M30.5 89 H36" stroke="#94a3b8" strokeWidth="1" />
+          <rect x="31.5" y="72.5" width="6" height="3.2" rx="1" fill="#64748b" />
+        </g>
+      )}
+      {a.extra === "loupe" && (
+        <>
+          <g stroke="#111827" strokeWidth="2" fill="rgb(255 255 255 / 0.2)">
+            <circle cx="41" cy="48" r="7" />
+            <circle cx="59" cy="48" r="7" />
+            <path d="M48 48 H52" />
+          </g>
+          <rect x="37.5" y="44.5" width="7" height="7" rx="2" fill="#1e293b" />
+          <rect x="55.5" y="44.5" width="7" height="7" rx="2" fill="#1e293b" />
+          <circle cx="41" cy="48" r="1.8" fill="#38bdf8" />
+          <circle cx="59" cy="48" r="1.8" fill="#38bdf8" />
+        </>
+      )}
+      {a.extra === "laurel" && (
+        <g fill="#f59e0b" stroke="#b45309" strokeWidth="0.5"><ellipse cx="29" cy="52" rx="4.2" ry="2" transform="rotate(-70 29 52)" /><ellipse cx="28" cy="44" rx="4.2" ry="2" transform="rotate(-85 28 44)" /><ellipse cx="30" cy="36" rx="4.2" ry="2" transform="rotate(-110 30 36)" /><ellipse cx="35" cy="29" rx="4.2" ry="2" transform="rotate(-130 35 29)" /><ellipse cx="42" cy="24" rx="4.2" ry="2" transform="rotate(-150 42 24)" /><ellipse cx="71" cy="52" rx="4.2" ry="2" transform="rotate(70 71 52)" /><ellipse cx="72" cy="44" rx="4.2" ry="2" transform="rotate(85 72 44)" /><ellipse cx="70" cy="36" rx="4.2" ry="2" transform="rotate(110 70 36)" /><ellipse cx="65" cy="29" rx="4.2" ry="2" transform="rotate(130 65 29)" /><ellipse cx="58" cy="24" rx="4.2" ry="2" transform="rotate(150 58 24)" /></g>
+      )}
       {a.extra === "cap" && <path d="M27 38 C28 20 72 20 73 38 Z" fill="#0ea5e9" />}
       {a.extra === "mask" && <path d="M33 54 Q50 52 67 54 L64 66 Q50 72 36 66 Z" fill="#7dd3fc" stroke="#0284c7" strokeWidth="1" />}
       {a.extra === "headlight" && (

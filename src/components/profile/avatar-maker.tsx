@@ -4,19 +4,19 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { AvatarFace } from "@/components/game/avatar-face";
-import { BGS, DEFAULT_AVATAR, EXTRA, EYES, HAIR, HAIR_COLORS, MOUTH, OUTFITS, outfitFor, SKIN, type AvatarStyle } from "@/lib/avatar-style";
+import { BGS, DEFAULT_AVATAR, EXTRA, EYES, HAIR, HAIR_COLORS, ITEMS, itemNeed, itemUnlocked, MOUTH, OUTFITS, outfitFor, SKIN, type AvatarStyle } from "@/lib/avatar-style";
 import { RANKS, rankFor } from "@/engine/progression";
 import { cn } from "@/lib/cn";
 import { primeMe, useMe, type Me } from "@/lib/me-store";
 
-const TABS = ["Outfit", "Skin", "Hair", "Colour", "Eyes", "Mouth", "Extra", "Background"] as const;
+const TABS = ["Outfit", "Items", "Skin", "Hair", "Colour", "Eyes", "Mouth", "Background"] as const;
 type Tab = (typeof TABS)[number];
 
 const LABEL: Record<string, string> = {
   short: "Short", side: "Side part", long: "Long", bun: "Bun", curly: "Curly", bald: "Bald", hijab: "Hijab",
   round: "Round", happy: "Happy", wink: "Wink", sleepy: "Sleepy",
   smile: "Smile", grin: "Grin", calm: "Calm", open: "Surprised",
-  none: "None", glasses: "Glasses", stethoscope: "Stethoscope", cap: "Surgical cap", mask: "Mask", headlight: "Head light",
+  none: "None", ...Object.fromEntries(ITEMS.map((i) => [i.id, i.name])),
 };
 
 /** Make your own avatar, piece by piece — every change shows at once; Save keeps it on every device. */
@@ -36,7 +36,7 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
       hairColor: Math.floor(Math.random() * HAIR_COLORS.length),
       eyes: EYES[Math.floor(Math.random() * EYES.length)]!,
       mouth: MOUTH[Math.floor(Math.random() * MOUTH.length)]!,
-      extra: EXTRA[Math.floor(Math.random() * EXTRA.length)]!,
+      extra: ((xs) => xs[Math.floor(Math.random() * xs.length)]!)(EXTRA.filter((x) => !me || itemUnlocked(x, me.progress))),
       bg: Math.floor(Math.random() * BGS.length),
       outfit: a.outfit,
     });
@@ -121,7 +121,23 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
           {tab === "Colour" && swatches(HAIR_COLORS, a.hairColor, (i) => set({ hairColor: i }))}
           {tab === "Eyes" && pieces("eyes", EYES)}
           {tab === "Mouth" && pieces("mouth", MOUTH)}
-          {tab === "Extra" && pieces("extra", EXTRA)}
+          {tab === "Items" && (
+            <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {(["none", ...ITEMS.map((i) => i.id)] as const).map((id) => {
+                  const locked = !!me && !itemUnlocked(id, me.progress);
+                  return (
+                    <button key={id} type="button" disabled={locked} aria-pressed={a.extra === id} onClick={() => set({ extra: id })} title={locked ? `Unlocks at ${itemNeed(id)}` : LABEL[id]} className={cn("relative flex flex-col items-center gap-1 rounded-2xl border p-2 text-center text-[11px] leading-tight font-medium transition-transform active:scale-95", a.extra === id ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2", locked && "opacity-55")}>
+                      <span className={cn(locked && "grayscale")}><AvatarFace style={{ ...a, extra: id }} size={52} tier={tier} /></span>
+                      {LABEL[id]}
+                      {locked && <span className="text-[10.5px] text-fg-3">🔒 {itemNeed(id)}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[12px] text-fg-3">Collect items by finishing cases and keeping your streak — each one you collect can be worn.</p>
+            </div>
+          )}
           {tab === "Background" && swatches(BGS, a.bg, (i) => set({ bg: i }))}
         </div>
         {error && <p className="px-4 text-[13px] text-danger">{error}</p>}

@@ -36,7 +36,46 @@ export const BGS = ["#2563eb", "#7c3aed", "#0891b2", "#059669", "#e11d48", "#f59
 export const HAIR = ["short", "side", "long", "bun", "curly", "bald", "hijab"] as const;
 export const EYES = ["round", "happy", "wink", "sleepy"] as const;
 export const MOUTH = ["smile", "grin", "calm", "open"] as const;
-export const EXTRA = ["none", "glasses", "stethoscope", "cap", "mask", "headlight"] as const;
+export const EXTRA = ["none", "glasses", "stethoscope", "cap", "mask", "headlight", "penlight", "hammer", "mirror", "clipboard", "loupe", "goldscope", "laurel"] as const;
+export type Extra = (typeof EXTRA)[number];
+
+/**
+ * The doctor's bag: items you collect by playing — cases finished, days in a row — and wear on your avatar.
+ * In the order they're collected.
+ */
+export const ITEMS: { id: Extra; name: string; emoji: string; need: { cases?: number; streak?: number }; line: string }[] = [
+  { id: "stethoscope", name: "Stethoscope", emoji: "🩺", need: {}, line: "Every doctor's first." },
+  { id: "glasses", name: "Glasses", emoji: "👓", need: {}, line: "For the fine print on the chart." },
+  { id: "mask", name: "Mask", emoji: "😷", need: { cases: 1 }, line: "Finish your first case." },
+  { id: "penlight", name: "Pen torch", emoji: "🔦", need: { cases: 3 }, line: "Pupils, throats, a pocket hero." },
+  { id: "cap", name: "Surgical cap", emoji: "🧢", need: { cases: 5 }, line: "Ready for theatre." },
+  { id: "headlight", name: "Head light", emoji: "💡", need: { streak: 3 }, line: "Three days in a row." },
+  { id: "hammer", name: "Reflex hammer", emoji: "🔨", need: { cases: 10 }, line: "Tap, tap — knee jerk." },
+  { id: "clipboard", name: "Clipboard", emoji: "📋", need: { streak: 7 }, line: "A week on call." },
+  { id: "mirror", name: "Head mirror", emoji: "🪞", need: { cases: 25 }, line: "The ENT classic." },
+  { id: "loupe", name: "Surgical loupes", emoji: "🔬", need: { cases: 50 }, line: "Nothing escapes you now." },
+  { id: "laurel", name: "Golden laurel", emoji: "🌿", need: { streak: 30 }, line: "A month without a miss." },
+  { id: "goldscope", name: "Golden stethoscope", emoji: "🏆", need: { cases: 100 }, line: "A hundred patients seen." },
+];
+const ITEM = new Map(ITEMS.map((i) => [i.id, i]));
+/** Whether this item is collected, from cases finished and the best streak. "none" is always there. */
+export function itemUnlocked(id: Extra, p: { casesCompleted: number; bestStreak: number; streakDays?: number }): boolean {
+  if (id === "none") return true;
+  const it = ITEM.get(id);
+  if (!it) return false;
+  return (it.need.cases ?? 0) <= p.casesCompleted && (it.need.streak ?? 0) <= Math.max(p.bestStreak, p.streakDays ?? 0);
+}
+export const itemNeed = (id: Extra) => {
+  const n = ITEM.get(id)?.need ?? {};
+  return n.cases ? `${n.cases} ${n.cases === 1 ? "case" : "cases"}` : n.streak ? `${n.streak}-day streak` : "";
+};
+/** How far to the item: 0–1. */
+export function itemProgress(id: Extra, p: { casesCompleted: number; bestStreak: number; streakDays?: number }): number {
+  const n = ITEM.get(id)?.need ?? {};
+  if (n.cases) return Math.min(1, p.casesCompleted / n.cases);
+  if (n.streak) return Math.min(1, Math.max(p.bestStreak, p.streakDays ?? 0) / n.streak);
+  return 1;
+}
 
 export const DEFAULT_AVATAR: AvatarStyle = { skin: 2, hair: "short", hairColor: 0, eyes: "round", mouth: "smile", extra: "stethoscope", bg: 0 };
 

@@ -7,6 +7,7 @@ import { AchievementReveal, SharePrize, type Prize } from "@/components/game/ach
 import { DoctorFigure } from "@/components/game/caricature";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Icon } from "@/components/ui/icon";
+import { DoctorsBag } from "./doctors-bag";
 import { Medal } from "./medal";
 import { BADGE_LIST, RANKS, rankFor } from "@/engine/progression";
 import { cn } from "@/lib/cn";
@@ -52,6 +53,8 @@ export function Achievements({ initial }: { initial: Me }) {
           <Icon name="share-ios" size={15} /> Share
         </button>
       </section>
+
+      <DoctorsBag me={me} />
 
       <section aria-labelledby="unlocked">
         <h2 id="unlocked" className="micro mb-3 text-fg-2">
