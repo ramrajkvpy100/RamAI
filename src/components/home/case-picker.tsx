@@ -5,6 +5,7 @@ import { useState, type CSSProperties } from "react";
 import { LEVEL_STYLE, levelGradient, TRACK_ICON } from "@/components/game/level-style";
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
+import { NearbyPicker } from "@/components/duel/nearby-picker";
 import { Sheet } from "@/components/ui/sheet";
 import { levelMeta, trackLabel } from "@/engine/levels";
 import { ALL_SPECIALTIES } from "@/engine/progression";
@@ -67,6 +68,7 @@ export function CasePicker({
   const me = useMe();
   const [nearMe, setNearMe] = useState(() => { try { return localStorage.getItem("ramai.nearMe") === "1"; } catch { return false; } });
   const chooseNear = (on: boolean) => { setNearMe(on); try { localStorage.setItem("ramai.nearMe", on ? "1" : "0"); } catch {} };
+  const [nearby, setNearby] = useState(false);
   const [city, setCity] = useState(() => { try { return localStorage.getItem("ramai.city") ?? ""; } catch { return ""; } });
   const savedCity = me?.user.city?.trim() ?? "";
   /** Saves a newly typed city to the profile first (it's what "near me" means), then starts. */
@@ -122,7 +124,7 @@ export function CasePicker({
 
         <Group label="Where the patient is from">
           <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1" role="radiogroup" aria-label="Where the patient is from">
-            {([[false, "🌏 Anywhere", "cases from all over"], [true, "📍 Near me", savedCity ? savedCity : "your city's diseases"]] as const).map(([on, label, note]) => (
+            {([[false, "🌏 Anywhere", "cases from all over"], [true, "🏠 My city", savedCity ? savedCity : "your city's diseases"]] as const).map(([on, label, note]) => (
               <button key={label} type="button" role="radio" aria-checked={nearMe === on} onClick={() => chooseNear(on)} className={cn("flex min-w-0 flex-col items-center justify-center rounded-lg px-2 py-2 text-center transition-colors", nearMe === on ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
                 <span className="text-[14px] font-semibold">{label}</span>
                 <span className="max-w-full truncate text-[11.5px] text-fg-3">{note}</span>
@@ -228,6 +230,15 @@ export function CasePicker({
           </div>
         </Group>
 
+        {/* "Near me": play doctors around you — always in view. */}
+        <button type="button" disabled={starting} onClick={() => setNearby(true)} className="flex w-full items-center gap-3 rounded-xl border border-accent-line bg-accent-soft px-3.5 py-2.5 text-left disabled:opacity-60">
+          <span aria-hidden className="text-[20px]">📍</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-semibold">Near me</span>
+            <span className="block text-[12px] text-fg-2">Challenge doctors around you to the same patient</span>
+          </span>
+          <Icon name="arrow-right" size={15} />
+        </button>
         <button type="button" aria-expanded={more} onClick={() => setMore((m) => !m)} className="flex items-center justify-center gap-1.5 text-[13.5px] font-medium text-fg-2 hover:text-fg">
           {more ? "Fewer options" : "More options — a disease, play with a friend…"}
           <Icon name="chevron-down" size={14} className={cn("transition-transform", more && "rotate-180")} />
@@ -291,6 +302,12 @@ export function CasePicker({
           </>
         )}
       </div>
+      <NearbyPicker
+        open={nearby}
+        onClose={() => setNearby(false)}
+        starting={starting}
+        onChallenge={(ids) => onStart({ track, level, difficulty, specialty: specialty ?? "any", duel: "invite", invite: ids, ...(unlimited ? { unlimited: true } : {}), ...(learning ? { learning: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })}
+      />
     </Sheet>
   );
 }

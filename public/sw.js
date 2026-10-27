@@ -162,7 +162,7 @@ self.addEventListener("push", (event) => {
       body: String(note.body).slice(0, 300),
       icon: "/icon-192.png",
       badge: "/icon-badge.png",
-      tag: "ramai-daily",
+      tag: note.tag || "ramai-daily",
       data: { url: ownUrl(note.url) },
     }),
   );

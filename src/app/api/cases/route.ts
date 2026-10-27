@@ -9,6 +9,7 @@ import { requireUser } from "@/server/auth";
 import { TRIAL, useCredit } from "@/server/credits";
 import { db } from "@/server/db";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
+import { requestDuel } from "@/server/nearby";
 import { bankCase, takeFromBank, takeReady, type PoolChoice } from "@/server/case-pool";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
@@ -132,6 +133,8 @@ export async function POST(req: Request) {
       await bankCase(user.id, sessionInfo(session.token).src, { specialty: specialty, track: session.state.track, level: session.state.level, easy, country: user.country, lang: user.patientLang }).catch(() => undefined);
     }
     if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);
+    // "Near me": the doctors chosen are asked to play the same patient.
+    if (host === "invite" && duelId && body.invite?.length && !user.isGuest) await requestDuel(user, duelId, body.invite).catch(() => 0);
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);
     // An invented patient: its debrief teaching, pearls and exam questions are written now, in the background, ready for when the case ends.
     if (sessionInfo(session.token).generated) {

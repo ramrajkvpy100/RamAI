@@ -24,6 +24,8 @@ export interface PushMessage {
   title: string;
   body: string;
   url: string;
+  /** Notifications with the same tag replace each other on the phone (the daily reminder's by default). */
+  tag?: string;
 }
 
 /* -------------------------------------------------------------------------- */

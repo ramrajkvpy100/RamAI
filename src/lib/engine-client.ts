@@ -85,6 +85,8 @@ export interface CaseChoice {
   disease?: string;
   /** A patient from the doctor's own city (on the profile). */
   nearMe?: boolean;
+  /** Nearby doctors to ask to play this patient too (with duel: "invite"). */
+  invite?: string[];
   city?: string;
   /** The same patient again: the finished case's token. */
   retry?: string;

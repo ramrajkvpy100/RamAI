@@ -369,6 +369,18 @@ CREATE TABLE IF NOT EXISTS duels (
 );
 CREATE INDEX IF NOT EXISTS duels_open ON duels(mode, guest_id, created_at);
 
+-- "Near me": a doctor asked one nearby to play the same patient (a duel); seen in the app and by notification.
+CREATE TABLE IF NOT EXISTS duel_requests (
+  id TEXT PRIMARY KEY,
+  duel_id TEXT NOT NULL,
+  from_id TEXT NOT NULL,
+  from_name TEXT NOT NULL,
+  to_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS duel_requests_to ON duel_requests(to_id, status, created_at);
+
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

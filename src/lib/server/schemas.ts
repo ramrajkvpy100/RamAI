@@ -27,6 +27,8 @@ export const StartSchema = z.object({
   learning: z.boolean().optional(),
   /** A patient from where the doctor is (their city on the profile), with what's common there. */
   nearMe: z.boolean().optional(),
+  /** "Near me" duel: the nearby doctors asked to play the same patient. */
+  invite: z.array(z.string().min(1).max(64)).max(5).optional(),
   /** The city typed for "near me" (guests have no profile to keep it on). */
   city: z.string().trim().max(60).optional(),
   /** How hard the case is: easy (very easy, classic), medium, hard. */
