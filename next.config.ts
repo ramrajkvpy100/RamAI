@@ -26,7 +26,10 @@ const nextConfig: NextConfig = {
     return [
       { source: "/(.*)", headers: SECURITY_HEADERS },
       // Focus scenes, drinks, animations and level pictures: kept by the phone for a week (they rarely change).
-      { source: "/:dir(focus|anim|levels|radiology)/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }] },
+      // Media files only (the /focus and /radiology pages themselves must never be cached like this).
+      { source: "/:dir(focus|anim|levels)/:file([^/]+\\.(?:webp|png|jpg|jpeg|mp4|webm|mp3|m4a|ogg))", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }] },
+      // Scans are sometimes redrawn under the same name: a day, then checked again.
+      { source: "/radiology/:file(.+\\.(?:jpg|png|webp))", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
       // Account data must never be cached by a browser or CDN. (Share cards and practice pictures are public — they set their own.)
       { source: "/api/:path((?!share/|practice/image/).*)", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
     ];

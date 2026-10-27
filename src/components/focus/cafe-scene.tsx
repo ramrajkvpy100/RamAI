@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 /** Café: a hand-drawn café full of quiet workers — the picture drifts very slowly, lamps glow, cups steam. */
 export function CafeScene() {
   return (
@@ -24,13 +28,25 @@ export const STREET_VIEWS: Record<StreetView, string> = { cafe: "Café window", 
  * in Dali, or Tokyo's traffic from a window above Shibuya. Both from Pexels (free licence), looped with a crossfade.
  */
 export function StreetScene({ view }: { view: StreetView }) {
+  // The video made for the screen's shape: wide (laptops, tablets on their side) or tall (phones) — sharp, not a
+  // phone clip blown up across a laptop.
+  const [wide, setWide] = useState<boolean | null>(null);
+  useEffect(() => {
+    const q = window.matchMedia("(min-aspect-ratio: 1/1)");
+    const on = () => setWide(q.matches);
+    on();
+    q.addEventListener("change", on);
+    return () => q.removeEventListener("change", on);
+  }, []);
+  const shape = wide ? "wide" : "tall";
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden bg-black">
-      {/* The first frame shows at once (a small picture); the video takes over as soon as it can play. */}
-      <video key={view} autoPlay muted loop playsInline preload="auto" poster={`/focus/street-${view}-poster.webp`} className="absolute inset-0 h-full w-full object-cover">
-        <source src={`/focus/street-${view}.webm`} type="video/webm" />
-        <source src={`/focus/street-${view}.mp4`} type="video/mp4" />
-      </video>
+      {/* The first frame shows at once (a small picture); the video (no sound track, starts as it arrives) takes over. */}
+      {wide !== null && (
+        <video key={`${view}-${shape}`} autoPlay muted loop playsInline preload="auto" poster={`/focus/street-${view}-${shape}.webp`} className="absolute inset-0 h-full w-full object-cover">
+          <source src={`/focus/street-${view}-${shape}.mp4`} type="video/mp4" />
+        </video>
+      )}
     </div>
   );
 }

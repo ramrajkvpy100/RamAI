@@ -24,7 +24,7 @@ function worker(opts: { fetch?: (req: unknown) => Promise<Response>; windows?: {
     skipWaiting: () => undefined,
     registration: {
       showNotification: async (title: string, options: Record<string, unknown>) => void shown.push({ title, options }),
-      navigationPreload: { enable: async () => void (preload = true) },
+      navigationPreload: { enable: async () => void (preload = true), disable: async () => void (preload = false) },
     },
     clients: {
       claim: async () => void (claimed = true),
@@ -62,18 +62,16 @@ function worker(opts: { fetch?: (req: unknown) => Promise<Response>; windows?: {
 const navigation = (path: string, method = "GET") => ({ request: { url: `${ORIGIN}${path}`, mode: "navigate", method }, preloadResponse: Promise.resolve(undefined) });
 
 describe("the service worker", () => {
-  it("starts clean: old caches go, navigation preload on, open pages taken over", async () => {
+  it("starts clean: old caches go, navigation preload off (pages are fetched fresh), open pages taken over", async () => {
     const sw = worker();
     await sw.fire("activate");
     expect(sw.deleted).toEqual(["ramai-v1"]);
-    expect(sw.state()).toEqual({ preload: true, claimed: true });
+    expect(sw.state()).toEqual({ preload: false, claimed: true });
   });
 
   it("serves pages from the network, keeps a copy, and leaves the API and posts alone", async () => {
     const sw = worker({ fetch: async () => new Response("fresh page") });
     expect(await (await sw.fire("fetch", navigation("/leaderboard")))!.text()).toBe("fresh page");
-    const preloaded = { ...navigation("/"), preloadResponse: Promise.resolve(new Response("preloaded")) };
-    expect(await (await sw.fire("fetch", preloaded))!.text()).toBe("preloaded");
     expect(sw.store.get("ramai-pages-v1")?.has(`${ORIGIN}/leaderboard`)).toBe(true);
     expect(await sw.fire("fetch", navigation("/api/me/export"))).toBeUndefined();
     expect(await sw.fire("fetch", navigation("/login", "POST"))).toBeUndefined();

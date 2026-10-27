@@ -9,7 +9,7 @@
  *
  * A contact sheet of each new stack is written to $SHEETS (default /tmp) — every stack is looked at before it's kept.
  */
-import { mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import path from "node:path";
 
 import dicomParser from "dicom-parser";
@@ -91,11 +91,22 @@ const STACKS = [
     options: ["Breast cancer", "Fibroadenoma", "Simple breast cyst", "Normal breast MRI"] },
 ];
 
-const getJson = async (url) => {
+/** TCIA turns requests away now and then: three tries, a while apart. */
+async function retry(fn) {
+  for (let k = 0; ; k++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (k >= 2) throw err;
+      await new Promise((r) => setTimeout(r, 20_000 * (k + 1)));
+    }
+  }
+}
+const getJson = (url) => retry(async () => {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   return r.json();
-};
+});
 
 /** The pixel values of one DICOM slice, with where it sits (for ordering). */
 function readSlice(bytes) {
@@ -114,17 +125,28 @@ function readSlice(bytes) {
   for (let i = 0; i < n; i++) px[i] = view[i] * slope + intercept;
   const pos = (ds.string("x00200032") ?? "").split("\\").map(Number);
   const inst = parseInt(ds.string("x00200013") ?? "0", 10);
-  // Axial only (the slice's normal along the body's long axis), and lying on the back (not prone: it'd be upside down).
+  // Axial only (the slice's normal along the body's long axis); prone noted (a prone CT would show upside down; breast MRI is always prone).
   const o = (ds.string("x00200037") ?? "").split("\\").map(Number);
   const nz = o.length === 6 ? Math.abs(o[0] * o[4] - o[1] * o[3]) : 1;
   const prone = /P$/.test((ds.string("x00185100") ?? "").trim());
-  return { rows, cols, px, z: Number.isFinite(pos[2]) ? pos[2] : inst, inst, axial: nz > 0.8 && !prone };
+  // Stored top-to-bottom the wrong way (columns running back to front, as in the NIH Pancreas-CT set): flipped on output.
+  const flipY = o.length === 6 && o[4] < -0.5;
+  const ps = (ds.string("x00280030") ?? "").split("\\").map(Number);
+  return { rows, cols, px, z: Number.isFinite(pos[2]) ? pos[2] : inst, inst, axial: nz > 0.8, prone, flipY, ps: Number.isFinite(ps[0]) && ps[0] > 0 ? ps[0] : null };
 }
 
-/** MRI: one window for the whole series, from the tissue itself (not the black around it). */
-function autoWindow(slices) {
+/**
+ * MRI: one window for the whole series, from the tissue itself (not the black around it). `front`: from the front half
+ * of the body only — breast MRI, so the window is set by the breasts, not by the brightly enhancing heart behind them.
+ */
+function autoWindow(slices, front = false) {
   const sample = [];
-  for (const s of slices) for (let i = 0; i < s.px.length; i += 37) if (s.px[i] > 0) sample.push(s.px[i]);
+  for (const s of slices) {
+    // The front half of the body: the top rows as stored, or the bottom rows when the series is stored upside down.
+    const half = Math.floor(s.px.length / 2);
+    const [from, to] = !front ? [0, s.px.length] : s.flipY ? [half, s.px.length] : [0, half];
+    for (let i = from; i < to; i += 37) if (s.px[i] > 0) sample.push(s.px[i]);
+  }
   sample.sort((a, b) => a - b);
   return [sample[Math.floor(sample.length * 0.01)], sample[Math.floor(sample.length * 0.995)]];
 }
@@ -134,6 +156,7 @@ function toJpeg(s, lo, hi) {
   const g = Buffer.alloc(s.rows * s.cols);
   for (let i = 0; i < g.length; i++) g[i] = Math.max(0, Math.min(255, Math.round(((s.px[i] - lo) / (hi - lo)) * 255)));
   return sharp(g, { raw: { width: s.cols, height: s.rows, channels: 1 } })
+    .flip(!!s.flipY)
     .resize(SIZE, SIZE, { fit: "inside", kernel: "lanczos3", withoutEnlargement: false })
     .jpeg({ quality: 82, mozjpeg: true })
     .toBuffer();
@@ -149,17 +172,34 @@ async function contactSheet(id, files) {
     .toFile(path.join(SHEETS, `${id}.jpg`));
 }
 
-/** Downloads one series and writes its slices; the manifest entry, or null when it can't be used. */
-async function build(st, id, s) {
-  const zip = new Uint8Array(await (await fetch(`${NBIA}/getImage?SeriesInstanceUID=${s.SeriesInstanceUID}`)).arrayBuffer());
+/**
+ * How tall one kept slice is, in shown pixels: the gap between kept slices (mm) over the size of a shown pixel (mm) —
+ * so sagittal and coronal reformats are drawn true to life, never stretched or squashed.
+ */
+function zRatioOf(kept) {
+  const gaps = kept.slice(1).map((s, i) => Math.abs(s.z - kept[i].z)).filter((g) => g > 0).sort((a, b) => a - b);
+  const first = kept[0];
+  if (!gaps.length || !first?.ps) return undefined;
+  const shownPx = first.ps * (Math.max(first.rows, first.cols) / SIZE);
+  return Math.round((gaps[Math.floor(gaps.length / 2)] / shownPx) * 100) / 100;
+}
+
+async function download(s) {
+  // A download that stalls is given up after 4 minutes (the next candidate is tried).
+  const zip = await retry(async () => new Uint8Array(await (await fetch(`${NBIA}/getImage?SeriesInstanceUID=${s.SeriesInstanceUID}`, { signal: AbortSignal.timeout(240_000) })).arrayBuffer()));
   const files = unzipSync(zip);
   const slices = Object.entries(files).filter(([n]) => n.endsWith(".dcm")).map(([, b]) => { try { return readSlice(b); } catch { return null; } }).filter(Boolean);
-  if (slices.length < 20) return null;
-  if (slices.filter((x) => x.axial).length < slices.length * 0.9) return null;
   // Head to feet, as radiologists read: DICOM z increases towards the head.
   slices.sort((a, b) => b.z - a.z || a.inst - b.inst);
   const step = Math.max(1, Math.ceil(slices.length / MAX_SLICES));
-  const kept = slices.filter((_, i) => i % step === 0);
+  return { slices, kept: slices.filter((_, i) => i % step === 0) };
+}
+
+/** Downloads one series and writes its slices; the manifest entry, or null when it can't be used. */
+async function build(st, id, s) {
+  const { slices, kept } = await download(s);
+  if (slices.length < 20) return null;
+  if (slices.filter((x) => x.axial && (st.modality !== "CT" || !x.prone)).length < slices.length * 0.9) return null;
   const dir = path.join(OUT, id);
   rmSync(dir, { recursive: true, force: true });
   let primary;
@@ -175,14 +215,14 @@ async function build(st, id, s) {
     }
   } else {
     mkdirSync(dir, { recursive: true });
-    const [lo, hi] = autoWindow(kept);
+    const [lo, hi] = autoWindow(kept, st.id === "breast-mri");
     sheet = await Promise.all(kept.map((sl) => toJpeg(sl, lo, hi)));
     sheet.forEach((b, i) => writeFileSync(path.join(dir, `${String(i).padStart(3, "0")}.jpg`), b));
   }
   await contactSheet(id, sheet);
   const { match: _m, window: _w, ...meta } = st;
   return {
-    ...meta, id, patient: s.PatientID, seriesUid: s.SeriesInstanceUID, slices: kept.length, series: s.SeriesDescription ?? "",
+    ...meta, id, patient: s.PatientID, seriesUid: s.SeriesInstanceUID, slices: kept.length, series: s.SeriesDescription ?? "", zRatio: zRatioOf(kept),
     ...(primary ? { windows: [primary, ...Object.keys(WINDOWS).filter((w) => w !== primary)] } : {}),
     credit: `Data from The Cancer Imaging Archive, ${st.collection} collection (${st.license}), doi:${st.doi}`,
   };
@@ -206,6 +246,19 @@ for (const arg of process.argv.slice(2)) {
   if (!st) { console.log(`✗ ${arg}: no such stack`); continue; }
   try {
     const all = await candidates(st);
+    if (mode === "geo") {
+      // Only the geometry (into its own file, so it can run beside an add): the series is downloaded, nothing else written.
+      const was = manifest.find((m) => m.id === id);
+      const s = was && (all.find((x) => (was.seriesUid ? x.SeriesInstanceUID === was.seriesUid : x.PatientID === was.patient && (x.SeriesDescription ?? "") === was.series)) ?? all.find((x) => x.PatientID === was.patient));
+      if (!s) { console.log(`✗ geo ${id}: series not found`); continue; }
+      const { kept } = await download(s);
+      const geoFile = "src/lib/radiology-geometry.json";
+      const geo = JSON.parse(existsSync(geoFile) ? readFileSync(geoFile, "utf8") : "{}");
+      geo[id] = zRatioOf(kept) ?? null;
+      writeFileSync(geoFile, JSON.stringify(geo, null, 2) + "\n");
+      console.log(`✓ geo ${id}: ${geo[id]}`);
+      continue;
+    }
     if (mode === "redo") {
       const was = manifest.find((m) => m.id === id);
       const s = all.find((x) => (was.seriesUid ? x.SeriesInstanceUID === was.seriesUid : x.PatientID === was.patient && (x.SeriesDescription ?? "") === was.series)) ?? all.find((x) => x.PatientID === was.patient);

@@ -79,7 +79,7 @@ export function FocusTimer() {
   const [size, setSize] = useState<Size>("tall");
   const [note, setNote] = useState("");
   const [scene, setScene] = useState<Scene>("focus");
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolume] = useState(0.35);
   const [street, setStreet] = useState<StreetView>(() => getPrefs().street ?? "cafe");
   /** Seconds ticking away can distract: minutes only, unless tapped. */
   const [secs, setSecs] = useState(false);
@@ -203,10 +203,8 @@ export function FocusTimer() {
         </div>
       )}
       {scene === "social" && <CafeScene />}
-      <audio ref={audio} loop preload="none">
-        <source src="/focus/cafe.ogg" type="audio/ogg" />
-        <source src="/focus/cafe.mp3" type="audio/mpeg" />
-      </audio>
+      {/* Calm sound: a soft, wordless café hum, or a distant city — no chatter to follow. */}
+      <audio key={scene} ref={audio} loop preload="none" src={scene === "window" ? "/focus/street-soft.m4a" : "/focus/cafe-soft.m4a"} />
 
       <div className="relative z-10 flex items-center justify-between px-4 pt-[max(14px,env(safe-area-inset-top))]">
         <Link href="/" className="focus-sign" aria-label="Back to RamAI — the timer keeps running">← Home</Link>
@@ -222,8 +220,13 @@ export function FocusTimer() {
 
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
-        {scene === "focus" && (
+        {scene === "focus" ? (
           <button type="button" onClick={() => setSecs((v) => !v)} title={secs ? "Hide seconds" : "Show seconds"} className="text-[88px] leading-none font-extralight tracking-tight text-[#24332c] tabular sm:text-[120px]" role="timer">
+            {secs ? mmss(left) : calmTime(left, unlimited)}
+          </button>
+        ) : (
+          // Café and Street: the time large and clear over the scene, on a soft frosted pane.
+          <button type="button" onClick={() => setSecs((v) => !v)} title={secs ? "Hide seconds" : "Show seconds"} role="timer" className="rounded-[28px] bg-black/25 px-7 py-3 text-[64px] leading-none font-light tracking-tight text-white tabular shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md [text-shadow:0_2px_12px_rgba(0,0,0,0.35)] sm:text-[104px]">
             {secs ? mmss(left) : calmTime(left, unlimited)}
           </button>
         )}
@@ -262,11 +265,10 @@ export function FocusTimer() {
           {active.phase === "break" ? (waitingBreak ? "focus done — take a break?" : "break") : active.name ? `I will ${active.name}` : unlimited ? "focusing" : "focus"}
           {active.size === "flow" && active.phase === "focus" && ` · ${earned} min break earned`}
         </p>
-        {scene !== "focus" && <button type="button" onClick={() => setSecs((v) => !v)} className="on-wood text-[26px] leading-tight font-light tabular">{secs ? mmss(left) : calmTime(left, unlimited)}</button>}
         {scene !== "focus" && (
           <label className="on-wood mt-1 flex items-center gap-1.5">
             <Icon name="volume-off" size={13} />
-            <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => { const v = Number(e.target.value); setVolume(v); setPrefs({ volume: v }); }} aria-label="Café sound volume" className="w-24 accent-[#4a3a2c]" />
+            <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => { const v = Number(e.target.value); setVolume(v); setPrefs({ volume: v }); }} aria-label="Sound volume" className="w-24 accent-[#4a3a2c]" />
             <Icon name="volume" size={13} />
           </label>
         )}

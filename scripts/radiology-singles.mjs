@@ -18,8 +18,24 @@ const CAND_DIR = process.env.CAND_DIR ?? "public/radiology/singles";
 const practice = readFileSync("src/lib/practice.ts", "utf8");
 const briefs = readFileSync("src/lib/radiology.ts", "utf8");
 const ids = [...briefs.matchAll(/^\s+"?([a-z-]+)"?: \{ history:/gm)].map((m) => m[1]);
-// The briefs list X-rays, then CT (from "edh"), then ultrasound (from "gallstones").
-const modalityOf = (id) => (ids.indexOf(id) >= ids.indexOf("gallstones") ? "usg" : ids.indexOf(id) >= ids.indexOf("edh") ? "ct" : "xray");
+// The briefs list X-rays, then CT (from "edh"), then ultrasound (from "gallstones") — except items added later, whose
+// modality is read from the practice bank's own lists (each modality's block in practice.ts).
+const blockOf = (id) => {
+  const at = practice.indexOf(`id: "${id}"`);
+  if (at < 0) return null;
+  const before = practice.slice(0, at);
+  const marks = [["xray", before.lastIndexOf("xray: {")], ["ct", before.lastIndexOf("ct: {")], ["usg", before.lastIndexOf("usg: {")]].filter(([, i]) => i >= 0);
+  return marks.length ? marks.sort((a, b) => b[1] - a[1])[0][0] : null;
+};
+const LATER = new Set((process.env.LATER ?? "").split(",").filter(Boolean));
+// The bank's later items (src/lib/banks/imaging.ts): [id, label, key, [search…], describe] in MORE_XRAY / MORE_CT / MORE_USG.
+const imaging = readFileSync("src/lib/banks/imaging.ts", "utf8");
+const MORE = {};
+for (const [mod, from, to] of [["xray", "MORE_XRAY", "MORE_CT"], ["ct", "MORE_CT", "MORE_USG"], ["usg", "MORE_USG", "MORE_SMEAR"]]) {
+  const block = imaging.slice(imaging.indexOf(from), imaging.indexOf(to));
+  for (const m of block.matchAll(/\["([a-z0-9-]+)", "([^"]+)", "(?:[^"\\]|\\.)*", \[([^\]]*)\]/g)) MORE[m[1]] = { modality: mod, label: m[2], search: [...m[3].matchAll(/"([^"]+)"/g)].map((x) => x[1]) };
+}
+const modalityOf = (id) => MORE[id]?.modality ?? ((LATER.has(id) && blockOf(id)) || (ids.indexOf(id) >= ids.indexOf("gallstones") ? "usg" : ids.indexOf(id) >= ids.indexOf("edh") ? "ct" : "xray"));
 const MODALITY = {
   xray: { words: ["X-ray", "radiograph"], must: /x-?ray|radiograph|roentgen|röntgen|\bcxr\b|\bpa\b|\bap\b/i },
   ct: { words: ["CT", "CT scan"], must: /\bct\b|computed tomograph|\bcect\b|\bncct\b|ctpa|angiogra/i },
@@ -27,8 +43,8 @@ const MODALITY = {
 };
 let items = ids.map((id) => {
   const line = practice.split("\n").find((l) => l.includes(`id: "${id}"`)) ?? "";
-  const label = line.match(/label: "([^"]+)"/)?.[1] ?? id;
-  const search = [...(line.match(/search: \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  const label = line.match(/label: "([^"]+)"/)?.[1] ?? MORE[id]?.label ?? id;
+  const search = line ? [...(line.match(/search: \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]) : (MORE[id]?.search ?? []);
   return { id, label, search, modality: modalityOf(id) };
 });
 // The extra modalities' cases (MRI, contrast studies, nuclear medicine), read from their own list.

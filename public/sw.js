@@ -26,7 +26,7 @@ const STATIC = "ramai-static-v1";
 const MEDIA = "ramai-media-v1";
 const PAGES = "ramai-pages-v1";
 /** The Skills Lab's scans and pictures: kept on the phone (a CT series alone is ~190 files), so they open at once and offline. */
-const SCANS = "ramai-scans-v1";
+const SCANS = "ramai-scans-v2";
 const KEEP = [STATIC, MEDIA, PAGES, SCANS];
 
 /** Opened from the phone at once, refreshed behind the scenes (they draw from what's kept on the phone anyway). */
@@ -62,7 +62,8 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       for (const key of await caches.keys()) if (!KEEP.includes(key)) await caches.delete(key);
-      if (self.registration.navigationPreload) await self.registration.navigationPreload.enable();
+      // Pages are always fetched fresh by the worker itself, so the browser's own early fetch would be wasted.
+      if (self.registration.navigationPreload) await self.registration.navigationPreload.disable();
       await self.clients.claim();
     })(),
   );
@@ -102,6 +103,8 @@ async function fromPhone(req, name, max) {
 }
 
 const pageKey = (url) => url.origin + url.pathname;
+/** Which build a page belongs to: the code files it loads (their names change with every new version). */
+const codeOf = (html) => [...new Set(html.match(/\/_next\/static\/chunks\/[^"'\s\\]+\.js/g) || [])].sort().join("|");
 
 /** A focus sound or video: the whole file from the phone; the first time, fetched whole (not in pieces) and kept. */
 async function focusMedia(req) {
@@ -123,7 +126,8 @@ async function page(event, url) {
   const c = await caches.open(PAGES);
   const key = pageKey(url);
   const network = (async () => {
-    const res = (await event.preloadResponse) || (await fetch(event.request));
+    // Always asked of the server itself (no-cache): an old browser-cached copy is never mistaken for the fresh one.
+    const res = await fetch(url.href, { cache: "no-cache", credentials: "include" });
     if (keepable(res) && res.status === 200) {
       await c.put(key, res.clone());
       trim(PAGES, 40);
@@ -132,7 +136,20 @@ async function page(event, url) {
   })();
   const kept = await c.match(key);
   if (kept && INSTANT.test(url.pathname)) {
-    event.waitUntil(network.catch(() => undefined));
+    // Shown from the phone at once; if the fresh copy turns out to be a newer version of the app, the page is told
+    // (it offers a reload) — so nobody stays on an old version.
+    const keptCode = kept.clone().text().then(codeOf).catch(() => "");
+    event.waitUntil(
+      network
+        .then(async (res) => {
+          const [was, now] = await Promise.all([keptCode, res.clone().text().then(codeOf)]);
+          if (was && now && was !== now) {
+            const client = event.resultingClientId ? await self.clients.get(event.resultingClientId) : null;
+            for (const w of client ? [client] : await self.clients.matchAll({ type: "window" })) w.postMessage({ type: "ramai:updated" });
+          }
+        })
+        .catch(() => undefined),
+    );
     return kept;
   }
   // Everything else: the network, unless it fails or takes too long and there's a kept copy.
@@ -160,7 +177,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/_next/static/")) return event.respondWith(fromPhone(req, STATIC, 400));
   if (!url.search && MEDIA_RE.test(url.pathname) && !url.pathname.startsWith("/_next/")) return event.respondWith(fromPhone(req, MEDIA, 300));
   // The focus timer's sounds and short scene videos: whole files kept, so focus works offline.
-  if (!url.search && url.pathname.startsWith("/focus/") && /\.(mp3|ogg|mp4|webm)$/i.test(url.pathname)) return event.respondWith(focusMedia(req));
+  if (!url.search && url.pathname.startsWith("/focus/") && /\.(mp3|m4a|ogg|mp4|webm)$/i.test(url.pathname)) return event.respondWith(focusMedia(req));
 });
 
 /** Only ever opens RamAI's own pages. */
