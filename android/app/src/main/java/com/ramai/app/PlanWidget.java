@@ -145,8 +145,15 @@ public class PlanWidget extends AppWidgetProvider {
                 for (int k = 0; k < a.length(); k++) if (!a.getJSONObject(k).optString("id").equals(id)) b.put(a.getJSONObject(k));
                 e.putString(key, b.toString());
             }
-            boolean undo = "mit".equals(kind) && p.getBoolean("mitDone", false);
-            e.putInt("done", Math.max(0, p.getInt("done", 0) + (undo ? -1 : 1)));
+            if ("mit".equals(kind) || key != null) {
+                boolean undo = "mit".equals(kind) && p.getBoolean("mitDone", false);
+                e.putInt("done", Math.max(0, p.getInt("done", 0) + (undo ? -1 : 1)));
+            }
+            // The most important task just ticked: point at the next thing straight away.
+            if ("mit".equals(kind) && !p.getBoolean("mitDone", false)) {
+                JSONArray open = new JSONArray(p.getString("open", "[]")), habits = new JSONArray(p.getString("habitsLeft", "[]"));
+                e.putString("next", open.length() > 0 ? "Next: " + open.getJSONObject(0).optString("text") : habits.length() > 0 ? "Habit: " + habits.getJSONObject(0).optString("name") : "All done for today 🎉");
+            }
         } catch (Exception ignored) { }
         e.apply();
     }
