@@ -74,6 +74,16 @@ export const MORE_XRAY = make([
   ["skull-fracture", "Skull fracture", "A **sharp lucent line** (or depressed fragment) in the skull vault after head injury.", ["skull fracture radiograph"], "a linear skull fracture"],
   ["epiglottitis", "Epiglottitis (thumb sign)", "A **swollen, thumb-shaped epiglottis** on a lateral neck film.", ["epiglottitis thumb sign radiograph"], "the thumb sign of epiglottitis on a lateral neck X-ray"],
   ["croup", "Croup (steeple sign)", "**Subglottic narrowing — the steeple sign** on an AP neck film.", ["croup steeple sign radiograph"], "the steeple sign of croup"],
+  // Fractures from the FracAtlas set (each one's site checked against its marked fracture).
+  ["distal-radius", "Distal radius fracture", "A **break or buckle of the distal radial metaphysis** just above the wrist — in children often a subtle **torus (buckle) fracture**; check the ulnar styloid too.", ["distal radius fracture radiograph"], "a distal radius fracture"],
+  ["forearm-shaft", "Forearm shaft fracture (radius/ulna)", "A **break through the shaft of the radius and/or ulna** — look at both bones and both joints (Monteggia, Galeazzi).", ["radius ulna shaft fracture radiograph"], "a forearm shaft fracture"],
+  ["elbow-fracture", "Elbow fracture", "A **fracture around the elbow** — distal humerus or radial head/neck; look for a **raised fat pad** and check the anterior humeral line.", ["elbow fracture radiograph"], "a fracture around the elbow"],
+  ["humerus-fracture", "Humerus fracture", "A **break in the humerus** — proximal (surgical neck) or shaft; a shaft fracture can injure the **radial nerve**.", ["humerus fracture radiograph"], "a humerus fracture"],
+  ["metacarpal-fracture", "Metacarpal fracture", "A **break in a metacarpal** — check for angulation, shortening and rotation of the finger.", ["metacarpal fracture radiograph"], "a metacarpal fracture"],
+  ["phalanx-fracture", "Phalanx fracture (finger)", "A **break in a finger phalanx** — look at the joint surface and for displacement.", ["phalanx fracture finger radiograph"], "a finger phalanx fracture"],
+  ["femur-fracture", "Femoral shaft / distal femur fracture", "A **break through the femoral shaft or distal femur** — high-energy injury; watch for **blood loss** and check the hip and knee.", ["femoral shaft fracture radiograph"], "a femoral shaft fracture"],
+  ["hip-fracture", "Proximal femur (hip) fracture", "A **break in the proximal femur** — neck, intertrochanteric or subtrochanteric; **Shenton's line is broken**, the leg is shortened and externally rotated.", ["intertrochanteric hip fracture radiograph"], "a proximal femur (hip) fracture"],
+  ["metatarsal-fracture", "Metatarsal fracture", "A **break in a metatarsal** — the 5th metatarsal base is the commonest; repeated stress can cause a **march fracture**.", ["metatarsal fracture radiograph"], "a metatarsal fracture"],
 ]);
 
 export const MORE_CT = make([

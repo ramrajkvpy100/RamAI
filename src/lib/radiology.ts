@@ -92,6 +92,15 @@ export const RADIOLOGY_BRIEFS: Record<string, RadiologyBrief> = {
   "skull-fracture": { history: "25-year-old man hit on the head with a stick; scalp swelling, brief loss of consciousness.", question: "X-ray skull: findings?" },
   epiglottitis: { history: "5-year-old unvaccinated boy with high fever, drooling and stridor, sitting forward and refusing to lie down.", question: "Lateral neck X-ray: findings?" },
   croup: { history: "2-year-old with a barking cough, hoarse voice and inspiratory stridor after a cold; mild fever.", question: "Neck X-ray AP: findings?" },
+  "distal-radius": { history: "9-year-old who fell off a bicycle onto an outstretched hand; tender, swollen wrist.", question: "X-ray wrist / forearm: findings?" },
+  "forearm-shaft": { history: "11-year-old who fell from a tree; the forearm is painful, swollen and looks bent.", question: "X-ray forearm: findings?" },
+  "elbow-fracture": { history: "7-year-old who fell onto the elbow at school; swollen elbow, will not bend or straighten it.", question: "X-ray elbow: findings?" },
+  "humerus-fracture": { history: "Patient who fell onto the shoulder and arm; painful upper arm, can't lift it, bruising spreading down the arm.", question: "X-ray humerus / shoulder: findings?" },
+  "metacarpal-fracture": { history: "24-year-old who punched a door; swollen back of the hand, knuckle tender.", question: "X-ray hand: findings?" },
+  "phalanx-fracture": { history: "30-year-old whose finger was crushed in a door; swollen, tender finger.", question: "X-ray hand / finger: findings?" },
+  "femur-fracture": { history: "Patient after a road traffic accident with a deformed, swollen thigh; HR 118.", question: "X-ray femur: findings?" },
+  "hip-fracture": { history: "Patient who fell and can't stand; the leg is shortened and externally rotated, pain in the groin.", question: "X-ray pelvis and hip: findings?" },
+  "metatarsal-fracture": { history: "Patient who twisted the foot or dropped something heavy on it; tender over the forefoot, painful to walk.", question: "X-ray foot: findings?" },
 
   // More CT
   "ct-normal-head": { history: "32-year-old woman with a 'worst-ever' sudden headache, now settled; fully alert, no focal signs.", question: "CT head (non-contrast): any abnormality?" },

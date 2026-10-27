@@ -95,6 +95,7 @@
     "seriesUid": "1.2.826.0.1.3680043.2.1125.1.41202274843063370955090296887703130",
     "slices": 61,
     "series": "Pancreas",
+    "zRatio": 3.07,
     "windows": [
       "soft",
       "lung",
@@ -269,6 +270,7 @@
     "seriesUid": "1.2.826.0.1.3680043.2.1125.1.38961098789292192421591953675838102",
     "slices": 50,
     "series": "Pancreas",
+    "zRatio": 5.12,
     "windows": [
       "soft",
       "lung",
@@ -296,6 +298,7 @@
     "seriesUid": "1.2.826.0.1.3680043.2.1125.1.58131248254082703382225469714340957",
     "slices": 51,
     "series": "Pancreas",
+    "zRatio": 4.27,
     "windows": [
       "soft",
       "lung",
@@ -359,6 +362,7 @@
   },
   {
     "id": "breast-mri-2",
+    "avoid": {},
     "collection": "TCGA-BRCA",
     "license": "CC BY 3.0",
     "doi": "10.7937/K9/TCIA.2016.AB2NAZRP",
@@ -377,10 +381,12 @@
     "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1869.4002.731323513579042907984050272294",
     "slices": 56,
     "series": "fl3d_dynamic_5 min_SUB",
+    "zRatio": 4.77,
     "credit": "Data from The Cancer Imaging Archive, TCGA-BRCA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.AB2NAZRP"
   },
   {
     "id": "breast-mri-3",
+    "avoid": {},
     "collection": "TCGA-BRCA",
     "license": "CC BY 3.0",
     "doi": "10.7937/K9/TCIA.2016.AB2NAZRP",
@@ -399,6 +405,7 @@
     "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1869.4002.270456109919779160266814745506",
     "slices": 56,
     "series": "SUB3 min",
+    "zRatio": 4.48,
     "credit": "Data from The Cancer Imaging Archive, TCGA-BRCA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.AB2NAZRP"
   },
   {
@@ -1159,5 +1166,172 @@
     "slices": 52,
     "series": "_T2_t2_spc_rst_tra_p2_iso",
     "credit": "Data from The Cancer Imaging Archive, Vestibular-Schwannoma-MC-RC collection (CC BY 4.0), doi:10.7937/HRZH-2N82"
+  },
+  {
+    "id": "breast-mri-9",
+    "avoid": {},
+    "collection": "TCGA-BRCA",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.AB2NAZRP",
+    "modality": "MR",
+    "diagnosis": "Breast cancer",
+    "history": "49-year-old woman with a palpable lump in one breast; mammogram was dense and inconclusive.",
+    "question": "Breast MRI (post-contrast): findings?",
+    "key": "An irregular, enhancing mass with spiculated margins in the breast \u2014 suspicious for breast carcinoma (BI-RADS 5).",
+    "options": [
+      "Breast cancer",
+      "Fibroadenoma",
+      "Simple breast cyst",
+      "Normal breast MRI"
+    ],
+    "patient": "TCGA-BH-A0DZ",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.6450.4002.489426783203281252449360418650",
+    "slices": 51,
+    "series": "CAD~ sub 1",
+    "zRatio": 6.83,
+    "credit": "Data from The Cancer Imaging Archive, TCGA-BRCA collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.AB2NAZRP"
+  },
+  {
+    "id": "adrenal-ca-ct-3",
+    "avoid": {},
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "45-year-old woman with weight gain, new hypertension and facial plethora; cortisol is high and not suppressed.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "A large, heterogeneous soft-tissue mass above the kidney, separate from it, displacing nearby organs \u2014 an adrenal mass (here an adrenocortical carcinoma).",
+    "options": [
+      "Adrenal mass",
+      "Renal cell carcinoma",
+      "Splenic cyst",
+      "Normal CT abdomen"
+    ],
+    "patient": "Adrenal_Ki67_Seg_027",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.245448774246169204999301516126850781463",
+    "slices": 53,
+    "series": "15 MIN DELAY  ST NI 23+ A0",
+    "zRatio": 2.91,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "adrenal-ca-ct-8",
+    "avoid": {},
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "45-year-old woman with weight gain, new hypertension and facial plethora; cortisol is high and not suppressed.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "A large, heterogeneous soft-tissue mass above the kidney, separate from it, displacing nearby organs \u2014 an adrenal mass (here an adrenocortical carcinoma).",
+    "options": [
+      "Adrenal mass",
+      "Renal cell carcinoma",
+      "Splenic cyst",
+      "Normal CT abdomen"
+    ],
+    "patient": "Adrenal_Ki67_Seg_049",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.58253819605996284787576972093915808920",
+    "slices": 46,
+    "series": "CAP W  5.0  I30f  3",
+    "zRatio": 19.2,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "adrenal-ca-ct-9",
+    "avoid": {},
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "45-year-old woman with weight gain, new hypertension and facial plethora; cortisol is high and not suppressed.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "A large, heterogeneous soft-tissue mass above the kidney, separate from it, displacing nearby organs \u2014 an adrenal mass (here an adrenocortical carcinoma).",
+    "options": [
+      "Adrenal mass",
+      "Renal cell carcinoma",
+      "Splenic cyst",
+      "Normal CT abdomen"
+    ],
+    "patient": "Adrenal_Ki67_Seg_022",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.334401641989188774736762790752200613960",
+    "slices": 50,
+    "series": "",
+    "zRatio": 14.22,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "normal-abdo-ct-4",
+    "collection": "Pancreas-CT",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.tNB1kqBU",
+    "modality": "CT",
+    "diagnosis": "Normal CT abdomen",
+    "history": "30-year-old kidney donor having a routine work-up scan. No symptoms.",
+    "question": "CT abdomen with contrast: any abnormality?",
+    "key": "Normal liver, pancreas, kidneys, spleen and bowel; no mass, collection or free fluid.",
+    "options": [
+      "Normal CT abdomen",
+      "Acute pancreatitis",
+      "Liver metastases",
+      "Renal cell carcinoma"
+    ],
+    "patient": "PANCREAS_0013",
+    "seriesUid": "1.2.826.0.1.3680043.2.1125.1.78610388862462472334572127709527599",
+    "slices": 62,
+    "series": "Pancreas",
+    "zRatio": 4.04,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
+  },
+  {
+    "id": "normal-abdo-ct-5",
+    "collection": "Pancreas-CT",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.tNB1kqBU",
+    "modality": "CT",
+    "diagnosis": "Normal CT abdomen",
+    "history": "30-year-old kidney donor having a routine work-up scan. No symptoms.",
+    "question": "CT abdomen with contrast: any abnormality?",
+    "key": "Normal liver, pancreas, kidneys, spleen and bowel; no mass, collection or free fluid.",
+    "options": [
+      "Normal CT abdomen",
+      "Acute pancreatitis",
+      "Liver metastases",
+      "Renal cell carcinoma"
+    ],
+    "patient": "PANCREAS_0055",
+    "seriesUid": "1.2.826.0.1.3680043.2.1125.1.53761950122363236364246793714171731",
+    "slices": 49,
+    "series": "Pancreas",
+    "zRatio": 5.85,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Pancreas-CT collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.tNB1kqBU"
   }
 ]

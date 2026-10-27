@@ -486,5 +486,1813 @@
   "author": "Kazunari Mado, Yukimoto Ishii, Takero Mazaki, Masaya Ushio, Hideki Masuda and Ta",
   "license": "CC BY-SA 2.0",
   "source": "https://commons.wikimedia.org/wiki/File:99mTc-HMDP_bone_scintigraphy_01.jpg"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/n0.jpg",
+  "author": "IPFeditor",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Radiological_evaluation_through_HRCT.jpg"
+ },
+ {
+  "item": "bronchiectasis",
+  "modality": "xray",
+  "src": "/radiology/singles/bronchiectasis/n0.jpg",
+  "author": "Arinna'l at Turkish Wikipedia",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Bronchiectasis_imaging.JPG"
+ },
+ {
+  "item": "hydropneumothorax",
+  "modality": "xray",
+  "src": "/radiology/singles/hydropneumothorax/n0.jpg",
+  "author": "James Heilman, MD",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Hydropneumo.jpg"
+ },
+ {
+  "item": "diverticulitis",
+  "modality": "ct",
+  "src": "/radiology/singles/diverticulitis/n0.png",
+  "author": "Hellerhoff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:01-Sigmadivertikulitis_CT_ax_001_Perforation.png"
+ },
+ {
+  "item": "diverticulitis",
+  "modality": "ct",
+  "src": "/radiology/singles/diverticulitis/n1.png",
+  "author": "Hellerhoff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:02-Sigmadivertikulitis_CT_ax_001_Verdickte_Wand.png"
+ },
+ {
+  "item": "intussusception-ct",
+  "modality": "ct",
+  "src": "/radiology/singles/intussusception-ct/n0.png",
+  "author": "Hellerhoff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Invagination_001_CT_ax3.png"
+ },
+ {
+  "item": "cirrhosis-ct",
+  "modality": "ct",
+  "src": "/radiology/singles/cirrhosis-ct/n0.png",
+  "author": "James Heilman, MD",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:CirrhosisWithAscites.png"
+ },
+ {
+  "item": "cholecystitis-ct",
+  "modality": "ct",
+  "src": "/radiology/singles/cholecystitis-ct/n0.png",
+  "author": "James Heilman, MD",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:AcuteChol.png"
+ },
+ {
+  "item": "cholecystitis-ct",
+  "modality": "ct",
+  "src": "/radiology/singles/cholecystitis-ct/n1.png",
+  "author": "James Heilman, MD",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:GBthick,GS,large.png"
+ },
+ {
+  "item": "ct-sbo",
+  "modality": "ct",
+  "src": "/radiology/singles/ct-sbo/n0.jpg",
+  "author": "Hellerhoff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Duenndarmileus_Chiasamen_-_CT_ax_-_0001.jpg"
+ },
+ {
+  "item": "normal-kidney",
+  "modality": "usg",
+  "src": "/radiology/singles/normal-kidney/n0.jpg",
+  "author": "Kristoffer Lindskov Hansen, Michael Bachmann Nielsen and Caroline Ewertsen",
+  "license": "CC BY 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Normal_adult_kidney.jpg"
+ },
+ {
+  "item": "normal-kidney",
+  "modality": "usg",
+  "src": "/radiology/singles/normal-kidney/n1.jpg",
+  "author": "Ptrump16",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Right_kidney_seen_on_abdominal_ultrasound.jpg"
+ },
+ {
+  "item": "varicocele",
+  "modality": "usg",
+  "src": "/radiology/singles/varicocele/n0.jpg",
+  "author": "Jmarchn",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Left_testicular_seminoma,_varicocele,_ultrasound_image.jpg"
+ },
+ {
+  "item": "thyroid-nodule",
+  "modality": "usg",
+  "src": "/radiology/singles/thyroid-nodule/n0.jpg",
+  "author": "Nevit Dilmen (talk)",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Thyroid_ultrasound_110322095404_0959360.jpg"
+ },
+ {
+  "item": "thyroid-nodule",
+  "modality": "usg",
+  "src": "/radiology/singles/thyroid-nodule/n1.jpg",
+  "author": "Nevit Dilmen (talk)",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Thyroid_ultrasound_110322134324_1347140.jpg"
+ },
+ {
+  "item": "thyroid-nodule",
+  "modality": "usg",
+  "src": "/radiology/singles/thyroid-nodule/n2.jpg",
+  "author": "Nevit Dilmen (talk)",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Thyroid_ultrasound_110321165224_1701260.jpg"
+ },
+ {
+  "item": "pseudocyst",
+  "modality": "ct",
+  "src": "/radiology/singles/pseudocyst/n0.png",
+  "author": "JasonRobertYoungMD",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Pancreatic_Pseudocyst.PNG"
+ },
+ {
+  "item": "molar",
+  "modality": "usg",
+  "src": "/radiology/singles/molar/n0.jpg",
+  "author": "Mikael Häggström. When using this image in external works, it may be cited as: H",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Molar_pregnancy.jpg"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000019.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0000058.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0000100.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0000142.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0000151.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000188.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0000190.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000206.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000307.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000319.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000351.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0000479.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000599.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0000671.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000692.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000751.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0000758.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0000762.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000804.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0000844.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001007.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001025.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001041.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001073.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001147.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001151.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0001191.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0001192.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001198.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001236.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0001350.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0001364.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0001391.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001440.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001494.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0001577.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0001710.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0001762.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0001774.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0001780.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0001870.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0001916.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0001933.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0001939.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0001964.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0001981.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0002020.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0002085.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "nof",
+  "modality": "xray",
+  "src": "/radiology/singles/nof/fa-0002180.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0002181.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0002265.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0002274.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "distal-radius",
+  "modality": "xray",
+  "src": "/radiology/singles/distal-radius/fa-0002287.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002301.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002302.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0002307.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0002315.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0002318.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002320.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002322.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0002327.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0002337.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0002347.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002351.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0002375.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0002381.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0002388.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0002390.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0002395.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0002402.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002406.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "forearm-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/forearm-shaft/fa-0002410.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0002423.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002430.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002433.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002437.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0002448.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0002451.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002460.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0002462.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002464.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002476.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0002489.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0002493.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0002497.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0002501.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002503.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002513.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "elbow-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/elbow-fracture/fa-0002516.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0002522.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0002529.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0002533.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0002535.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0002538.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0002540.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0002544.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0002545.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0002549.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002557.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0002573.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002590.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002592.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0002593.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "clavicle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/clavicle-fracture/fa-0002597.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0002617.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002619.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002620.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002621.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0002650.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0002664.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0002701.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0002704.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0002737.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0002768.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0002846.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0003077.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0003130.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0003146.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "phalanx-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/phalanx-fracture/fa-0003157.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "tibia-shaft",
+  "modality": "xray",
+  "src": "/radiology/singles/tibia-shaft/fa-0003182.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0003201.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metacarpal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metacarpal-fracture/fa-0003310.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0003342.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0003545.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "clavicle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/clavicle-fracture/fa-0003671.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0003766.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0003767.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "clavicle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/clavicle-fracture/fa-0003774.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0003797.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "ankle-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/ankle-fracture/fa-0003803.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0003847.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "metatarsal-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/metatarsal-fracture/fa-0003851.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0003892.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "femur-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/femur-fracture/fa-0004209.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "hip-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/hip-fracture/fa-0004333.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0004337.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "humerus-fracture",
+  "modality": "xray",
+  "src": "/radiology/singles/humerus-fracture/fa-0004349.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00015.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00016.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00018.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00107.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00110.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00138.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00168.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00174.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00175.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00195.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00253.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00254.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00283.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00305.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00321.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00323.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00335.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00349.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00366.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00384.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00401.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00412.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00435.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-ca-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-ca-usg/bw-00442.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000001_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000077_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000096_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000176_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000211_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000240_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000272_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000287_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000330_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000374_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000442_003.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00000448_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000013_021.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000025_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000039_004.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000061_002.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000090_008.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000117_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000148_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000372_012.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00000506_012.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "pneumothorax",
+  "modality": "xray",
+  "src": "/radiology/singles/pneumothorax/nih-00000118_005.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "lung-mass",
+  "modality": "xray",
+  "src": "/radiology/singles/lung-mass/nih-00000061_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00000027_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00000254_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00000312_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00000340_003.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00000376_002.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00000882_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00001030_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00001233_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00000022_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00000024_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00000204_004.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00000218_005.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00000407_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000014_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000034_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000037_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000040_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000042_005.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000048_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000050_002.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00000052_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "consolidation",
+  "modality": "xray",
+  "src": "/radiology/singles/consolidation/nih-00000246_014.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "consolidation",
+  "modality": "xray",
+  "src": "/radiology/singles/consolidation/nih-00000491_020.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "consolidation",
+  "modality": "xray",
+  "src": "/radiology/singles/consolidation/nih-00000963_007.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
  }
 ]
