@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { Portal } from "@/components/ui/portal";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { breakEarned, complete, getPrefs, leftOf, pause, resume, running, setPrefs, SIZES, start, startBreak, stop, todayMinutes, todaySessions, totalOf, useFocus, type Drink, type Scene, type Size } from "@/lib/focus";
+import { breakEarned, complete, getPrefs, leftOf, pause, resume, running, setPrefs, SIZES, start, startBreak, stop, studiedOf, todayMinutes, todaySessions, totalOf, useFocus, type Drink, type Scene, type Size } from "@/lib/focus";
 import { success, tap } from "@/lib/haptics";
 import { playSfx } from "@/lib/sfx";
 import { toast } from "@/lib/toast";
@@ -225,8 +225,8 @@ export function FocusTimer() {
             {secs ? mmss(left) : calmTime(left, unlimited)}
           </button>
         ) : (
-          // Café and Street: the time large and clear over the scene, on a soft frosted pane.
-          <button type="button" onClick={() => setSecs((v) => !v)} title={secs ? "Hide seconds" : "Show seconds"} role="timer" className="rounded-[28px] bg-black/25 px-7 py-3 text-[64px] leading-none font-light tracking-tight text-white tabular shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md [text-shadow:0_2px_12px_rgba(0,0,0,0.35)] sm:text-[104px]">
+          // Café and Street: the time clear but out of the way — a frosted pill near the top, the scene left open.
+          <button type="button" onClick={() => setSecs((v) => !v)} title={secs ? "Hide seconds" : "Show seconds"} role="timer" className="absolute top-3 left-4 rounded-2xl bg-black/30 px-4 py-2 text-[34px] leading-none font-light tracking-tight text-white tabular shadow-[0_8px_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md [text-shadow:0_2px_10px_rgba(0,0,0,0.35)] sm:text-[44px]">
             {secs ? mmss(left) : calmTime(left, unlimited)}
           </button>
         )}
@@ -286,7 +286,7 @@ export function FocusTimer() {
               {isRunning ? "❚❚" : "▶"}
             </button>
           )}
-          <button type="button" aria-label="Stop" onClick={() => { tap(); stop(); toast(unlimited ? `${Math.floor(left / 60_000)} min saved` : active.phase === "focus" ? "Stopped — not recorded" : "Break skipped", { tone: "info" }); }} className={cn("flex items-center justify-center rounded-full bg-white/70 text-[18px] text-[#24332c] shadow-sm backdrop-blur", scene === "focus" ? "h-14 w-14" : "h-11 w-11")}>■</button>
+          <button type="button" aria-label="Stop" onClick={() => { tap(); const m = studiedOf(active); stop(); toast(active.phase === "break" ? "Break skipped" : m > 0 ? `${m} min saved to today` : "Stopped — under a minute, not counted", { tone: "info" }); }} className={cn("flex items-center justify-center rounded-full bg-white/70 text-[18px] text-[#24332c] shadow-sm backdrop-blur", scene === "focus" ? "h-14 w-14" : "h-11 w-11")}>■</button>
         </div>
         {!unlimited && <div className="absolute inset-x-0 bottom-0 h-1.5 bg-[#00000010]"><div className="h-full bg-[#24332c]/60 transition-[width] duration-1000 ease-linear" style={{ width: `${pct * 100}%` }} /></div>}
       </div>

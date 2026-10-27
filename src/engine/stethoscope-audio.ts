@@ -6,7 +6,7 @@
  */
 import { prngFrom } from "@/lib/prng";
 
-import type { Auscultation, BowelSounds, BreathSounds, HeartSounds } from "./types";
+import type { Auscultation, BowelSounds, BreathSounds, HeartSounds, VesselSounds } from "./types";
 
 /** How long one listen lasts. */
 export const LISTEN_SECONDS = 12;
@@ -135,9 +135,21 @@ function heart(m: Mix, s: HeartSounds, from: number, until: number) {
     m.thud(s2, 72, 0.08, 0.7 * loud);
     m.thud(s2 + 0.03, 66, 0.06, 0.32 * loud);
     if (s.s3) m.thud(s2 + 0.15, 36, 0.09, 0.4 * loud);
+    if (s.click) m.thud(t + systole * 0.55, 140, 0.03, 0.55 * loud);
+    if (s.snap) m.thud(s2 + 0.08, 150, 0.03, 0.5 * loud);
     if (s.murmur?.phase === "systolic") {
-      const diamond = s.murmur.shape === "diamond";
-      m.hiss(t + 0.06, systole - 0.08, { type: "bandpass", freq: diamond ? 190 : 300, q: diamond ? 0.9 : 1.3, peak: diamond ? 0.32 : 0.22, shape: diamond ? "diamond" : "plateau" });
+      const sh = s.murmur.shape;
+      if (sh === "late") m.hiss(t + systole * 0.58, systole * 0.4, { type: "bandpass", freq: 320, q: 1.2, peak: 0.22, shape: "crescendo" });
+      else if (sh === "harsh") m.hiss(t + 0.04, systole - 0.06, { type: "bandpass", freq: 420, q: 0.7, peak: 0.34, shape: "plateau" });
+      else {
+        const diamond = sh === "diamond";
+        m.hiss(t + 0.06, systole - 0.08, { type: "bandpass", freq: diamond ? 190 : 300, q: diamond ? 0.9 : 1.3, peak: diamond ? 0.32 : 0.22, shape: diamond ? "diamond" : "plateau" });
+      }
+    }
+    if (s.murmur?.phase === "continuous") {
+      // Machinery: rising through systole to a peak at S2, fading through diastole — no gap.
+      m.hiss(t + 0.03, systole, { type: "bandpass", freq: 260, q: 0.8, peak: 0.3, shape: "crescendo" });
+      m.hiss(s2, cycle - systole - 0.02, { type: "bandpass", freq: 260, q: 0.8, peak: 0.3, shape: "decrescendo" });
     }
     if (s.murmur?.phase === "diastolic") {
       const diastole = cycle - systole;
@@ -202,8 +214,25 @@ function bowel(m: Mix, s: BowelSounds, from: number, until: number) {
   }
 }
 
+function vessel(m: Mix, s: VesselSounds, from: number, until: number) {
+  const beat = 60 / s.rate;
+  const freq = s.pitch === "low" ? 180 : 340;
+  // The pulse itself, soft, in the background.
+  for (let at = from + 0.25; at < until - 0.3; at += beat * m.between(0.98, 1.02)) {
+    m.thud(at, 45, 0.06, 0.12);
+    if (s.sound === "systolic-bruit") m.hiss(at + 0.04, Math.min(0.3, beat * 0.38), { type: "bandpass", freq, q: 1, peak: 0.3, shape: "diamond" });
+    if (s.sound === "continuous-bruit") {
+      m.hiss(at + 0.02, beat * 0.4, { type: "bandpass", freq, q: 0.8, peak: 0.34, shape: "crescendo" });
+      m.hiss(at + beat * 0.42, beat * 0.56, { type: "bandpass", freq, q: 0.8, peak: 0.24, shape: "decrescendo" });
+    }
+  }
+  // Venous hum: a soft, steady low roar, a little louder in diastole.
+  if (s.sound === "venous-hum") m.hiss(from + 0.1, until - from - 0.2, { type: "lowpass", freq: 160, q: 0.6, peak: 0.25, shape: "plateau" });
+  m.hiss(from, until - from, { type: "lowpass", freq: 200, q: 0.5, peak: 0.012, shape: "plateau" });
+}
+
 /** Breath and bowel sounds are quieter than the heart at the chest piece; bring them up so a phone speaker carries them. */
-const LEVEL = { heart: 1, lungs: 3.2, bowel: 3 } as const;
+const LEVEL = { heart: 1, lungs: 3.2, bowel: 3, vessel: 2 } as const;
 
 /** Several areas, one after another, as a stethoscope moves. Same parameters and seed, same sound. */
 export function renderAuscultation(sounds: Auscultation[], seed: number, seconds = LISTEN_SECONDS, rate = SAMPLE_RATE): Float32Array {
@@ -217,6 +246,7 @@ export function renderAuscultation(sounds: Auscultation[], seed: number, seconds
     const m = new Mix(rate, seconds, rand);
     if (s.kind === "heart") heart(m, s, from, until);
     else if (s.kind === "lungs") lungs(m, s, from, until);
+    else if (s.kind === "vessel") vessel(m, s, from, until);
     else bowel(m, s, from, until);
     // Each area stays in its own stretch of time, with a soft edge as the chest piece moves.
     const a = Math.floor(from * rate);

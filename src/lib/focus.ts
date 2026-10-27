@@ -156,9 +156,17 @@ const record = (name: string, minutes: number) => {
   write(DONE, [...getDone().filter((d) => d.at > Date.now() - 60 * 86_400_000), { name: name || "Focus", minutes, at: Date.now() }]);
 };
 /** Stops. A cancelled timed focus records nothing; the stopwatch records the minutes it ran. */
+/** Minutes of focus already done in this phase (counting up: the time so far; counting down: the time used). */
+export function studiedOf(a: Active, now = Date.now()): number {
+  if (a.phase !== "focus") return 0;
+  return Math.floor((countsUp(a) ? leftOf(a, now) : totalOf(a) - leftOf(a, now)) / 60_000);
+}
+
+/** Stopping early still counts the time already studied (whole minutes). */
 export function stop() {
   const a = getActive();
-  if ((a?.size === "unlimited" || a?.size === "flow") && a.phase === "focus") record(a.name, Math.floor(leftOf(a) / 60_000));
+  const studied = a ? studiedOf(a) : 0;
+  if (a && studied > 0) record(a.name, studied);
   write(ACTIVE, null);
   emit();
 }

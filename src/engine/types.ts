@@ -148,8 +148,12 @@ export interface HeartSounds {
   soft?: boolean;
   s3?: boolean;
   s4?: boolean;
-  murmur?: { phase: "systolic" | "diastolic"; shape: "plateau" | "diamond" | "decrescendo" | "rumble" };
+  murmur?: { phase: "systolic" | "diastolic" | "continuous"; shape: "plateau" | "diamond" | "decrescendo" | "rumble" | "late" | "harsh" | "machinery" };
   rub?: boolean;
+  /** A mid-systolic click (mitral valve prolapse). */
+  click?: boolean;
+  /** An opening snap just after S2 (mitral stenosis). */
+  snap?: boolean;
 }
 
 export interface BreathSounds {
@@ -171,7 +175,17 @@ export interface BowelSounds {
   rate: number;
 }
 
-export type Auscultation = HeartSounds | BreathSounds | BowelSounds;
+/** Over a vessel: a bruit with each pulse, a continuous hum or a fistula's machinery-like roar. */
+export interface VesselSounds {
+  kind: "vessel";
+  sound: "systolic-bruit" | "continuous-bruit" | "venous-hum" | "normal";
+  /** Pulse rate. */
+  rate: number;
+  /** Higher-pitched (carotid, renal) or lower (aorta). */
+  pitch?: "high" | "low";
+}
+
+export type Auscultation = HeartSounds | BreathSounds | BowelSounds | VesselSounds;
 
 /* -------------------------------------------------------------------------- */
 /* Investigations                                                              */

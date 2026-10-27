@@ -115,8 +115,9 @@ export function bowelSounds(heard: string, pulse: number): BowelSounds {
 
 /** Anything a stethoscope would flag. */
 export function soundsAbnormal(s: Auscultation): boolean {
-  if (s.kind === "heart") return !!(s.irregular || s.soft || s.s3 || s.s4 || s.murmur || s.rub);
+  if (s.kind === "heart") return !!(s.irregular || s.soft || s.s3 || s.s4 || s.murmur || s.rub || s.click || s.snap);
   if (s.kind === "lungs") return s.breath !== "vesicular" || !!(s.crackles || s.wheeze || s.stridor || s.rub);
+  if (s.kind === "vessel") return s.sound !== "normal";
   return s.activity !== "normal" || !!s.bruit;
 }
 

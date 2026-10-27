@@ -27,6 +27,10 @@ export const HEART: SoundItem[] = [
   { id: "s4", label: "S4 gallop", sound: { kind: "heart", rate: 80, s4: true }, key: "An extra sound just before S1 ('Ten-nes-see') — a stiff ventricle (hypertension, LVH)." },
   { id: "rub", label: "Pericardial friction rub", sound: { kind: "heart", rate: 96, rub: true }, key: "A scratchy, leathery sound with the heartbeat — pericarditis." },
   { id: "af", label: "Atrial fibrillation (irregularly irregular)", sound: { kind: "heart", rate: 118, irregular: true }, key: "Beats at completely irregular intervals with varying loudness of S1." },
+  { id: "mvp", label: "Mitral valve prolapse (click + late systolic murmur)", sound: { kind: "heart", rate: 76, click: true, murmur: { phase: "systolic", shape: "late" } }, key: "A sharp mid-systolic click followed by a short late systolic murmur at the apex — mitral valve prolapse." },
+  { id: "vsd", label: "Ventricular septal defect (harsh pansystolic)", sound: { kind: "heart", rate: 96, murmur: { phase: "systolic", shape: "harsh" } }, key: "A loud, harsh pansystolic murmur at the left lower sternal edge, often with a thrill — VSD." },
+  { id: "pda", label: "Patent ductus arteriosus (continuous machinery murmur)", sound: { kind: "heart", rate: 110, murmur: { phase: "continuous", shape: "machinery" } }, key: "A continuous 'machinery' murmur rising to a peak at S2 and running through it — PDA, best below the left clavicle." },
+  { id: "os", label: "Opening snap with mid-diastolic rumble", sound: { kind: "heart", rate: 84, snap: true, murmur: { phase: "diastolic", shape: "rumble" } }, key: "A high-pitched snap just after S2 then a low rumble — mitral stenosis (the shorter the S2–OS gap, the tighter the valve)." },
   { id: "muffled", label: "Muffled heart sounds", sound: { kind: "heart", rate: 120, soft: true }, key: "Faint, distant heart sounds — pericardial effusion or tamponade (with hypotension and raised JVP: Beck's triad)." },
 ];
 
@@ -41,6 +45,21 @@ export const LUNGS: SoundItem[] = [
   { id: "pleural-rub", label: "Pleural rub", sound: { kind: "lungs", rate: 20, breath: "vesicular", rub: true }, key: "A creaking sound at the end of inspiration and the start of expiration — pleurisy." },
 ];
 
+/** Over the abdomen and the great vessels: bowel sounds, and bruits with the pulse. */
+const ABDOMEN: SoundItem[] = [
+  { id: "bowel-normal", label: "Normal bowel sounds", sound: { kind: "bowel", activity: "normal", rate: 76 }, key: "Gurgles every 5–15 seconds — normal bowel activity." },
+  { id: "bowel-hyper", label: "Hyperactive bowel sounds", sound: { kind: "bowel", activity: "hyperactive", rate: 90 }, key: "Loud, frequent, rushing gurgles (borborygmi) — gastroenteritis, early obstruction or a GI bleed." },
+  { id: "bowel-sluggish", label: "Reduced (sluggish) bowel sounds", sound: { kind: "bowel", activity: "sluggish", rate: 84 }, key: "Only occasional faint gurgles — early ileus, after surgery, or opioids." },
+  { id: "bowel-absent", label: "Absent bowel sounds", sound: { kind: "bowel", activity: "absent", rate: 110 }, key: "Silence after listening for 2–3 minutes — paralytic ileus or peritonitis." },
+  { id: "bowel-tinkling", label: "Tinkling bowel sounds (obstruction)", sound: { kind: "bowel", activity: "tinkling", rate: 96 }, key: "High-pitched, tinkling, metallic sounds — mechanical bowel obstruction." },
+  { id: "aortic-bruit", label: "Abdominal aortic bruit", sound: { kind: "vessel", sound: "systolic-bruit", rate: 72, pitch: "low" }, key: "A low whooshing sound with each pulse just above the umbilicus — aortic atherosclerosis or aneurysm; feel for an expansile mass." },
+  { id: "renal-bruit", label: "Renal artery bruit", sound: { kind: "vessel", sound: "continuous-bruit", rate: 76, pitch: "high" }, key: "A high-pitched bruit beside the midline, spilling into diastole — renal artery stenosis (young woman with resistant hypertension: fibromuscular dysplasia)." },
+  { id: "carotid-bruit", label: "Carotid bruit", sound: { kind: "vessel", sound: "systolic-bruit", rate: 70, pitch: "high" }, key: "A systolic whoosh over the carotid at the angle of the jaw — carotid stenosis (stroke/TIA risk); a radiated aortic stenosis murmur is louder lower down." },
+  { id: "av-fistula", label: "AV fistula (continuous bruit)", sound: { kind: "vessel", sound: "continuous-bruit", rate: 84, pitch: "low" }, key: "A loud, continuous machinery-like bruit with a thrill over a dialysis fistula — a healthy working fistula." },
+  { id: "venous-hum", label: "Venous hum", sound: { kind: "vessel", sound: "venous-hum", rate: 88 }, key: "A soft continuous hum above the clavicle that disappears on pressing the neck veins or lying down — harmless, common in children and pregnancy." },
+  { id: "vessel-normal", label: "No bruit (normal)", sound: { kind: "vessel", sound: "normal", rate: 72 }, key: "Only the soft pulse, with no whooshing sound — no significant narrowing." },
+];
+
 const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 
 /**
@@ -53,14 +72,15 @@ const vary = (xs: SoundItem[], rates: number[]): (SoundItem & { base: string })[
   xs.flatMap((x) => rates.map((r, n) => ({ ...x, base: x.id, id: `${x.id}@${n}`, sound: { ...x.sound, rate: Math.round(x.sound.rate * r) } as Auscultation })));
 export const HEART_CASES = vary(HEART, HEART_RATES);
 export const LUNG_CASES = vary(LUNGS, LUNG_RATES);
+export const ABDOMEN_CASES = vary(ABDOMEN, HEART_RATES);
 
 /** Listen (headphones help), name the sound, see why — ten at a time. */
 /** Harder to tell apart — residents and specialists only. */
-const ADVANCED = new Set(["ar", "ms", "s4", "rub", "pleural-rub", "coarse"]);
+const ADVANCED = new Set(["ar", "ms", "s4", "rub", "pleural-rub", "coarse", "os", "pda", "mvp", "renal-bruit", "av-fistula", "venous-hum"]);
 
 export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
   const keep = <T extends SoundItem & { base?: string }>(xs: T[]) => (level === "basic" ? xs.filter((x) => !ADVANCED.has(x.base ?? x.id)) : xs);
-  const [kind, setKind] = useState<"heart" | "lungs">("heart");
+  const [kind, setKind] = useState<"heart" | "lungs" | "abdomen">("heart");
   const [order, setOrder] = useState<(SoundItem & { base: string })[] | null>(null);
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
@@ -70,16 +90,17 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    setOrder(shuffle(keep(kind === "heart" ? HEART_CASES : LUNG_CASES)).slice(0, 10));
+    setOrder(shuffle(keep(kind === "heart" ? HEART_CASES : kind === "lungs" ? LUNG_CASES : ABDOMEN_CASES)).slice(0, 10));
     setI(0);
     setPicked(null);
     setScore(0);
   }, [kind]);
 
   // Just after switching heart ↔ breath, the old list is still here for one draw: show nothing from it.
-  const item = order?.[i]?.sound.kind === kind ? order[i] : undefined;
-  const pool = keep(kind === "heart" ? HEART : LUNGS);
-  const cases = keep(kind === "heart" ? HEART_CASES : LUNG_CASES);
+  const kindOf = (k: string) => (k === "bowel" || k === "vessel" ? "abdomen" : k);
+  const item = order?.[i] && kindOf(order[i].sound.kind) === kind ? order[i] : undefined;
+  const pool = keep(kind === "heart" ? HEART : kind === "lungs" ? LUNGS : ABDOMEN);
+  const cases = keep(kind === "heart" ? HEART_CASES : kind === "lungs" ? LUNG_CASES : ABDOMEN_CASES);
   // Four findings to choose from: this one and three others (the answer is the finding).
   const options = useMemo(() => (item ? shuffle([pool.find((p) => p.id === item.base), ...shuffle(pool.filter((p) => p.id !== item.base)).slice(0, 3)].filter((x): x is SoundItem => !!x)) : []), [item, pool]);
   const labels = options.map((o) => o.label);
@@ -95,9 +116,9 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-1 self-start rounded-full bg-surface-3 p-1 text-[13px]">
-        {(["heart", "lungs"] as const).map((k) => (
+        {(["heart", "lungs", "abdomen"] as const).map((k) => (
           <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)} className={cn("rounded-full px-4 py-1.5 font-medium", kind === k ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
-            {k === "heart" ? "❤️ Heart sounds" : "🫁 Breath sounds"}
+            {k === "heart" ? "❤️ Heart" : k === "lungs" ? "🫁 Breath" : "🫃 Abdomen & vessels"}
           </button>
         ))}
       </div>
@@ -113,7 +134,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
         </div>
       ) : (
         <article className="card flex flex-col gap-4 p-5">
-          <div className="text-[12px] text-fg-3 tabular">Sound {i + 1} of {order.length} · {item.sound.kind === "heart" ? `heart rate ${item.sound.rate}` : `breathing ${item.sound.rate}/min`} · headphones help</div>
+          <div className="text-[12px] text-fg-3 tabular">Sound {i + 1} of {order.length} · {item.sound.kind === "heart" ? `heart rate ${item.sound.rate}` : item.sound.kind === "lungs" ? `breathing ${item.sound.rate}/min` : `pulse ${item.sound.rate}`} · headphones help</div>
           <button type="button" onClick={() => (audio.current?.paused ? void audio.current.play() : audio.current?.pause())} aria-label={playing ? "Pause the sound" : "Play the sound"} className="mx-auto flex flex-col items-center gap-1">
             <OrganPicture sound={item.sound} playing={playing} />
             <span className="text-[12.5px] font-medium text-fg-2">{playing ? "Listening… tap to pause" : "▶ Tap to listen"}</span>
@@ -152,6 +173,15 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
 
 /** A heart that beats, or lungs that breathe, at the sound's own rate — without giving the answer away. */
 function OrganPicture({ sound, playing }: { sound: Auscultation; playing: boolean }) {
+  if (sound.kind === "bowel" || sound.kind === "vessel") {
+    // The chest piece on the abdomen or neck, pulsing gently with the pulse while it plays.
+    return (
+      <span className="relative flex h-40 w-40 items-center justify-center">
+        <span className={cn("absolute inset-2 rounded-full bg-amber-400/25 blur-2xl transition-opacity", playing ? "opacity-100" : "opacity-40")} />
+        <span className="relative text-[88px]" style={playing ? { animation: `ramai-beat ${(60 / sound.rate).toFixed(2)}s ease-in-out infinite` } : undefined} aria-hidden>🩺</span>
+      </span>
+    );
+  }
   const heart = sound.kind === "heart";
   const rate = sound.rate ?? (heart ? 72 : 16);
   const irregular = heart && !!(sound as { irregular?: boolean }).irregular;
