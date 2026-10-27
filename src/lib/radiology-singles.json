@@ -3374,5 +3374,4253 @@
   "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
   "license": "Public, no restrictions (NIH)",
   "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00001373_006.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00001784_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002083_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002084_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002435_008.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002491_006.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002541_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002742_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002743_006.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002806_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00002968_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00001377_004.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00001439_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00001473_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00001650_011.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00001771_003.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00001866_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00002032_009.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00002359_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "pneumothorax",
+  "modality": "xray",
+  "src": "/radiology/singles/pneumothorax/nih-00001698_020.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "lung-mass",
+  "modality": "xray",
+  "src": "/radiology/singles/lung-mass/nih-00001900_021.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "lung-mass",
+  "modality": "xray",
+  "src": "/radiology/singles/lung-mass/nih-00002361_002.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "lung-mass",
+  "modality": "xray",
+  "src": "/radiology/singles/lung-mass/nih-00002661_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00001555_005.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00002108_003.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00002323_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00002337_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00002524_032.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00002614_003.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00002914_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00002935_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00003614_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-755.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-732.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-737.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-743.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2406.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2414.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2418.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2429.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2437.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2264.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2275.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2312.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2337.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2576.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2594.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2653.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-59.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1137.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1146.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1153.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1159.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1163.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1465.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1040.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1044.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1051.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1067.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1086.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1132.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1496.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1502.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1509.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1518.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1542.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1547.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1561.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-1.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-20.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-24.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-26.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-27.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-28.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-32.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-35.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-36.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-42.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-45.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-49.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-56.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-60.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-67.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-71.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-73.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-80.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-87.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-93.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-99.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-104.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000031.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000165.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000214.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000336.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000359.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000360.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000388.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000420.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000422.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000484.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000485.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000512.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000561.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000589.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000618.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000619.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000674.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000720.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000782.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000793.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000799.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000803.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000832.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000878.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000009.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000017.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000018.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000028.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000039.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000047.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000051.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000056.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000066.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000072.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000075.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000078.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000116.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000128.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000152.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000154.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000182.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000185.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000191.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000208.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000216.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000234.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000238.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000254.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000097.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000110.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000348.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000464.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000492.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000493.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000521.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000522.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000681.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000943.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001035.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001170.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001233.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001318.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001401.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001432.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001483.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001489.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001527.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001784.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001826.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0002015.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0002028.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0003913.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1076_bacteria_3016.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1099_bacteria_3040.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1142_bacteria_3086.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1154_bacteria_3099.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1158_bacteria_3103.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1176_bacteria_3123.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1208_bacteria_3160.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1251_bacteria_3208.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1303_bacteria_3267.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1340_bacteria_3405.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1395_bacteria_3544.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1399_bacteria_3549.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0193-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0298-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0346-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0394-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0439-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0538-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0566-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0614-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0641-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0671-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0714-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0386-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0433-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0489-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0543-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0595-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0819-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0859-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0956-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-1005-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-335.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-338.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-343.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-346.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-351.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-355.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-359.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-364.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-368.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-371.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-375.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-381.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-386.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-392.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-397.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-402.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-411.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-415.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-420.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-426.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-435.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-meningioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-meningioma/bt-440.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2684.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2704.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2195.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2447.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2455.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2472.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2482.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2493.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2525.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-glioma",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-glioma/bt-2534.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1576.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1584.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1592.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1599.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1602.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1613.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1619.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1626.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1631.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "mri-pituitary",
+  "modality": "mri",
+  "src": "/radiology/singles/mri-pituitary/bt-1635.jpg",
+  "author": "Jun Cheng — brain tumour dataset (figshare)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.1512427"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9025994l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9049007l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9049507l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9053047l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9074437l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9086868l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9103783l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9114036r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9167541l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9171580r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9184628l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9204055r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9208400r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9218916l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9256759r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9257048l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9259866l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9263504r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9279291l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9287216r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9319367r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9323079r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00001751_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00001974_008.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "ild",
+  "modality": "xray",
+  "src": "/radiology/singles/ild/nih-00002471_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001338_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001341_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001346_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001347_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001348_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001352_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001353_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001354_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001356_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001358_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001359_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-cxr/nih-00001363_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00003283_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00003567_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00003583_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00004010_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00004182_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00004381_043.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00004554_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00004606_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00002583_003.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00002585_003.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00002763_015.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00003072_024.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00003254_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00003714_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00004354_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00004440_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00004650_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00005167_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00005176_019.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00005348_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00005454_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00005476_002.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00005523_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00005993_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "copd",
+  "modality": "xray",
+  "src": "/radiology/singles/copd/nih-00006542_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000033.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000037.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000071.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000074.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000077.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000082.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000083.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000135.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000153.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000175.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000186.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000193.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000211.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000217.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000219.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000224.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000232.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000325.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000342.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000349.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000362.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000389.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000426.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000434.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000204.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000235.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000370.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000406.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000431.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000432.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000519.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000520.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000538.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000629.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000640.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000701.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000794.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000819.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000824.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000833.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000834.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000892.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000926.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001000.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001001.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000323.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000340.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000483.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000502.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000727.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0000894.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001069.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001093.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001232.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001234.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001458.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001469.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001764.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001925.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0001994.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0002818.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0002872.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hip-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hip-xr/fa-0003525.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1016_bacteria_2947.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1050_bacteria_2984.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1065_bacteria_2999.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1067_bacteria_3001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1145_bacteria_3090.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1257_bacteria_3215.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1433_bacteria_3701.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1455_bacteria_3784.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1486_bacteria_3881.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1504_bacteria_3931.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1511_bacteria_3955.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person1619_bacteria_4261.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00001.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00003.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00030.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00035.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00036.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00046.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00055.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00063.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00075.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00167.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00172.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00177.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00201.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00205.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00212.jpg",
+  "author": "BUSI_WHU — breast ultrasound dataset (Wuhan University)",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9001897r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9002430l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9002817r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9011661l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9013161r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9016403r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9021791l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9023193r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9027594l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9028429r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9030718r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9034451r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9037823l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9052335r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0129-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0219-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0282-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0341-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0371-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0457-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0501-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0519-0001-0002.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0535-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0577-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0643-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0660-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-im-0711-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0419-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0491-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0589-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0698-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0821-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0847-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0873-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-0995-0001-0002.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-1025-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-1056-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-normal-cxr",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-normal-cxr/km-normal2-im-1181-0001.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00004954_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "cardiomegaly",
+  "modality": "xray",
+  "src": "/radiology/singles/cardiomegaly/nih-00005266_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00003683_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00003995_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00004016_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00004081_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00004121_001.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "effusion",
+  "modality": "xray",
+  "src": "/radiology/singles/effusion/nih-00004306_000.jpg",
+  "author": "NIH Clinical Center — ChestX-ray8 (Wang et al., CVPR 2017)",
+  "license": "Public, no restrictions (NIH)",
+  "source": "https://nihcc.app.box.com/v/ChestXray-NIHCC"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9048789l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9055836r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9144384r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9197466l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9254422l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9422381r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9448133l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9495873r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9504935l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9513860r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9541124l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9556402l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9559860l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9572948r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9598683r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9610439r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9690658r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9711506l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9772692l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9775951l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9778632r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9814262r.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "oa-knee",
+  "modality": "xray",
+  "src": "/radiology/singles/oa-knee/koa-9924274l.jpg",
+  "author": "Pingjun Chen — Knee Osteoarthritis Severity Grading Dataset (Mendeley Data, from the Osteoarthritis Initiative)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/56rmx5bjcr.1"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00248.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00258.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00284.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00327.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00334.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00341.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00343.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00345.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00362.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00364.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00365.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00370.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "breast-benign-usg",
+  "modality": "usg",
+  "src": "/radiology/singles/breast-benign-usg/bw-00372.jpg",
+  "author": "BUSI_WHU — Renmin Hospital of Wuhan University",
+  "license": "CC BY 4.0",
+  "source": "https://data.mendeley.com/datasets/k6cpmwybk3/3"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000030.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000049.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000166.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000237.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000368.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000447.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000558.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000829.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000863.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000864.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000938.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0000999.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001077.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001078.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001109.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001130.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001140.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001172.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001206.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-hand-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-hand-xr/fa-0001238.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000026.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000060.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000079.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000095.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000108.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000113.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000134.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000140.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000159.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000184.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000187.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000210.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000223.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000233.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000244.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000343.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000350.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000403.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000405.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000414.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000445.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000446.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000497.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "normal-leg-xr",
+  "modality": "xray",
+  "src": "/radiology/singles/normal-leg-xr/fa-0000507.jpg",
+  "author": "FracAtlas — Abedeen et al., Scientific Data 2023",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.6084/m9.figshare.22363012"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person974_bacteria_2899.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person896_bacteria_2821.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person894_bacteria_2819.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person855_bacteria_2777.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person827_bacteria_2738.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person786_bacteria_2690.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person728_bacteria_2630.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person672_bacteria_2565.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person671_bacteria_2564.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person660_bacteria_2552.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person656_bacteria_2548.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person653_bacteria_2545.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person612_bacteria_2478.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person605_bacteria_2468.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person567_bacteria_2354.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person565_bacteria_2348.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
+ },
+ {
+  "item": "paed-pneumonia",
+  "modality": "xray",
+  "src": "/radiology/singles/paed-pneumonia/km-person551_bacteria_2311.jpg",
+  "author": "Kermany, Zhang & Goldbaum — Labeled OCT and Chest X-Ray Images (Mendeley Data)",
+  "license": "CC BY 4.0",
+  "source": "https://doi.org/10.17632/rscbjbr9sj.2"
  }
 ]
