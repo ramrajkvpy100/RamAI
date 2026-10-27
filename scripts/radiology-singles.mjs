@@ -11,7 +11,9 @@ const API = "https://commons.wikimedia.org/w/api.php";
 const UA = "RamAI/1.0 (medical education; radiology teaching set)";
 const LICENSE_OK = /^(cc0|public domain|pd|cc[ -]by(-sa)?[ -]?[1-4]\.0)/i;
 const UNWANTED = /\b(arrows?|annotat\w*|label+ed|labels?|diagram|illustration|drawing|schematic|cartoon|collage|comparison|montage|animation|sketch|scheme|graph|chart|logo|icon|3d|render\w*|histolog\w*|patholog\w*|photo of patient)\b/i;
-const PER_ITEM = 6;
+const PER_ITEM = Number(process.env.PER_ITEM ?? 6);
+/** Candidates go here, to be looked at; the ones kept are copied into public/radiology/singles/<item>/. */
+const CAND_DIR = process.env.CAND_DIR ?? "public/radiology/singles";
 
 const practice = readFileSync("src/lib/practice.ts", "utf8");
 const briefs = readFileSync("src/lib/radiology.ts", "utf8");
@@ -44,7 +46,7 @@ const plain = (h) => String(h ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, " "
 
 const out = {};
 for (const it of items.filter((i) => !only.length || only.includes(i.id))) {
-  const dir = path.join("public/radiology/singles", it.id);
+  const dir = path.join(CAND_DIR, it.id);
   mkdirSync(dir, { recursive: true });
   const got = [];
   const seen = new Set();
