@@ -1,5 +1,6 @@
 "use client";
 
+import { Medal } from "@/components/achievements/medal";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -35,11 +36,7 @@ function PrizeArt({ prize }: { prize: Prize }) {
       <RankBadge tier={prize.tier} size={44} className="absolute -right-2 -bottom-1" />
     </span>
   ) : (
-    <span className="flex h-36 w-36 items-center justify-center rounded-full bg-[conic-gradient(from_200deg,#fde047,#f472b6,#a78bfa,#60a5fa,#34d399,#fde047)] p-1.5 shadow-[0_12px_50px_rgb(147_197_253/0.55)]">
-      <span className="flex h-full w-full items-center justify-center rounded-full bg-white text-amber-500">
-        <Icon name="award" size={66} />
-      </span>
-    </span>
+    <Medal id={prize.id} size={160} />
   );
 }
 

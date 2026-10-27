@@ -9,7 +9,6 @@ import { NotInAndroidApp } from "@/components/app/android-app";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Wordmark } from "@/components/brand/wordmark";
 import { GoalRing } from "@/components/game/goal-ring";
-import { StreakPill } from "@/components/game/streak";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { useMe, type Me } from "@/lib/me-store";
@@ -57,13 +56,12 @@ export function AppHeader({ initial }: { initial: Me }) {
             <InstallButton />
           </NotInAndroidApp>
           <Link href="/plan" prefetch aria-label="Planner" title="Planner" className={cn("flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/plan" ? "bg-amber-500 text-white" : "bg-amber-500/12 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300")}>
-            <span aria-hidden>⭐</span><span className="hidden min-[430px]:inline">Plan</span>
+            <span aria-hidden>⭐</span><span>Plan</span>
           </Link>
           <Link href="/focus" prefetch aria-label="Focus timer" title="Focus timer" className={cn("flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/focus" ? "bg-emerald-600 text-white" : "bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300")}>
-            <span aria-hidden>☕</span><span className="hidden min-[380px]:inline">Focus</span>
+            <span aria-hidden>☕</span><span>Focus</span>
           </Link>
           <span className="hidden sm:contents"><ThemeToggle /></span>
-          <StreakPill days={me.progress.streakDays} />
           <Link href="/profile" className="hidden items-center sm:flex" aria-label="Daily goal">
             <GoalRing value={me.progress.dailyXp} goal={me.progress.dailyGoal} size={32} stroke={4}>
               <span className="text-[9px] font-semibold text-fg-2 tabular">{Math.min(99, Math.round((me.progress.dailyXp / me.progress.dailyGoal) * 100))}</span>

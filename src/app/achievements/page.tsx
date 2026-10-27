@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
-import { Achievements } from "@/components/achievements/achievements";
-import { AppShell } from "@/components/app/app-shell";
-import { getMe } from "@/server/me";
+import { ClientShell } from "@/components/app/client-shell";
+import { AchievementsPage } from "@/components/achievements/achievements-page";
 
-export const metadata: Metadata = { title: "Achievements", description: "Every RamAI achievement — the ones you've unlocked and the ones still to earn." };
+// Per-request (the page carries this visit's security nonce) — but it waits on nothing.
 export const dynamic = "force-dynamic";
 
-export default async function AchievementsPage() {
-  const me = await getMe();
-  if (!me) redirect("/login?next=/achievements");
+export const metadata: Metadata = { title: "Achievements", description: "Every RamAI achievement — the ones you've unlocked and the ones still to earn." };
+
+export default function Page() {
   return (
-    <AppShell me={me}>
-      <Achievements initial={me} />
-    </AppShell>
+    <ClientShell>
+      <AchievementsPage />
+    </ClientShell>
   );
 }

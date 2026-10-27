@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useInAndroidApp } from "@/lib/in-app";
 import { tap } from "@/lib/haptics";
@@ -18,16 +18,19 @@ const WIDGETS = [
 export function AddWidgetButton({ className }: { className?: string }) {
   const inApp = useInAndroidApp();
   const [open, setOpen] = useState(false);
+  // The read-only key for the progress and planner widgets, fetched as soon as the list opens — so the tap itself
+  // goes straight to Android (Chrome only lets an app open from a tap, not after waiting on the network).
+  const [token, setToken] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open || token) return;
+    fetch("/api/widget/token", { method: "POST" }).then((x) => (x.ok ? x.json() : null)).then((r) => r?.token && setToken(r.token)).catch(() => undefined);
+  }, [open, token]);
   if (!inApp) return null;
-  const add = async (kind: string) => {
+  const add = (kind: string) => {
     tap();
-    let t = "";
-    if (kind === "progress" || kind === "plan") {
-      // A read-only key so the widget can show your streak and XP (made fresh each time; only its hash is kept).
-      const r = await fetch("/api/widget/token", { method: "POST" }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
-      if (!r?.token) return toast("Couldn't link the widget — try again", { tone: "info" });
-      t = `&t=${encodeURIComponent(r.token)}`;
-    }
+    const needsKey = kind === "progress" || kind === "plan";
+    if (needsKey && !token) return toast("One moment — linking your account, then tap again", { tone: "info" });
+    const t = needsKey ? `&t=${encodeURIComponent(token!)}` : "";
     window.location.href = `intent://widget?kind=${kind}${t}#Intent;scheme=ramai;package=com.ramai.app;end`;
   };
   return (
@@ -43,7 +46,7 @@ export function AddWidgetButton({ className }: { className?: string }) {
       {open && (
         <div className="grid gap-2 border-t border-line p-3">
           {WIDGETS.map((w) => (
-            <button key={w.kind} type="button" onClick={() => void add(w.kind)} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5 text-left hover:bg-surface-3">
+            <button key={w.kind} type="button" onClick={() => add(w.kind)} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5 text-left hover:bg-surface-3">
               <span aria-hidden className="text-[20px]">{w.emoji}</span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] font-semibold">{w.title}</span>
@@ -52,6 +55,7 @@ export function AddWidgetButton({ className }: { className?: string }) {
               <span className="text-[13px] font-semibold text-accent-text">Add</span>
             </button>
           ))}
+          <p className="px-1 text-[12px] text-fg-3">Or add one yourself: touch and hold an empty spot on your home screen → Widgets → RamAI.</p>
         </div>
       )}
     </section>

@@ -84,7 +84,9 @@ export async function startCase(choice: CaseChoice = {}): Promise<boolean> {
   if (snapshot.starting) return false;
   update({ starting: true, error: null });
   try {
-    const session = await simulateCase(choice);
+    // Learning or real life, as last chosen — for "Any case" and "Next case" too.
+    const learning = choice.learning ?? (() => { try { return localStorage.getItem("ramai.learning") === "1"; } catch { return false; } })();
+    const session = await simulateCase({ ...choice, ...(learning && !choice.tutorial && !choice.duel ? { learning: true } : {}) });
     update({ session: { ...session, begun: false }, starting: false, sending: null, lastEffects: [], turn: 0 });
     void refreshMe();
     // While this patient is seen, the next one is written, so "Next case" starts at once (after a moment, so this case's own start comes first).

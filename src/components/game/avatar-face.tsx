@@ -6,10 +6,17 @@ import { BGS, HAIR_COLORS, outfitFor, SKIN, type AvatarStyle } from "@/lib/avata
 export function AvatarFace({ style: a, size = 32, className, tier }: { style: AvatarStyle; size?: number; className?: string; /** Your rank (1–10): which outfits are unlocked. */ tier?: number }) {
   const skin = SKIN[a.skin]!;
   const outfit = tier ? outfitFor(a, tier) : a.outfit !== undefined && a.outfit >= 0 ? a.outfit : 1;
+  // Gradient ids from the avatar itself (no hook: it's also drawn on the server for share cards).
+  const id = `av${a.skin}${a.bg}${a.hairColor}${String(a.hair).slice(0, 2)}${outfit}`;
   const hair = HAIR_COLORS[a.hairColor]!;
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={className} aria-hidden>
+      <defs>
+        <radialGradient id={`${id}-bg`} cx="35%" cy="25%" r="85%"><stop offset="0" stopColor="#ffffff" stopOpacity="0.35" /><stop offset="0.6" stopColor="#ffffff" stopOpacity="0" /></radialGradient>
+        <radialGradient id={`${id}-face`} cx="42%" cy="38%" r="70%"><stop offset="0" stopColor="#ffffff" stopOpacity="0.22" /><stop offset="0.7" stopColor="#ffffff" stopOpacity="0" /><stop offset="1" stopColor="#000000" stopOpacity="0.12" /></radialGradient>
+      </defs>
       <circle cx="50" cy="50" r="50" fill={BGS[a.bg]} />
+      <circle cx="50" cy="50" r="50" fill={`url(#${id}-bg)`} />
       {outfit === 9 && <circle cx="50" cy="46" r="34" fill="none" stroke="#fde68a" strokeWidth="5" opacity="0.85" />}
       {/* Hair behind the head */}
       {a.hair === "long" && <path d="M18 48 C14 14 86 14 82 48 L86 90 C70 96 30 96 14 90 Z" fill={hair} />}
@@ -19,6 +26,10 @@ export function AvatarFace({ style: a, size = 32, className, tier }: { style: Av
       {/* Neck and face */}
       <rect x="43" y="62" width="14" height="14" rx="5" fill={skin} />
       <ellipse cx="50" cy="48" rx="22" ry="24" fill={skin} />
+      <ellipse cx="50" cy="48" rx="22" ry="24" fill={`url(#${id}-face)`} />
+      {/* Shadow under the chin, a little nose */}
+      <path d="M43 70 Q50 74 57 70" stroke="#000" strokeOpacity="0.12" strokeWidth="3" fill="none" />
+      <path d="M50 50 Q47.5 55 50 56.5" stroke="#000" strokeOpacity="0.22" strokeWidth="1.6" fill="none" strokeLinecap="round" />
       <ellipse cx="28.5" cy="50" rx="3.5" ry="5" fill={skin} />
       <ellipse cx="71.5" cy="50" rx="3.5" ry="5" fill={skin} />
       {/* Hair on top */}
@@ -33,17 +44,27 @@ export function AvatarFace({ style: a, size = 32, className, tier }: { style: Av
       )}
       {a.hair === "curly" && [[26, 40], [32, 30], [41, 24], [50, 22], [59, 24], [68, 30], [74, 40], [27, 50], [73, 50], [36, 34], [64, 34], [50, 30]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="9" fill={hair} />)}
       {a.hair === "hijab" && <path d="M22 62 C14 4 86 4 78 62 C76 40 64 32 50 32 C36 32 24 40 22 62 Z" fill="#14b8a6" />}
+      {/* Eyebrows */}
+      {a.hair !== "bald" && <path d="M36 41 Q41 38.5 45 40.5 M55 40.5 Q59 38.5 64 41" stroke={hair} strokeWidth="2.2" fill="none" strokeLinecap="round" />}
+      {/* Hair shine */}
+      {["short", "side", "long", "bun"].includes(a.hair) && <path d="M36 22 Q46 16 58 19" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2.4" fill="none" strokeLinecap="round" />}
       {/* Eyes */}
       {a.eyes === "round" && (
         <>
-          <circle cx="41" cy="48" r="3" fill="#1f2937" />
-          <circle cx="59" cy="48" r="3" fill="#1f2937" />
+          <ellipse cx="41" cy="48" rx="4.2" ry="4" fill="#ffffff" />
+          <ellipse cx="59" cy="48" rx="4.2" ry="4" fill="#ffffff" />
+          <circle cx="41.4" cy="48.4" r="2.7" fill="#3b2a1f" />
+          <circle cx="59.4" cy="48.4" r="2.7" fill="#3b2a1f" />
+          <circle cx="42.3" cy="47.4" r="0.9" fill="#ffffff" />
+          <circle cx="60.3" cy="47.4" r="0.9" fill="#ffffff" />
         </>
       )}
       {a.eyes === "happy" && <path d="M37 49 Q41 44 45 49 M55 49 Q59 44 63 49" stroke="#1f2937" strokeWidth="2.6" fill="none" strokeLinecap="round" />}
       {a.eyes === "wink" && (
         <>
-          <circle cx="41" cy="48" r="3" fill="#1f2937" />
+          <ellipse cx="41" cy="48" rx="4.2" ry="4" fill="#ffffff" />
+          <circle cx="41.4" cy="48.4" r="2.7" fill="#3b2a1f" />
+          <circle cx="42.3" cy="47.4" r="0.9" fill="#ffffff" />
           <path d="M55 48 Q59 51 63 48" stroke="#1f2937" strokeWidth="2.6" fill="none" strokeLinecap="round" />
         </>
       )}

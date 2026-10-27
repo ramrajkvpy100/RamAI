@@ -7,6 +7,7 @@ import { AchievementReveal, SharePrize, type Prize } from "@/components/game/ach
 import { DoctorFigure } from "@/components/game/caricature";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Icon } from "@/components/ui/icon";
+import { Medal } from "./medal";
 import { BADGE_LIST, RANKS, rankFor } from "@/engine/progression";
 import { cn } from "@/lib/cn";
 import { useMe, type Me } from "@/lib/me-store";
@@ -65,11 +66,7 @@ export function Achievements({ initial }: { initial: Me }) {
               return (
                 <li key={b.id} className="panel flex flex-col items-center gap-2 p-4 text-center">
                   <button type="button" onClick={() => setOpen(prize)} className="flex flex-col items-center gap-2" aria-label={`Open ${b.label}`}>
-                    <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[conic-gradient(from_200deg,#fde047,#f472b6,#a78bfa,#60a5fa,#34d399,#fde047)] p-1 transition-transform hover:scale-105">
-                      <span className="flex h-full w-full items-center justify-center rounded-full bg-[#1e1b4b] text-amber-300">
-                        <Icon name="award" size={28} />
-                      </span>
-                    </span>
+                    <span className="transition-transform hover:scale-105"><Medal id={b.id} size={76} /></span>
                     <span className="text-[14px] font-semibold">{b.label}</span>
                     <span className="text-[12px] leading-5 text-fg-2">{b.description}</span>
                   </button>
@@ -90,10 +87,8 @@ export function Achievements({ initial }: { initial: Me }) {
           </h2>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {locked.map((b) => (
-              <li key={b.id} className="card flex flex-col items-center gap-2 p-4 text-center opacity-70">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-3 text-fg-3">
-                  <Icon name="lock" size={22} />
-                </span>
+              <li key={b.id} className="card flex flex-col items-center gap-2 p-4 text-center opacity-80">
+                <Medal id={b.id} size={64} locked />
                 <span className="text-[13.5px] font-semibold">{b.label}</span>
                 <span className="text-[12px] leading-5 text-fg-2">{b.description}</span>
               </li>

@@ -429,8 +429,22 @@ export async function guideFor(token: string, userId: string, lang: PatientLang 
   if (hidden.closed) return null;
   const step = nextSeniorStep(def, hidden);
   if (step.stage === "end" || !step.ask) return { question: "You've done the essentials.", options: [{ text: "End case", correct: true, why: step.why[0]!.toUpperCase() + step.why.slice(1) + "." }] };
-  const made = provider.guide ? await provider.guide(step, { def, hidden, transcript: state.messages.slice(-40), country, lang }) : undefined;
-  return made ?? { question: "Your next step", options: [{ text: step.ask, correct: true, why: step.why[0]!.toUpperCase() + step.why.slice(1) + "." }] };
+  const made = provider.guide ? await provider.guide(step, { def, hidden, transcript: state.messages.slice(-40), country, lang }).catch(() => undefined) : undefined;
+  if (made && made.options.length >= 4) return made;
+  // Without the model (or with too few choices): three others of the same kind from the case file itself, so
+  // there are always four choices.
+  const right = { text: step.ask, correct: true, why: made?.options.find((o) => o.correct)?.why ?? step.why[0]!.toUpperCase() + step.why.slice(1) + "." };
+  const pick = <T,>(xs: T[]) => xs.sort(() => Math.random() - 0.5).slice(0, 3);
+  const others: { text: string; correct: false; why: string }[] = (
+    step.stage === "history" ? pick(def.history.filter((h) => h.importance !== "essential" && hidden.history[h.id] === undefined)).map((h) => ({ text: `Ask about ${h.label.toLowerCase()}`, correct: false as const, why: "Worth asking later — but it isn't the question that moves this patient forward right now." }))
+    : step.stage === "exam" ? pick(def.exam.filter((e) => e.importance !== "essential" && hidden.exams[e.id] === undefined)).map((e) => ({ text: `Examine ${e.label.toLowerCase()}`, correct: false as const, why: "A reasonable check, but it won't change what you do next for this patient." }))
+    : step.stage === "investigation" ? pick(def.investigations.filter((i) => i.priority !== "essential" && !hidden.investigations.some((x) => x.defId === i.id))).map((i) => ({ text: `Order ${String(i.name ?? i.short ?? i.id)}`, correct: false as const, why: i.priority === "unnecessary" ? "Not needed here — it adds cost and delay without changing management." : "Can help later, but it isn't the test that settles this case now." }))
+    : step.stage === "diagnosis" ? pick(def.rubric.differentials.filter((d) => d.toLowerCase() !== def.truth.diagnosis.toLowerCase())).map((d) => ({ text: `Diagnosis: ${d}`, correct: false as const, why: `A fair differential, but the history, examination and results fit ${def.truth.diagnosis} better.` }))
+    : pick(def.therapeutics.filter((r) => ["unnecessary", "harmful", "dangerous", "neutral"].includes(r.appropriateness))).map((r) => ({ text: `Treat: ${r.label.replace(/\.$/, "")}`, correct: false as const, why: r.critique?.why ?? (r.appropriateness === "harmful" || r.appropriateness === "dangerous" ? "Harmful for this patient — avoid it." : "Not what this patient needs now.") }))
+  );
+  const fromModel = (made?.options ?? []).filter((o) => !o.correct);
+  const wrong = [...fromModel, ...others.filter((o) => !fromModel.some((m) => m.text === o.text))].slice(0, 3);
+  return { question: made?.question ?? "What would you do next?", options: [right, ...wrong].sort(() => Math.random() - 0.5) };
 }
 
 /**

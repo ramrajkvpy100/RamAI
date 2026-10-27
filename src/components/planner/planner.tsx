@@ -40,7 +40,8 @@ export function Planner() {
   const [date, setDate] = useState(() => new Date());
   const today = dayKey(new Date());
   const key = dayKey(date);
-  const [tab, setTab] = useState<"today" | "habits" | "review">("today");
+  // The review opens by itself in the evening.
+  const [review, setReview] = useState(() => new Date().getHours() >= 19);
   const [day, setDay] = useState<Day | null>(null);
   const [habits, setHabits] = useState<Habit[] | null>(null);
   const [history, setHistory] = useState<Record<string, Day | null>>({});
@@ -95,15 +96,18 @@ export function Planner() {
         </div>
       </header>
 
-      <div className="grid grid-cols-3 gap-1 rounded-full bg-surface-3 p-1 text-[13.5px]" role="tablist">
-        {([["today", "✅ To-do"], ["habits", "🔁 Habits"], ["review", "🌙 Review"]] as const).map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={cn("rounded-full py-2 font-semibold", tab === id ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>{label}</button>
-        ))}
-      </div>
-
-      {tab === "today" && <TodayTab day={day} onChange={changeDay} habits={habits} />}
-      {tab === "habits" && <HabitsTab habits={habits} onChange={changeHabits} day={day} onDay={changeDay} history={history} today={key} />}
-      {tab === "review" && <ReviewTab day={day} onChange={changeDay} dateKey={key} />}
+      {/* One simple page: the one thing, the to-dos, the habits — and the evening review folded away. */}
+      <TodayTab day={day} onChange={changeDay} habits={habits} />
+      <section>
+        <h2 className="mb-2 px-1 text-[15px] font-semibold">🔁 Habits</h2>
+        <HabitsTab habits={habits} onChange={changeHabits} day={day} onDay={changeDay} history={history} today={key} />
+      </section>
+      <details className="panel group p-4" open={review}>
+        <summary className="flex cursor-pointer list-none items-center justify-between text-[15px] font-semibold" onClick={(e) => { e.preventDefault(); setReview((r) => !r); }}>
+          🌙 Evening review <span className="text-[12.5px] font-normal text-fg-3">{review ? "Hide" : "3 good · 3 not · 3 to improve"}</span>
+        </summary>
+        {review && <div className="mt-3"><ReviewTab day={day} onChange={changeDay} dateKey={key} /></div>}
+      </details>
     </div>
   );
 }
@@ -123,7 +127,6 @@ function TodayTab({ day, onChange, habits }: { day: Day; onChange: (d: Day) => v
     if (next.find((t) => t.id === id)?.done) success();
     onChange({ ...day, todos: next });
   };
-  const doneHabits = habits.filter((h) => day.habits[h.id]).length;
   return (
     <div className="flex flex-col gap-4">
       {/* The one thing */}
@@ -162,7 +165,6 @@ function TodayTab({ day, onChange, habits }: { day: Day; onChange: (d: Day) => v
         </form>
       </section>
 
-      {habits.length > 0 && <p className="text-center text-[13px] text-fg-2">Habits today: {doneHabits} of {habits.length} done — tick them in 🔁 Habits.</p>}
     </div>
   );
 }
@@ -202,7 +204,7 @@ function HabitsTab({ habits, onChange, day, onDay, history, today }: { habits: H
         const daysIn = Math.max(1, Math.round((Date.now() - new Date(`${h.created}T00:00:00`).getTime()) / 86_400_000) + 1);
         const warn = !done && daysIn > 2 && missedTwice(h.id, history, today);
         return (
-          <article key={h.id} className={cn("panel flex items-start gap-3 p-4", done && "border-success/40")}>
+          <article key={h.id} className={cn("panel flex items-start gap-3 px-4 py-3", done && "border-success/40")}>
             <button type="button" onClick={() => { if (!done) success(); onDay({ ...day, habits: { ...day.habits, [h.id]: !done } }); }} aria-label={done ? "Not done today" : "Done today"} className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-[15px]", done ? "border-success bg-success text-white" : "border-line-2")}>{done ? "✓" : ""}</button>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -212,8 +214,7 @@ function HabitsTab({ habits, onChange, day, onDay, history, today }: { habits: H
               {h.cue && <p className="mt-0.5 text-[13px] text-fg-2">When {h.cue}, I will {h.name.toLowerCase()}.</p>}
               {h.tiny && <p className="text-[12.5px] text-fg-3">On a hard day: {h.tiny}</p>}
               {warn && <p className="mt-1 text-[12.5px] font-medium text-amber-700 dark:text-amber-300">Missed two days — never miss twice: do the tiny version today.</p>}
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3" title={`${Math.min(daysIn, 66)} of ~66 days to make it automatic`}><div className="h-full rounded-full bg-success" style={{ width: `${Math.min(100, (daysIn / 66) * 100)}%` }} /></div>
-              <p className="mt-1 text-[11.5px] text-fg-3 tabular">Day {daysIn} · habits take about 66 days to become automatic</p>
+              <p className="mt-0.5 text-[11.5px] text-fg-3 tabular">Day {daysIn} of ~66 to make it automatic</p>
             </div>
             <button type="button" onClick={() => onChange(habits.filter((x) => x.id !== h.id))} aria-label="Remove habit" className="text-[13px] text-fg-3 hover:text-danger">✕</button>
           </article>
@@ -226,10 +227,7 @@ function HabitsTab({ habits, onChange, day, onDay, history, today }: { habits: H
           <label className="text-[13px] text-fg-2">When will you do it? (after something you already do)
             <input value={cue} onChange={(e) => setCue(e.target.value)} placeholder="e.g. I finish my morning tea" aria-label="Cue" className="mt-1 h-11 w-full rounded-xl border border-line bg-surface px-3.5 text-[15px] outline-none focus:border-accent-line" />
           </label>
-          <label className="text-[13px] text-fg-2">The 2-minute version, for hard days
-            <input value={tiny} onChange={(e) => setTiny(e.target.value)} placeholder="e.g. just 1 flashcard" aria-label="Tiny version" className="mt-1 h-11 w-full rounded-xl border border-line bg-surface px-3.5 text-[15px] outline-none focus:border-accent-line" />
-          </label>
-          <p className="text-[12px] text-fg-3">“When ___, I will ___” plans make people far more likely to follow through. Start small; never miss twice.</p>
+          <p className="text-[12px] text-fg-3">Tie it to something you already do — that's what makes habits stick. Start small; never miss twice.</p>
           <div className="flex justify-end gap-2">
             {habits.length > 0 && <button type="button" onClick={() => setAdding(false)} className="h-10 rounded-full px-4 text-[14px] font-medium text-fg-2">Cancel</button>}
             <button type="submit" className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">Add habit</button>
