@@ -100,6 +100,22 @@ async function fromPhone(req, name, max) {
 
 const pageKey = (url) => url.origin + url.pathname;
 
+/** A focus sound or video: the whole file from the phone; the first time, fetched whole (not in pieces) and kept. */
+async function focusMedia(req) {
+  const c = await caches.open(MEDIA);
+  const key = req.url;
+  const hit = await c.match(key);
+  if (hit) return hit;
+  if (req.headers.get("range")) {
+    // Played in pieces from the network this time; the whole file is kept for next time.
+    fetch(key).then((r) => (r.ok && r.status === 200 ? c.put(key, r) : undefined)).catch(() => undefined);
+    return fetch(req);
+  }
+  const res = await fetch(req);
+  if (res.ok && res.status === 200) await c.put(key, res.clone());
+  return res;
+}
+
 async function page(event, url) {
   const c = await caches.open(PAGES);
   const key = pageKey(url);
@@ -140,6 +156,8 @@ self.addEventListener("fetch", (event) => {
   if (req.mode === "navigate") return event.respondWith(page(event, url));
   if (url.pathname.startsWith("/_next/static/")) return event.respondWith(fromPhone(req, STATIC, 400));
   if (!url.search && MEDIA_RE.test(url.pathname) && !url.pathname.startsWith("/_next/")) return event.respondWith(fromPhone(req, MEDIA, 300));
+  // The focus timer's sounds and short scene videos: whole files kept, so focus works offline.
+  if (!url.search && url.pathname.startsWith("/focus/") && /\.(mp3|ogg|mp4|webm)$/i.test(url.pathname)) return event.respondWith(focusMedia(req));
 });
 
 /** Only ever opens RamAI's own pages. */

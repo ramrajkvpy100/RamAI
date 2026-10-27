@@ -17,6 +17,7 @@ import { cn } from "@/lib/cn";
 import { groupOf, groupsOf, MODALITIES, MODALITY_IDS, RAPID_SECONDS, type DrillItem, type Modality, type PracticeMode } from "@/lib/practice";
 import { playSfx } from "@/lib/sfx";
 import { success, warn } from "@/lib/haptics";
+import { postOrQueue } from "@/lib/offline-docs";
 
 interface Stat {
   modality: Modality;
@@ -126,7 +127,8 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
   useEffect(() => {
     if (!over || reported.current || answered === 0) return;
     reported.current = true;
-    void post("/api/practice/result", { modality, mode, correct: right, total: answered }).catch(() => undefined);
+    // Offline, the score is kept and sent when the connection is back.
+    void postOrQueue("/api/practice/result", { modality, mode, correct: right, total: answered });
     setStats((st) => {
       const row = st.find((s) => s.modality === modality) ?? { modality, rounds: 0, correct: 0, total: 0, best: 0 };
       const next = { ...row, rounds: row.rounds + 1, correct: row.correct + right, total: row.total + answered, best: mode === "rapid" ? Math.max(row.best, right) : row.best };

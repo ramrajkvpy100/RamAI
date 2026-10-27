@@ -121,6 +121,9 @@ export function grade(id: string, g: Grade) {
 export const isDue = (c: Card, now = Date.now()) => (c.due ?? 0) <= now;
 export const wait = (ms: number) => (ms < 3_600_000 ? `${Math.round(ms / 60_000)} min` : ms < DAY ? `${Math.round(ms / 3_600_000)} h` : `${Math.round(ms / DAY)} d`);
 
+// Back online: the account's copy and this phone's are merged again (reviews done offline go up).
+if (typeof window !== "undefined") window.addEventListener("online", () => { if (synced) schedulePush(); else void sync(); });
+
 export function useDeck(): Card[] {
   const [cards, setCards] = useState<Card[]>([]);
   useEffect(() => {

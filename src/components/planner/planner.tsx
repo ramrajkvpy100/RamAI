@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { success, tap } from "@/lib/haptics";
+import { pendingDoc, saveDoc } from "@/lib/offline-docs";
 import { toast } from "@/lib/toast";
 
 /**
@@ -31,10 +32,9 @@ async function load(docs: string[]): Promise<Record<string, unknown>> {
   if (!r.ok) throw new Error("load");
   return ((await r.json()) as { docs: Record<string, unknown> }).docs;
 }
-async function save(doc: string, data: unknown) {
-  const r = await fetch("/api/planner", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ doc, data }) });
-  if (!r.ok) throw new Error("save");
-}
+/** Saved on the phone at once and sent to the account when there's a connection (offline edits aren't lost). */
+const save = (doc: string, data: unknown) => saveDoc(doc, data);
+const keptHabits = (): Habit[] | null => { try { return JSON.parse(localStorage.getItem("ramai.plan.habits") ?? "null") as Habit[] | null; } catch { return null; } };
 
 export function Planner() {
   const [date, setDate] = useState(() => new Date());
@@ -55,15 +55,22 @@ export function Planner() {
     load(["habits", `day:${key}`])
       .then((docs) => {
         if (off) return;
-        const h = (docs.habits as Habit[] | null) ?? [];
-        const d = { ...EMPTY_DAY, ...((docs[`day:${key}`] as Day | null) ?? {}) };
+        // Edits made offline that haven't gone up yet win over the account's copy.
+        const h = ((pendingDoc("habits") ?? docs.habits) as Habit[] | null) ?? [];
+        const d = { ...EMPTY_DAY, ...(((pendingDoc(`day:${key}`) ?? docs[`day:${key}`]) as Day | null) ?? {}) };
+        try { localStorage.setItem("ramai.plan.habits", JSON.stringify(h)); } catch {}
         setHabits(h);
         setDay(d);
         try { localStorage.setItem(`ramai.plan.${key}`, JSON.stringify({ habits: h, day: d })); } catch {}
         const past = Array.from({ length: 70 }, (_, n) => `day:${dayKey(addDays(new Date(), -n))}`);
         return load(past).then((more) => !off && setHistory(Object.fromEntries(past.map((p) => [p.slice(4), more[p] as Day | null]))));
       })
-      .catch(() => !off && !kept && toast("Couldn't load your planner — check the connection", { tone: "info" }));
+      .catch(() => {
+        // Offline and this day isn't on the phone yet: a fresh page, with the habits kept from before.
+        if (off || kept) return;
+        setHabits((pendingDoc("habits") as Habit[] | undefined) ?? keptHabits() ?? []);
+        setDay({ ...EMPTY_DAY, ...((pendingDoc(`day:${key}`) as Day | undefined) ?? {}) });
+      });
     return () => { off = true; };
   }, [key]);
 
@@ -73,11 +80,12 @@ export function Planner() {
     setHistory((h) => ({ ...h, [key]: next }));
     try { localStorage.setItem(`ramai.plan.${key}`, JSON.stringify({ habits, day: next })); } catch {}
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => void save(`day:${key}`, next).catch(() => toast("Not saved — retrying when you edit again", { tone: "info" })), 500);
+    timer.current = window.setTimeout(() => void save(`day:${key}`, next), 500);
   }, [key, habits]);
   const changeHabits = (next: Habit[]) => {
     setHabits(next);
-    void save("habits", next).catch(() => toast("Not saved", { tone: "info" }));
+    try { localStorage.setItem("ramai.plan.habits", JSON.stringify(next)); } catch {}
+    void save("habits", next);
   };
 
   if (!day || !habits) return <div className="flex flex-col gap-3 py-6">{[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-[22px] bg-surface-3" />)}</div>;
@@ -259,8 +267,11 @@ function ReviewTab({ day, onChange, dateKey }: { day: Day; onChange: (d: Day) =>
   const toTomorrow = async () => {
     const tomorrow = dayKey(addDays(new Date(`${dateKey}T12:00:00`), 1));
     try {
-      const docs = await load([`day:${tomorrow}`]);
-      const t = { ...EMPTY_DAY, ...((docs[`day:${tomorrow}`] as Day | null) ?? {}) };
+      // Offline: tomorrow as this phone has it.
+      const docs = await load([`day:${tomorrow}`]).catch(() => {
+        try { return { [`day:${tomorrow}`]: (JSON.parse(localStorage.getItem(`ramai.plan.${tomorrow}`) ?? "null") as { day: Day } | null)?.day ?? null }; } catch { return {}; }
+      });
+      const t = { ...EMPTY_DAY, ...(((pendingDoc(`day:${tomorrow}`) ?? docs[`day:${tomorrow}`]) as Day | null) ?? {}) };
       const have = new Set(t.todos.map((x) => x.text));
       const next = { ...t, todos: [...t.todos, ...filled.filter((b) => !have.has(b)).map((b) => ({ id: uid(), text: b, done: false }))] };
       await save(`day:${tomorrow}`, next);
