@@ -32,7 +32,7 @@ const SYSTEMS: [string, RegExp][] = [
   ["Gallbladder & pancreas", /gall|chole|gb-|cbd|pancrea|pseudocyst/i],
   ["Kidney & bladder", /\brenal|kidney|kub|stone|calcul|hydroneph|pyelo|pkd|ckd|bladder|bph|prostat/i],
   ["Bowel & abdomen", /normal-abdo|adrenal|abdo|appendic|sbo|lbo|bowel|volvulus|intussus|diverticul|perforat|pneumoperitoneum|mesenteric|ascites|splen|fluoro|achalasia|crohn|hiatus|applecore|free-fluid|pyloric/i],
-  ["Bones & joints", /fracture|colles|nof|scaphoid|boxer|ankle|tibia|clavicle|shoulder|supracondylar|oa-|ra-|gout|ankylos|osteo|rickets|pelvic|acl|knee/i],
+  ["Bones & joints", /plate-screws|im-nail|\bdhs|cannulated|ex-fix|k-wires|tension-band|arthroplasty|distal-radius|forearm|fracture|colles|nof|scaphoid|boxer|ankle|tibia|clavicle|shoulder|supracondylar|oa-|ra-|gout|ankylos|osteo|rickets|pelvic|acl|knee/i],
   ["Women & pregnancy", /ectopic|iup|ovar|fibroid|pcos|dermoid|endometrioma|molar|miscarriage|twin|placenta|breech|anenceph|mammo|breast|fibroadenoma/i],
   ["Vessels & heart", /dissection|aaa|aneurysm|dvt|pericardial|varicocele|testicular/i],
   ["Neck & thyroid", /foreign-body|coin|thyroid|lymph|graves|adenoma|nm-|epiglott|croup|sinus|orbital/i],

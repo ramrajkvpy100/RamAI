@@ -25,7 +25,7 @@ public class PinWidgetActivity extends Activity {
             getSharedPreferences("widget", MODE_PRIVATE).edit().putString("token", token).apply();
             ProgressWidget.refreshAll(this);
         }
-        Class<? extends AppWidgetProvider> which = "focus".equals(kind) ? FocusWidget.class : "progress".equals(kind) ? ProgressWidget.class : "plan".equals(kind) ? PlanWidget.class : RamWidget.class;
+        Class<? extends AppWidgetProvider> which = "focus".equals(kind) ? FocusWidget.class : "progress".equals(kind) ? ProgressWidget.class : PlanWidget.class;
         boolean asked = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             AppWidgetManager manager = getSystemService(AppWidgetManager.class);

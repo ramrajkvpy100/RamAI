@@ -11,7 +11,6 @@ const WIDGETS = [
   { kind: "focus", emoji: "☕", title: "Focus timer", note: "25 or 50 minutes, counting down on your home screen" },
   { kind: "plan", emoji: "⭐", title: "Planner", note: "Today's most important task, to-dos and habits" },
   { kind: "progress", emoji: "🔥", title: "Daily progress", note: "Streak, XP towards today's goal, rating" },
-  { kind: "ramai", emoji: "🩺", title: "RamAI", note: "Today's case and quick links" },
 ] as const;
 
 /** Inside the Android app: put any of RamAI's three widgets on the home screen in one tap. */

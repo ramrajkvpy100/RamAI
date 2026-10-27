@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The planner's day bar: a soft amber track, a warm fill. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape><solid android:color="#26B45309" /><corners android:radius="999dp" /></shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip><shape><gradient android:startColor="#FBBF24" android:endColor="#F97316" /><corners android:radius="999dp" /></shape></clip>
+    </item>
+</layer-list>

@@ -97,16 +97,6 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/filepaths" />
         </provider>
 
-        <!-- Home-screen widget: today's daily case and quick links. -->
-        <receiver android:name=".RamWidget" android:exported="false" android:label="RamAI">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.ramai.app.FOCUS_TOGGLE" />
-                <action android:name="com.ramai.app.FOCUS_DONE" />
-            </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_ramai_info" />
-        </receiver>
-
         <!-- The site's focus timer, kept by Android: ramai://focus?ends=… sets an alarm clock; it vibrates when done. -->
         <activity
             android:name=".FocusAlarm$Set"
@@ -161,6 +151,11 @@
         <receiver android:name=".PlanWidget" android:exported="false" android:label="RamAI Planner">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.ramai.app.PLAN_REFRESH" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ramai.app.PLAN_TICK" />
+                <data android:scheme="ramai" android:host="tick" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_plan_info" />
         </receiver>

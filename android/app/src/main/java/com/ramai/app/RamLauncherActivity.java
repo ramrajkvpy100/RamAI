@@ -47,7 +47,7 @@ public class RamLauncherActivity extends LauncherActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Opening the app refreshes the progress and planner widgets.
-        try { ProgressWidget.refreshAll(this); } catch (Exception ignored) { }
+        try { ProgressWidget.refreshAll(this); PlanWidget.soon(this); } catch (Exception ignored) { }
         // A widget, notification or link asking for a page: open it at once (the update check is for the app icon).
         boolean fromIcon = Intent.ACTION_MAIN.equals(getIntent().getAction());
         if (savedInstanceState != null || !fromIcon) { openApp(); return; }

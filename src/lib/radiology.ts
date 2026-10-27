@@ -100,6 +100,16 @@ export const RADIOLOGY_BRIEFS: Record<string, RadiologyBrief> = {
   "phalanx-fracture": { history: "30-year-old whose finger was crushed in a door; swollen, tender finger.", question: "X-ray hand / finger: findings?" },
   "femur-fracture": { history: "Patient after a road traffic accident with a deformed, swollen thigh; HR 118.", question: "X-ray femur: findings?" },
   "hip-fracture": { history: "Patient who fell and can't stand; the leg is shortened and externally rotated, pain in the groin.", question: "X-ray pelvis and hip: findings?" },
+  "hiatus-hernia": { history: "70-year-old woman with years of heartburn and regurgitation, worse lying down.", question: "Chest X-ray PA: findings?" },
+  "plate-screws": { history: "Patient seen in clinic weeks after an operation for a fracture; now pain-free.", question: "Follow-up X-ray: describe what you see." },
+  "im-nail": { history: "Patient after surgery for a long-bone shaft fracture from a road accident.", question: "Post-operative X-ray: findings?" },
+  dhs: { history: "Elderly patient a day after surgery for a fall onto the hip.", question: "Post-operative X-ray hip: findings?" },
+  "cannulated-screws": { history: "Patient after surgery for a hip fracture found after a fall.", question: "Post-operative X-ray hip: findings?" },
+  "ex-fix": { history: "Patient with an open fracture of the leg after a motorbike crash, now after emergency surgery.", question: "X-ray of the leg: findings?" },
+  "k-wires": { history: "Child after surgery for an elbow or wrist fracture.", question: "Post-operative X-ray: findings?" },
+  "tension-band": { history: "Patient after surgery for a fall onto the elbow or knee.", question: "Post-operative X-ray: findings?" },
+  "hip-arthroplasty": { history: "Patient with a previous hip operation, now with new hip pain after a fall.", question: "X-ray pelvis and hip: findings?" },
+  "patella-fracture": { history: "Patient who fell directly onto the knee; cannot straighten it against gravity.", question: "X-ray knee: findings?" },
   "metatarsal-fracture": { history: "Patient who twisted the foot or dropped something heavy on it; tender over the forefoot, painful to walk.", question: "X-ray foot: findings?" },
 
   // More CT

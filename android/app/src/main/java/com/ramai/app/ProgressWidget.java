@@ -49,7 +49,7 @@ public class ProgressWidget extends AppWidgetProvider {
     }
 
     /** Fetches the numbers into the widget's preferences (silently keeps the last ones on any failure). */
-    static void fetch(Context context) {
+    static synchronized void fetch(Context context) {
         SharedPreferences p = context.getSharedPreferences("widget", Context.MODE_PRIVATE);
         String token = p.getString("token", null);
         if (token == null) return;
@@ -76,6 +76,14 @@ public class ProgressWidget extends AppWidgetProvider {
                     .putInt("habits", plan.optInt("habits"));
                 org.json.JSONArray todos = plan.optJSONArray("todos");
                 for (int k = 0; k < 3; k++) e.putString("todo" + k, todos != null && k < todos.length() ? todos.optString(k, "") : "");
+                // The tickable rows and the "do next" line (kept as JSON; the planner widget reads them).
+                org.json.JSONArray open = plan.optJSONArray("open"), habitsLeft = plan.optJSONArray("habitsLeft");
+                e.putString("open", open != null ? open.toString() : "[]")
+                    .putString("habitsLeft", habitsLeft != null ? habitsLeft.toString() : "[]")
+                    .putString("next", plan.optString("next", ""))
+                    .putInt("done", plan.optInt("done"))
+                    .putInt("total", plan.optInt("total"))
+                    .putLong("fetchedAt", System.currentTimeMillis());
                 e.apply();
             }
             p.edit()
