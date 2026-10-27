@@ -83,6 +83,9 @@ export interface CaseChoice {
   difficulty?: "easy" | "medium" | "hard";
   /** A disease to practise. */
   disease?: string;
+  /** A patient from the doctor's own city (on the profile). */
+  nearMe?: boolean;
+  city?: string;
   /** The same patient again: the finished case's token. */
   retry?: string;
   /** Two-player: "invite", "find", "computer", or a duel id to join. */

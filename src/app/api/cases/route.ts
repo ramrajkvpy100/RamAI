@@ -97,7 +97,10 @@ export async function POST(req: Request) {
     }
     // Free first: the other doctor's case, one written ahead for this doctor, or one from the bank they haven't met.
     // (A hard case is always written fresh: the ready ones are easy or standard.)
-    const fresh = tutorial || daily || body.disease || shared || hard;
+    // "Near me": a patient from the doctor's own city, always written fresh.
+    // (Only letters, spaces and simple punctuation reach the case writer.)
+    const place = body.nearMe && !tutorial && !daily && !shared ? (body.city || user.city)?.replace(/[^\p{L}\p{M} ,.'-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60) || undefined : undefined;
+    const fresh = tutorial || daily || body.disease || shared || hard || place;
     const pooled = fresh ? null : await takeReady(user.id, choice).catch(() => null);
     const banked = fresh || pooled ? null : await takeFromBank(user.id, choice).catch(() => null);
     const ready = shared ?? pooled ?? banked;
@@ -120,11 +123,12 @@ export async function POST(req: Request) {
       unlimited: body.unlimited,
       learning: body.learning,
       disease: body.disease,
+      place,
       duel: duelId,
     }));
     usage.sessionId = session.state.sessionId;
     // A patient invented just now is kept for other doctors.
-    if (!shared && !banked && !tutorial && !daily) {
+    if (!shared && !banked && !tutorial && !daily && !place) {
       await bankCase(user.id, sessionInfo(session.token).src, { specialty: specialty, track: session.state.track, level: session.state.level, easy, country: user.country, lang: user.patientLang }).catch(() => undefined);
     }
     if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);

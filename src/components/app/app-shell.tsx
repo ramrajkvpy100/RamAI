@@ -11,6 +11,14 @@ import { ItemUnlocks } from "./item-unlocks";
 /** Signed-in chrome: header, page, footer. Seeds the client store with server data. */
 export function AppShell({ me, children, wide = false }: { me: Me; children: ReactNode; wide?: boolean }) {
   useEffect(() => primeMe(me), [me]);
+  // Signed in: the app gets its offline pages ready in the background (at most once an hour).
+  useEffect(() => {
+    try {
+      if (Date.now() - Number(localStorage.getItem("ramai.offline.at") ?? 0) < 3_600_000) return;
+      localStorage.setItem("ramai.offline.at", String(Date.now()));
+      void navigator.serviceWorker?.ready.then((r) => r.active?.postMessage("ramai:ready"));
+    } catch {}
+  }, []);
   return (
     <div className="relative flex min-h-dvh flex-col">
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(60%_60%_at_15%_0%,var(--mesh-1),transparent_70%),radial-gradient(50%_50%_at_90%_10%,var(--mesh-3),transparent_70%)]" />

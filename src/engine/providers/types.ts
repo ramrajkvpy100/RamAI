@@ -28,6 +28,8 @@ export interface StartOptions {
   country?: Country;
   /** A disease the doctor chose to practise ("Dengue fever"). */
   disease?: string;
+  /** "Near me": the doctor's city or district — the patient lives there, with what's common there. */
+  place?: string;
 }
 
 export interface InterpretContext {

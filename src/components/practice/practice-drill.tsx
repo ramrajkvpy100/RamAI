@@ -63,12 +63,33 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
     setLoading(true);
     setError(null);
     try {
-      const r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode, level, ...(subject ? { subject } : {}) });
+      // Rounds played are kept on the phone (the pictures too, by the app): with no connection, one of them again.
+      const keep = `ramai.rounds.${modality}.${mode}.${level ?? ""}.${subject ?? ""}`;
+      let r: { items: DrillItem[]; ready: number; total: number; offline?: boolean; kept?: boolean };
+      try {
+        r = await post<{ items: DrillItem[]; ready: number; total: number; offline?: boolean }>("/api/practice/round", { modality, mode, level, ...(subject ? { subject } : {}) });
+        if (r.items.length) {
+          try {
+            const kept = JSON.parse(localStorage.getItem(keep) ?? "[]") as DrillItem[][];
+            localStorage.setItem(keep, JSON.stringify([r.items, ...kept].slice(0, 4)));
+          } catch {}
+        }
+      } catch (err) {
+        let kept: DrillItem[][] = [];
+        try {
+          kept = JSON.parse(localStorage.getItem(keep) ?? "[]") as DrillItem[][];
+          // Offline the level may not be known: any kept round of this kind will do.
+          if (!kept.length) for (const k of Object.keys(localStorage)) if (k.startsWith(`ramai.rounds.${modality}.${mode}.`)) kept.push(...(JSON.parse(localStorage.getItem(k) ?? "[]") as DrillItem[][]));
+        } catch {}
+        if (!kept.length || (navigator.onLine && !(err instanceof TypeError))) throw err;
+        const items = [...kept[Math.floor(Math.random() * kept.length)]!].sort(() => Math.random() - 0.5);
+        r = { items, ready: items.length, total: items.length, kept: true };
+      }
       if (r.items.length === 0) {
         setError(r.offline ? "Pictures for this one can't be gathered right now — the picture checker is offline. Try the ECGs meanwhile." : "The pictures for this one are still being gathered. Try the ECGs meanwhile, or come back in a minute.");
         return;
       }
-      setReadyNote(r.ready < r.total ? `${r.ready} of ${r.total} diagnoses ready — more pictures are being added.` : null);
+      setReadyNote(r.kept ? "You're offline — a round you've played before, reshuffled." : r.ready < r.total ? `${r.ready} of ${r.total} diagnoses ready — more pictures are being added.` : null);
       setItems(r.items);
       setWrong([]);
       setIndex(0);

@@ -12,7 +12,8 @@ import { CARE_LEVELS, PLAYABLE_TRACKS, type CareLevel, type CaseTrack, type Spec
 import { cn } from "@/lib/cn";
 import type { CaseChoice, LibraryInfo } from "@/lib/engine-client";
 import { caseLabel } from "@/lib/format";
-import { useMe } from "@/lib/me-store";
+import { primeMe, useMe, type Me } from "@/lib/me-store";
+import { toast } from "@/lib/toast";
 import { useStartingMessage } from "@/lib/use-starting-message";
 import type { Plan } from "@/lib/plans";
 
@@ -62,6 +63,26 @@ export function CasePicker({
   const [learning, setLearning] = useState(() => { try { return localStorage.getItem("ramai.learning") === "1"; } catch { return false; } });
   const chooseLearning = (on: boolean) => { setLearning(on); try { localStorage.setItem("ramai.learning", on ? "1" : "0"); } catch {} };
   const [disease, setDisease] = useState("");
+  // "Near me": a patient from the doctor's own city, with what's common there.
+  const me = useMe();
+  const [nearMe, setNearMe] = useState(() => { try { return localStorage.getItem("ramai.nearMe") === "1"; } catch { return false; } });
+  const chooseNear = (on: boolean) => { setNearMe(on); try { localStorage.setItem("ramai.nearMe", on ? "1" : "0"); } catch {} };
+  const [city, setCity] = useState(() => { try { return localStorage.getItem("ramai.city") ?? ""; } catch { return ""; } });
+  const savedCity = me?.user.city?.trim() ?? "";
+  /** Saves a newly typed city to the profile first (it's what "near me" means), then starts. */
+  const start = async (choice: CaseChoice) => {
+    const c = city.trim();
+    if (nearMe && !savedCity) {
+      if (c.length < 2) return toast("Type your city or district first", { tone: "warning" });
+      try { localStorage.setItem("ramai.city", c); } catch {}
+      // Kept on the profile when there is one (guests: just for this case).
+      if (!me?.user.isGuest) {
+        const res = await fetch("/api/me/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ city: c }) }).catch(() => null);
+        if (res?.ok) primeMe((await res.json()) as Me);
+      }
+    }
+    onStart({ ...choice, ...(nearMe ? { nearMe: true, ...(savedCity ? {} : { city: c }) } : {}) });
+  };
   // Kept simple: specialty and level; the rest one tap away.
   const [more, setMore] = useState(false);
   // Starts at the doctor's own specialty; "Any specialty" means every one this time.
@@ -78,7 +99,7 @@ export function CasePicker({
       footer={
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
-          <button type="button" onClick={() => onStart({ track, level, difficulty, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}), ...(learning ? { learning: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
+          <button type="button" onClick={() => void start({ track, level, difficulty, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}), ...(learning ? { learning: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
             {starting ? startingLabel : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
             {/* How far along the new patient is: a bar filling along the bottom of the button. */}
@@ -97,6 +118,21 @@ export function CasePicker({
               </button>
             ))}
           </div>
+        </Group>
+
+        <Group label="Where the patient is from">
+          <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1" role="radiogroup" aria-label="Where the patient is from">
+            {([[false, "🌏 Anywhere", "cases from all over"], [true, "📍 Near me", savedCity ? savedCity : "your city's diseases"]] as const).map(([on, label, note]) => (
+              <button key={label} type="button" role="radio" aria-checked={nearMe === on} onClick={() => chooseNear(on)} className={cn("flex min-w-0 flex-col items-center justify-center rounded-lg px-2 py-2 text-center transition-colors", nearMe === on ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+                <span className="text-[14px] font-semibold">{label}</span>
+                <span className="max-w-full truncate text-[11.5px] text-fg-3">{note}</span>
+              </button>
+            ))}
+          </div>
+          {nearMe && !savedCity && (
+            <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={60} placeholder="Your city or district — e.g. Jaipur" aria-label="Your city or district" className="mt-2 h-11 w-full rounded-xl border border-line bg-surface px-3.5 text-[14.5px] outline-none focus:border-accent-line" />
+          )}
+          {nearMe && <p className="mt-1.5 text-[12px] text-fg-3">A patient from {savedCity || "your area"}, with the illnesses common there this season.{savedCity ? " Change the city on your profile." : ""}</p>}
         </Group>
 
         <Group label="Setting">

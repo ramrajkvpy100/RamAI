@@ -3,7 +3,8 @@
 /**
  * The personal revision deck, kept on this device: takeaways and pearls saved from debriefs, and questions from the
  * Skills Lab and exam practice (the ones answered wrong are added by themselves). Reviewed as flashcards with simple
- * spaced repetition: each card comes back sooner when it was hard and later when it was easy.
+ * spaced repetition: each card comes back sooner when it was hard and later when it was easy. Also kept with the
+ * account (signed in), so it survives a new phone or browser: merged card by card, the most-reviewed copy winning.
  */
 import { useEffect, useState } from "react";
 
@@ -37,17 +38,53 @@ const read = (): Card[] => {
     return [];
   }
 };
-const write = (cards: Card[]) => {
+const write = (cards: Card[], push = true) => {
   try {
     localStorage.setItem(KEY, JSON.stringify(cards.slice(-500)));
   } catch {}
   subs.forEach((f) => f());
+  if (push) schedulePush();
 };
+
+/* Kept with the account ------------------------------------------------------------------------------------- */
+const REMOVED = "ramai.deck.removed";
+const removed = (): string[] => {
+  try { return JSON.parse(localStorage.getItem(REMOVED) ?? "[]") as string[]; } catch { return []; }
+};
+let pushTimer: ReturnType<typeof setTimeout> | undefined;
+let synced = false;
+function schedulePush() {
+  if (!synced) return; // nothing goes up before the account's copy has been merged in
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    void fetch("/api/planner", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ doc: "deck", data: { cards: read().slice(-500), removed: removed().slice(-300) } }) }).catch(() => undefined);
+  }, 1500);
+}
+const newer = (a: Card, b: Card) => ((a.reviews ?? 0) !== (b.reviews ?? 0) ? ((a.reviews ?? 0) > (b.reviews ?? 0) ? a : b) : (a.due ?? 0) >= (b.due ?? 0) ? a : b);
+/** Once per page load: the account's deck merged with this phone's, then both kept the same. */
+async function sync() {
+  if (synced) return;
+  const res = await fetch("/api/planner?docs=deck", { cache: "no-store" }).catch(() => null);
+  if (!res?.ok) return; // offline or signed out: this phone's deck as it is
+  const remote = ((await res.json()) as { docs: { deck: { cards?: Card[]; removed?: string[] } | null } }).docs.deck;
+  synced = true;
+  const gone = new Set([...removed(), ...(remote?.removed ?? [])]);
+  const byId = new Map<string, Card>();
+  for (const c of [...(remote?.cards ?? []), ...read()]) {
+    if (gone.has(c.id)) continue;
+    const had = byId.get(c.id);
+    byId.set(c.id, had ? newer(had, c) : c);
+  }
+  try { localStorage.setItem(REMOVED, JSON.stringify([...gone].slice(-300))); } catch {}
+  write([...byId.values()].sort((a, b) => a.at - b.at));
+}
 const idOf = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 120);
 
 export const inDeck = (text: string) => read().some((c) => c.id === idOf(text));
 export function addCard(text: string, from: string, extra: { back?: string; source?: CardSource } = {}) {
   if (!text.trim() || inDeck(text)) return;
+  try { localStorage.setItem(REMOVED, JSON.stringify(removed().filter((x) => x !== idOf(text)))); } catch {}
+  void sync();
   write([...read(), { id: idOf(text), text, from, at: Date.now(), due: Date.now(), interval: 0, ease: 2.5, reviews: 0, source: extra.source ?? "case", ...(extra.back ? { back: extra.back } : {}) }]);
 }
 /** A question as a card: the stem (and its options) in front, the answer and explanation behind. */
@@ -56,9 +93,11 @@ export function addQuestion(stem: string, options: string[], answer: string, exp
   addCard(front, from, { back: `**Answer: ${answer}**\n${explanation}`, source });
 }
 export function removeCard(id: string) {
+  try { localStorage.setItem(REMOVED, JSON.stringify([...removed().filter((x) => x !== id), id].slice(-300))); } catch {}
   write(read().filter((c) => c.id !== id));
 }
 export function restoreCard(card: Card) {
+  try { localStorage.setItem(REMOVED, JSON.stringify(removed().filter((x) => x !== card.id))); } catch {}
   if (!read().some((c) => c.id === card.id)) write([...read(), card].sort((a, b) => a.at - b.at));
 }
 
@@ -88,6 +127,7 @@ export function useDeck(): Card[] {
     const f = () => setCards(read());
     f();
     subs.add(f);
+    void sync();
     return () => void subs.delete(f);
   }, []);
   return cards;

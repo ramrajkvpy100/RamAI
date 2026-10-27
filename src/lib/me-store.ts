@@ -45,6 +45,7 @@ export function clearMe() {
   // The pages the app keeps on the phone for speed and offline use are personal: forget them.
   try {
     localStorage.removeItem("ramai.me.v1");
+    localStorage.removeItem("ramai.offline.at");
     void caches.delete("ramai-pages-v1");
     navigator.serviceWorker?.controller?.postMessage("ramai:forget");
   } catch {}

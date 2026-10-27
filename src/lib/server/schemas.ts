@@ -25,6 +25,10 @@ export const StartSchema = z.object({
   /** "All resources": every test and treatment available. */
   unlimited: z.boolean().optional(),
   learning: z.boolean().optional(),
+  /** A patient from where the doctor is (their city on the profile), with what's common there. */
+  nearMe: z.boolean().optional(),
+  /** The city typed for "near me" (guests have no profile to keep it on). */
+  city: z.string().trim().max(60).optional(),
   /** How hard the case is: easy (very easy, classic), medium, hard. */
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),
   /** Two-player: invite a friend, find an opponent, play the computer — or a duel's id to join. */

@@ -7,8 +7,8 @@ import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** "habits", or one day: "day:2026-10-26". */
-const DOC = /^(habits|day:\d{4}-\d{2}-\d{2})$/;
+/** "habits", one day: "day:2026-10-26", or "deck" (the revision deck, kept with the account). */
+const DOC = /^(habits|deck|day:\d{4}-\d{2}-\d{2})$/;
 
 /** GET /api/planner?docs=habits,day:2026-10-26,… — the planner's documents (missing ones are null). */
 export async function GET(req: Request) {
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
 const Put = z.object({ doc: z.string().regex(DOC), data: z.unknown() });
 
-/** PUT /api/planner — save one document (at most 40 KB). */
+/** PUT /api/planner — save one document (at most 40 KB; the deck 600 KB). */
 export async function PUT(req: Request) {
   const blocked = crossSite(req) ?? rateLimited(req, 120);
   if (blocked) return blocked;
@@ -38,7 +38,7 @@ export async function PUT(req: Request) {
   try {
     const user = await requireUser();
     const data = JSON.stringify(body.data ?? null);
-    if (data.length > 40_000) return apiError(400, "BAD_REQUEST", "Too long.");
+    if (data.length > (body.doc === "deck" ? 600_000 : 40_000)) return apiError(400, "BAD_REQUEST", "Too long.");
     await db.run("INSERT INTO planner_docs (user_id, doc, data, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, doc) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at", user.id, body.doc, data, Date.now());
     return ok({ saved: true });
   } catch (err) {

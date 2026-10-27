@@ -215,6 +215,8 @@ export interface StartCaseOptions {
   unlimited?: boolean;
   /** A disease the doctor chose to practise. */
   disease?: string;
+  /** "Near me": the doctor's city or district. */
+  place?: string;
   /** The duel this case is played in. */
   duel?: string;
   /** Learning mode: four choices at every step. */

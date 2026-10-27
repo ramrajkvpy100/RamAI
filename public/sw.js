@@ -22,6 +22,7 @@ button{margin-top:22px;height:44px;padding:0 24px;border:0;border-radius:999px;c
 <script>addEventListener("online",function(){location.reload()})</script></body></html>`;
 
 const STATIC = "ramai-static-v1";
+// Bump to empty the kept pages after a change to how they're kept.
 const MEDIA = "ramai-media-v1";
 const PAGES = "ramai-pages-v1";
 const KEEP = [STATIC, MEDIA, PAGES];
@@ -31,12 +32,28 @@ const INSTANT = /^\/(plan|focus|revision|profile|achievements|learn|practice)(\/
 // Not videos or sounds: those are streamed in pieces, which the browser's own cache already handles.
 const MEDIA_RE = /\.(png|jpe?g|webp|avif|gif|svg|ico|woff2?)$/i;
 
+/** Opened offline even before you've visited them: fetched with the code each one needs. */
+const READY = ["/", "/plan", "/focus", "/revision", "/practice", "/achievements", "/profile", "/progress"];
+
+async function keepReady() {
+  const [pages, code] = await Promise.all([caches.open(PAGES), caches.open(STATIC)]);
+  await Promise.all(
+    READY.map(async (u) => {
+      try {
+        const res = await fetch(u, { credentials: "include" });
+        if (!keepable(res) || res.status !== 200) return;
+        const html = await res.clone().text();
+        await pages.put(self.location.origin + u, res);
+        const chunks = [...new Set(html.match(/\/_next\/static\/[^"'\s)\\]+/g) || [])].slice(0, 80);
+        await Promise.all(chunks.map((c) => code.match(c).then((hit) => hit || fetch(c).then((r) => (r.ok ? code.put(c, r) : undefined))).catch(() => undefined)));
+      } catch {}
+    }),
+  );
+}
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  // The pages that work offline, fetched once so they're ready even before you open them.
-  event.waitUntil(
-    caches.open(PAGES).then((c) => Promise.all(["/plan", "/focus", "/revision"].map((u) => fetch(u, { credentials: "include" }).then((r) => (keepable(r) ? c.put(u, r) : undefined)).catch(() => undefined)))),
-  );
+  event.waitUntil(keepReady());
 });
 
 self.addEventListener("activate", (event) => {
@@ -52,7 +69,13 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   // Logging out: the kept pages are personal.
   if (event.data === "ramai:forget") event.waitUntil(caches.delete(PAGES));
+  // Signed in (or the app opened): get the offline pages ready, at most once an hour.
+  if (event.data === "ramai:ready" && Date.now() - lastReady > 3_600_000) {
+    lastReady = Date.now();
+    event.waitUntil(keepReady());
+  }
 });
+let lastReady = 0;
 
 const keepable = (res) => res && res.ok && (res.type === "basic" || res.type === "default") && !res.redirected;
 
@@ -110,7 +133,10 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (url.origin !== self.location.origin) return;
+  // Skills Lab pictures never change for an id: kept on the phone, so rounds played work offline.
+  if (url.pathname.startsWith("/api/practice/image/")) return event.respondWith(fromPhone(req, MEDIA, 300));
+  if (url.pathname.startsWith("/api/")) return;
   if (req.mode === "navigate") return event.respondWith(page(event, url));
   if (url.pathname.startsWith("/_next/static/")) return event.respondWith(fromPhone(req, STATIC, 400));
   if (!url.search && MEDIA_RE.test(url.pathname) && !url.pathname.startsWith("/_next/")) return event.respondWith(fromPhone(req, MEDIA, 300));
