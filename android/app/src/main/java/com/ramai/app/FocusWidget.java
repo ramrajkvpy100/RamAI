@@ -97,8 +97,8 @@ public class FocusWidget extends AppWidgetProvider {
     }
 
     static PendingIntent open(Context context, String path, int code) {
-        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(SITE + path));
-        i.setPackage(context.getPackageName());
+        // Straight to the app's own launcher (not "any app for this link"), which opens the page in the app.
+        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(SITE + path)).setClass(context, RamLauncherActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return PendingIntent.getActivity(context, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }

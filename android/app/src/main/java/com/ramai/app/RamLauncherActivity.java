@@ -11,6 +11,7 @@ import com.google.android.play.core.appupdate.AppUpdateOptions;
 import com.google.android.play.core.install.model.AppUpdateType;
 import com.google.android.play.core.install.model.UpdateAvailability;
 import com.google.androidbrowserhelper.trusted.LauncherActivity;
+import com.google.androidbrowserhelper.trusted.TwaLauncher;
 
 /**
  * Opens RamAI — but first, if Google Play has a newer version, Play's own full-screen "Update" appears right here
@@ -26,12 +27,30 @@ public class RamLauncherActivity extends LauncherActivity {
         return false;
     }
 
+    private static final String CHROME = "com.android.chrome";
+
+    /**
+     * Always Chrome when it's there (it is on nearly every Android phone, Samsung's included): other browsers —
+     * Samsung Internet especially — can ignore the page a widget or notification asks for when the app is already
+     * open, and keep the site's data apart from Chrome's.
+     */
+    @Override
+    protected TwaLauncher createTwaLauncher() {
+        try {
+            android.content.pm.ApplicationInfo chrome = getPackageManager().getApplicationInfo(CHROME, 0);
+            if (chrome.enabled) return new TwaLauncher(this, CHROME);
+        } catch (Exception ignored) { }
+        return super.createTwaLauncher();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Opening the app refreshes the progress and planner widgets.
         try { ProgressWidget.refreshAll(this); } catch (Exception ignored) { }
-        if (savedInstanceState != null) { openApp(); return; }
+        // A widget, notification or link asking for a page: open it at once (the update check is for the app icon).
+        boolean fromIcon = Intent.ACTION_MAIN.equals(getIntent().getAction());
+        if (savedInstanceState != null || !fromIcon) { openApp(); return; }
         new Handler(Looper.getMainLooper()).postDelayed(this::openApp, 2500);
         try {
             AppUpdateManager updates = AppUpdateManagerFactory.create(this);
