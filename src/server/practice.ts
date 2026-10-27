@@ -126,7 +126,10 @@ export async function round(modality: Modality, mode: PracticeMode, level: "basi
   const ready = new Set(pool.map((p) => p.item.id)).size;
   const picked = everything ? shuffle(pool) : shuffle(pool).slice(0, mode === "spot" ? SPOT_COUNT : 40);
   const items = picked.map(({ item, row }): DrillItem => {
-    const others = shuffle(bank.filter((b) => b.id !== item.id && b.label !== item.label)).slice(0, 3);
+    // Look-alikes first: wrong options from the same body area when there are enough of them.
+    const pool = bank.filter((b) => b.id !== item.id && b.label !== item.label);
+    const near = pool.filter((b) => groupOf(modality, b) === groupOf(modality, item));
+    const others = (near.length >= 3 ? shuffle(near) : [...shuffle(near), ...shuffle(pool.filter((b) => !near.includes(b)))]).slice(0, 3);
     const options = shuffle([item, ...others]);
     return {
       item: item.id,

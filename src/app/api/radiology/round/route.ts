@@ -8,7 +8,7 @@ import { addPicture, missingPictures, picturesAvailable, round } from "@/server/
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { EXTRA_ITEMS, RADIOLOGY_BRIEFS, RADIOLOGY_MODALITIES, type ExtraModality } from "@/lib/radiology";
 import SINGLES from "@/lib/radiology-singles.json";
-import { MODALITIES, type DrillItem } from "@/lib/practice";
+import { groupOf, MODALITIES, type DrillItem } from "@/lib/practice";
 import type { Modality } from "@/lib/practice";
 
 export const runtime = "nodejs";
@@ -51,7 +51,10 @@ export async function POST(req: Request) {
     const bank = MODALITIES[modality].items;
     const kept = SINGLES.filter((s) => s.modality === modality && RADIOLOGY_BRIEFS[s.item]).map((s): DrillItem & { brief: (typeof RADIOLOGY_BRIEFS)[string] } => {
       const item = bank.find((b) => b.id === s.item)!;
-      const options = shuffle([item, ...shuffle(bank.filter((b) => b.id !== item.id)).slice(0, 3)]);
+      // Wrong options from the same body area (a hip fracture against other fractures, not chest diseases).
+      const near = bank.filter((b) => b.id !== item.id && b.label !== item.label && groupOf(modality, b) === groupOf(modality, item));
+      const others = near.length >= 3 ? near : [...near, ...bank.filter((b) => b.id !== item.id && !near.includes(b))];
+      const options = shuffle([item, ...(near.length >= 3 ? shuffle(near) : [...shuffle(near), ...shuffle(others.slice(near.length))]).slice(0, 3)]);
       return { item: item.id, image: s.src, ecg: null, options: options.map((o) => o.label), answer: options.indexOf(item), key: item.key, keys: options.map((o) => o.key), credit: { author: s.author, license: s.license, source: s.source }, source: "commons", brief: RADIOLOGY_BRIEFS[s.item]! };
     });
     const items = shuffle([...kept, ...banked]).slice(0, 300);
