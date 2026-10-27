@@ -1,9 +1,13 @@
 /*
- * RamAI service worker — for the installed app.
- *   · Pages always come fresh from the network (they're personal); with no
- *     connection, a small offline page instead of the browser's error.
+ * RamAI service worker — what makes the app fast and work offline.
+ *   · The app's code (/_next/static — every file name is unique to its build)
+ *     and pictures, sounds and videos come from the phone after the first time.
+ *   · Pages you've opened are kept on the phone too: the planner, focus timer,
+ *     revision deck, profile, achievements, Learn and the Skills Lab open
+ *     instantly from it and refresh in the background; other pages try the
+ *     network first and use the kept copy when there's no connection (or it's
+ *     too slow). Logging out empties the kept pages.
  *   · The daily reminder: shows the (end-to-end encrypted) message it carries.
- * Nothing is cached.
  */
 
 const OFFLINE_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Offline · RamAI</title><style>
@@ -14,34 +18,102 @@ const OFFLINE_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"
 h1{margin:16px 0 6px;font-size:21px;letter-spacing:-.02em}p{margin:0;color:var(--fg2)}
 button{margin-top:22px;height:44px;padding:0 24px;border:0;border-radius:999px;color:#fff;font-family:inherit;font-size:15px;font-weight:600;line-height:1;background:linear-gradient(135deg,#7c3aed,#2563eb 55%,#06b6d4);cursor:pointer}
 </style></head><body><main class="card"><svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset=".5" stop-color="#2563eb"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs><rect width="64" height="64" rx="19" fill="url(#g)"/><path d="M10 35h12l4-9 6 19 5-14 3 4h14" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-<h1>You're offline</h1><p>RamAI needs a connection to run your cases. Your progress is safe — this page reloads by itself when you're back online.</p><button onclick="location.reload()">Try again</button></main>
+<h1>You're offline</h1><p>This page needs a connection — open it once online and it'll work offline after. Your planner, focus timer and revision deck work offline. Your progress is safe — this page reloads by itself when you're back online.</p><button onclick="location.reload()">Try again</button></main>
 <script>addEventListener("online",function(){location.reload()})</script></body></html>`;
 
-self.addEventListener("install", () => self.skipWaiting());
+const STATIC = "ramai-static-v1";
+const MEDIA = "ramai-media-v1";
+const PAGES = "ramai-pages-v1";
+const KEEP = [STATIC, MEDIA, PAGES];
+
+/** Opened from the phone at once, refreshed behind the scenes (they draw from what's kept on the phone anyway). */
+const INSTANT = /^\/(plan|focus|revision|profile|achievements|learn|practice)(\/|$)/;
+// Not videos or sounds: those are streamed in pieces, which the browser's own cache already handles.
+const MEDIA_RE = /\.(png|jpe?g|webp|avif|gif|svg|ico|woff2?)$/i;
+
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+  // The pages that work offline, fetched once so they're ready even before you open them.
+  event.waitUntil(
+    caches.open(PAGES).then((c) => Promise.all(["/plan", "/focus", "/revision"].map((u) => fetch(u, { credentials: "include" }).then((r) => (keepable(r) ? c.put(u, r) : undefined)).catch(() => undefined)))),
+  );
+});
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      // Earlier versions may have cached things; this one caches nothing.
-      for (const key of await caches.keys()) await caches.delete(key);
+      for (const key of await caches.keys()) if (!KEEP.includes(key)) await caches.delete(key);
       if (self.registration.navigationPreload) await self.registration.navigationPreload.enable();
       await self.clients.claim();
     })(),
   );
 });
 
+self.addEventListener("message", (event) => {
+  // Logging out: the kept pages are personal.
+  if (event.data === "ramai:forget") event.waitUntil(caches.delete(PAGES));
+});
+
+const keepable = (res) => res && res.ok && (res.type === "basic" || res.type === "default") && !res.redirected;
+
+async function trim(name, max) {
+  const c = await caches.open(name);
+  const keys = await c.keys();
+  for (let i = 0; i < keys.length - max; i++) await c.delete(keys[i]);
+}
+
+/** From the phone if it's there, otherwise from the network (and kept). */
+async function fromPhone(req, name, max) {
+  const c = await caches.open(name);
+  const hit = await c.match(req, { ignoreVary: true });
+  if (hit) return hit;
+  const res = await fetch(req);
+  if (keepable(res) && res.status === 200) {
+    await c.put(req, res.clone());
+    if (max) trim(name, max);
+  }
+  return res;
+}
+
+const pageKey = (url) => url.origin + url.pathname;
+
+async function page(event, url) {
+  const c = await caches.open(PAGES);
+  const key = pageKey(url);
+  const network = (async () => {
+    const res = (await event.preloadResponse) || (await fetch(event.request));
+    if (keepable(res) && res.status === 200) {
+      await c.put(key, res.clone());
+      trim(PAGES, 40);
+    }
+    return res;
+  })();
+  const kept = await c.match(key);
+  if (kept && INSTANT.test(url.pathname)) {
+    event.waitUntil(network.catch(() => undefined));
+    return kept;
+  }
+  // Everything else: the network, unless it fails or takes too long and there's a kept copy.
+  try {
+    if (!kept) return await network;
+    return await Promise.race([network, new Promise((_, no) => setTimeout(() => no(new Error("slow")), 4000))]);
+  } catch {
+    if (kept) {
+      event.waitUntil(network.catch(() => undefined));
+      return kept;
+    }
+    return new Response(OFFLINE_PAGE, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.mode !== "navigate" || req.method !== "GET" || new URL(req.url).pathname.startsWith("/api/")) return;
-  event.respondWith(
-    (async () => {
-      try {
-        return (await event.preloadResponse) || (await fetch(req));
-      } catch {
-        return new Response(OFFLINE_PAGE, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
-      }
-    })(),
-  );
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (req.mode === "navigate") return event.respondWith(page(event, url));
+  if (url.pathname.startsWith("/_next/static/")) return event.respondWith(fromPhone(req, STATIC, 400));
+  if (!url.search && MEDIA_RE.test(url.pathname) && !url.pathname.startsWith("/_next/")) return event.respondWith(fromPhone(req, MEDIA, 300));
 });
 
 /** Only ever opens RamAI's own pages. */

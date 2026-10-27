@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Rich } from "@/components/ui/rich-lines";
 import { WaitingFact } from "@/components/ui/waiting-fact";
@@ -16,22 +16,31 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
   const [guide, setGuide] = useState<{ question: string; options: GuideChoice[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [picked, setPicked] = useState<number[]>([]);
+  const [retry, setRetry] = useState(0);
+  const touched = useRef(false);
 
   useEffect(() => {
     if (busy) return;
     let off = false;
     setLoading(true);
     setPicked([]);
+    touched.current = false;
+    // The case file's four choices at once; the model's (better worded, with reasons) replace them when they
+    // arrive — unless a choice has already been tapped.
+    let shown = false;
+    fetchGuide(token, true)
+      .then((r) => { if (!off && r.guide && !shown) { shown = true; setGuide(r.guide); setLoading(false); } })
+      .catch(() => undefined);
     fetchGuide(token)
-      .then((r) => !off && setGuide(r.guide))
-      .catch(() => !off && setGuide(null))
+      .then((r) => { if (!off && r.guide && !touched.current) { shown = true; setGuide(r.guide); } })
+      .catch(() => undefined)
       .finally(() => !off && setLoading(false));
     return () => {
       off = true;
     };
     // A new set of choices after every turn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turn, busy]);
+  }, [turn, busy, retry]);
 
   if (loading || busy) {
     return (
@@ -42,7 +51,14 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
       </div>
     );
   }
-  if (!guide) return null;
+  if (!guide) {
+    return (
+      <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-[13.5px] text-fg-2">
+        The choices didn&apos;t load.
+        <button type="button" onClick={() => setRetry((n) => n + 1)} className="rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-on-accent">Try again</button>
+      </div>
+    );
+  }
   const last = picked[picked.length - 1];
   const chosen = last !== undefined ? guide.options[last] : undefined;
   return (
@@ -56,7 +72,7 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
               key={o.text}
               type="button"
               disabled={tried || chosen?.correct}
-              onClick={() => { tap(); setPicked((p) => [...p, n]); }}
+              onClick={() => { tap(); touched.current = true; setPicked((p) => [...p, n]); }}
               className={cn(
                 "min-h-10 rounded-xl border px-3 py-2 text-left text-[14px] transition-colors",
                 tried ? (o.correct ? "border-success bg-success-soft" : "border-danger bg-danger-soft") : "border-line bg-surface-2 hover:bg-surface-3",

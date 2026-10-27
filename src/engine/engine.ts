@@ -421,7 +421,7 @@ export async function submitDoctorAction(token: string, input: string, userId: s
  * Learning mode: the next step as four choices — the right one and three tempting others — each with why or why
  * not for this patient. Without the model, the senior's step alone (no wrong choices).
  */
-export async function guideFor(token: string, userId: string, lang: PatientLang = "en"): Promise<GuideOptions | null> {
+export async function guideFor(token: string, userId: string, lang: PatientLang = "en", quick = false): Promise<GuideOptions | null> {
   const provider = await getProvider();
   const payload = open(token, userId);
   if (!payload.lm) throw new EngineError("BAD_INPUT", "Not a learning-mode case.");
@@ -429,7 +429,7 @@ export async function guideFor(token: string, userId: string, lang: PatientLang 
   if (hidden.closed) return null;
   const step = nextSeniorStep(def, hidden);
   if (step.stage === "end" || !step.ask) return { question: "You've done the essentials.", options: [{ text: "End case", correct: true, why: step.why[0]!.toUpperCase() + step.why.slice(1) + "." }] };
-  const made = provider.guide ? await provider.guide(step, { def, hidden, transcript: state.messages.slice(-40), country, lang }).catch(() => undefined) : undefined;
+  const made = provider.guide && !quick ? await provider.guide(step, { def, hidden, transcript: state.messages.slice(-40), country, lang }).catch(() => undefined) : undefined;
   if (made && made.options.length >= 4) return made;
   // Without the model (or with too few choices): three others of the same kind from the case file itself, so
   // there are always four choices.

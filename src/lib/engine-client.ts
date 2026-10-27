@@ -96,7 +96,7 @@ export const tickCase = (token: string) => call<TurnResponse>("/api/cases/tick",
 export const resumeCase = (token: string) => call<CaseSession>("/api/cases/resume", { token });
 /** Learning mode: the next step as four choices. */
 export interface GuideChoice { text: string; correct: boolean; why: string }
-export const fetchGuide = (token: string) => call<{ guide: { question: string; options: GuideChoice[] } | null }>("/api/cases/guide", { token });
+export const fetchGuide = (token: string, quick = false) => call<{ guide: { question: string; options: GuideChoice[] } | null }>("/api/cases/guide", { token, ...(quick && { quick }) });
 export const getLibrary = () => call<LibraryInfo>("/api/cases/library");
 
 /* Convenience wrappers — all are natural-language actions underneath. */

@@ -42,6 +42,12 @@ export function primeMe(me: Me) {
 export function clearMe() {
   snapshot = null;
   emit();
+  // The pages the app keeps on the phone for speed and offline use are personal: forget them.
+  try {
+    localStorage.removeItem("ramai.me.v1");
+    void caches.delete("ramai-pages-v1");
+    navigator.serviceWorker?.controller?.postMessage("ramai:forget");
+  } catch {}
 }
 
 export async function refreshMe(): Promise<Me | null> {

@@ -420,9 +420,9 @@ function GlobalRow({ r, me, index }: { r: LeaderRow; me: boolean; index: number 
   );
 }
 
-function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
+function GlobalTab({ meId, isPro, initialScope = "all" }: { meId: string; isPro: boolean; initialScope?: "all" | "near" | "college" }) {
   const [board, setBoard] = useState<BoardId>("overall");
-  const [scope, setScope] = useState<"all" | "near" | "college">("all");
+  const [scope, setScope] = useState<"all" | "near" | "college">(initialScope);
   const [locating, setLocating] = useState(false);
   const [reload, setReload] = useState(0);
   /** Asks the phone where it is (roughly), saves it rounded to ~10 km, and shows the board near there. */
@@ -528,23 +528,23 @@ function GlobalTab({ meId, isPro }: { meId: string; isPro: boolean }) {
 /* -------------------------------------------------------------------------- */
 
 export function Leaderboard({ me }: { me: Me }) {
-  const [tab, setTab] = useState<"league" | "all">("league");
+  const [tab, setTab] = useState<"league" | "all" | "near">("league");
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em]">Leaderboard</h1>
-          <p className="mt-1 text-[14px] text-fg-2">{tab === "league" ? "Weekly leagues reset every Monday at 00:00 IST." : "All-time XP across RamAI."}</p>
+          <p className="mt-1 text-[14px] text-fg-2">{tab === "league" ? "Weekly leagues reset every Monday at 00:00 IST." : tab === "near" ? "Top doctors within 50 km of you." : "All-time XP across RamAI."}</p>
         </div>
         <div role="radiogroup" aria-label="View" className="inline-flex self-start rounded-full border border-line bg-surface p-1 shadow-sm sm:self-auto">
-          {(["league", "all"] as const).map((t) => (
+          {(["league", "near", "all"] as const).map((t) => (
             <button key={t} type="button" role="radio" aria-checked={tab === t} onClick={() => setTab(t)} className={cn("h-8 rounded-full px-4 text-[13px] font-medium transition-colors", tab === t ? "bg-fg text-bg" : "text-fg-2 hover:text-fg")}>
-              {t === "league" ? "My league" : "All time"}
+              {t === "league" ? "My league" : t === "near" ? "📍 Near me" : "All time"}
             </button>
           ))}
         </div>
       </div>
-      {tab === "league" ? <LeagueTab me={me} /> : <GlobalTab meId={me.user.id} isPro={planFor(me.user).id === "pro"} />}
+      {tab === "league" ? <LeagueTab me={me} /> : <GlobalTab key={tab} meId={me.user.id} isPro={planFor(me.user).id === "pro"} initialScope={tab === "near" ? "near" : "all"} />}
     </div>
   );
 }
