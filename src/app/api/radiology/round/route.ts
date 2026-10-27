@@ -41,11 +41,11 @@ export async function POST(req: Request) {
         const options = shuffle([item, ...shuffle(pool.filter((x) => x.id !== item.id)).slice(0, 3)]);
         return { item: item.id, image: s.src, ecg: null, options: options.map((o) => o.label), answer: options.indexOf(item), key: item.key, keys: options.map((o) => o.key), credit: { author: s.author, license: s.license, source: s.source }, source: "commons" as const, brief: { history: item.history, question: item.question } };
       });
-      return ok({ items: items.slice(0, 60) });
+      return ok({ items: items.slice(0, 300) });
     }
     const modality = body.modality as Modality;
-    // The larger draw (up to 40 from the bank): every system shows all it has.
-    const r = await round(modality, "rapid");
+    // Every picture in the bank with a request form: each system shows all it has.
+    const r = await round(modality, "spot", "full", undefined, true);
     const banked = r.items.filter((i) => i.image && RADIOLOGY_BRIEFS[i.item]).map((i) => ({ ...i, brief: RADIOLOGY_BRIEFS[i.item]! }));
     // Studies kept with the site: real Commons images, each looked at by a person before it was kept.
     const bank = MODALITIES[modality].items;
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       const options = shuffle([item, ...shuffle(bank.filter((b) => b.id !== item.id)).slice(0, 3)]);
       return { item: item.id, image: s.src, ecg: null, options: options.map((o) => o.label), answer: options.indexOf(item), key: item.key, keys: options.map((o) => o.key), credit: { author: s.author, license: s.license, source: s.source }, source: "commons", brief: RADIOLOGY_BRIEFS[s.item]! };
     });
-    const items = shuffle([...kept, ...banked]).slice(0, 60);
+    const items = shuffle([...kept, ...banked]).slice(0, 300);
     // The bank fills in the background: a few more real studies (from Wikimedia Commons, checked) for next time.
     if (picturesAvailable() && items.length < 12) {
       after(() =>

@@ -6,16 +6,18 @@ import { Rich, RichLines } from "@/components/ui/rich-lines";
 import { ExplainMore } from "@/components/practice/explain-more";
 import { ReportProblem } from "@/components/case/report-problem";
 import { Portal } from "@/components/ui/portal";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import type { DrillItem, Modality } from "@/lib/practice";
 import type { RadiologyBrief } from "@/lib/radiology";
 import STACKS from "@/lib/radiology-stacks.json";
+import GEOMETRY from "@/lib/radiology-geometry.json";
 
+import { SaveOffline, stackUrls, warm } from "./save-offline";
 import { StackViewer } from "./stack-viewer";
 
-type Item = DrillItem & { brief: RadiologyBrief; stack?: { id: string; slices: number; credit: string; windows?: string[] } };
+type Item = DrillItem & { brief: RadiologyBrief; stack?: { id: string; slices: number; credit: string; windows?: string[]; zRatio?: number } };
 type Tab = Modality | "mammo" | "mri";
 /** CT and MRI: scroll through the series (as at a workstation), or single images. */
 type View = "scroll" | "static";
@@ -24,8 +26,8 @@ const TABS: [Tab, string][] = [["xray", "X-ray"], ["ct", "CT"], ["mri", "MRI"], 
 
 /** Body systems, and the chapters within them — each study sorted by its id and diagnosis. */
 const SYSTEMS: [string, RegExp][] = [
-  ["Brain & spine", /edh|sdh|sah|ich|infarct|hydroceph|abscess-brain|brain|ncc|tubercul?oma|gbm|glio|ms\b|mri-ms|pituitar|meningio|schwannoma|vs-mri|skull|disc|spine|potts|c-spine|cerebr|ivh/i],
-  ["Chest & lungs", /cxr|pneumo(?!peritoneum)|tension|consolidation|effusion|oedema|edema|cardiomegaly|miliary|cavity|collapse|copd|emphysema|lung|bronch|ild|hilar|haemothorax|empyema|ground-glass|covid|pe\b|embol|mediastin|rib|b-lines|lung-sliding/i],
+  ["Brain & spine", /ct-normal-head|\bhead\b|edh|sdh|sah|ich|infarct|hydroceph|abscess-brain|brain|ncc|tubercul?oma|gbm|glio|ms\b|mri-ms|pituitar|meningio|schwannoma|vs-mri|skull|disc|spine|potts|c-spine|cerebr|ivh/i],
+  ["Chest & lungs", /ngt|ett-|tube|cxr|pneumo(?!peritoneum)|tension|consolidation|effusion|oedema|edema|cardiomegaly|miliary|cavity|collapse|copd|emphysema|lung|bronch|ild|hilar|haemothorax|empyema|ground-glass|covid|pe\b|embol|mediastin|rib|b-lines|lung-sliding/i],
   ["Liver", /liver|hcc|hepat|cirrhosis|hydatid|fatty|tace/i],
   ["Gallbladder & pancreas", /gall|chole|gb-|cbd|pancrea|pseudocyst/i],
   ["Kidney & bladder", /\brenal|kidney|kub|stone|calcul|hydroneph|pyelo|pkd|ckd|bladder|bph|prostat/i],
@@ -33,17 +35,29 @@ const SYSTEMS: [string, RegExp][] = [
   ["Bones & joints", /fracture|colles|nof|scaphoid|boxer|ankle|tibia|clavicle|shoulder|supracondylar|oa-|ra-|gout|ankylos|osteo|rickets|pelvic|acl|knee/i],
   ["Women & pregnancy", /ectopic|iup|ovar|fibroid|pcos|dermoid|endometrioma|molar|miscarriage|twin|placenta|breech|anenceph|mammo|breast|fibroadenoma/i],
   ["Vessels & heart", /dissection|aaa|aneurysm|dvt|pericardial|varicocele|testicular/i],
-  ["Neck & thyroid", /thyroid|lymph|graves|adenoma|nm-|epiglott|croup|sinus|orbital/i],
+  ["Neck & thyroid", /foreign-body|coin|thyroid|lymph|graves|adenoma|nm-|epiglott|croup|sinus|orbital/i],
 ];
-const systemOf = (it: { item: string; options: string[]; answer: number }) => SYSTEMS.find(([, re]) => re.test(`${it.item} ${it.options[it.answer] ?? ""}`))?.[0] ?? "Other";
+const systemOf = (it: { item: string; options: string[]; answer: number }) => SYSTEMS.find(([, re]) => re.test(`${it.item} ${it.options[it.answer] ?? ""}`))?.[0] ?? "Other systems";
+/** Systems with fewer than 10 studies are pooled as "Other systems" (when there are several). */
+const MIN_PER_SYSTEM = 10;
+function groupSystems(items: { item: string; options: string[]; answer: number }[]): Map<string, string> {
+  const raw = new Map<string, number>();
+  for (const it of items) raw.set(systemOf(it), (raw.get(systemOf(it)) ?? 0) + 1);
+  const small = [...raw].filter(([, n]) => n < MIN_PER_SYSTEM).map(([k]) => k);
+  // (Never folded into another named system: a study is always shown under a true heading.)
+  return new Map([...raw.keys()].map((k) => [k, small.length > 1 && small.includes(k) ? "Other systems" : k]));
+}
 
 const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
+
+/** How tall one slice is in shown pixels: from the manifest (new stacks) or the measured geometry (older ones). */
+const zRatioOf = (s: (typeof STACKS)[number]): number | undefined => ("zRatio" in s && typeof s.zRatio === "number" ? s.zRatio : (GEOMETRY as Record<string, number | null>)[s.id] ?? undefined);
 
 /** The scroll-through series (real TCIA studies), as reporting cases. */
 function stackItems(only: "CT" | "MR"): Item[] {
   return shuffle(STACKS.filter((s) => s.modality === only)).map((s) => {
     const options = shuffle(s.options);
-    return { item: s.id, image: null, ecg: null, options, answer: options.indexOf(s.diagnosis), key: s.key, credit: null, source: "commons" as const, brief: { history: s.history, question: s.question }, stack: { id: s.id, slices: s.slices, credit: s.credit, ...("windows" in s && Array.isArray(s.windows) ? { windows: s.windows as string[] } : {}) } };
+    return { item: s.id, image: null, ecg: null, options, answer: options.indexOf(s.diagnosis), key: s.key, credit: null, source: "commons" as const, brief: { history: s.history, question: s.question }, stack: { id: s.id, slices: s.slices, credit: s.credit, ...("windows" in s && Array.isArray(s.windows) ? { windows: s.windows as string[] } : {}), ...(zRatioOf(s) ? { zRatio: zRatioOf(s) } : {}) } };
   });
 }
 
@@ -83,17 +97,27 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
     setItems(got);
   }, []);
   useEffect(() => void load(modality, view), [modality, view, load]);
-  const systems = all ? [...new Set(all.map(systemOf))] : [];
+  const groups = useMemo(() => groupSystems(all ?? []), [all]);
+  const sysOf = (x: Item) => groups.get(systemOf(x)) ?? systemOf(x);
+  const systems = all ? [...new Set(all.map(sysOf))].sort((a, b) => (a === "Other systems" ? 1 : b === "Other systems" ? -1 : 0)) : [];
   const chooseSystem = (sys: string | null) => {
     setSystem(sys);
     setIndex(0);
     setPicked(null);
     setFindings("");
     setScore(0);
-    setItems(all ? (sys ? all.filter((x) => systemOf(x) === sys) : all) : null);
+    setItems(all ? (sys ? all.filter((x) => sysOf(x) === sys) : all) : null);
   };
 
   const item = items?.[index];
+  // The next study is fetched while this one is read, so it opens at once.
+  const nextItem = items?.[index + 1];
+  useEffect(() => {
+    if (!nextItem) return;
+    let stop = false;
+    const t = setTimeout(() => void warm(nextItem.stack ? stackUrls(nextItem.stack, true) : nextItem.image ? [nextItem.image] : [], undefined, () => stop, 3), 1500);
+    return () => { stop = true; clearTimeout(t); };
+  }, [nextItem]);
   const crowd = useCrowd(item ? `radio:${item.item}` : "none", item?.options ?? [], item && picked !== null ? item.options[picked]! : null, item ? item.options[item.answer]! : "");
   const next = () => {
     setPicked(null);
@@ -117,6 +141,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
         ))}
       </div>
 
+      <SaveOffline />
       {(modality === "ct" || modality === "mri") && (
         <div className="flex gap-1 self-start rounded-full bg-surface-3 p-1 text-[13px]">
           {(["scroll", "static"] as const).map((v) => (
@@ -130,7 +155,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
         <div role="radiogroup" aria-label="System" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {[null, ...systems].map((sys) => (
             <button key={sys ?? "all"} type="button" role="radio" aria-checked={system === sys} onClick={() => chooseSystem(sys)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", system === sys ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
-              {sys ?? "All systems"} <span className="text-fg-3 tabular">{sys ? all!.filter((x) => systemOf(x) === sys).length : all!.length}</span>
+              {sys ?? "All systems"} <span className="text-fg-3 tabular">{sys ? all!.filter((x) => sysOf(x) === sys).length : all!.length}</span>
             </button>
           ))}
         </div>
@@ -155,7 +180,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
           </section>
           {item.stack ? (
             <>
-              <StackViewer id={item.stack.id} slices={item.stack.slices} label="The study" windows={item.stack.windows} />
+              <StackViewer id={item.stack.id} slices={item.stack.slices} label="The study" windows={item.stack.windows} zRatio={item.stack.zRatio} />
               {picked !== null && <p className="-mt-1 text-[11px] text-fg-3">Study: {item.stack.credit}</p>}
             </>
           ) : (

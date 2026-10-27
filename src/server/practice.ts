@@ -107,7 +107,7 @@ const shuffle = <T,>(xs: T[]): T[] => {
 };
 
 /** A round: every picture already kept (and each drawable ECG), shuffled, with four names to choose from. */
-export async function round(modality: Modality, mode: PracticeMode, level: "basic" | "full" = "full", subject?: string): Promise<{ items: DrillItem[]; ready: number; total: number }> {
+export async function round(modality: Modality, mode: PracticeMode, level: "basic" | "full" = "full", subject?: string, /** Radiology reporting: every picture kept, not a round's worth. */ everything = false): Promise<{ items: DrillItem[]; ready: number; total: number }> {
   // Students and interns: the classic, must-know pictures only.
   const all = MODALITIES[modality].items.filter((i) => level === "full" || !ADVANCED_SPOT.has(i.id));
   // One subject at a time when chosen — its options from the same subject, so they are real look-alikes.
@@ -124,7 +124,7 @@ export async function round(modality: Modality, mode: PracticeMode, level: "basi
     if (item.ecg) pool.push({ item, row: null });
   }
   const ready = new Set(pool.map((p) => p.item.id)).size;
-  const picked = shuffle(pool).slice(0, mode === "spot" ? SPOT_COUNT : 40);
+  const picked = everything ? shuffle(pool) : shuffle(pool).slice(0, mode === "spot" ? SPOT_COUNT : 40);
   const items = picked.map(({ item, row }): DrillItem => {
     const others = shuffle(bank.filter((b) => b.id !== item.id && b.label !== item.label)).slice(0, 3);
     const options = shuffle([item, ...others]);

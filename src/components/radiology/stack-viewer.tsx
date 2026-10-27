@@ -21,7 +21,7 @@ const PRESETS = [
  * image swapping, so scrolling stays smooth on any phone). Axial as acquired; sagittal and coronal reformatted from
  * the same slices; window/level by preset or by dragging sideways; full screen.
  */
-export function StackViewer({ id, slices, label, windows }: { id: string; slices: number; label: string; /** True CT windows saved from the original scan ("soft", "lung", "bone"). */ windows?: string[] }) {
+export function StackViewer({ id, slices, label, windows, zRatio }: { id: string; slices: number; label: string; /** True CT windows saved from the original scan ("soft", "lung", "bone"). */ windows?: string[]; /** How tall one slice is, in shown pixels (from the scan's own spacing) — reformats drawn true to life. */ zRatio?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const vol = useRef<{ w: number; h: number; n: number; data: Uint8Array } | null>(null);
@@ -43,6 +43,8 @@ export function StackViewer({ id, slices, label, windows }: { id: string; slices
   const [full, setFull] = useState(false);
   const drag = useRef<{ x: number; y: number; at: number; w: number; l: number } | null>(null);
   const planeRef = useRef<Plane>("axial");
+  const zRatioRef = useRef(zRatio);
+  zRatioRef.current = zRatio;
   planeRef.current = plane;
 
   const count = (p: Plane) => {
@@ -64,9 +66,9 @@ export function StackViewer({ id, slices, label, windows }: { id: string; slices
       if (c.width !== ow || c.height !== oh) {
         c.width = ow;
         c.height = oh;
-        // Reformats: the stack's slices are thicker than its pixels — stretched to a natural shape, never squashed flat.
-        // Axial at its own shape (some MRI slices aren't square — never squeezed into a square).
-        c.style.aspectRatio = p === "axial" ? `${ow} / ${oh}` : `${ow} / ${Math.min(Math.max(v.w, v.h), oh * 6)}`;
+        // Reformats at their true shape: each slice as tall as the gap between slices really is (measured from the
+        // scan); without that, a natural estimate. Axial at its own shape (some MRI slices aren't square).
+        c.style.aspectRatio = p === "axial" ? `${ow} / ${oh}` : zRatioRef.current ? `${ow} / ${oh * zRatioRef.current}` : `${ow} / ${Math.min(Math.max(v.w, v.h), oh * 6)}`;
       }
       const ctx = c.getContext("2d");
       if (!ctx) return;
@@ -100,6 +102,23 @@ export function StackViewer({ id, slices, label, windows }: { id: string; slices
     pos.current = keep ?? { axial: Math.floor(slices / 2), sagittal: 0, coronal: 0 };
     (async () => {
       const urls = Array.from({ length: slices }, (_, n) => `/radiology/${id}/${folder ? `${folder}/` : ""}${String(n).padStart(3, "0")}.jpg`);
+      // The middle slice first, shown at once while the rest arrive (it's the one the study opens on).
+      if (!keep) {
+        const mid = Math.floor(slices / 2);
+        void fetch(urls[mid]!)
+          .then((r) => r.blob())
+          .then((b) => createImageBitmap(b))
+          .then((bm) => {
+            const c = canvas.current;
+            if (off || vol.current || !c) return bm.close();
+            c.width = bm.width;
+            c.height = bm.height;
+            c.style.aspectRatio = `${bm.width} / ${bm.height}`;
+            c.getContext("2d")?.drawImage(bm, 0, 0);
+            bm.close();
+          })
+          .catch(() => undefined);
+      }
       let done = 0;
       const imgs = await Promise.all(
         urls.map((u) =>

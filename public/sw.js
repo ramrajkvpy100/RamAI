@@ -25,7 +25,9 @@ const STATIC = "ramai-static-v1";
 // Bump to empty the kept pages after a change to how they're kept.
 const MEDIA = "ramai-media-v1";
 const PAGES = "ramai-pages-v1";
-const KEEP = [STATIC, MEDIA, PAGES];
+/** The Skills Lab's scans and pictures: kept on the phone (a CT series alone is ~190 files), so they open at once and offline. */
+const SCANS = "ramai-scans-v1";
+const KEEP = [STATIC, MEDIA, PAGES, SCANS];
 
 /** Opened from the phone at once, refreshed behind the scenes (they draw from what's kept on the phone anyway). */
 const INSTANT = /^\/(plan|focus|revision|profile|achievements|learn|practice)(\/|$)/;
@@ -93,7 +95,8 @@ async function fromPhone(req, name, max) {
   const res = await fetch(req);
   if (keepable(res) && res.status === 200) {
     await c.put(req, res.clone());
-    if (max) trim(name, max);
+    // Trimming reads every key: done now and then, not on every picture.
+    if (max && Math.random() < (max > 1000 ? 0.002 : 0.05)) trim(name, max);
   }
   return res;
 }
@@ -150,8 +153,8 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  // Skills Lab pictures never change for an id: kept on the phone, so rounds played work offline.
-  if (url.pathname.startsWith("/api/practice/image/")) return event.respondWith(fromPhone(req, MEDIA, 300));
+  // Skills Lab pictures and radiology scans never change for a path: kept on the phone, so they open at once and offline.
+  if (url.pathname.startsWith("/api/practice/image/") || (url.pathname.startsWith("/radiology/") && !url.search)) return event.respondWith(fromPhone(req, SCANS, 20000));
   if (url.pathname.startsWith("/api/")) return;
   if (req.mode === "navigate") return event.respondWith(page(event, url));
   if (url.pathname.startsWith("/_next/static/")) return event.respondWith(fromPhone(req, STATIC, 400));
