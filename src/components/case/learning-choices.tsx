@@ -17,6 +17,9 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
   const [loading, setLoading] = useState(true);
   const [picked, setPicked] = useState<number[]>([]);
   const [retry, setRetry] = useState(0);
+  // Folded away to read the chat; remembered for the next steps.
+  const [folded, setFolded] = useState(() => { try { return localStorage.getItem("ramai.lm.folded") === "1"; } catch { return false; } });
+  const fold = (on: boolean) => { tap(); setFolded(on); try { localStorage.setItem("ramai.lm.folded", on ? "1" : "0"); } catch {} };
   const touched = useRef(false);
 
   useEffect(() => {
@@ -42,12 +45,18 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turn, busy, retry]);
 
+  if (folded) {
+    return (
+      <button type="button" onClick={() => fold(false)} className="mx-3 mb-2 flex items-center justify-between rounded-full border border-accent-line bg-surface px-4 py-2 text-[13.5px] font-semibold">
+        🎓 {loading || busy ? "Choices coming…" : "Show the 4 choices"} <span aria-hidden>▴</span>
+      </button>
+    );
+  }
   if (loading || busy) {
     return (
-      <div className="mx-3 mb-2 flex flex-col gap-1.5 rounded-2xl border border-line bg-surface p-3" aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-surface-3" />
-        {[0, 1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded-xl bg-surface-2" />)}
-        <WaitingFact className="mt-1" />
+      <div className="mx-3 mb-2 grid grid-cols-2 gap-1.5 rounded-2xl border border-line bg-surface p-2.5" aria-busy="true">
+        {[0, 1, 2, 3].map((i) => <div key={i} className="h-11 animate-pulse rounded-xl bg-surface-2" />)}
+        <WaitingFact className="col-span-2 mt-0.5" />
       </div>
     );
   }
@@ -60,11 +69,16 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
     );
   }
   const last = picked[picked.length - 1];
+  const scrollToWhy = (el: HTMLDivElement | null) => el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   const chosen = last !== undefined ? guide.options[last] : undefined;
   return (
-    <section className="mx-3 mb-2 rounded-2xl border border-accent-line bg-surface p-3" aria-label="Learning mode choices">
-      <div className="mb-2 flex items-center gap-2 text-[13.5px] font-semibold">🎓 {guide.question}</div>
-      <div className="grid gap-1.5">
+    // Kept small, so the chat above stays in view: at most about a third of the screen, scrolling inside itself.
+    <section className="mx-3 mb-2 max-h-[34dvh] overflow-y-auto overscroll-contain rounded-2xl border border-accent-line bg-surface p-2.5" aria-label="Learning mode choices">
+      <div className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold">
+        <span className="min-w-0 flex-1">🎓 {guide.question}</span>
+        <button type="button" onClick={() => fold(true)} aria-label="Hide the choices" className="shrink-0 rounded-full px-2 py-0.5 text-[12px] font-medium text-fg-3 hover:bg-surface-3">Hide ▾</button>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
         {guide.options.map((o, n) => {
           const tried = picked.includes(n);
           return (
@@ -74,7 +88,7 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
               disabled={tried || chosen?.correct}
               onClick={() => { tap(); touched.current = true; setPicked((p) => [...p, n]); }}
               className={cn(
-                "min-h-10 rounded-xl border px-3 py-2 text-left text-[14px] transition-colors",
+                "min-h-11 rounded-xl border px-2.5 py-1.5 text-left text-[13px] leading-snug transition-colors",
                 tried ? (o.correct ? "border-success bg-success-soft" : "border-danger bg-danger-soft") : "border-line bg-surface-2 hover:bg-surface-3",
                 chosen?.correct && !tried && "opacity-55",
               )}
@@ -85,11 +99,11 @@ export function LearningChoices({ token, turn, busy, onDo }: { token: string; tu
         })}
       </div>
       {chosen && (
-        <div className={cn("animate-enter mt-2 rounded-xl px-3 py-2 text-[13.5px] leading-6", chosen.correct ? "bg-success-soft" : "bg-amber-50 text-amber-950 dark:bg-amber-400/10 dark:text-amber-100")}>
+        <div key={last} ref={scrollToWhy} className={cn("animate-enter mt-2 rounded-xl px-3 py-2 text-[13px] leading-5", chosen.correct ? "bg-success-soft" : "bg-amber-50 text-amber-950 dark:bg-amber-400/10 dark:text-amber-100")}>
           <b>{chosen.correct ? "Right — " : "Not the best now — "}</b>
           <Rich text={chosen.why} />
           {chosen.correct ? (
-            <button type="button" autoFocus onClick={() => { tap(); onDo(chosen.text); }} className="mt-2 flex h-10 w-full items-center justify-center rounded-full bg-accent text-[14px] font-semibold text-on-accent">
+            <button type="button" autoFocus onClick={() => { tap(); onDo(chosen.text); }} className="mt-2 flex h-9 w-full items-center justify-center rounded-full bg-accent text-[14px] font-semibold text-on-accent">
               Do it →
             </button>
           ) : (
