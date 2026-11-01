@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 interface Data {
   codes: { code: string; label: string; max_uses: number; uses: number; revoked: number; created_at: number }[];
   emails: { email: string; added_at: number }[];
+  waiting?: { email: string; name: string; created_at: number }[];
 }
 
 /** Make invite codes (one per friend, or one for a group), revoke them, and allow emails. */
@@ -54,6 +55,21 @@ export function InviteAdmin() {
           </div>
         )}
       </section>
+
+      {!!data?.waiting?.length && (
+        <section className="panel p-5">
+          <h2 className="text-[16px] font-semibold">Signed up, can't get in</h2>
+          <p className="mt-1 text-[13px] text-fg-2">Their code was probably used on another browser. Let them in with one tap.</p>
+          <ul className="mt-3 divide-y divide-line">
+            {data.waiting.map((w) => (
+              <li key={w.email} className="flex items-center justify-between gap-3 py-2 text-[14px]">
+                <span className="min-w-0 truncate">{w.name} · {w.email}</span>
+                <button type="button" onClick={() => void post({ action: "allow", email: w.email })} className="shrink-0 rounded-full bg-accent px-3 py-1 text-[12.5px] font-semibold text-on-accent">Let in</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="panel p-5">
         <h2 className="text-[16px] font-semibold">Allowed emails</h2>

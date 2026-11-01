@@ -22,6 +22,9 @@ const nextConfig: NextConfig = {
   experimental: { staleTimes: { dynamic: 120, static: 600 } },
   // The share cards draw RamAI's heart from this picture: it must travel with the function.
   outputFileTracingIncludes: { "/api/share/**": ["./src/server/assets/**/*"] },
+  // Nothing here uses sharp (Vercel resizes images itself), and the local database stays local: without these every
+  // function carried about 18 MB it never opens, in every deployment kept.
+  outputFileTracingExcludes: { "/**": ["node_modules/sharp/**/*", "node_modules/@img/**/*", "data/**/*"] },
   async headers() {
     return [
       { source: "/(.*)", headers: SECURITY_HEADERS },

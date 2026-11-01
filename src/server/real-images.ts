@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isPigmentedLesion, isicImages, openIImages, type OpenImage } from "@/engine/providers/medical-apis";
 import { SITE } from "@/lib/site";
 
 /**
@@ -40,11 +41,47 @@ const plain = (html = "") =>
 export async function findRealImage(queries: string[], accept: (image: { mime: string; base64: string }) => Promise<boolean>, budgetMs = 15_000, exclude: readonly string[] = []): Promise<{ mime: string; base64: string; credit: Credit } | null> {
   const deadline = Date.now() + budgetMs;
   const tried = new Set<string>();
+  const clean = queries.map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+  // A mole or skin cancer: the ISIC Archive's pictures are made for it.
+  const lesion = clean.find(isPigmentedLesion);
+  if (lesion) {
+    const found = await tryImages(await isicImages(lesion), accept, deadline, exclude);
+    if (found) return found;
+  }
   for (const q of queries.map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean)) {
     if (tried.has(q.toLowerCase()) || Date.now() > deadline - 1500) continue;
     tried.add(q.toLowerCase());
     const found = await searchOnce(q, accept, deadline, exclude);
     if (found) return found;
+  }
+  // Nothing on Commons: figures from open-access papers, single pictures only (most papers' figures are labelled panels).
+  for (const q of clean.slice(0, 2)) {
+    const left = deadline - Date.now();
+    if (left < 3000) break;
+    const figures = (await openIImages(q, undefined, left - 1500)).filter((f) => !UNWANTED.test(f.caption) && !COMPOSITE.test(f.caption));
+    const found = await tryImages(figures.slice(0, 3), accept, deadline, exclude);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** "(a) … (b) …", "A, B", "Panel C": a figure made of several pictures. */
+const COMPOSITE = /\bpanels?\b|\(\s*[a-d]\s*\)|\b[a-dA-D]\s*[,&]\s*[b-eB-E]\b|\b[a-d]\s*[-–]\s*[b-f]\b/;
+
+async function tryImages(images: OpenImage[], accept: (image: { mime: string; base64: string }) => Promise<boolean>, deadline: number, exclude: readonly string[]): Promise<{ mime: string; base64: string; credit: Credit } | null> {
+  for (const candidate of images) {
+    const left = deadline - Date.now();
+    if (left < 800) break;
+    if (exclude.includes(candidate.credit.source)) continue;
+    try {
+      const res = await fetch(candidate.url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(Math.min(6000, left)) });
+      const mime = res.headers.get("content-type")?.split(";")[0] ?? "";
+      if (!res.ok || !/^image\/(jpeg|png)$/.test(mime)) continue;
+      const image = { mime, base64: Buffer.from(await res.arrayBuffer()).toString("base64") };
+      if (await accept(image)) return { ...image, credit: candidate.credit };
+    } catch {
+      /* the next one */
+    }
   }
   return null;
 }

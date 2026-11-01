@@ -21,6 +21,7 @@
  * RAMAI_AI_VOICE=unscripted keeps scripted answers free and asks the model only
  * for questions the script doesn't cover.
  */
+import { conditionReference, drugReference, labPanels, resolveDrugName, within } from "./medical-apis";
 import { withUntreatedCourse } from "./untreated";
 import "server-only";
 
@@ -857,11 +858,33 @@ Return {"question":"…","why":"…","others":[{"text":"…","why":"…"},{"text
   ];
 }
 
-async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[]): Promise<Interpretation> {
+/** Reference data goes just before the request it helps with. */
+const withReference = (messages: ChatMessage[], reference: string): ChatMessage[] =>
+  reference ? [...messages.slice(0, -1), { role: "system", content: reference }, messages[messages.length - 1]!] : messages;
+
+const ORDER_WORDS = /\b(give|start|prescribe|add|continue|tab|tabs|tablet|cap|capsule|inj|injection|syp|syrup|iv|im|po|sc|stat|od|bd|tds|qid)\b|\d\s*(mg|mcg|µg|g|ml|iu|units?)\b/i;
+const NOT_DRUGS = new Set(["give", "start", "prescribe", "continue", "tablet", "tablets", "capsule", "injection", "syrup", "daily", "once", "twice", "times", "patient", "please", "dose", "oral", "orally", "topical", "cream", "with", "then", "also", "weeks", "days", "hours", "month", "months", "fluids", "antibiotic", "antibiotics", "medicine", "drug"]);
+
+/**
+ * An order the rules couldn't place: is it a misspelt name, or a real drug the simulator doesn't stock? Eight seconds at
+ * most, and nothing is changed unless the name is nearly certain.
+ */
+async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corrected?: string; reference: string }> {
+  const words = [...new Set((text.match(/[A-Za-z][A-Za-z-]{3,}/g) ?? []).filter((w) => !NOT_DRUGS.has(w.toLowerCase())))].slice(0, 4);
+  const found = (await within(Promise.all(words.map((w) => resolveDrugName(w))), 5000, [])).filter((d) => d !== null);
+  if (found.length === 0) return { reference: "" };
+  let corrected = text;
+  for (const d of found) if (d.formularyId) corrected = corrected.replace(d.input, d.generic);
+  if (corrected !== text) return { corrected, reference: "" };
+  const onAlready = [...new Set(ctx.hidden.drugs.filter((d) => d.mode === "given" || d.mode === "prescribed").map((d) => d.generic))];
+  return { reference: await within(drugReference(found[0]!.generic, onAlready), 3000, "") };
+}
+
+async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[], reference = ""): Promise<Interpretation> {
   try {
     // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
     const guess = ruled.filter((i) => i.kind !== "unknown").map((i) => `${i.kind}${i.targetId ? `:${i.targetId}` : ""}${i.payload && Object.keys(i.payload).length ? ` ${JSON.stringify(i.payload)}` : ""}`).join("; ");
-    const raw = await chatJSON(interpretPrompt(ctx.def, text, ctx, guess), 2400, true, 12_000, true);
+    const raw = await chatJSON(withReference(interpretPrompt(ctx.def, text, ctx, guess), reference), 2400, true, 12_000, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
     const { speaker } = parsed.data;
@@ -931,6 +954,8 @@ async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): P
   const asked = unique.map((g) =>
     g.adhoc ? `- ${g.id} (${g.name}): a test this hospital does — report it fully for this patient: every analyte with its unit and reference range, or, for a scan, biopsy or scope, a report of the actual findings and an impression. Never say it's unavailable or that there are no findings` : g.report ? `- ${g.id} (${g.name}): the report` : `- ${g.id} (${g.name}): ${g.analytes.map((a) => `${a.analyte}${a.unit ? ` [${a.unit}]` : ""}${a.reference ? ` (ref ${a.reference})` : ""}`).join("; ")}`,
   );
+  // Tests the case file doesn't have: the standard panels of that name (LOINC), so the right analytes are reported.
+  const panels = (await within(Promise.all(unique.filter((g) => g.adhoc).map((g) => labPanels(g.name))), 2000, [])).flatMap((p) => p ?? []);
   try {
     const raw = (await chatJSON(
       [
@@ -942,7 +967,7 @@ async function completeLabs(ctx: InterpretContext, intents: ResolvedIntent[]): P
           role: "user",
           content: `PATIENT: ${def.patient.age}-year-old ${def.patient.sex}. Diagnosis: ${def.truth.diagnosis}${def.truth.qualifier ? ` (${def.truth.qualifier})` : ""}.
 Key findings: ${def.exam.filter((e) => e.abnormal).map((e) => `${e.label}: ${e.finding}`).slice(0, 6).join("; ") || "none recorded"}.
-Values already known: ${known.slice(0, 40).join("; ") || "none"}.
+Values already known: ${known.slice(0, 40).join("; ") || "none"}.${panels.length ? `\nStandard panels of these names (LOINC): ${panels.join("; ")}.` : ""}
 NOW: ${stateNote(ctx)}
 
 Report these (use the units and reference ranges given):
@@ -1126,11 +1151,13 @@ export function createOpenAIProvider(): ClinicalProvider {
       try {
         // Written in the background, so it can take the time to reason carefully.
         // (The model thinks before it writes: too little room and the reply comes back cut off or empty.)
-        const parsed = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 9000, true, 60_000));
+        const reference = await within(conditionReference(def.truth.diagnosis, def.exam.filter((e) => e.abnormal).map((e) => e.label)), 5000, "");
+        const prompt = withReference(teachingPrompt(def), reference);
+        const parsed = TeachingSchema.safeParse(await chatJSON(prompt, 9000, true, 60_000));
         if (parsed.success && parsed.data.teaching.drugs.length > 0) return parsed.data;
         console.warn("[ramai] teaching came back incomplete; asking once more", parsed.success ? "no drugs" : parsed.error.issues.slice(0, 3).map((i) => i.path.join(".")).join(", "));
         // (If the second try fails too, the first answer's other teaching is kept rather than lost.)
-        const again = TeachingSchema.safeParse(await chatJSON(teachingPrompt(def), 9000, false, 45_000).catch(() => null));
+        const again = TeachingSchema.safeParse(await chatJSON(prompt, 9000, false, 45_000).catch(() => null));
         return again.success && again.data.teaching.drugs.length > 0 ? again.data : parsed.success ? parsed.data : again.success ? again.data : undefined;
       } catch (err) {
         console.error("[ramai] teaching unavailable", err instanceof Error ? err.message : err);
@@ -1203,6 +1230,16 @@ export function createOpenAIProvider(): ClinicalProvider {
       // An order's question asked again: the rules have the words already.
       if (rules.generated && rules.intents.some((i) => i.payload?.keepPending === true || i.payload?.settled === true)) return rules;
       const ruled = rules.intents;
+      // An order the rules couldn't place: a misspelt name is corrected and read again; a drug not stocked gets its official facts.
+      let reference = "";
+      if (!ctx.def.guided && ORDER_WORDS.test(text) && ruled.some((i) => i.kind === "unknown" || (i.kind === "drug" && (!i.targetId || i.targetId === "unknown")))) {
+        const lookup = await lookUpOrder(text, ctx);
+        reference = lookup.reference;
+        if (lookup.corrected) {
+          const again = await mockProvider.interpret(lookup.corrected, ctx);
+          if (again.intents.some((i) => i.kind === "drug" && i.targetId && i.targetId !== "unknown")) return this.interpret(lookup.corrected, ctx);
+        }
+      }
       // The doctor answered an order's question: that's settled; the rest isn't worth a model call to reread.
       // Several requests in one message, or a long one the rules only partly placed: the model reads all of it, as ChatGPT would.
       const clauses = text.split(/[.?!;\n]+|\band\b|\balso\b|\bthen\b|,/i).filter((c) => c.trim().split(/\s+/).length >= 2).length;
@@ -1218,7 +1255,7 @@ export function createOpenAIProvider(): ClinicalProvider {
       const button = text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim());
       const talk = ruled.some((i) => i.kind === "history" || i.kind === "greeting");
       const quick = (p: Promise<Interpretation>): Promise<Interpretation> => Promise.race([p, new Promise<Interpretation>((resolve) => setTimeout(() => resolve({ intents: ruled }), 800))]);
-      const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled) : button || !talk || ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : quick(voice(text, ctx, ruled));
+      const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled, reference) : button || !talk || ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : quick(voice(text, ctx, ruled));
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;
       // When the rules placed the order, its results are written while the patient's words are (the voice keeps the rules' intents).

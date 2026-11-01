@@ -58,11 +58,16 @@ export async function createCodes(count: number, label: string, maxUses: number)
 }
 
 export async function listAccess() {
-  const [codes, emails] = await Promise.all([
+  const [codes, emails, waiting] = await Promise.all([
     db.all<{ code: string; label: string; max_uses: number; uses: number; revoked: number; created_at: number }>("SELECT * FROM access_codes ORDER BY created_at DESC LIMIT 300"),
     db.all<{ email: string; added_at: number }>("SELECT * FROM access_emails ORDER BY added_at DESC"),
+    // Accounts that signed up but can't get in (their code was used on another browser, usually the sign-up one).
+    db.all<{ email: string; name: string; created_at: number }>(
+      "SELECT u.email, u.name, u.created_at FROM users u WHERE u.is_guest = 0 AND u.created_at >= ? AND NOT EXISTS (SELECT 1 FROM access_users a WHERE a.user_id = u.id) AND NOT EXISTS (SELECT 1 FROM access_emails e WHERE e.email = LOWER(u.email)) ORDER BY u.created_at DESC LIMIT 100",
+      INVITES_SINCE,
+    ),
   ]);
-  return { codes, emails };
+  return { codes, emails, waiting: waiting.filter((w) => !owners().includes(w.email.toLowerCase())) };
 }
 
 export async function revokeCode(code: string) {

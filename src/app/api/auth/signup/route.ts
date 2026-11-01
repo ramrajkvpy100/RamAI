@@ -55,6 +55,8 @@ export async function POST(req: Request) {
       if (guest) await endGuestSession();
       return ok({ status: "signed-in" as const, user });
     }
+    // The verification link often opens in another browser, without this browser's pass: the account keeps the invite.
+    await db.run("INSERT OR IGNORE INTO access_emails (email, added_at) VALUES (?, ?)", email.trim().toLowerCase(), Date.now());
     return ok({ status: "verify" as const, email });
   } catch (err) {
     return handleError(err);
