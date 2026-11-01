@@ -21,6 +21,7 @@
  * RAMAI_AI_VOICE=unscripted keeps scripted answers free and asks the model only
  * for questions the script doesn't cover.
  */
+import { geminiConfigured, geminiJSON } from "./gemini";
 import { conditionReference, drugReference, labPanels, resolveDrugName, within } from "./medical-apis";
 import { withUntreatedCourse } from "./untreated";
 import "server-only";
@@ -82,20 +83,30 @@ type Effort = boolean | "medium";
 export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful: Effort = false, timeout?: number, fast = false): Promise<unknown> {
   const limit = timeout ?? openAIConfig().timeoutMs;
   const started = Date.now();
+  const passingFault = (err: unknown) =>
+    (err instanceof TypeError && /fetch failed|network|socket|ECONNRESET/i.test(`${err.message} ${String((err as { cause?: unknown }).cause ?? "")}`))
+    || (err instanceof UpstreamError && err.status !== undefined && (err.status >= 500 || err.status === 429));
+  // OpenAI is down or out of quota: Gemini answers instead, if it's set up. Otherwise the original fault stands.
+  const backup = (err: unknown) => {
+    const left = limit - (Date.now() - started);
+    if (!passingFault(err) || !geminiConfigured() || left < 3000) throw err;
+    console.warn(`[ramai] OpenAI failed (${err instanceof Error ? err.message : String(err)}); Gemini is answering`);
+    return geminiJSON(messages, maxTokens, left).catch(() => {
+      throw err;
+    });
+  };
   try {
     return await chatJSONOnce(messages, maxTokens, careful, limit, fast);
   } catch (err) {
-    const passing = (err instanceof TypeError && /fetch failed|network|socket|ECONNRESET/i.test(`${err.message} ${String((err as { cause?: unknown }).cause ?? "")}`))
-      || (err instanceof UpstreamError && err.status !== undefined && (err.status >= 500 || err.status === 429));
     const left = limit - (Date.now() - started);
     const cause = (err as { cause?: { code?: string; message?: string } }).cause;
-    if (!passing || left < 8_000) {
-      if (passing) console.warn(`[ramai] AI call failed in passing with no time left to retry (${Date.now() - started} ms): ${cause?.code ?? cause?.message ?? ""}`);
-      throw err;
+    if (!passingFault(err) || left < 8_000) {
+      if (passingFault(err)) console.warn(`[ramai] AI call failed in passing with no time left to retry (${Date.now() - started} ms): ${cause?.code ?? cause?.message ?? ""}`);
+      return backup(err);
     }
     console.warn(`[ramai] AI call failed in passing after ${Date.now() - started} ms (${cause?.code ?? cause?.message ?? (err instanceof Error ? err.message : String(err))}); trying once more`);
     await new Promise((r) => setTimeout(r, 800));
-    return chatJSONOnce(messages, maxTokens, careful, left - 800, fast);
+    return chatJSONOnce(messages, maxTokens, careful, left - 800, fast).catch(backup);
   }
 }
 
