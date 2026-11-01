@@ -161,7 +161,7 @@ describe("an order that could kill is queried once — then carried out if the d
   });
 
   it("'yes, give it' — it's given, with what it does", async () => {
-    const { state } = await converse(surgAppendicitis, ["Attach monitor", "Give KCl 40 mEq IV push", "yes give it", "Wait 5 minutes"]);
+    const { state } = await converse(surgAppendicitis, ["Attach monitor", "Give KCl 40 mEq IV push", "yes give it", "Wait 5 minutes", "Wait 10 minutes"]);
     expect(state.patientStatus).toBe("deceased");
   });
 

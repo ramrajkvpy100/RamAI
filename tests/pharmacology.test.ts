@@ -45,12 +45,12 @@ describe("orders are carried out as given — and the patient lives with them", 
     const now = play(surgAppendicitis, ["Give 10000 L of NS IV in 1 min — I'm sure"]);
     expect(now.state.patientStatus).toBe("critical");
     expect(said(now.state)).toMatch(/gasping|frothing/i);
-    const later = play(surgAppendicitis, ["Give 10000 L of NS IV in 1 min — I'm sure", "Wait 10 minutes"]);
+    const later = play(surgAppendicitis, ["Give 10000 L of NS IV in 1 min — I'm sure", "Wait 10 minutes", "Wait 10 minutes"]);
     expect(later.state.patientStatus).toBe("deceased");
   });
 
   it("a potassium push stops the heart", () => {
-    const { state } = play(surgAppendicitis, ["Attach monitor", "Give KCl 20 mEq IV push — I'm sure", "Wait 5 minutes"]);
+    const { state } = play(surgAppendicitis, ["Attach monitor", "Give KCl 20 mEq IV push — I'm sure", "Wait 5 minutes", "Wait 10 minutes"]);
     expect(state.patientStatus).toBe("deceased");
     expect(said(state)).toMatch(/wide, bizarre complexes/i);
   });

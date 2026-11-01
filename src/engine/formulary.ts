@@ -213,7 +213,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "nifedipine", generic: "Nifedipine", brands: ["Calcigard", "Depin"], classes: ["ccb", "antihypertensive"], route: "PO", dose: "10 mg", frequency: "BD" },
   { id: "ramipril", generic: "Ramipril", brands: ["Cardace"], classes: ["acei", "antihypertensive"], route: "PO", dose: "2.5 mg", frequency: "OD" },
   { id: "enalapril", generic: "Enalapril", brands: ["Envas"], classes: ["acei", "antihypertensive"], route: "PO", dose: "5 mg", frequency: "OD" },
-  { id: "metoprolol", generic: "Metoprolol succinate", brands: ["Metolar XR", "Met XL"], aliases: ["toprol", "lopressor", "metoprolol"], classes: ["beta-blocker", "antihypertensive"], route: "PO", dose: "25 mg", frequency: "OD" },
+  { id: "metoprolol", generic: "Metoprolol", brands: ["Metolar XR", "Met XL"], aliases: ["toprol", "lopressor", "metoprolol"], classes: ["beta-blocker", "antihypertensive"], route: "PO", dose: "25 mg", frequency: "OD" },
   { id: "atenolol", generic: "Atenolol", brands: ["Aten", "Tenormin"], classes: ["beta-blocker", "antihypertensive"], route: "PO", dose: "50 mg", frequency: "OD" },
   { id: "bisoprolol", generic: "Bisoprolol", brands: ["Concor"], classes: ["beta-blocker", "antihypertensive"], route: "PO", dose: "2.5 mg", frequency: "OD" },
   { id: "carvedilol", generic: "Carvedilol", brands: ["Carca", "Cardivas"], classes: ["beta-blocker", "beta-blocker-nonselective", "antihypertensive"], route: "PO", dose: "3.125 mg", frequency: "BD" },
@@ -411,6 +411,7 @@ const FREQUENCY_PATTERNS: [RegExp, string][] = [
   [/\b(hs|at night|at bedtime|bedtime|night time|nightly|every night|every evening)\b/, "HS"],
   [/\b(every morning|in the morning|each morning|mornings)\b/, "OD (morning)"],
   [/\b(alternate days?|every other day)\b/, "alternate days"],
+  [/\b(once|just once|single dose|one dose|one time)\b/, "stat"],
 ];
 
 const NUMBER_WORDS: Record<string, number> = {
@@ -472,7 +473,7 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     out.amount = parseFloat(dose[1].replace(",", ""));
     out.unit = unit;
     const n = parseFloat(dose[1].replace(",", ""));
-    out.text = `${dose[1].replace(",", "")} ${n === 1 && /s$/.test(unit) && unit !== "units" ? unit : n === 1 && unit === "units" ? "unit" : unit}`;
+    out.text = `${dose[1].replace(",", "")} ${n === 1 && /s$/.test(unit) && unit !== "units" ? unit : n === 1 && unit === "units" ? "unit" : unit === "meq" ? "mEq" : unit}`;
     if (unit === "units" && n >= 100_000) out.text = `${+(n / 1e6).toFixed(2)} million units`;
   } else if (count?.[1] && count[2]) {
     const n = wordToNumber(count[1]) ?? 1;

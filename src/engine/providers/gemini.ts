@@ -14,8 +14,9 @@ export const geminiConfig = () => ({
 export const geminiConfigured = () => geminiConfig().key.length > 0;
 
 /** One JSON reply, from the same messages OpenAI would have had. */
-export async function geminiJSON(messages: { role: string; content: unknown }[], maxTokens: number, timeoutMs: number): Promise<unknown> {
-  const { key, model } = geminiConfig();
+export async function geminiJSON(messages: { role: string; content: unknown }[], maxTokens: number, timeoutMs: number, modelOverride?: string): Promise<unknown> {
+  const { key, model: configured } = geminiConfig();
+  const model = modelOverride ?? configured;
   const text = (m: { content: unknown }) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content));
   const system = messages.filter((m) => m.role === "system").map(text).join("\n\n");
   const contents = messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: text(m) }] }));

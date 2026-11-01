@@ -29,6 +29,8 @@ export interface DrugOrderContext {
   multiple?: number;
   /** Minutes it was given over, when said ("in 1 min", "push"). */
   overMin?: number;
+  /** The doctor's words ("clobetasol on the face"). */
+  phrase?: string;
 }
 
 export interface PhysiologySnapshot {
@@ -45,6 +47,12 @@ export interface PhysiologySnapshot {
   recentFluidMl?: number;
   /** In cardiac arrest — when adrenaline IV is the treatment, not a hazard. */
   arrested?: boolean;
+  weightKg?: number;
+  /** Breathless, hypoxic or hypotensive right now. */
+  unstable?: boolean;
+  diagnosis?: string;
+  /** What the patient came with. */
+  complaint?: string;
   /**
    * IV fluid (fluids.ts): how far into overload this order takes the patient — 0 none, 1 oedema
    * starting, 2 pulmonary oedema, 3 catastrophic — from where they were, and whether this order on

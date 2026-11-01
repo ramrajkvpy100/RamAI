@@ -366,6 +366,8 @@ export interface ClinicalCaseDefinition {
     patientSays?: string;
     /** A line the patient says as they respond. */
     says?: string;
+    /** The ECG once the rhythm is back to normal, where the treatment restores it. */
+    ecgAfter?: string;
   };
   followUp: FollowUpScenario[];
 

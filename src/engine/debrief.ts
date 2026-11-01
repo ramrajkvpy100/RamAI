@@ -6,6 +6,7 @@
  * rescue episodes, and the score.
  */
 
+import { EXPECTED_COURSE } from "./drug-safety";
 import { heardIn, LISTEN_SOURCE, listen, type ListenPart } from "./auscultation";
 import { formularyDrug } from "./formulary";
 import { findInteractions } from "./interactions";
@@ -47,13 +48,22 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   if (allergy && firstDrug && hidden.history[allergy.id] !== undefined && hidden.history[allergy.id]! <= firstDrug.at) {
     didWell.push("Asked about allergies before prescribing.");
   }
-  for (const h of hidden.hazards.filter((x) => !x.superseded)) {
+  for (const h of hidden.hazards.filter((x) => !x.superseded && !x.id.startsWith(EXPECTED_COURSE))) {
     if (h.rescue === "full" && h.manifestedAt !== undefined && hidden.status !== "critical" && hidden.status !== "deceased") didWell.push(`Recognised the deterioration and rescued it within the window (${h.label.toLowerCase()}).`);
   }
   if (score.bonuses.some((b) => b.label === "Cost-effective work-up")) didWell.push("Kept the work-up focused and cost-effective.");
 
   /* Misses -------------------------------------------------------------- */
   const missed: DebriefMiss[] = [];
+  // How the arrest was run.
+  if (hidden.code) {
+    const c = hidden.code;
+    const late = c.cprAt === undefined ? "CPR was never started." : c.cprAt - c.startedAt > 2 ? `CPR started ${Math.round(c.cprAt - c.startedAt)} minutes into the arrest.` : "";
+    if (late) missed.push({ what: late, why: "Every minute without compressions lowers the chance of survival.", better: "Start CPR immediately, then shock VF/pVT or give adrenaline for PEA/asystole.", severity: "major" });
+    for (const e of c.errors) missed.push({ what: e, why: "It doesn't follow the cardiac arrest algorithm.", better: "VF/pVT: shock, CPR, adrenaline, amiodarone. PEA/asystole: CPR and adrenaline, no shock. Always look for the reversible cause.", severity: "major" });
+    if (c.causeDrugs.length && !c.causeTreated) missed.push({ what: "The cause of the arrest wasn't treated.", why: "Resuscitation rarely works while the cause continues.", better: `Treat it during CPR: ${c.causeDrugs.map((d) => d).join(" or ")}.`, severity: "major" });
+    if (c.outcome === "rosc") didWell.push("Ran the cardiac arrest and regained a pulse.");
+  }
   const hints = hidden.actions.hint?.length ?? 0;
   if (hints && !def.guided) missed.push({ what: `Asked the senior ${hints} time${hints === 1 ? "" : "s"} — this case is practice and doesn't count towards your progress.`, why: "The senior shows the next step an expert would take.", better: "Next time, try working through history, examination and investigations before asking.", severity: "minor" });
   // A miss written about the case notes ("No renal-function result is provided", "Not documented whether…") is put
@@ -102,7 +112,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     if (d.frequencyError) missed.push({ what: `${d.generic} written ${d.frequency}.`, why: "This frequency is unsafe for this drug.", better: "Write the exact dosing day and interval in words.", severity: "major" });
     if (d.doseError) missed.push({ what: `${d.generic} ${d.dose ?? ""} — dose outside the safe range.`.replace(/\s+—/, " —"), why: "Under-dosing fails; over-dosing harms.", better: "Check the dose against weight, renal function and indication before ordering.", severity: "moderate" });
   }
-  for (const h of hidden.hazards.filter((x) => !x.superseded)) {
+  for (const h of hidden.hazards.filter((x) => !x.superseded && !x.id.startsWith(EXPECTED_COURSE))) {
     const hz = lib.get(h.id);
     if (!hz || hz.omission) continue;
     missed.push({ what: h.trigger, why: hz.review.whyItCausedHarm, better: hz.review.earliestRescueWindow, severity: "major" });
@@ -131,7 +141,7 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
   missed.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
   /* Rescue -------------------------------------------------------------- */
-  const episodes: RescueEpisode[] = hidden.hazards.filter((x) => !x.superseded).map((h) => {
+  const episodes: RescueEpisode[] = hidden.hazards.filter((x) => !x.superseded && !x.id.startsWith(EXPECTED_COURSE)).map((h) => {
     const hz = lib.get(h.id)!;
     const manifested = h.manifestedAt !== undefined;
     const outcome = h.died

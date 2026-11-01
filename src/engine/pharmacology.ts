@@ -101,6 +101,7 @@ const BY_CLASS: [DrugClass, Profile][] = [
     effects: { temp: FEVER, pain: -2 },
     feels: { when: "fever", says: "I feel a little cooler now, doctor." },
   }],
+  ["salicylate", { kinetics: { default: { onset: 10, peak: 30, duration: 360 } }, effects: { pain: -1, temp: { toward: 98.6, by: 0.3, above: 99.5 } } }],
   ["nsaid", {
     kinetics: { IV: { onset: 10, peak: 45, duration: 300 }, IM: { onset: 15, peak: 45, duration: 300 }, PO: { onset: 30, peak: 90, duration: 360 }, default: { onset: 30, peak: 90, duration: 360 } },
     effects: { pain: -3, temp: { toward: 98.6, by: 0.4, above: 99.5 } },
@@ -114,6 +115,8 @@ const BY_CLASS: [DrugClass, Profile][] = [
 
 /** A drug's profile: its first class with one (by the order above), or none (it acts on nothing the monitor shows). */
 export function profileFor(drug: FormularyDrug): Profile | undefined {
+  // Adenosine's half-life is seconds: it stops the rhythm or it doesn't, and what it doesn't do it never does (the case says which).
+  if (drug.id === "adenosine") return { kinetics: { default: { onset: 0.2, peak: 1, duration: 1 } }, effects: {} };
   for (const [cls, profile] of BY_CLASS) if (drug.classes.includes(cls)) return profile;
   return undefined;
 }

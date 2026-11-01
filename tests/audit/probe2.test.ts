@@ -1,0 +1,6 @@
+import { it } from "vitest";
+import { emAdhf } from "@/engine/cases/em-adhf";
+import { idDengue } from "@/engine/cases/id-dengue";
+import { converse } from "../helpers";
+const L = ["give aspirin", "is aspirin indicated?", "should I give aspirin?", "can we give furosemide here?", "what dose of furosemide?", "is she on aspirin?", "fluconazole 150 weekly x 4 weeks", "show cbc results", "cbc report?", "what did the ecg show", "repeat cbc", "send cbc", "any chest pain?", "examine chest", "chest?", "is the liver enlarged?", "palpate liver", "any swelling of feet?", "check pedal oedema", "aspirin 75", "aspirin 75 or 150?", "give 2 tabs", "insulin 10", "lasix 40 iv or 80?", "ok give lasix", "what are her vitals", "bp?", "has she passed urine", "do you think it is heart failure?", "why is she breathless"];
+it("p", async () => { for (const def of [emAdhf, idDengue]) { const { turns } = await converse(def, ["ecg", "cbc", "wait 1 hour", ...L]); for (const t of turns.slice(3)) console.log(def.id.slice(0,8), "|", t.input.padEnd(34), "|", t.record.intents.map((i) => `${i.kind}:${i.targetId ?? ""}`).join(",").padEnd(40), "|", t.effects.filter((e) => e.type === "message").map((e: any) => e.text).slice(1).join(" / ").slice(0, 110)); } }, 60000);

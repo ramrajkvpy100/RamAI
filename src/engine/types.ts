@@ -500,6 +500,8 @@ export interface TimelineEvent {
  * the browser while a case is active, and it is safe to expose in full.
  */
 export interface CaseState {
+  /** Cardiac arrest under way: normal chat is paused until it ends. */
+  codeBlue?: boolean;
   /** Opaque session id. Never derived from the case definition. */
   sessionId: string;
   /** Display number, e.g. 32 -> "CASE 032". */
@@ -636,6 +638,7 @@ export type TurnEffect =
   | { type: "patient_status"; status: PatientStatus; notice?: string }
   | { type: "timeline"; label: string; detail?: string; category: TimelineEvent["category"] }
   | { type: "advance_time"; minutes: number }
+  | { type: "code_blue"; active: boolean }
   | { type: "stage"; stage: EncounterStage }
   | { type: "case_status"; status: CaseStatus }
   | { type: "setting"; setting: CareSetting }

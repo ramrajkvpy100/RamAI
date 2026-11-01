@@ -3,6 +3,7 @@
  * minute; while the doctor plays one case, the next is written in the
  * background and kept here, so "Next case" starts at once.
  */
+import { checkCase } from "./case-check";
 import "server-only";
 
 import { randomUUID } from "node:crypto";
@@ -68,6 +69,13 @@ export async function prepareNext(userId: string, choice: PoolChoice, opts: Omit
   try {
     const src = await provider.createCase({ ...opts, specialty: choice.specialty, track: choice.track, level: choice.level, easy: choice.easy, country: choice.country });
     if (src.kind !== "generated") {
+      await db.run("DELETE FROM case_pool WHERE id = ?", id);
+      return "skipped";
+    }
+    // A second opinion from another model: nothing it calls seriously wrong is kept.
+    const check = await checkCase(src);
+    if (check.status === "rejected") {
+      console.warn("[ramai] a written case was rejected by the second opinion:", check.errors.join(" | ").slice(0, 400));
       await db.run("DELETE FROM case_pool WHERE id = ?", id);
       return "skipped";
     }

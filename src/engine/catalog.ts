@@ -48,6 +48,21 @@ export const VITALS: VitalDefinition[] = [
 export const ALL_VITALS_PHRASES = ["vitals", "vital signs", "all vitals", "vital parameters", "vitals check"];
 export const ROUTINE_VITALS: VitalKey[] = ["hr", "bp", "rr", "temp", "spo2"];
 
+const VITAL_WORDS: Record<string, VitalKey> = {
+  temperature: "temp", fever: "temp", pulse: "hr", "pulse-rate": "hr", "heart-rate": "hr", heartrate: "hr", "blood-pressure": "bp", "respiratory-rate": "rr", respiration: "rr", breathing: "rr",
+  saturation: "spo2", "oxygen-saturation": "spo2", "pulse-oximetry": "spo2", sats: "spo2", oxygen: "spo2", glucose: "rbs", sugar: "rbs", "blood-glucose": "rbs", "blood-sugar": "rbs", "urine-output": "urine",
+};
+
+/** Whatever name a vital came by ("temperature", "respiratory-rate"); "vitals" or "observations", or a name we can't place, means the usual set. */
+export function readVitalKeys(ids: string[]): VitalKey[] {
+  const keys = ids.flatMap((raw) => {
+    const id = raw.trim().toLowerCase().replace(/[\s_]+/g, "-");
+    const known = VITALS.find((v) => v.key === id)?.key ?? VITAL_WORDS[id];
+    return known ? [known] : ROUTINE_VITALS;
+  });
+  return [...new Set(keys)];
+}
+
 export function vitalDefinition(key: VitalKey): VitalDefinition {
   const def = VITALS.find((v) => v.key === key);
   if (!def) throw new Error(`Unknown vital ${key}`);
@@ -129,10 +144,12 @@ export function saneBody(patient: PatientIdentity, vitals: Record<VitalKey, Vita
 /** Sensible defaults (for the patient's age and sex) when a case does not specify a vital. */
 export function defaultVitals(patient: PatientIdentity): Record<VitalKey, VitalPatch> {
   const { weight, height } = expectedBody(patient.age, patient.sex);
+  // Where a case doesn't say: normal for the age.
+  const [bp, hr, rr] = patient.age < 1 ? ["85/50", "130", "40"] : patient.age < 5 ? ["95/58", "110", "28"] : patient.age < 13 ? ["105/65", "90", "20"] : ["122/78", "78", "14"];
   return {
-    bp: { key: "bp", value: "122/78" },
-    hr: { key: "hr", value: "78" },
-    rr: { key: "rr", value: "14" },
+    bp: { key: "bp", value: bp },
+    hr: { key: "hr", value: hr },
+    rr: { key: "rr", value: rr },
     temp: { key: "temp", value: "98.4" },
     spo2: { key: "spo2", value: "98" },
     rbs: { key: "rbs", value: "104" },

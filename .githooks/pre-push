@@ -1,0 +1,5 @@
+#!/bin/sh
+# Nothing reaches the live site unless the code compiles and every test passes, including the bad-doctor wall.
+export PATH="$HOME/.local/node/bin:$PATH"
+npx tsc --noEmit -p . || { echo "pre-push: type errors, push stopped"; exit 1; }
+npx vitest run || { echo "pre-push: tests failed, push stopped"; exit 1; }

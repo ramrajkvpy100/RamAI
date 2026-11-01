@@ -141,6 +141,10 @@ export function applyEffects(input: CaseState, effects: readonly TurnEffect[]): 
         s.procedures.push({ id: id("p"), name: e.name, note: e.note, at: at() });
         break;
 
+      case "code_blue":
+        s.codeBlue = e.active;
+        break;
+
       case "patient_status": {
         s.patientStatus = e.status;
         const last = s.statusHistory[s.statusHistory.length - 1];

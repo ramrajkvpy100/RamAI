@@ -4,6 +4,7 @@
  * adapted per case via `rubric.weights`.
  */
 
+import { EXPECTED_COURSE } from "./drug-safety";
 import { catalogInvestigation, flagVital } from "./catalog";
 import type { ClinicalCaseDefinition, ScoreWeights } from "./case-definition";
 import { hazardLibrary } from "./physiology";
@@ -373,14 +374,16 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     let frac: number;
     const notes: string[] = [];
     const died = hidden.status === "deceased" || hidden.hazards.some((h) => h.died);
-    const manifested = hidden.hazards.filter((h) => !h.superseded && h.manifestedAt !== undefined);
+    const harms = hidden.hazards.filter((h) => !h.id.startsWith(EXPECTED_COURSE));
+    const manifested = harms.filter((h) => !h.superseded && h.manifestedAt !== undefined);
     if (died) { frac = 0; notes.push("The patient died"); }
+    else if (hidden.code?.outcome === "rosc") { frac = 0.2; notes.push("Cardiac arrest — pulse regained, with harm"); }
     else if (manifested.length > 0) {
       const worst = manifested.some((h) => h.rescue !== "full" && h.rescue !== "partial") ? 0.1 : manifested.some((h) => h.rescue === "partial") ? 0.45 : 0.85;
       frac = worst;
       notes.push(worst >= 0.85 ? "Deterioration recognised and reversed" : worst >= 0.45 ? "Rescued late — survived with harm" : "Deterioration not reversed");
       if (worst >= 0.85) bonuses.push({ label: "Rescued deterioration", points: 0, reason: manifested.map((h) => h.label).join(", ") });
-    } else if (hidden.hazards.some((h) => !h.superseded)) {
+    } else if (harms.some((h) => !h.superseded)) {
       frac = 0.15;
       notes.push("Harm set in motion after discharge");
     } else {

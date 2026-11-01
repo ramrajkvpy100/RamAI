@@ -9,7 +9,7 @@ describe("orders beyond reason are carried out — and the patient lives (or die
   it("more adrenaline into the VT it caused brings ventricular fibrillation, not 'no change'", () => {
     const once = play(emAdhf, ["Give adrenaline 1 mg IV stat — I'm sure", "Wait 4 minutes"]);
     expect(once.state.patientStatus).toBe("critical");
-    const again = play(emAdhf, ["Give adrenaline 1 mg IV stat — I'm sure", "Wait 4 minutes", "Give adrenaline 2 mg IV stat — I'm sure"]);
+    const again = play(emAdhf, ["Give adrenaline 1 mg IV stat — I'm sure", "Wait 4 minutes", "Give adrenaline 2 mg IV stat — I'm sure", "Wait 10 minutes"]);
     expect(again.state.patientStatus).toBe("deceased");
     expect(again.state.messages.some((m) => /ventricular fibrillation/i.test(m.text))).toBe(true);
     expect(again.state.messages.some((m) => /no change/i.test(m.text) && /adrenaline/i.test(m.text))).toBe(false);
@@ -23,7 +23,7 @@ describe("orders beyond reason are carried out — and the patient lives (or die
     expect(later.state.patientStatus).toBe("critical");
     const na = later.state.investigations.find((i) => i.defId === "electrolytes")?.rows?.find((r) => r.analyte === "Sodium");
     expect(Number(na?.value)).toBeGreaterThan(165);
-    const left = play(dermAcne, ["Eat 50 g of salt — I'm sure", "Wait 20 minutes", "Wait 1 hour", "Wait 2 hours", "Wait 3 hours"]);
+    const left = play(dermAcne, ["Eat 50 g of salt — I'm sure", "Wait 20 minutes", "Wait 1 hour", "Wait 2 hours", "Wait 3 hours", "Wait 10 minutes"]);
     expect(left.state.patientStatus).toBe("deceased");
   });
 

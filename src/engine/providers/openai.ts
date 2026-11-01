@@ -23,7 +23,7 @@
  */
 import { parseOrderDetails } from "../formulary";
 import { geminiConfigured, geminiJSON } from "./gemini";
-import { conditionReference, drugForms, drugReference, labPanels, resolveDrugName, within } from "./medical-apis";
+import { conditionReference, drugForms, drugReference, labPanels, packFacts, resolveDrugName, within } from "./medical-apis";
 import { withUntreatedCourse } from "./untreated";
 import "server-only";
 
@@ -32,9 +32,9 @@ import { DEFAULT_MODEL, lightReasoning } from "@/lib/server/openai-check";
 import type { ClinicalCaseDefinition } from "../case-definition";
 import { EXAMS, INVESTIGATIONS, MEASURES } from "../catalog";
 import { COUNTRY, type Country } from "../countries";
-import { FORMULARY } from "../formulary";
+import { FORMULARY, formularyDrug } from "../formulary";
 import { levelMeta, trackLabel } from "../levels";
-import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Specialty } from "../types";
+import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Specialty, VitalPatch } from "../types";
 import { CARE_LEVELS, PLAYABLE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
 import { pickCondition } from "./conditions";
@@ -247,7 +247,7 @@ function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: Inter
       role: "user",
       content: `CASE FILE (hidden)
 Patient: ${def.patient.age}-year-old ${def.patient.sex}, ${def.patient.city}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}.${def.persona ? ` The patient is ${def.persona} — their replies show it.` : ""}
-Diagnosis (never reveal): ${def.truth.diagnosis}.
+Diagnosis (never reveal): ${def.truth.diagnosis}.${monthsOld(def) ? `\nThe child is ${monthsOld(def)} months old: never say any other age.` : ""}
 
 NOW: ${stateNote(ctx)}
 
@@ -272,6 +272,7 @@ Map to existing ids whenever the meaning matches — the game answers those itse
 Understand the doctor the way a thoughtful, experienced colleague would in a real conversation: typos, abbreviations (c/o, h/o, o/e, BD, TDS, stat), shorthand, Hinglish or Hindi, half-sentences and several requests in one message — handle every request, in the order given, each as its own intent. Use the whole conversation to work out what "it", "that", "same", "again" and short replies refer to.
 Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${fullLab(def) ? `
 This hospital can do any standard test. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
+A patient or relative only says what they feel and know: never an examination finding or a test result. When the doctor states what they think it is ("this looks like…", "most consistent with…", "dx …"), add kind "diagnosis" with their words as well as anything else they order.
 For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}. A relative speaking about a child (or about a patient who can't speak) speaks of them in the third person — "he hasn't had a fever", never "I haven't".
 Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
 For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient (in ${language(country, lang)}); the relative only when spoken to directly, or when the patient is a young child or can't speak. The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
@@ -546,7 +547,7 @@ function outlinePrompt(opts: StartOptions, brief: Brief): ChatMessage[] {
     {
       role: "user",
       content: `Outline one case in ${brief.specialty} for ${level.label} — ${level.description} — in ${country.name}. Mode: ${trackLabel(brief.track, country.id)}. ${chosen ? `The condition is ${chosen} (${opts.disease ? "the doctor chose to practise it; " : ""}never name it in the briefing). The patient's age and sex are whatever is typical for it.` : `The patient is ${brief.age}, ${brief.sex.toLowerCase()} — change the age if the condition you choose needs it (a baby's illness is a baby's).`} Difficulty: ${difficulty}. ${opts.place ? `The patient lives in or near ${opts.place} (the doctor practises there): names, language, work, food and places are local to it${chosen ? "" : `, and choose a condition that is genuinely common in that district and state at this time of year — its endemic infections, local poisonings and bites, occupational and lifestyle illness (${seasonNote(country.id)})`}. ` : ""}${chosen || opts.place ? "" : `${seasonNote(country.id)} Sometimes (not usually) choose a condition common in this season and region${country.id === "IN" ? " — tropical and regional diseases such as dengue, typhoid, TB, snakebite, scrub typhus and organophosphate poisoning are common in India" : country.id === "WW" ? " — malaria, TB, HIV, typhoid, sickle cell disease, rheumatic heart disease, cholera and snakebite are common in low- and middle-income countries" : ""}. `}${chosen ? `Give it a ${opts.easy ? "classic, textbook" : "typical"} presentation for this setting.${brief.specialty === "General Practice" ? ` ${GP_FAIR}` : ""}` : brief.specialty === "General Practice" ? GP_BRIEF : opts.easy ? "Choose one of the most common conditions seen in this setting, with a classic presentation." : `Choose a realistic condition that fits; vary it — not always the most common one. ${["phc", "chc", "district"].includes(brief.level) ? "At this level, choose a condition commonly seen at such a facility — common or important presentations, no rare diseases (no rare syndromes, inborn errors, eosinophilic or genetic disorders)." : brief.level === "college" ? "Uncommon conditions are fine, rare ones occasionally." : "Rare and complex conditions are expected here."}`} The condition and its cause must occur where the patient lives (${country.name}) — never a disease, organism or venomous animal found only elsewhere in the world (Sin Nombre hantavirus, Lyme disease, coccidioidomycosis or rattlesnakes in India, say) unless recent travel is part of the story. patient.age must match the story exactly, as a plain number of whole years (0 for a baby under one year).
-Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
+Return compact JSON — short phrases, not sentences: { "specialty", "difficulty": 1|2|3, "patient": { "name", "age", "sex": "Male"|"Female", "city", "occupation" }, "briefing": "one non-diagnostic line setting the scene (a baby under 2: say the age in months)", "diagnosis", "qualifier": "cause, severity, key context", "keyHistory": ["up to 8: what the patient will report — positives and important negatives"], "keyExam": ["up to 6 signs present"], "keyResults": ["up to 6 abnormal results, with values"], "pictures": ["each finding a doctor would look at as a picture, e.g. 'exam: rash on both shins (photo)', 'test: chest X-ray PA'"], "ecg": "ECG findings if an ECG is relevant", "differentials": ["3–5"], "plan": ["up to 6 management steps"] }`,
     },
   ];
 }
@@ -563,7 +564,7 @@ function dialoguePrompt(opts: StartOptions, concept: Concept, brief: Brief): Cha
 { "opening": [{ "role": "patient"|"attendant"|"nurse"|"system", "kind": "speech"|"action"|"status", "text" }] (1–3 lines: how the patient arrives and their first words — no diagnosis),
   "baselineVitals": { "bp": "128/82", "hr": "88", "rr", "temp" (°F), "spo2", "rbs", "weight", "height", "gcs"?, "pain"? },
   "triageVitals": ["vitals already on the board on arrival"],
-  "profile": { "allergies": [], "currentDrugs": [], "pregnancyPossible"?, "asthma"?, "ckd"?, "heartFailure"?, "volume": "depleted"|"normal"|"overloaded" (the patient's fluid state now), "fluidDeficitMlPerKg"?: how much fluid they are short of, mL/kg — e.g. 30 for moderate dehydration or septic shock, 70–100 for DKA or severe cholera; 0 if not depleted },
+  "profile": { "allergies": [], "currentDrugs": [], "pregnancyPossible"?, "pregnant"? (only if the pregnancy is already known when she arrives), "asthma"?, "ckd"?, "heartFailure"?, "volume": "depleted"|"normal"|"overloaded" (the patient's fluid state now), "fluidDeficitMlPerKg"?: how much fluid they are short of, mL/kg — e.g. 30 for moderate dehydration or septic shock, 70–100 for DKA or severe cholera; 0 if not depleted },
   "history": [{ "id": "short_snake_case", "group": "complaint"|"hpi"|"past"|"medication"|"allergy"|"family"|"social"|"diet"|"sexual"|"obstetric"|"systemic", "label", "match": ["3–8 short lowercase phrases a doctor might type"], "reply": "what the patient says, lay words", "fact": "the fact in clinical shorthand", "abnormal"?, "importance": "essential"|"useful"|"minor", "speaker"?: "attendant" }] }
 history: 8–12 entries — the presenting complaint, its course, relevant positives and negatives, past history, medicines and allergies. Every positive in the case must be here. The complaint's reply says how long it has been going on, and its match includes "how long", "since when" and "kab se"; when a relative answers for a child, they speak of the child as he or she.`,
     },
@@ -597,9 +598,10 @@ function managementPrompt(opts: StartOptions, concept: Concept, brief: Brief): C
       content: `${partHead(concept, brief)}Write the management and the marking key, following ${specialtyGuidelines(concept.specialty ?? brief.specialty, opts.country ?? "IN")} exclusively where they apply. Every label is complete (no trailing fragments) and under 80 characters; every critique speaks to the doctor about what they did or didn't do ("Didn't check the sugar"), never about the case text. Return JSON:
 { "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why" (one line — and the guideline it follows, e.g. WHO, ICMR, NICE or AHA, where one applies), "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
   "reasoning": [{ "stage": "History", "text" }, { "stage": "Examination", "text" }, { "stage": "Investigation", "text" }, { "stage": "Diagnosis", "text" }],
-  "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": [], "diagnosisWrong": ["words that make an otherwise-close diagnosis wrong, e.g. the wrong type, side or organism"], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
+  "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": ["right idea but not specific: the wider group, in plain words"], "diagnosisWrong": ["words that make an otherwise-close diagnosis wrong, e.g. the wrong type, side or organism"], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
+  "course": { "definitive": ["ids of the therapeutics that actually treat this disease, after which this patient gets better; where this centre can't do it, the stabilising treatment and the referral"], "byMinute": minutes from arrival by which it should have started, "label": "its short name", "response": { "vitals": [{ "key": "hr"|"bp"|"rr"|"spo2"|"temp"|"gcs"|"pain"|"rbs"|"urine", "value" }] (this patient's real numbers once it has worked, right for their age), "says": "what they say as it works", "ecgAfter"?: "the ECG report, only if the treatment restores a normal rhythm" }, "untreated": [{ "afterMin": minutes from arrival, "status": "deteriorating"|"critical"|"deceased", "vitals": [{ "key", "value" }], "nurse": "what the nurse sees; never the diagnosis" }] (how this illness really progresses untreated, at its true pace; empty if it isn't an illness that worsens within hours) },
   "followUp": [{ "when": "ideal"|"acceptable"|"harmful"|"untreated"|"any", "status": "recovered"|"improving"|"stable"|"guarded"|"deteriorating"|"critical", "lines": [{ "role", "kind", "text" }] }] } — follow-up lines are what the patient or family say and what is seen or measured; never name the diagnosis or a complication
-therapeutics: 5–10 — the right treatments and common wrong or harmful ones. drugIds only from: ${FORMULARY.map((d) => d.id).join(", ")}. measureIds only from: ${MEASURES.map((m) => m.id).join(", ")}.`,
+therapeutics: 5–10 — the right treatments and common wrong or harmful ones. Labels are short names ("Emergency laparotomy"), and a procedure's note says what was found or done, never what to do. Name a harmful one as the treatment itself ("NSAIDs for the pain", rated harmful), never as advice ("Avoid NSAIDs"). drugIds only from: ${FORMULARY.map((d) => d.id).join(", ")}. measureIds only from: ${MEASURES.map((m) => m.id).join(", ")}.`,
     },
   ];
 }
@@ -645,6 +647,62 @@ const MEASURE_IDS = new Set(MEASURES.map((m) => m.id));
 /** The debrief's teaching arrives later (written in the background); until then, an empty frame. */
 const NO_TEACHING: ClinicalCaseDefinition["teaching"] = { severityBands: [], treatmentByBand: {}, drugs: [], routines: [], followUp: { interval: "", reassess: [], redFlags: [], whenToEscalate: [] }, treatmentFailure: { steps: [] }, pearl: "" } as unknown as ClinicalCaseDefinition["teaching"];
 
+const COURSE_VITALS = new Set(["hr", "bp", "rr", "spo2", "temp", "gcs", "pain", "rbs", "urine"]);
+
+/**
+ * What the writer says this illness does, made safe to run: numbers checked one by one, only treatments the case has, no
+ * death inside the first 45 minutes, and on a clock only in an emergency. Anything left out just means the case runs without it.
+ */
+export function courseOf(concept: Concept, m: z.infer<typeof ManagementSchema>, therapeutics: { id: string; kind: string; appropriateness: string; drugIds: string[]; measureIds: string[] }[], track: string): Pick<ClinicalCaseDefinition, "hazards" | "onResponse"> & { definitiveTreatment?: NonNullable<ClinicalCaseDefinition["rubric"]["definitiveTreatment"]> } {
+  // Off on the live site until it has been proved in full games on new cases.
+  if (process.env.VERCEL && process.env.RAMAI_CASE_COURSE !== "on") return { hazards: [] };
+  const course = m.course;
+  const rules = (course?.definitive ?? []).map((id) => therapeutics.find((t) => t.id === id)).filter((t): t is (typeof therapeutics)[number] => !!t && (t.appropriateness === "ideal" || t.appropriateness === "acceptable"));
+  if (!course || rules.length === 0) return { hazards: [] };
+  const plausible = (vitals: { key: string; value: string }[]) => vitals.filter((v) => COURSE_VITALS.has(v.key) && /\d/.test(v.value) && sanityProblems({ patient: { age: concept.patient.age ?? 40, sex: concept.patient.sex ?? "" }, diagnosis: concept.diagnosis }, { [v.key]: v.value }).length === 0) as VitalPatch[];
+  const giveaway = (text?: string) => !!text && [concept.diagnosis, ...m.rubric.diagnosisAccept].some((x) => x.length > 3 && text.toLowerCase().includes(x.toLowerCase()));
+  // Each treatment by its own name, and the drug or the measure however it's ordered ("adenosine", "cardiovert").
+  const ids = [...new Set(rules.flatMap((t) => [t.id, ...t.drugIds.map((d) => `drug:${d}`), ...t.measureIds.filter((x) => !["refer", "admit", "monitor", "iv-access"].includes(x)).map((x) => `measure:${x}`)]))];
+  const byMinute = Math.min(240, Math.max(5, Math.round(course.byMinute) || 30));
+  const vitals = plausible(course.response.vitals);
+  const says = giveaway(course.response.says) ? undefined : course.response.says;
+  const onResponse = { ...(vitals.length ? { vitals } : {}), ...(says ? { says, patientSays: says } : {}), ...(course.response.ecgAfter ? { ecgAfter: course.response.ecgAfter } : {}) };
+  const definitiveTreatment = { ids, byMinute, label: course.label || rules[0]!.id };
+  // A death comes at its true pace, never in the first 45 minutes; and nothing follows it.
+  const ladder = track === "emergency" ? course.untreated.map((s) => ({ ...s, afterMin: s.status === "deceased" ? Math.max(45, s.afterMin) : s.afterMin })).sort((a, b) => a.afterMin - b.afterMin) : [];
+  const dies = ladder.findIndex((s) => s.status === "deceased");
+  const steps = (dies >= 0 ? ladder.slice(0, dies + 1) : ladder).filter((s) => s.status === "deceased" || s.afterMin >= 5);
+  if (steps.length === 0) return { hazards: [], onResponse, definitiveTreatment };
+  const arm = Math.min(byMinute, steps[0]!.afterMin);
+  const offset = (s: { afterMin: number }) => Math.max(0, Math.round(s.afterMin - arm));
+  const last = offset(steps.at(-1)!);
+  const died = steps.at(-1)!.status === "deceased";
+  const stages = steps.map((s): ClinicalCaseDefinition["hazards"][number]["stages"][number] => ({
+    afterMin: offset(s),
+    status: s.status,
+    vitals: s.status === "deceased" ? [{ key: "hr", value: "0" }, { key: "bp", value: "0/0" }, { key: "spo2", value: "0" }, { key: "rr", value: "0" }, { key: "gcs", value: "3" }] : plausible(s.vitals),
+    observation: { role: "nurse", text: s.nurse && !giveaway(s.nurse) ? s.nurse : s.status === "deceased" ? "No pulse, doctor." : "Doctor, the patient is getting worse." },
+  }));
+  const hazard: ClinicalCaseDefinition["hazards"][number] = {
+    id: "untreated-course",
+    label: `${concept.diagnosis}, untreated`,
+    omission: { byMinute: arm, preventedBy: ids },
+    stages,
+    rescue: [ids],
+    fullRecoveryWindowMin: Math.max(10, Math.round(last / 2)),
+    lastRescueMin: died ? Math.max(10, last - 5) : last + 60,
+    recovery: vitals.length ? [{ afterMin: 20, status: "improving", vitals, ...(says ? { patientSays: says } : {}) }] : [],
+    review: {
+      cause: `${definitiveTreatment.label} wasn't started in time.`,
+      whyItCausedHarm: concept.qualifier ? `${concept.diagnosis} (${concept.qualifier}) went on untreated.` : `${concept.diagnosis} went on untreated.`,
+      earliestRescueWindow: `Within the first ${byMinute} minutes.`,
+      correctRescueSequence: [definitiveTreatment.label],
+      lastRealisticRescueWindow: `Within about ${arm + (died ? Math.max(10, last - 5) : last + 60)} minutes of arrival.`,
+    },
+  };
+  return { hazards: [hazard], onResponse, definitiveTreatment };
+}
+
 function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.infer<typeof FindingsSchema>, m: z.infer<typeof ManagementSchema>, brief: Brief, opts: StartOptions): ClinicalCaseDefinition {
   const pictures: NonNullable<ClinicalCaseDefinition["pictures"]> = {};
   const unique = <T extends { id: string }>(xs: T[]) => xs.filter((x, i) => x.id && xs.findIndex((y) => y.id === x.id) === i);
@@ -655,8 +713,16 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
   const keep = (t: { kind: string }, phrase: string) => !testWords.has(phrase.toLowerCase().trim()) && (t.kind === "drug" || !namesDrug(phrase));
   // A step that names drugs ("an oral NSAID") is a drug step — so ordering ibuprofen gives ibuprofen, not "… — done".
   // (Advice keeps its kind: "avoid NSAIDs" is counselling about a drug.)
-  const therapeutics = unique(m.therapeutics).map((t) => ({ ...t, ...(t.kind !== "drug" && t.kind !== "counsel" && (t.drugIds.some((x) => DRUG_IDS.has(x)) || t.drugClasses.length > 0) ? { kind: "drug" as const } : {}), drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)), match: (t.match ?? []).filter((x) => keep(t, x)) }));
+  // "Avoid NSAIDs", rated harmful, is the writer naming the harm as advice: the harm is the NSAIDs, and saying "avoid NSAIDs" is no error.
+  const asHarm = <T extends { label: string; appropriateness: string; match: string[] }>(t: T): T => {
+    const advice = /^(?:avoid|do not (?:give|use)|don'?t (?:give|use)|never (?:give|use)|withhold)\s+/i;
+    if (!["harmful", "dangerous"].includes(t.appropriateness) || !advice.test(t.label)) return t;
+    const label = t.label.replace(advice, "");
+    return { ...t, label: label.charAt(0).toUpperCase() + label.slice(1), match: t.match.filter((x) => !advice.test(x)) };
+  };
+  const therapeutics = unique(m.therapeutics).map(asHarm).map((t) => ({ ...t, ...(t.kind !== "drug" && t.kind !== "counsel" && (t.drugIds.some((x) => DRUG_IDS.has(x)) || t.drugClasses.length > 0) ? { kind: "drug" as const } : {}), drugIds: t.drugIds.filter((x) => DRUG_IDS.has(x)), measureIds: t.measureIds.filter((x) => MEASURE_IDS.has(x)), match: (t.match ?? []).filter((x) => keep(t, x)) }));
   const known = new Set(therapeutics.map((t) => t.id));
+  const { hazards, onResponse, definitiveTreatment } = courseOf(concept, m, therapeutics as never, brief.track);
   const named = [concept.diagnosis, ...m.rubric.diagnosisAccept].map((x) => x.toLowerCase().trim()).filter((x) => x.length > 3);
   const giveaway = (text: string) => named.some((x) => text.toLowerCase().includes(x));
   return {
@@ -683,12 +749,13 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
     triageVitals: d.triageVitals as ClinicalCaseDefinition["triageVitals"],
     profile: d.profile,
     history: unique(d.history).filter((h) => h.match.length > 0) as ClinicalCaseDefinition["history"],
-    exam: unique(f.exam).map((e) => ({ ...e, media: mediaOf(e.media, pictures) })) as ClinicalCaseDefinition["exam"],
+    exam: unique(f.exam).map((e) => ({ ...e, finding: onlyFindings(e.finding), media: mediaOf(e.media, pictures) })) as ClinicalCaseDefinition["exam"],
     // A bedside test (visual acuity, fluorescein, 20WBCT, dipstick) needs no lab: it can be done at any level.
     investigations: unique(f.investigations).map((i) => ({ ...i, rows: i.rows.length ? i.rows : undefined, media: mediaOf(i.media, pictures), ...(i.category === "bedside" || BEDSIDE_TEST.test(`${i.id} ${i.name ?? ""}`) ? { minLevel: "phc" as const } : {}) })) as ClinicalCaseDefinition["investigations"],
     // Only drugs and measures the engine knows: anything else could never be matched.
     therapeutics: therapeutics as ClinicalCaseDefinition["therapeutics"],
-    hazards: [],
+    hazards,
+    ...(onResponse ? { onResponse } : {}),
     // A follow-up shows what's seen and said — a line naming the diagnosis ("the acute kidney injury remains") would give it away.
     followUp: m.followUp.map((f) => ({ ...f, lines: f.lines.filter((l) => !(l.role === "system" && giveaway(l.text))).map((l) => (l.role === "system" && l.kind === "speech" ? { ...l, kind: "finding" } : l)) })) as ClinicalCaseDefinition["followUp"],
     truth: {
@@ -705,6 +772,7 @@ function toDefinition(concept: Concept, d: z.infer<typeof DialogueSchema>, f: z.
       expertActionCount: m.rubric.expertActionCount,
       followUpDays: m.rubric.followUpDays,
       expectsReassessment: m.rubric.expectsReassessment,
+      ...(definitiveTreatment ? { definitiveTreatment } : {}),
       misses: {},
       strengths: {},
     } as ClinicalCaseDefinition["rubric"],
@@ -875,7 +943,50 @@ const withReference = (messages: ChatMessage[], reference: string): ChatMessage[
   reference ? [...messages.slice(0, -1), { role: "system", content: reference }, messages[messages.length - 1]!] : messages;
 
 const ORDER_WORDS = /\b(give|start|prescribe|add|continue|tab|tabs|tablet|cap|capsule|inj|injection|syp|syrup|iv|im|po|sc|stat|od|bd|tds|qid)\b|\d\s*(mg|mcg|µg|g|ml|iu|units?)\b/i;
-const NOT_DRUGS = new Set(["give", "start", "prescribe", "continue", "tablet", "tablets", "capsule", "injection", "syrup", "daily", "once", "twice", "times", "patient", "please", "dose", "oral", "orally", "topical", "cream", "with", "then", "also", "weeks", "days", "hours", "month", "months", "fluids", "antibiotic", "antibiotics", "medicine", "drug"]);
+const FINDINGS = /\b(?:on (?:listening|auscultation|examination)|crackles?|crepitations?|rhonchi|the (?:glucose|sugar|saturation|oxygen level|ha?emoglobin|result|report|x-?ray|ecg|scan) (?:was|is|came|shows?|showed))\b/i;
+const NEGATED = "(?:no|not|avoid|without|withhold|don'?t give|do not give|never give|nil)";
+const MEASURE_WORDS: Record<string, string> = { oxygen: "(?:supplemental |extra |additional )?oxygen", "oral-fluids": "(?:oral |any )?(?:fluids?|water|feeds?)", defib: "(?:shock|cardioversion|defibrillation)" };
+
+/** Whether the doctor said not to do this: "no supplemental oxygen", "no further medicine". */
+export function saidNotTo(targetId: string | undefined, text: string): boolean {
+  const id = (targetId ?? "").replace(/^measure:/, "");
+  const drug = formularyDrug(id);
+  const words = !id || id === "unknown" ? "(?:further |additional |more |other )?(?:medicines?|medications?|drugs?)" : drug ? [drug.generic, drug.id, ...(drug.aliases ?? [])].map((x) => x.toLowerCase().replace(/[^a-z0-9 -]/g, "")).join("|") : MEASURE_WORDS[id];
+  if (!words) return false;
+  const stated = new RegExp(`\\b${NEGATED}\\s+(?:\\w+\\s+){0,1}(?:${words})\\b`, "i").test(text);
+  // ("Avoid oxygen toxicity; give oxygen 2 L" orders it too.)
+  return stated && !new RegExp(`\\b(?:give|start|continue|on)\\s+(?:${words})\\b`, "i").test(text);
+}
+
+/** In an order for several drugs, the words about this one: "morphine 2 mg IV and ondansetron 4 mg IV". */
+export function clauseFor(targetId: string | undefined, text: string): string | undefined {
+  const drug = targetId ? formularyDrug(targetId) : undefined;
+  if (!drug) return undefined;
+  const names = [drug.generic, drug.id, ...(drug.aliases ?? []), ...drug.brands].map((x) => x.toLowerCase());
+  return text.split(/[.;,]|\band\b|\bthen\b|\bplus\b/i).find((c) => names.some((n) => c.toLowerCase().includes(n)));
+}
+
+const TELLS_WHAT_TO_DO = /^(?:assess|obtain|order|consider|check|evaluate|rule out|send|arrange|perform|start|give|refer|pregnancy status is not established)\b/i;
+/** An examination says what's found: a sentence telling the doctor what to do next is a hint, and is taken out. */
+export function onlyFindings(text: string): string {
+  const kept = text.split(/(?<=[.!?])\s+/).filter((s) => !TELLS_WHAT_TO_DO.test(s.trim()));
+  return kept.length ? kept.join(" ") : text;
+}
+
+/** A baby's age in months, as the case's own text gives it. */
+function monthsOld(def: ClinicalCaseDefinition): string | undefined {
+  if (def.patient.age >= 2) return undefined;
+  const text = `${def.briefing} ${def.exam.map((e) => e.finding ?? "").join(" ")}`;
+  return text.match(/\b(\d{1,2})[- ]months?[- ]old\b/i)?.[1];
+}
+
+/** What a patient or relative says, without the sentences only the doctor or the lab could know. */
+export function withoutFindings(text: string): string {
+  const kept = text.split(/(?<=[.!?])\s+/).filter((s) => !FINDINGS.test(s));
+  return kept.length ? kept.join(" ") : "I'm not sure, doctor.";
+}
+
+const NOT_DRUGS = new Set(["oxygen", "nitrogen", "helium", "water", "saline", "blood", "give", "start", "prescribe", "continue", "tablet", "tablets", "capsule", "injection", "syrup", "daily", "once", "twice", "times", "patient", "please", "dose", "oral", "orally", "topical", "cream", "with", "then", "also", "weeks", "days", "hours", "month", "months", "fluids", "antibiotic", "antibiotics", "medicine", "drug"]);
 
 /**
  * An order the rules couldn't place: is it a misspelt name, or a real drug the simulator doesn't stock? Eight seconds at
@@ -889,7 +1000,10 @@ async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corre
   for (const d of found) if (d.formularyId) corrected = corrected.replace(d.input, d.generic);
   if (corrected !== text) return { corrected, reference: "" };
   // A drug that isn't made for the route ordered ("secukinumab PO"): the nurse says so, whichever model is reading.
-  const orderedOral = /\b(po|oral(?:ly)?|by mouth|tab(?:let)?s?|caps?(?:ule)?s?)\b/i.test(text);
+  // (Only with the drug named right beside it: "no oxygen by mouth" in a long plan isn't an order for a tablet.)
+  const oral = "(?:po|oral(?:ly)?|by mouth|tab(?:let)?s?|caps?(?:ule)?s?)";
+  const name = found[0]!.input.replace(/[^A-Za-z-]/g, "");
+  const orderedOral = new RegExp(`\\b${oral}\\b[^.,;]{0,20}\\b${name}\\b|\\b${name}\\b[^.,;]{0,25}\\b${oral}\\b`, "i").test(text);
   const forms = orderedOral ? await within(drugForms(found[0]!.generic), 2500, null) : null;
   if (forms?.routes.length && !forms.routes.some((r) => /oral/i.test(r))) {
     return { reference: "", nurse: `Doctor, ${found[0]!.generic} doesn't come by mouth — it's ${forms.routes.join(" or ").toLowerCase()}. How do you want it given?` };
@@ -917,25 +1031,45 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
       ? aboutThem(parsed.data.message, ctx.def.patient.sex)
       : parsed.data.message;
     const intents: ResolvedIntent[] = [];
+    // (Trimmed below: a patient or relative doesn't report what only the doctor or the lab can find.)
     const generated: Record<string, string> = {};
     // The one reply goes to the first intent that needs words: a question the case file doesn't cover, or anything no id covers.
     const say = (index: number) => {
       if (!message || Object.keys(generated).length > 0) return false;
-      generated[String(index)] = message;
+      generated[String(index)] = speaker === "nurse" ? message : withoutFindings(message);
       return true;
     };
     // A question to the patient ("urine ok?") is never an order: a test the model read into it is dropped.
     const askedOnly = /\?\s*$/.test(text.trim()) && !/\b(order|send|do|get|check|test|repeat|report|result)\b/i.test(text);
+    const drugSeen = new Set<string>();
     for (const i of parsed.data.intents) {
       if (askedOnly && (i.kind === "investigation" || i.kind === "drug")) continue;
+      // "No supplemental oxygen", "no further medicine", "give no oral fluids": said not to, so it isn't an order.
+      if ((i.kind === "drug" || (i.kind === "action" && i.targetId?.startsWith("measure:"))) && saidNotTo(i.targetId, text)) continue;
+      // The same drug read twice from one sentence is one order.
+      if (i.kind === "drug" && i.targetId && i.targetId !== "unknown") {
+        if (drugSeen.has(i.targetId)) continue;
+        drugSeen.add(i.targetId);
+      }
       const intent: ResolvedIntent = { kind: i.kind, targetId: i.targetId, phrase: i.phrase || text, matched: i.kind !== "unknown", payload: i.payload };
       // The dose the doctor wrote is the dose, whatever the model read: "morfine 50 mg" must never reach the nurse as 3 mg.
-      if (i.kind === "drug" && parsed.data.intents.filter((x) => x.kind === "drug").length === 1) {
-        const said = parseOrderDetails(text, { weightKg: parseFloat(ctx.hidden.vitals.weight.value) || 60 });
+      const several = new Set(parsed.data.intents.filter((x) => x.kind === "drug").map((x) => x.targetId)).size > 1;
+      const written = i.kind === "drug" ? (several ? clauseFor(i.targetId, text) : text) : undefined;
+      if (written) {
+        const said = parseOrderDetails(written, { weightKg: parseFloat(ctx.hidden.vitals.weight.value) || 60 });
         if (said.amount !== undefined && said.unit) {
           const { usual: _usual, ...rest } = (i.payload ?? {}) as Record<string, string | number | boolean>;
           intent.payload = { ...rest, amount: said.amount, unit: said.unit, dose: said.text ?? `${said.amount} ${said.unit}` };
         }
+        // So are the volume and the time: "5 litres fast" read by the rules or the model is the same order, not "over 1 minute".
+        const { overMin: _read, rapid: _rapid, ...others } = (intent.payload ?? {}) as Record<string, string | number | boolean>;
+        const timeWritten = /\d\s*(?:s|sec|secs|seconds?|mins?|minutes?|minat|h|hrs?|hours?|ghant\w*)\b/i.test(written);
+        intent.payload = {
+          ...others,
+          ...(said.volumeMl ? { volumeMl: said.volumeMl } : {}),
+          ...(said.overMin !== undefined ? { overMin: said.overMin } : timeWritten && typeof _read === "number" ? { overMin: _read } : {}),
+          ...(said.rapid ? { rapid: true } : {}),
+        };
       }
       // "All blood tests" isn't a test: it's asked about, as when the rules read it.
       if (i.kind === "investigation" && /^adhoc:\s*(?:all|every|any)\b.*\btests?\b/i.test(i.targetId ?? "")) {
@@ -955,7 +1089,7 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
           ? { kind: "unknown", phrase: text, matched: false, payload: { speaker } }
           : { kind: "history", targetId: "generated", phrase: text, matched: true, ...(speaker === "attendant" ? { payload: { speaker } } : {}) },
       );
-      generated["0"] = message;
+      generated["0"] = speaker === "nurse" ? message : withoutFindings(message);
     }
     return intents.length ? { intents, generated } : { intents: ruled };
   } catch (err) {
@@ -1120,7 +1254,7 @@ export function createOpenAIProvider(): ClinicalProvider {
               if (checked.fixes.length) console.info(`[ramai] lab flags corrected: ${checked.fixes.join(" | ")}`);
               return checked.part;
             }),
-          chatJSON(managementPrompt(opts, concept, brief), 3400, false, partTimeout())
+          chatJSON(managementPrompt(opts, concept, brief), 4200, false, partTimeout())
             .then((x) => ManagementSchema.parse(x))
             .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 6000, applyManagementReview, left())),
         ]);
@@ -1182,7 +1316,11 @@ export function createOpenAIProvider(): ClinicalProvider {
       try {
         // Written in the background, so it can take the time to reason carefully.
         // (The model thinks before it writes: too little room and the reply comes back cut off or empty.)
-        const reference = await within(conditionReference(def.truth.diagnosis, def.exam.filter((e) => e.abnormal).map((e) => e.label)), 5000, "");
+        const facts = [...new Set(def.therapeutics.flatMap((t) => t.drugIds ?? []))].slice(0, 5).map((id) => {
+          const f = packFacts(id);
+          return f ? `DRUG ${id}:\n${f}` : "";
+        }).filter(Boolean).join("\n");
+        const reference = [await within(conditionReference(def.truth.diagnosis, def.exam.filter((e) => e.abnormal).map((e) => e.label)), 5000, ""), facts].filter(Boolean).join("\n");
         const prompt = withReference(teachingPrompt(def), reference);
         const parsed = TeachingSchema.safeParse(await chatJSON(prompt, 9000, true, 60_000));
         if (parsed.success && parsed.data.teaching.drugs.length > 0) return parsed.data;
@@ -1251,6 +1389,8 @@ export function createOpenAIProvider(): ClinicalProvider {
     async interpret(text, ctx): Promise<Interpretation> {
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
       const rules = await mockProvider.interpret(text, ctx);
+      // In a cardiac arrest the orders are read by rules alone: no waiting on a model.
+      if (ctx.hidden.code?.active) return rules;
       // The senior's button and "Full history" are carried out exactly by the simulator — nothing to read.
       if (text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim())) return rules;
       // Asking the senior: the rules pick the step; the model writes why it matters for this patient (4 s at most).

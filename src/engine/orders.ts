@@ -172,6 +172,14 @@ const PER_KG: Record<string, { perKg: number; unit: string; max: number; round: 
  * A child's dose far above the usual for their weight — what the nurse says, or null.
  * (Above twice the usual per-kg dose, or above the adult maximum: the nurse checks.)
  */
+/** How many usual child doses this order is, by weight (not the adult tablet); undefined if no per-kg dose is listed. */
+export function childDoseMultiple(drugId: string, amount: number | undefined, unit: string | undefined, weightKg: number): number | undefined {
+  const r = PER_KG[drugId];
+  if (!r || amount === undefined || weightKg <= 0) return undefined;
+  const inUnit = unit === r.unit ? amount : unit === "g" && r.unit === "mg" ? amount * 1000 : undefined;
+  return inUnit === undefined ? undefined : inUnit / Math.min(r.max, r.perKg * weightKg);
+}
+
 export function childDoseConcern(drugId: string, amount: number | undefined, unit: string | undefined, weightKg: number): string | null {
   const r = PER_KG[drugId];
   if (!r || amount === undefined || !unit || !(weightKg > 0)) return null;
@@ -529,6 +537,8 @@ const GRAVE: Record<string, (them: string) => string> = {
   "sedative-overdose": () => "That dose could stop the breathing.",
   "opioid-respiratory-depression": () => "That much opioid could stop the breathing.",
   "cardiodepressant-overdose": () => "That dose could drop the heart rate and pressure dangerously.",
+  "paracetamol-overdose": () => "That's a liver-toxic dose of paracetamol for this patient.",
+  "negative-inotrope": () => "That can drop the pressure further in a failing heart.",
   "drug-toxicity": () => "That's far above the usual dose.",
   "drug-toxicity-severe": () => "That's many times the usual dose.",
   "salt-poisoning": () => "That much salt could be poisonous.",

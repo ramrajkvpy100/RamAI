@@ -1,5 +1,6 @@
-import { after } from "next/server";
 
+import { after } from "next/server";
+import { checkCase } from "@/server/case-check";
 import type { CaseSource } from "@/engine/providers/types";
 import { withUsage, type UsageScope } from "@/engine/providers/usage";
 import { learnFor, sessionInfo, simulateCase, teachingFor } from "@/engine/engine";
@@ -130,7 +131,16 @@ export async function POST(req: Request) {
     usage.sessionId = session.state.sessionId;
     // A patient invented just now is kept for other doctors.
     if (!shared && !banked && !tutorial && !daily && !place) {
-      await bankCase(user.id, sessionInfo(session.token).src, { specialty: specialty, track: session.state.track, level: session.state.level, easy, country: user.country, lang: user.patientLang }).catch(() => undefined);
+      // Only after the doctor has their case: a second opinion from another model first, and nothing it rejects is kept.
+      const invented = sessionInfo(session.token).src;
+      after(async () => {
+        const check = await checkCase(invented).catch(() => ({ status: "unchecked" as const, errors: [] }));
+        if (check.status === "rejected") {
+          console.warn("[ramai] an invented case wasn't banked; the second opinion rejected it:", check.errors.join(" | ").slice(0, 400));
+          return;
+        }
+        await bankCase(user.id, invented, { specialty: specialty, track: session.state.track, level: session.state.level, easy, country: user.country, lang: user.patientLang }).catch(() => undefined);
+      });
     }
     if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);
     // "Near me": the doctors chosen are asked to play the same patient.

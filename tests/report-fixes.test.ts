@@ -55,9 +55,9 @@ describe("problems doctors reported", () => {
     }
   });
 
-  it("the usual dose of a methylprednisolone pulse is a gram, and the plain usual dose is unchanged", async () => {
+  it("the usual dose of a methylprednisolone pulse is 500 mg, and the plain usual dose is unchanged", async () => {
     const pulse = await converse(medSleApex, ["Methylprednisolone pulse IV", "usual dose"]);
-    expect(pulse.state.drugs.at(-1)!.dose).toBe("1000 mg");
+    expect(pulse.state.drugs.at(-1)!.dose).toBe("500 mg");
     const plain = await converse(medSleApex, ["Methylprednisolone IV", "usual dose"]);
     expect(plain.state.drugs.at(-1)!.dose).toBe("125 mg");
     const brand = await converse(medSleApex, ["Inj solumedrol 1 g IV OD for 3 days"]);

@@ -604,6 +604,8 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
       return done([{ kind: "wait", phrase: rawClause, matched: true, payload: { untilResults: true } }]);
     }
     const span = parseSpanMinutes(norm);
+    // "Wait 2 weeks" in clinic is a follow-up visit: that much time really passes, and the course's effects show.
+    if (span !== null && span > 1440 && ctx.def.track === "opd") return done([{ kind: "followup", phrase: rawClause, matched: true, payload: { days: Math.round(span / 1440) } }]);
     const list: ResolvedIntent[] = [{ kind: "wait", phrase: rawClause, matched: true, payload: { minutes: Math.min(span ?? 15, 60 * 24) } }];
     if (hasAny(tk, ["reassess", "recheck", "repeat vitals", "re examine"])) list.push({ kind: "reassess", phrase: rawClause, matched: true });
     return done(list);

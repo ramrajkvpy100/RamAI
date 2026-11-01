@@ -224,6 +224,11 @@ function Workspace() {
                   : undefined
               }
             />
+            {state.codeBlue && (
+              <div role="alert" className="shrink-0 bg-danger px-4 py-2 text-center text-[14px] font-semibold text-white">
+                CODE BLUE: no pulse. Run the arrest, then treat the cause.
+              </div>
+            )}
             <div
               className={cn(
                 "grid min-h-0 flex-1 grid-cols-1 transition-[grid-template-columns] duration-200 ease-out",

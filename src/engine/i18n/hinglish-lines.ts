@@ -608,6 +608,19 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
       "Ek mahine ventilator pe thi. Ab phir se chammach pakadna seekh rahi hoon.",
   },
   "global-templates": {
+    "I feel sick, doctor.": "Mujhe ulti jaisa lag raha hai, doctor.",
+    "It hurts here, under my ribs on the right.": "Yahan dard ho raha hai, daayi taraf pasliyon ke neeche.",
+    "(Confused; does not answer properly.)": "(Confused hai; theek se jawab nahi de raha.)",
+    "A little less sick now.": "Ab thoda kam ulti jaisa lag raha hai.",
+    "I'm feeling better.": "Ab behtar lag raha hai.",
+    "(Too breathless to speak.)": "(Saans itni phool rahi hai ki bol nahi pa rahe.)",
+    "(Breathing a little easier.)": "(Saans thodi aasan ho rahi hai.)",
+    "Doctor, I've been getting bad headaches every morning, and sometimes I feel sick and my vision goes blurry.": "Doctor, roz subah tez sar dard ho raha hai, kabhi ulti jaisa lagta hai aur dhundhla dikhta hai.",
+    "The headaches are terrible now, doctor, and I'm seeing double.": "Sar dard ab bahut tez hai, doctor, aur do-do dikhne laga hai.",
+    "The headaches are easing since you stopped the tablets.": "Goli band karne ke baad sar dard kam ho raha hai.",
+    "It looked better at first, doctor, but now my face is red and burning, the skin looks thin, and small pimples keep coming.": "Pehle theek laga, doctor, par ab chehra laal hai, jalan hoti hai, skin patli lagti hai aur chhote daane nikalte rehte hain.",
+    "It flared when I stopped, but it's slowly settling now.": "Band karne par badh gaya tha, par ab dheere dheere theek ho raha hai.",
+    "My lips have got very dry and cracked, doctor, and my skin feels dry too.": "Mere hoth bahut sukhe aur fate hue hain, doctor, aur skin bhi sukhi lagti hai.",
     "It's much better, doctor — the problem is clearing up.":
       "Ab kaafi behtar hai, doctor — takleef theek ho rahi hai.",
     "He seems much better, doctor — the problem is clearing up.":

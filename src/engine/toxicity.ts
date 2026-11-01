@@ -10,11 +10,12 @@
  */
 
 import { fluidTier } from "./fluids";
+import { DRUG_SAFETY } from "./drug-safety";
 import type { GlobalHazardTemplate } from "./physiology";
 
 /** Covered by a specific template (or not toxic in this sense) — the generic overdose templates leave these alone. */
 const SPECIFIC = new Set(["fluid", "crystalloid", "colloid", "blood-product", "insulin", "opioid", "benzodiazepine", "beta-blocker", "ccb", "antiarrhythmic", "vasopressor", "glucose", "vaccine"]);
-const specific = (classes: readonly string[], id: string) => classes.some((c) => SPECIFIC.has(c)) || id === "potassium-chloride" || id === "methotrexate" || id === "table-salt";
+const specific = (classes: readonly string[], id: string) => classes.some((c) => SPECIFIC.has(c)) || id === "potassium-chloride" || id === "methotrexate" || id === "table-salt" || id === "paracetamol";
 
 const fluidFlood: GlobalHazardTemplate = {
   id: "fluid-flood",
@@ -583,6 +584,7 @@ const saltPoisoning: GlobalHazardTemplate = {
 };
 
 export const TOXICITY: GlobalHazardTemplate[] = [
+  ...DRUG_SAFETY,
   saltPoisoning,
   saltLoad,
   fluidCatastrophe,

@@ -202,6 +202,8 @@ export const FindingsSchema = z.object({
   ),
 });
 
+const CourseVital = z.object({ key: z.string(), value: z.coerce.string() });
+
 /** 2c. Management and the marking key. */
 export const ManagementSchema = z.object({
   therapeutics: listOf(
@@ -221,6 +223,13 @@ export const ManagementSchema = z.object({
     }),
     12,
   ),
+  course: z.object({
+    definitive: strs(4, 40),
+    byMinute: z.coerce.number().catch(30),
+    label: str(80),
+    response: z.object({ vitals: listOf(CourseVital, 8), says: optStr(160), ecgAfter: optStr(200) }).catch({ vitals: [] }),
+    untreated: listOf(z.object({ afterMin: z.coerce.number(), status: z.enum(["deteriorating", "critical", "deceased"]).catch("deteriorating"), vitals: listOf(CourseVital, 8), nurse: optStr(160) }), 4),
+  }).optional().catch(undefined),
   reasoning: listOf(z.object({ stage: z.enum(["History", "Examination", "Investigation", "Diagnosis"]), text: str(500) }), 4),
   rubric: z.object({
     diagnosisAccept: strs(10, 100),
