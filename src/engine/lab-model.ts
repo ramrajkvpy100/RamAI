@@ -27,12 +27,32 @@ export interface LabContext {
   age: number;
   sex: string;
   heightCm?: number;
+  /** SpO₂ on arrival and now, for PaO₂ to follow. */
+  spo2Base?: number;
+  spo2Now?: number;
 }
 
 const SALINE = new Set(["ns", "saline-3", "normal-saline"]);
 const CRYSTALLOID = new Set(["ns", "rl", "normal-saline", "ringer-lactate", "dns"]);
+/** What a lab shows while the analyser couldn't answer: never a false normal. */
+export const LAB_PENDING = "Pending: lab analyser busy. Order it again to re-run.";
+
 /** The kidneys clear what was infused with a half-life of some hours. */
 const left = (ago: number) => Math.exp(-Math.max(0, ago) / 480);
+
+/** Severinghaus: oxygen saturation (%) from PaO₂ (mmHg). */
+export const severinghaus = (pao2: number) => 100 / (23400 / (pao2 ** 3 + 150 * pao2) + 1);
+
+/** The PaO₂ that gives this saturation. */
+export function pao2ForSaturation(saturation: number): number {
+  let [lo, hi] = [5, 600];
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (severinghaus(mid) < saturation) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
 
 /** Winter's formula: the PaCO₂ a metabolic acidosis should bring. */
 export const wintersPaCO2 = (hco3: number) => 1.5 * hco3 + 8;
@@ -115,8 +135,15 @@ function moved(rows: readonly LabRow[], ctx: LabContext): LabRow[] {
   const weight = ctx.weightKg > 0 ? ctx.weightKg : 60;
   const crystalloid = ctx.fluids.filter((f) => CRYSTALLOID.has(f.drugId)).reduce((sum, f) => sum + f.ml * left(f.ago), 0);
   const saline = ctx.fluids.filter((f) => SALINE.has(f.drugId)).reduce((sum, f) => sum + f.ml * left(f.ago), 0);
-  if (crystalloid < 250 && ctx.redCellUnits === 0 && ctx.co2Retained < 1) return [...rows];
   const out = new Map<LabRow, LabRow>();
+  // PaO₂ moves with the saturation along the dissociation curve, from wherever the written result started.
+  const po2 = analyte(rows, /^(?:pa?o2|pa?o₂)(?![a-z0-9])/i);
+  const po2Now = plain(po2);
+  if (po2 && po2Now !== undefined && ctx.spo2Base && ctx.spo2Now && ctx.spo2Now > 0 && Math.abs(ctx.spo2Now - ctx.spo2Base) >= 1 && !/kpa/i.test(po2.unit ?? "")) {
+    const target = Math.min(99, Math.max(30, severinghaus(po2Now) + ctx.spo2Now - ctx.spo2Base));
+    set(out, po2, pao2ForSaturation(target), 0);
+  }
+  if (crystalloid < 250 && ctx.redCellUnits === 0 && ctx.co2Retained < 1) return rows.map((r) => out.get(r) ?? r);
 
   // Dilution: the same red cells and albumin in more plasma water.
   const bloodMl = 70 * weight;

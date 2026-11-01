@@ -30,6 +30,7 @@ import "server-only";
 import { DEFAULT_MODEL, lightReasoning } from "@/lib/server/openai-check";
 
 import { stateOfMind } from "../behaviour";
+import { LAB_PENDING } from "../lab-model";
 import type { ClinicalCaseDefinition } from "../case-definition";
 import { EXAMS, INVESTIGATIONS, MEASURES } from "../catalog";
 import { COUNTRY, type Country } from "../countries";
@@ -97,8 +98,16 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
       throw err;
     });
   };
+  // Free Gemini first, if chosen: on a 429, a 5xx or no answer in time, OpenAI answers. A senior's review (careful) stays with OpenAI.
+  if (process.env.RAMAI_PRIMARY === "gemini" && !careful && geminiConfigured()) {
+    try {
+      return await geminiJSON(messages, maxTokens, Math.max(2000, Math.round(limit * 0.5)));
+    } catch (err) {
+      console.warn(`[ramai] Gemini first didn't answer (${err instanceof Error ? err.message : String(err)}); OpenAI is answering`);
+    }
+  }
   try {
-    return await chatJSONOnce(messages, maxTokens, careful, limit, fast);
+    return await chatJSONOnce(messages, maxTokens, careful, Math.max(2000, limit - (Date.now() - started)), fast);
   } catch (err) {
     const left = limit - (Date.now() - started);
     const cause = (err as { cause?: { code?: string; message?: string } }).cause;
@@ -197,13 +206,13 @@ function mindNote(ctx: InterpretContext): string {
   return mind ? `\nHow the patient speaks now: ${mind} Keep it true to the case facts, and never name the diagnosis.` : "";
 }
 
-function stateNote(ctx: InterpretContext): string {
+function stateNote(ctx: InterpretContext, lines = 12): string {
   const h = ctx.hidden;
   const v = vitalsNow(h);
   const given = h.drugs.filter((d) => d.mode === "given").slice(-8).map((d) => `${d.generic}${d.dose ? ` ${d.dose}` : ""} ${d.route} at minute ${Math.round(d.at)}`);
-  // The whole conversation (up to 40 lines), so the model follows it the way a colleague would.
+  // The recent conversation, so the model follows it the way a colleague would; what's been found is in knownSoFar.
   const recent = ctx.transcript
-    .slice(-40)
+    .slice(-lines)
     .map((m) => `${m.role === "doctor" ? "Doctor" : m.role === "attendant" ? "Relative" : m.role === "nurse" ? "Nurse" : m.role === "patient" ? "Patient" : "Ward"}: ${m.text}`)
     .join("\n");
   return `Minute ${Math.round(h.clock)} of the encounter. The patient is ${h.status}${h.patientSays ? ` and says "${h.patientSays}"` : ""}. Vitals: HR ${v.hr.value}, BP ${v.bp.value}, RR ${v.rr.value}, SpO2 ${v.spo2.value}, temperature ${v.temp.value}.
@@ -244,13 +253,32 @@ function plainEnglish(clause: string): string {
 
 function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: InterpretContext, guess = ""): ChatMessage[] {
   const { country, lang } = ctx;
-  const history = def.history.map((h) => `${h.id} | ${h.label} | patient says: ${h.reply}`).join("\n");
-  const exams = [...def.exam.map((e) => `${e.id} | ${e.label}`), ...EXAMS.map((e) => `${e.id} | ${e.label}`)].join("\n");
-  const invs = [...def.investigations.map((i) => i.id), ...INVESTIGATIONS.map((i) => i.id)].join(", ");
-  const measures = MEASURES.map((m) => m.id).join(", ");
-  const rules = def.therapeutics.map((r) => `${r.id} (${r.kind}: ${r.label})`).join(", ");
+  // Only what this message could mean goes in: the id lists were most of the prompt, and most of the wait.
+  const said = (`${clause} ${normalise(clause)} ${guess} ${ctx.hidden.pendingOrders?.map((o) => o.targetId).join(" ") ?? ""} ${ctx.transcript.filter((m) => m.role === "doctor").slice(-2).map((m) => m.text).join(" ")}`).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+  const near = (...names: readonly string[]) => names.some((name) => { const n = name.toLowerCase(); return said.some((w) => n.includes(w) || (w.length >= 5 && n.split(/[^a-z0-9]+/).some((p) => p.length >= 5 && (p.includes(w) || w.includes(p) || editDistance(p, w) <= 2)))); });
+  const history = def.history.map((h) => (near(h.id, h.label, ...(h.match ?? [])) ? `${h.id} | ${h.label} | patient says: ${h.reply}` : `${h.id} | ${h.label} | ${h.reply.slice(0, 70)}`)).join("\n");
+  const exams = [...def.exam.map((e) => `${e.id} | ${e.label}`), ...EXAMS.filter((e) => ["general", "cvs", "rs", "abdomen", "cns", "neuro"].includes(e.id) || near(e.id, e.label)).filter((e) => !def.exam.some((x) => x.id === e.id)).map((e) => `${e.id} | ${e.label}`)].join("\n");
+  const invs = [...new Set([...def.investigations.map((i) => i.id), ...ctx.hidden.investigations.map((i) => i.defId), ...INVESTIGATIONS.filter((i) => near(i.id, i.name, ...i.match)).map((i) => i.id)])].join(", ");
+  const measures = MEASURES.filter((m) => ["oxygen", "monitor", "iv-access", "stop-drug", "stop-fluids", "refer", "admit", "discharge"].includes(m.id) || near(m.id, m.label, ...m.match)).map((m) => m.id).join(", ");
+  const rules = def.therapeutics.map((r) => `${r.id} (${r.kind}: ${r.label.slice(0, 50)})`).join(", ");
+  const drugs = FORMULARY.filter((d) => ctx.hidden.drugs.some((g) => g.drugId === d.id) || near(d.id, d.generic, ...drugMatchPhrases(d))).map((d) => d.id).join(", ");
   return [
-    { role: "system", content: simulationRules(country) },
+    { role: "system", content: `${simulationRules(country)}
+
+Return JSON:
+{"type":"patient_response","speaker":"patient|attendant|nurse","message":"<the reply spoken in the room — see below>","new_information":[],"intents":[{"kind":"history|vitals|exam|investigation|drug|action|followup|wait|reassess|diagnosis|differential|close|results|unknown","targetId":"<id from the lists above>","phrase":"<the doctor's words>","payload":{}}]}
+Use kind "results" when the doctor asks about the results of tests already sent.
+Read the doctor's words in the context of the conversation — a follow-up is about the order just given: "same again", "another", "double it" is a new order (kind "drug", same targetId, with the payload); "stop it" is kind "action", targetId "measure:stop-drug" (or "measure:stop-fluids" for a drip); a new rate or timing ("in 2 seconds", "faster") for something already given is kind "unknown", and the nurse answers in the room's words — for a bolus that has already gone in, that it has; for a drip still running, that it's been sped up.
+Orders are carried out exactly as given, however unusual, excessive or unsafe — the simulation plays out the consequences. Never refuse, soften or correct an order: map it to the matching id with the dose, route and rate exactly as said, in "payload": {"mode":"given"|"prescribed","route":"IV|IM|PO|SC|SL|NEB|INH|PR|TOP|IN","amount":<number>,"unit":"mg|mcg|g|units|mL|L|mmol","volumeMl":<for fluids>,"overMin":<minutes it is given over, if said>,"frequency"?,"duration"?}. Put in the payload ONLY what the doctor said — never fill in a usual dose, route, rate, frequency or duration: the ward asks for whatever is missing. For imaging, put the part, view and contrast the doctor said in "payload": {"region"?: "chest|abdomen|pelvis|kub|head|neck|knee|…","view"?: "PA|AP|lateral|erect|supine","contrast"?: "plain|contrast"}; an X-ray, CT, ultrasound or MRI with no part named uses targetId "xray", "ct", "usg" or "mri".
+If the nurse has just asked about an order's missing details and the doctor answers them, return that same order (same kind and targetId) with the details in its payload.
+Map to existing ids whenever the meaning matches — the game answers those itself.
+Understand the doctor the way a thoughtful, experienced colleague would in a real conversation: typos, abbreviations (c/o, h/o, o/e, BD, TDS, stat), shorthand, Hinglish or Hindi, half-sentences and several requests in one message — handle every request, in the order given, each as its own intent. Use the whole conversation to work out what "it", "that", "same", "again" and short replies refer to.
+Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${fullLab(def) ? `
+This hospital can do any standard test. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
+A patient or relative only says what they feel and know: never an examination finding or a test result. When the doctor states what they think it is ("this looks like…", "most consistent with…", "dx …"), add kind "diagnosis" with their words as well as anything else they order.
+For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}. A relative speaking about a child (or about a patient who can't speak) speaks of them in the third person — "he hasn't had a fever", never "I haven't".
+Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
+For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient (in ${language(country, lang)}); the relative only when spoken to directly, or when the patient is a young child or can't speak. The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.` },
     {
       role: "user",
       content: `CASE FILE (hidden)
@@ -268,22 +296,8 @@ ${exams}
 Investigation ids: ${invs}
 Supportive measure ids (use as "measure:<id>"): ${measures}
 Case therapeutic rule ids: ${rules}
-Formulary drug ids: ${FORMULARY.map((d) => d.id).join(", ")}
+Formulary drug ids matching this message: ${drugs || "none"} (a drug named that isn't here: kind "drug", targetId "unknown")
 
-Return JSON:
-{"type":"patient_response","speaker":"patient|attendant|nurse","message":"<the reply spoken in the room — see below>","new_information":[],"intents":[{"kind":"history|vitals|exam|investigation|drug|action|followup|wait|reassess|diagnosis|differential|close|results|unknown","targetId":"<id from the lists above>","phrase":"<the doctor's words>","payload":{}}]}
-Use kind "results" when the doctor asks about the results of tests already sent.
-Read the doctor's words in the context of the conversation — a follow-up is about the order just given: "same again", "another", "double it" is a new order (kind "drug", same targetId, with the payload); "stop it" is kind "action", targetId "measure:stop-drug" (or "measure:stop-fluids" for a drip); a new rate or timing ("in 2 seconds", "faster") for something already given is kind "unknown", and the nurse answers in the room's words — for a bolus that has already gone in, that it has; for a drip still running, that it's been sped up.
-Orders are carried out exactly as given, however unusual, excessive or unsafe — the simulation plays out the consequences. Never refuse, soften or correct an order: map it to the matching id with the dose, route and rate exactly as said, in "payload": {"mode":"given"|"prescribed","route":"IV|IM|PO|SC|SL|NEB|INH|PR|TOP|IN","amount":<number>,"unit":"mg|mcg|g|units|mL|L|mmol","volumeMl":<for fluids>,"overMin":<minutes it is given over, if said>,"frequency"?,"duration"?}. Put in the payload ONLY what the doctor said — never fill in a usual dose, route, rate, frequency or duration: the ward asks for whatever is missing. For imaging, put the part, view and contrast the doctor said in "payload": {"region"?: "chest|abdomen|pelvis|kub|head|neck|knee|…","view"?: "PA|AP|lateral|erect|supine","contrast"?: "plain|contrast"}; an X-ray, CT, ultrasound or MRI with no part named uses targetId "xray", "ct", "usg" or "mri".
-If the nurse has just asked about an order's missing details and the doctor answers them, return that same order (same kind and targetId) with the details in its payload.
-Map to existing ids whenever the meaning matches — the game answers those itself.
-Understand the doctor the way a thoughtful, experienced colleague would in a real conversation: typos, abbreviations (c/o, h/o, o/e, BD, TDS, stat), shorthand, Hinglish or Hindi, half-sentences and several requests in one message — handle every request, in the order given, each as its own intent. Use the whole conversation to work out what "it", "that", "same", "again" and short replies refer to.
-Accuracy matters more than anything: never map to an id that means something other than what the doctor said. Use kind "exam" only when the doctor asked to examine, look, feel, listen or test a sign — an instruction to the patient ("stand up", "sit", "walk", "take a deep breath") is kind "unknown" and the patient simply does it. Never swap one drug, test, side or body part for another (left is not right; a CT is not an MRI; amoxicillin is not amoxiclav). If a name could mean two different ids and the conversation doesn't settle it, use kind "unknown" with speaker "nurse" and ask in one short line which one the doctor means — the only time a question is asked.${fullLab(def) ? `
-This hospital can do any standard test. A test the doctor orders that no investigation id covers is kind "investigation", targetId "adhoc:<its standard name>" (e.g. "adhoc:Anti-CCP antibodies") — never say it isn't available.` : ""}
-A patient or relative only says what they feel and know: never an examination finding or a test result. When the doctor states what they think it is ("this looks like…", "most consistent with…", "dx …"), add kind "diagnosis" with their words as well as anything else they order.
-For history questions with no matching entry, use kind "history", targetId "generated", speaker "patient" — the patient answers for themself; "attendant" ONLY when the doctor clearly addressed the relative by name or role, or the patient is a young child or can't speak (unconscious, confused), and put the reply in "message", in ${language(country, lang)}. A relative speaking about a child (or about a patient who can't speak) speaks of them in the third person — "he hasn't had a fever", never "I haven't".
-Whatever the doctor says is acted on. Read it in the context of the conversation and do what they most likely mean: a short reply ("ya", "yes", "ok", "haan", "do it", "go ahead") agrees to whatever was just asked or proposed and carries it out; a measurement ("measure his height", "weigh her") is kind "vitals"; a unit or a repeat ("in feet", "again") refers to the last thing done.
-For anything else no id covers — a remark, reassurance, small talk, or a request the ward can't carry out — use kind "unknown" and always write "message": the brief, natural reply of whoever was spoken to. By default that is the patient (in ${language(country, lang)}); the relative only when spoken to directly, or when the patient is a young child or can't speak. The nurse answers only when the doctor gave the staff an order (speaker "nurse", plain English, one short sentence); the nurse never says that a test, drug, procedure or referral has been done or given, never states a finding or result, and never suggests what to do next. If something truly can't be done here, say so plainly in one line. Never ask the doctor what they want.
 
 The doctor said: """${clause}"""${plainEnglish(clause)}${guess ? `\n(A quick keyword reading took it as: ${guess}. Keep it if it is what the doctor meant; correct it if not — a question is never an order, history is not examination, and asking for results is not a new test.)` : ""}`,
     },
@@ -678,12 +692,15 @@ export function courseOf(concept: Concept, m: z.infer<typeof ManagementSchema>, 
   const plausible = (vitals: { key: string; value: string }[]) => vitals.map(fahrenheit).filter((v) => COURSE_VITALS.has(v.key) && /\d/.test(v.value) && sanityProblems({ patient: { age: concept.patient.age ?? 40, sex: concept.patient.sex ?? "" }, diagnosis: concept.diagnosis }, { [v.key]: v.value }).length === 0) as VitalPatch[];
   const giveaway = (text?: string) => !!text && [concept.diagnosis, ...m.rubric.diagnosisAccept].some((x) => x.length > 3 && text.toLowerCase().includes(x.toLowerCase()));
   // Each treatment by its own name, and the drug or the measure however it's ordered ("adenosine", "cardiovert").
+  // (A vagal manoeuvre that may fail doesn't stop the clock on the illness unless it works: that's the simulator's to say.)
   const ids = [...new Set(rules.flatMap((t) => [t.id, ...t.drugIds.map((d) => `drug:${d}`), ...t.measureIds.filter((x) => !["refer", "admit", "monitor", "iv-access"].includes(x)).map((x) => `measure:${x}`)]))];
   const byMinute = Math.min(240, Math.max(5, Math.round(course.byMinute) || 30));
   const vitals = plausible(course.response.vitals);
   const says = giveaway(course.response.says) ? undefined : course.response.says;
   const examAfter = Object.fromEntries(Object.entries(course.response.examAfter ?? {}).filter(([, text]) => !giveaway(text)).map(([id, text]) => [id, onlyFindings(text)]));
-  const onResponse = { ...(vitals.length ? { vitals } : {}), ...(says ? { says, patientSays: says } : {}), ...(course.response.ecgAfter ? { ecgAfter: course.response.ecgAfter } : {}), ...(Object.keys(examAfter).length ? { examFindings: examAfter } : {}) };
+  // A tachyarrhythmia that's stopped shows sinus rhythm on the next ECG, whether or not the writer said so.
+  const ecgAfter = course.response.ecgAfter ?? (/supraventricular|\bsvt\b|avnrt|avrt/i.test(concept.diagnosis) ? "Normal sinus rhythm. No pre-excitation or acute ST-T change." : undefined);
+  const onResponse = { ...(vitals.length ? { vitals } : {}), ...(says ? { says, patientSays: says } : {}), ...(ecgAfter ? { ecgAfter } : {}), ...(Object.keys(examAfter).length ? { examFindings: examAfter } : {}) };
   const definitiveTreatment = { ids, byMinute, label: course.label || rules[0]!.id };
   // A death comes at its true pace, never in the first 45 minutes; and nothing follows it.
   const ladder = track === "emergency" ? course.untreated.map((s) => ({ ...s, afterMin: s.status === "deceased" ? Math.max(45, s.afterMin) : s.afterMin })).sort((a, b) => a.afterMin - b.afterMin) : [];
@@ -1038,7 +1055,7 @@ async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corre
   // A stocked drug misspelt ("morfine"): known here, without waiting on an outside service.
   const respelt = stockedSpelling(text);
   if (respelt) return { corrected: respelt, reference: "" };
-  const found = (await within(Promise.all(words.map((w) => resolveDrugName(w))), 5000, [])).filter((d) => d !== null);
+  const found = (await within(Promise.all(words.map((w) => resolveDrugName(w))), 1500, [])).filter((d) => d !== null);
   if (found.length === 0) return { reference: "" };
   let corrected = text;
   for (const d of found) if (d.formularyId) corrected = corrected.replace(d.input, d.generic);
@@ -1048,12 +1065,12 @@ async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corre
   const oral = "(?:po|oral(?:ly)?|by mouth|tab(?:let)?s?|caps?(?:ule)?s?)";
   const name = found[0]!.input.replace(/[^A-Za-z-]/g, "");
   const orderedOral = new RegExp(`\\b${oral}\\b[^.,;]{0,20}\\b${name}\\b|\\b${name}\\b[^.,;]{0,25}\\b${oral}\\b`, "i").test(text);
-  const forms = orderedOral ? await within(drugForms(found[0]!.generic), 2500, null) : null;
+  const onAlready = [...new Set(ctx.hidden.drugs.filter((d) => d.mode === "given" || d.mode === "prescribed").map((d) => d.generic))];
+  const [forms, reference] = await Promise.all([orderedOral ? within(drugForms(found[0]!.generic), 1500, null) : null, within(drugReference(found[0]!.generic, onAlready), 1500, "")]);
   if (forms?.routes.length && !forms.routes.some((r) => /oral/i.test(r))) {
     return { reference: "", nurse: `Doctor, ${found[0]!.generic} doesn't come by mouth — it's ${forms.routes.join(" or ").toLowerCase()}. How do you want it given?` };
   }
-  const onAlready = [...new Set(ctx.hidden.drugs.filter((d) => d.mode === "given" || d.mode === "prescribed").map((d) => d.generic))];
-  return { reference: await within(drugReference(found[0]!.generic, onAlready), 3000, "") };
+  return { reference };
 }
 
 async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[], reference = ""): Promise<Interpretation> {
@@ -1200,8 +1217,15 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
     )) as { results?: { test?: string; rows?: { analyte?: string; value?: unknown; unit?: string; reference?: string; flag?: string }[]; report?: string }[] };
     const out: Record<string, string> = {};
     for (const g of unique) {
-      const r = raw?.results?.find((x) => x.test === g.id);
-      if (!r) continue;
+      // Matched by id or name, however the model cased it; a single answer to a single question is that answer.
+      const label = (x: unknown) => String(x ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const results = raw?.results ?? [];
+      const r = results.find((x) => label(x.test) === label(g.id) || label(x.test) === label(g.name)) ?? (unique.length === 1 && results.length === 1 ? results[0] : undefined);
+      if (!r) {
+        console.warn("[ramai] the lab reply left out a test; shown as pending:", g.id, "got", results.map((x) => x.test).join(", "));
+        out[`lab:${g.id}`] = JSON.stringify({ report: LAB_PENDING });
+        continue;
+      }
       if (g.adhoc) {
         const free = (r.rows ?? [])
           .filter((x) => typeof x.analyte === "string" && (typeof x.value === "string" || typeof x.value === "number") && !NO_VALUE.test(String(x.value)))
@@ -1224,8 +1248,8 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
     }
     return out;
   } catch (err) {
-    console.error("[ramai] lab results fell back to normal values", err instanceof Error ? err.message : err);
-    return {};
+    console.error("[ramai] lab results unavailable; shown as pending, not as normal:", unique.map((g) => g.id).join(", "), err instanceof Error ? err.message : err);
+    return Object.fromEntries(unique.map((g) => [`lab:${g.id}`, JSON.stringify({ report: LAB_PENDING })]));
   }
 }
 
@@ -1293,22 +1317,19 @@ export function createOpenAIProvider(): ClinicalProvider {
         if (brief.specialty === "Pediatrics" && outline.data.patient.age > 17) throw new UpstreamError(`a paediatric case came back with an adult (age ${outline.data.patient.age})`);
         const concept = { ...outline.data, patient: { ...outline.data.patient, age: outline.data.patient.age } };
         const level = levelMeta(brief.level, country).label;
-        // Each part is written, then checked by a consultant the moment it's ready — the three in parallel.
+        // The three parts are written in parallel; one senior then reads the whole case, and only what they find is sent back.
         let [d, f, m] = await Promise.all([
           chatJSON(dialoguePrompt(opts, concept, brief), 3400, false, partTimeout())
-            .then((x) => DialogueSchema.parse(x))
-            .then((part) => reviewPart("history and vitals", part, dialogueReviewPrompt(concept, part, country), 5000, applyDialogueReview, left())),
+            .then((x) => DialogueSchema.parse(x)),
           chatJSON(findingsPrompt(opts, concept, brief), 5800, false, partTimeout())
             .then((x) => FindingsSchema.parse(x))
-            .then((part) => reviewPart("findings and results", part, findingsReviewPrompt(concept, part, country), 8000, applyFindingsReview, left()))
             .then((part) => {
               const checked = checkLabFlags(part);
               if (checked.fixes.length) console.info(`[ramai] lab flags corrected: ${checked.fixes.join(" | ")}`);
               return checked.part;
             }),
           chatJSON(managementPrompt(opts, concept, brief), 4200, false, partTimeout())
-            .then((x) => ManagementSchema.parse(x))
-            .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 6000, applyManagementReview, left())),
+            .then((x) => ManagementSchema.parse(x)),
         ]);
         if (d.history.length < 4 || f.exam.length < 1 || m.therapeutics.length < 2) {
           throw new UpstreamError(`a part came back too thin (history ${d.history.length}, exam ${f.exam.length}, treatments ${m.therapeutics.length})`);

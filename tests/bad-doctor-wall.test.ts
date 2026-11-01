@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { expectedPH } from "@/engine/abg-check";
+import { consistentLabs, expectedPH } from "@/engine/abg-check";
 import { ALL_CASES } from "@/engine/cases";
 import { defaultVitals, normalVitals, readVitalKeys, ROUTINE_VITALS } from "@/engine/catalog";
 import { FORMULARY, parseOrderDetails } from "@/engine/formulary";
@@ -15,7 +15,7 @@ import { liveClash } from "@/engine/interactions";
 import { givesReason, stateOfMind } from "@/engine/behaviour";
 import { kineticsFor, profileFor } from "@/engine/pharmacology";
 import { lumbarPuncture, runProcedure, tubeProblem } from "@/engine/procedures";
-import { ckdEpi, compensated, creatinineClearance, followLabs, wintersPaCO2 } from "@/engine/lab-model";
+import { ckdEpi, compensated, creatinineClearance, followLabs, LAB_PENDING, pao2ForSaturation, severinghaus, wintersPaCO2 } from "@/engine/lab-model";
 import { expectedPH as hh } from "@/engine/abg-check";
 import { generateDebrief } from "@/engine/debrief";
 import { clauseFor, courseOf, onlyFindings, saidNotTo, stockedSpelling, withoutFindings } from "@/engine/providers/openai";
@@ -857,5 +857,73 @@ describe("case report: fluid in someone who isn't short of it (Case #47)", () =>
     const shocked = C("obg-pph");
     const given = await converse(shocked, ["ns 500 ml iv over 15 minutes"]);
     expect(given.hidden.drugs[0]?.pressureLoad ?? 0).toBeLessThan(10);
+  });
+});
+
+describe("the seven fixes", () => {
+  const r = (analyte: string, value: string, reference?: string, unit?: string) => ({ analyte, value, reference, unit, flag: "normal" as const });
+  it("pH follows HCO₃ and pCO₂ with subscripts in the names", () => {
+    const rows = consistentLabs([r("pH", "7.33", "7.35–7.45"), r("pCO₂", "40", "35–45", "mmHg"), r("HCO₃⁻", "18", "22–26", "mEq/L")]);
+    expect(rows[0]!.value).toBe("7.28");
+    expect(consistentLabs([r("pH", "7.28"), r("PaCO2", "40"), r("Bicarbonate", "18")])[0]!.value).toBe("7.28");
+  });
+  it("Severinghaus: PaO₂ follows SpO₂ along the curve", () => {
+    expect(Math.round(severinghaus(60))).toBe(91);
+    expect(Math.round(pao2ForSaturation(80))).toBeGreaterThanOrEqual(44);
+    expect(Math.round(pao2ForSaturation(80))).toBeLessThanOrEqual(50);
+    const ctx = { weightKg: 60, fluids: [], redCellUnits: 0, co2Retained: 0, age: 40, sex: "Male", spo2Base: 88, spo2Now: 80 };
+    expect(Number(followLabs([r("pO₂", "56", "80–100", "mmHg")], ctx)[0]!.value)).toBeLessThan(50);
+  });
+  it("too much fluid in someone already hypoxic drops the saturation further, and the film follows", async () => {
+    const def = C("em-adhf");
+    const { hidden, state } = await converse(def, ["3000 mL 0.9% NaCl IV rapid bolus", "yes", "check vitals", "chest xray pa"]);
+    expect(parseFloat(hidden.vitals.spo2.value)).toBeLessThan(88);
+    const film = [...state.investigations].reverse().find((i) => /x-?ray/i.test(i.name))!;
+    expect(film.report).toMatch(/Kerley B/);
+  });
+  it("isotretinoin for acne shows at the visit and on the skin, with one consistent story", async () => {
+    const def = ALL_CASES.find((c) => c.id.startsWith("derm-acne"))!;
+    const { state } = await converse(def, ["Isotroin 40mg PO OD", "for 6 months", "Follow up after 6 weeks", "examine the skin"]);
+    const text = said(state);
+    expect(text).toMatch(/spots are much better/);
+    expect(text).toMatch(/70% fewer/);
+    expect(text).not.toMatch(/After 6 months/);
+    expect(text).not.toMatch(/It's worse/);
+  });
+  it("a vagal manoeuvre doesn't always work, replays the same, and a failed one changes nothing", async () => {
+    const base = ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+    const results = await Promise.all(Array.from({ length: 40 }, async (_, k) => {
+      const def = { ...base, id: `svt-${k}`, hazards: [], therapeutics: [{ id: "valsalva", kind: "procedure", label: "Valsalva manoeuvre", match: ["valsalva"], appropriateness: "ideal" }, ...base.therapeutics], onResponse: { vitals: [{ key: "hr", value: "78" }], ecgAfter: "Normal sinus rhythm." }, rubric: { ...base.rubric, definitiveTreatment: { ids: ["valsalva"], byMinute: 30, label: "Stop the rhythm" } } } as typeof base;
+      return (await converse(def, ["valsalva"])).hidden.vagalConverted === true;
+    }));
+    const worked = results.filter(Boolean).length;
+    expect(worked).toBeGreaterThan(2);
+    expect(worked).toBeLessThan(22);
+  });
+  it("a pending lab shows no invented normals, and doesn't hide what the course already shows", () => {
+    const def = ALL_CASES.find((c) => c.id.startsWith("derm-acne"))!;
+    const hidden = createHiddenState(def);
+    const order = (raw: string, targetId: string, generated?: Record<string, string>) => runTurn(def, hidden, { id: raw, at: hidden.clock, raw, intents: [{ kind: "investigation", targetId, phrase: raw, matched: true }], generated });
+    const busy = { "lab:lipid": JSON.stringify({ report: LAB_PENDING }) };
+    order("lipid profile", "lipid", busy);
+    const first = hidden.investigations.find((i) => i.defId === "lipid")!;
+    expect(first.result.report).toBe(LAB_PENDING);
+    expect(first.result.rows ?? []).toEqual([]);
+    // Ordered again, it runs again rather than showing the same pending.
+    order("lipid profile again", "lipid");
+    expect(hidden.investigations.filter((i) => i.defId === "lipid").length).toBe(2);
+  });
+
+  it("a tablet's daily ceiling isn't a rate", () => {
+    const base = ALL_CASES.find((c) => c.track === "opd" && c.patient.age >= 18)!;
+    const fx = runTurn(base, createHiddenState(base), { id: "a", at: 0, raw: "x", intents: [{ kind: "drug", targetId: "paracetamol", phrase: "paracetamol 1 g", matched: true, payload: { mode: "given", amount: 1, unit: "g", route: "PO", overMin: 1440, dose: "1 g" } }] });
+    expect(fx.flatMap((e) => (e.type === "message" ? [e.text] : [])).join(" ")).not.toMatch(/about 1 day/);
+  });
+
+  it("a test the lab couldn't report is pending, never a false normal", async () => {
+    const base = ALL_CASES.find((c) => c.track === "opd" && c.patient.age >= 18)!;
+    const text = said((await converse(base, ["anti ccp antibodies"])).state);
+    expect(text).not.toMatch(/Within normal limits/);
+    expect(LAB_PENDING).toMatch(/Pending/);
   });
 });

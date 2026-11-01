@@ -18,8 +18,9 @@ export const expectedPH = (hco3: number, paco2: number) => 6.1 + Math.log10(hco3
 
 export function consistentLabs(rows: readonly LabRow[]): LabRow[] {
   const ph = find(rows, /^(?:arterial |venous |blood )?ph$/i);
-  const hco3 = find(rows, /hco3|hco₃|bicarb/i);
-  const paco2 = find(rows, /^(?:p\s*a?\s*co2|pco₂|paco₂|pco2)\b|carbon dioxide/i);
+  const hco3 = find(rows, /(?:hco3|hco₃|bicarb)/i);
+  // (No \\b after a subscript: "₂" isn't a word character, so it never matches there.)
+  const paco2 = find(rows, /^(?:p\s*a?\s*co[2₂])(?![a-z0-9])|carbon dioxide/i);
   const na = find(rows, /^(?:serum )?(?:sodium|na\+?)\b/i);
   const cl = find(rows, /^(?:serum )?(?:chloride|cl-?)\b/i);
   const gap = find(rows, /anion gap/i);

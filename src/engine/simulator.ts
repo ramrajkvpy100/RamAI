@@ -20,7 +20,7 @@ import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProble
 import { BIG_STEPS, givesReason } from "./behaviour";
 import { liveClash } from "./interactions";
 import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
-import { compensated, creatinineClearance, followLabs, type LabContext } from "./lab-model";
+import { compensated, creatinineClearance, followLabs, LAB_PENDING, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
@@ -138,6 +138,9 @@ type ShiftKey = "hr" | "sbp" | "dbp" | "rr" | "spo2" | "temp" | "gcs" | "rbs" | 
 export interface HiddenState {
   /** The oxygen now running (its device and flow). */
   oxygenOn?: string;
+  /** How many vagal manoeuvres have been tried, and whether one worked. */
+  vagalTries?: number;
+  vagalConverted?: boolean;
   /** A reluctant patient has been told why and agreed. */
   consented?: boolean;
   /** How many times they've refused without being told. */
@@ -646,6 +649,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
     const givenAt = definitive.ids
       .filter((id) => {
         const rule = def.therapeutics.find((t) => t.id === id);
+        if (rule && VAGAL.test(`${rule.id} ${rule.label}`) && !hidden.vagalConverted) return false;
         return !rule || (rule.kind !== "referral" && rule.kind !== "counsel");
       })
       .map((id) => hidden.actions[id]?.[0])
@@ -813,7 +817,9 @@ function layerStage(def: ClinicalCaseDefinition, hidden: HiddenState, armed: Arm
       const cur = readNum(hidden, v.key as ShiftKey);
       const target = parseFloat(v.value);
       if (cur === undefined || !Number.isFinite(target)) continue;
-      setNum(hidden, v.key as ShiftKey, worseValue(v.key as ShiftKey, cur, target, def.patient.age), armed);
+      // Flooded lungs take oxygen from wherever it was: an 88% patient falls further, not "up to" a stage's 91%.
+      const flooded = armed.id.startsWith("fluid-") && v.key === "spo2" ? Math.min(target, cur - 8) : target;
+      setNum(hidden, v.key as ShiftKey, worseValue(v.key as ShiftKey, cur, flooded, def.patient.age), armed);
       touched.add(v.key);
     } else {
       hidden.vitals[v.key] = { ...v };
@@ -1452,13 +1458,15 @@ function readableMedia(inv: OrderedInvestigation): MediaAsset | undefined {
 }
 
 /** What the image model draws for an imaging result: exactly its report (or the drawn findings), for this patient. */
-export function imagingPicture(def: ClinicalCaseDefinition, inv: OrderedInvestigation): { type: PictureType; view: string; describe: string } | null {
+export function imagingPicture(def: ClinicalCaseDefinition, inv: OrderedInvestigation): { type: PictureType; view: string; describe: string; search?: string } | null {
   const ai = readableMedia(inv)?.ai;
   if (!ai || ai.ref !== `i-${inv.instanceId}`) return null;
   const spec = inv.result.media?.spec;
   const drawn = spec && spec.kind !== "ecg" && spec.kind !== "derm" ? spec.features.filter((f) => f.id !== "normal").map((f) => `${f.id.replace(/-/g, " ")}${f.side ? ` (${f.side})` : ""}${f.severity ? `, ${["mild", "moderate", "severe"][f.severity - 1]}` : ""}`) : [];
   const findings = inv.result.report?.trim() || (drawn.length ? drawn.join("; ") : "A normal study: no abnormality.");
-  return { type: ai.type, view: ai.view, describe: `${inv.name} of a ${def.patient.age}-year-old ${def.patient.sex.toLowerCase()}. It must show exactly this, and nothing else abnormal: ${findings}` };
+  // A real image is looked for by what this result now shows, not the case's starting film.
+  const search = /kerley|alveolar opacit|pulmonary o?edema/i.test(findings) ? "acute pulmonary edema Kerley B lines chest xray" : undefined;
+  return { type: ai.type, view: ai.view, describe: `${inv.name} of a ${def.patient.age}-year-old ${def.patient.sex.toLowerCase()}. It must show exactly this, and nothing else abnormal: ${findings}`, ...(search ? { search } : {}) };
 }
 
 /** A written case's skin finding, photographed: drawn from the examination's own words. Never the genitals or breasts. */
@@ -1491,11 +1499,14 @@ export function openingPicture(def: ClinicalCaseDefinition, ref: string): { type
 const SKIN = ["very fair", "fair", "light brown", "brown", "dark brown", "deeply pigmented"] as const;
 
 /** What the image model draws for a written case's skin photograph — once that examination has been done. */
-export function examPicture(def: ClinicalCaseDefinition, hidden: HiddenState, ref: string): { type: PictureType; view: string; describe: string } | null {
+export function examPicture(def: ClinicalCaseDefinition, hidden: HiddenState, ref: string): { type: PictureType; view: string; describe: string; search?: string } | null {
   const id = ref.slice(2);
   const entry = def.exam.find((e) => e.id === id);
   if (!entry || hidden.exams[id] === undefined || !examMedia(id, entry.media, entry.label)?.ai) return null;
   const spec = entry.media!.spec as DermSpec;
+  // The skin as it is now, if treatment has changed it.
+  const now = hidden.examOverrides[id];
+  if (now) return { type: "photo", view: `${entry.label} — ${spec.site}`, describe: `Close-up clinical photograph of the ${spec.site} of a ${def.patient.age}-year-old ${def.patient.sex.toLowerCase()} with ${SKIN[spec.phototype - 1]} skin (Fitzpatrick ${spec.phototype}). It must show exactly this: ${now}`, search: /hyperpigment/i.test(now) ? "post-inflammatory hyperpigmentation acne healing" : /telangiect|rosacea/i.test(now) ? "steroid rosacea face" : /incognito|ill-defined/i.test(now) ? "tinea incognito" : undefined };
   const lesions = spec.lesions.map((l) => `${l.count} ${l.morphology.replace(/-/g, " ")}${l.region ? ` (${l.region})` : ""}`).join(", ");
   return {
     type: "photo",
@@ -1781,7 +1792,7 @@ function orderAdhoc(ctx: TurnContext, id: string): TurnEffect[] {
   const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
   if (prior && !prior.delivered) return [{ type: "message", role: "system", kind: "status", text: `${prior.name} is already sent — about ${Math.max(1, Math.round(prior.resultAt - hidden.clock))} min.` }];
   const generated = generatedResult(ctx.record, id);
-  const result: OrderedInvestigation["result"] = generated?.rows?.length || generated?.report ? { rows: generated.rows && consistentLabs(generated.rows), report: generated.report } : { report: "Within normal limits." };
+  const result: OrderedInvestigation["result"] = generated?.rows?.length || generated?.report ? { rows: generated.rows && consistentLabs(generated.rows), report: generated.report } : { report: ctx.def.guided ? "Within normal limits." : LAB_PENDING };
   const turnaround = INSTANT_RESULTS ? 0 : 60;
   // A scan, a biopsy, a scope: a picture the doctor reads, drawn from its report.
   const category = pictureTypeFor(id, name) ? "imaging" : "lab";
@@ -1859,7 +1870,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
 
   // Just done: shown again, not sent (or charged) twice — unless the doctor asks for a repeat.
   const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
-  const changedSince = id === "ecg" && !!prior && !!hidden.responded && !!def.onResponse?.ecgAfter && hidden.responded.at > prior.resultAt;
+  const changedSince = (id === "ecg" && !!prior && !!hidden.responded && !!def.onResponse?.ecgAfter && hidden.responded.at > prior.resultAt) || prior?.result.report === LAB_PENDING;
   if (prior && !changedSince && !REPEAT_RE.test(intent.phrase) && !intent.payload?.repeat) {
     if (!prior.delivered) return [{ type: "message", role: "system", kind: "status", text: `${prior.name} is already sent — about ${Math.max(1, Math.round(prior.resultAt - hidden.clock))} min.` }];
     const ago = Math.round(hidden.clock - prior.resultAt);
@@ -1924,11 +1935,17 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     const seen = new Set<string>();
     result = { ...result, rows: result.rows.filter((r) => { const k = analyteKey(r.analyte); if (seen.has(k)) return false; seen.add(k); return true; }) };
   }
+  // The analyser couldn't answer: it says so, with only what the case itself wrote and no made-up normals.
+  const analyserBusy = generated?.report === LAB_PENDING;
+  if (analyserBusy) {
+    const written = (result.rows ?? []).filter((r) => authored.has(analyteKey(r.analyte)));
+    result = { rows: written.length ? written : undefined, report: LAB_PENDING };
+  }
   const phase = [...(override?.phases ?? [])].filter((p) => p.fromMin <= hidden.clock).sort((a, b) => b.fromMin - a.fromMin)[0];
   if (phase) result = { rows: phase.rows ?? result.rows, report: phase.report ?? result.report, media: phase.media ?? result.media };
   for (const stage of activeHazardStage(def, hidden)) {
     const o = stage.investigations?.[id];
-    if (o) result = { rows: o.rows ?? result.rows, report: o.report ?? result.report, media: o.media ?? result.media };
+    if (o) result = { rows: o.rows ?? result.rows, report: o.report ?? (o.rows && result.report === LAB_PENDING ? undefined : result.report), media: o.media ?? result.media };
   }
   // The rhythm the treatment restored is the one a repeat ECG shows.
   const restored = id === "ecg" && hidden.responded ? def.onResponse?.ecgAfter : undefined;
@@ -2011,6 +2028,8 @@ function labContext(def: ClinicalCaseDefinition, hidden: HiddenState): LabContex
     age: def.patient.age,
     sex: def.patient.sex,
     heightCm: parseFloat(hidden.vitals.height?.value ?? "") || undefined,
+    spo2Base: parseFloat(def.baselineVitals.spo2?.value ?? "") || undefined,
+    spo2Now: parseFloat(vitalsNow(hidden).spo2.value) || undefined,
     fluids: ran.filter((f) => f.drugId !== "prbc"),
     redCellUnits: ran.filter((f) => f.drugId === "prbc").reduce((sum, f) => sum + f.ml / 350, 0),
     co2Retained,
@@ -2038,6 +2057,8 @@ function procedureContext(def: ClinicalCaseDefinition, hidden: HiddenState, phra
     headScanBack: hidden.investigations.some((i) => i.delivered && /\b(?:ct|mri)\b.*\b(?:head|brain)\b|\b(?:head|brain)\b.*\b(?:ct|mri)\b|ncct/i.test(i.name)),
   };
 }
+
+const VAGAL = /valsalva|vagal|carotid sinus/i;
 
 const TOO_DROWSY = "(Too drowsy to answer: a moan, nothing more.)";
 
@@ -2354,7 +2375,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const ivUsual = route === "IV" && unit === "mg" && amount !== undefined ? IV_USUAL_MG[drug.id] : undefined;
   const multiple = (def.patient.age < 13 ? childDoseMultiple(drug.id, amount, unit, weightKg) : undefined) ?? (ivUsual ? amount! / ivUsual : doseMultiple(drug, { amount, unit, volumeMl }, weightKg));
   // A drip "stat" or "fast" runs as fast as a pressure bag through a wide cannula allows (about 100 mL a minute) — not in one minute.
-  const askedOver = drug.fluid && rateMlH && volumeMl ? Math.round((volumeMl / rateMlH) * 60) : typeof p.overMin === "number" && p.overMin > 0 ? (drug.fluid && p.rapid === true ? Math.max(5, (volumeMl ?? 500) / 100) : p.overMin) : undefined;
+  // (A tablet has no "over": "max 4 g in 24 hours" is a ceiling, not a rate.)
+  const askedOver = route === "PO" || route === "TOP" || route === "SL" ? undefined : drug.fluid && rateMlH && volumeMl ? Math.round((volumeMl / rateMlH) * 60) : typeof p.overMin === "number" && p.overMin > 0 ? (drug.fluid && p.rapid === true ? Math.max(5, (volumeMl ?? 500) / 100) : p.overMin) : undefined;
   // A cannula has a limit: wide open with a pressure bag, about 250 mL a minute.
   const fastest = drug.fluid && volumeMl && volumeMl <= 5000 && route === "IV" ? Math.ceil(volumeMl / 250) : 0;
   const overMin = askedOver !== undefined && askedOver < fastest ? fastest : askedOver;
@@ -2389,7 +2411,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   } else if (mode === "given") {
     const verb = route === "IV" && drug.fluid ? "running" : route === "NEB" ? "nebulisation started" : "given";
     const k = kineticsFor(drug, route);
-    const full = Math.max(k.peak, overMinOf(p) ?? 0);
+    const full = Math.max(k.peak, overMin ?? 0);
     const rate = drug.fluid && overMin && !rateMlH ? ` over ${describeSpan(overMin)}` : "";
     // A cream is applied, not timed like an injection; a long effect is shown at the hour (time moves on at most an hour).
     const text = route === "TOP"
@@ -2512,7 +2534,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // A take-home course is reported as it went — in clinic. In an emergency it's simply on the discharge sheet.
   // (Not when this order has just set harm going: that shows at the follow-up.)
   // (Not where the doctor has booked a review in this same order, or for a course already reported: the visit says how it went.)
-  const reviewBooked = ctx.record.intents.some((i) => i.kind === "followup") || hidden.drugs.filter((d) => d.drugId === drug.id && d.mode === "prescribed").length > 1;
+  // (Nor for a long course or a drug that takes weeks: months can't pass in one line and then be followed by a visit weeks later.)
+  const longCourse = /\b(?:month|year)s?\b/i.test(duration ?? "") || /\b(?:[5-9]|\d{2,}) weeks?\b/i.test(duration ?? "") || SLOW_TO_WORK.some((c) => drug.classes.includes(c));
+  const reviewBooked = longCourse || ctx.record.intents.some((i) => i.kind === "followup") || hidden.drugs.filter((d) => d.drugId === drug.id && d.mode === "prescribed").length > 1;
   if (prescribed && !def.guided && def.track === "opd" && !reviewBooked && !triggered.some((hz) => !hz.startsWith(EXPECTED_COURSE))) fx.push(...afterCourse(def, hidden, drug, duration, statusBefore));
   noteResponse(hidden, `${label} ${mode}`);
   evaluateRescues(def, hidden);
@@ -2578,11 +2602,21 @@ export function aboutThem(text: string, sex?: string): string {
 /** "I'm sure", "I know", "deliberately": said with the order, the nurse doesn't query it. */
 const SURE_RE = /\b(?:i'?m sure|i am sure|i know(?: it'?s| that)?|deliberately|i insist|confirmed|as ordered)\b/i;
 
-const overMinOf = (p: Record<string, unknown>) => (typeof p.overMin === "number" && p.overMin > 0 ? p.overMin : undefined);
 
 function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
+  // A vagal manoeuvre often fails: about 1 in 4 standard, 1 in 2 modified (REVERT trial, roughly). Fixed by the case and the attempt, so it replays alike.
+  if (VAGAL.test(`${rule.id} ${rule.label}`) && !def.guided && !hidden.vagalConverted) {
+    hidden.vagalTries = (hidden.vagalTries ?? 0) + 1;
+    const modified = /modified|leg raise|legs? up|passive/i.test(`${ctx.record.raw} ${intent?.phrase ?? ""}`);
+    if (hash(`${def.id}|vagal|${hidden.vagalTries}`) % 100 >= (modified ? 50 : 25)) {
+      record(hidden, rule.id);
+      hidden.clock += 2;
+      return [{ type: "advance_time", minutes: 2 }, { type: "message", role: "system", kind: "action", text: `${modified ? "Modified Valsalva" : "Vagal manoeuvre"} done: the rate dipped for a few seconds, then went straight back up. Still in the same rhythm.` }, { type: "timeline", label: "Vagal manoeuvre, no conversion", category: "treatment" }];
+    }
+    hidden.vagalConverted = true;
+  }
   // A treatment the case says changes the patient: what changed is reported when it's done.
   if (rule.vitalsAfter?.length || rule.statusAfter) {
     watch(hidden, { label: rule.label.toLowerCase(), at: hidden.clock, checks: [hidden.clock], keys: (rule.vitalsAfter ?? []).map((v) => v.key) });
@@ -2640,7 +2674,7 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
       const note = complicated ? rule.altNote!.note : rule.note;
       fx.push({ type: "procedure", name: rule.label, note });
       // (A note that only says what to do isn't what happened.)
-      const instruction = /^(?:perform|proceed|give|start|arrange|ensure|consider|use|do)\b/i;
+      const instruction = /^(?:perform|proceed|give|start|arrange|ensure|consider|use|do)\b|\b(?:can be|should be|is not required|is indicated|may be)\b/i;
       const name = rule.label.replace(/^(?:perform|proceed (?:urgently )?to|do)\s+/i, "").replace(/^./, (c) => c.toUpperCase()).replace(/\.$/, "");
       fx.push({ type: "message", role: "system", kind: "finding", text: note && !instruction.test(note) ? `${name}. ${note}` : `${name} — done.` });
       fx.push({ type: "timeline", label: `${rule.label} performed`, category: "procedure" });
@@ -3026,14 +3060,19 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
   fx.push({ type: "message", role: "system", kind: "status", text: `Follow-up visit · ${describeSpan(span)} later` });
   fx.push({ type: "timeline", label: `Follow-up visit — ${describeSpan(span)}`, category: "followup" });
   // Harm from this course is told in the patient's own words below, in place of the case's general "it's worse".
-  const harmTold = hidden.hazards.some((a) => !a.superseded && a.rescuedAt === undefined && !a.id.startsWith(EXPECTED_COURSE) && !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays);
+  // So is a course that's working, whatever the case rated it: a drug that wasn't first choice still works, and they say so once.
+  const working = hidden.hazards.find((a) => a.id.startsWith(EXPECTED_COURSE) && hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.examFindings && Object.keys(hazardLibrary(def).get(a.id)!.stages[a.stageIdx]!.examFindings!).length > 1);
+  const workingSays = working ? hazardLibrary(def).get(working.id)?.stages[working.stageIdx]?.patientSays : undefined;
+  if (workingSays) fx.push({ type: "message", role: patientRole(def), kind: "speech", text: def.patient.age < 12 ? aboutThem(workingSays, def.patient.sex) : workingSays });
+  const harmTold = !!workingSays || hidden.hazards.some((a) => !a.superseded && a.rescuedAt === undefined && !a.id.startsWith(EXPECTED_COURSE) && !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays);
   if (scenario && visitNo === 1) {
     for (const line of scenario.lines) if (!harmTold || line.role !== patientRole(def)) fx.push({ type: "message", role: line.role, kind: line.kind, text: line.text, media: line.media });
     applyVitals(hidden, scenario.vitals);
     for (const f of scenario.facts ?? []) fx.push({ type: "fact", group: f.group, label: f.label, value: f.value, abnormal: f.abnormal });
-    if (scenario.status !== hidden.status) {
-      hidden.status = scenario.status;
-      fx.push({ type: "patient_status", status: scenario.status });
+    const status = workingSays ? "improving" : scenario.status;
+    if (status !== hidden.status) {
+      hidden.status = status;
+      fx.push({ type: "patient_status", status });
     }
   } else if (scenario) {
     fx.push({ type: "message", role: patientRole(def), kind: "speech", text: quality === "ideal" || quality === "acceptable" ? "I've continued everything as you said, doctor. It's about the same as last time." : "Honestly, doctor, it's no better." });

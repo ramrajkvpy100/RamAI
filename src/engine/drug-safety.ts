@@ -193,17 +193,24 @@ const isotretinoinCourse: GlobalHazardTemplate = {
   id: `${EXPECTED_COURSE}isotretinoin`,
   applies: () => true,
   triggers: (o) => o.drug.id === "isotretinoin",
-  build: () => ({
+  build: (def) => ({
     id: `${EXPECTED_COURSE}isotretinoin`,
     label: "Expected effects of isotretinoin",
     stages: [
       {
         afterMin: 7 * 1440, status: "stable", interrupts: false, vitals: [],
         examFindings: { ent: "Dry, cracked lips (cheilitis); dry nasal mucosa." },
-        patientSays: "My lips have got very dry and cracked, doctor, and my skin feels dry too.",
+        patientSays: "My lips have got very dry and cracked, doctor, and my skin feels dry too. A few more spots came at first.",
       },
       {
         afterMin: 28 * 1440, status: "stable", interrupts: false, vitals: [],
+        // Acne answers it by now; the dryness stays.
+        ...(/\bacne\b/i.test(def.truth.diagnosis)
+          ? {
+              examFindings: { [def.exam.find((e) => e.group === "local-exam")?.id ?? "skin"]: "About 70% fewer inflammatory papules, pustules and nodules. Residual post-inflammatory hyperpigmentation. Dry, flaking skin and cheilitis.", ent: "Dry, cracked lips (cheilitis); dry nasal mucosa." },
+              patientSays: "The spots are much better, doctor. My skin and lips are very dry, though.",
+            }
+          : {}),
         investigations: { lipid: { rows: [lab("Total cholesterol", "218", "mg/dL", "<200", "high"), lab("Triglycerides", "245", "mg/dL", "<150", "high"), lab("HDL", "42", "mg/dL", ">40", "normal"), lab("LDL", "127", "mg/dL", "<100", "high")] } },
       },
     ],
@@ -413,4 +420,21 @@ const PROCEDURE_HAZARDS: GlobalHazardTemplate[] = [
     "An LP was done with low platelets.", "Bleeding into the spinal canal compresses the cord.", ["Correct platelets before an LP", "Urgent MRI spine", "Neurosurgery within hours"]),
 ];
 
-export const DRUG_SAFETY: GlobalHazardTemplate[] = [...PROCEDURE_HAZARDS, co2Narcosis, paracetamolOverdose, negativeInotrope, retinoidTetracycline, steroidOnFace, isotretinoinCourse, clashQt, clashAvBlock, clashOpioidBenzo, clashSerotonin];
+/** A topical steroid on a fungal rash: it looks better at first, then spreads and loses its edge. */
+const tineaIncognito: GlobalHazardTemplate = {
+  id: "tinea-incognito",
+  applies: () => true,
+  triggers: (o, _p, snap) => o.drug.classes.some((c) => c === "topical-steroid" || c === "topical-steroid-potent" || c === "steroid-combination") && /\b(?:tinea|ringworm|dermatophyt)/i.test(snap.diagnosis ?? ""),
+  build: (def) => ({
+    id: "tinea-incognito",
+    label: "Tinea incognito from a topical steroid on a fungal rash",
+    stages: [{ afterMin: 14 * 1440, status: "guarded", interrupts: false, vitals: [], examFindings: { [def.exam.find((e) => e.group === "local-exam")?.id ?? "skin"]: "Larger, ill-defined red patches with pustules and little scale; the raised advancing edge is lost, and there is skin thinning." } }],
+    rescue: [["measure:stop-drug"], ["drug:terbinafine", "drug:itraconazole", "drug:fluconazole", "drug:griseofulvin", "drug:clotrimazole"]],
+    fullRecoveryWindowMin: 28 * 1440,
+    lastRescueMin: 120 * 1440,
+    recovery: [],
+    review: { cause: "A topical steroid was put on a fungal rash.", whyItCausedHarm: "It suppresses the inflammation that showed the edge, and lets the fungus spread.", earliestRescueWindow: "At the order: scrape for KOH before treating a scaly rash.", correctRescueSequence: ["Stop the steroid", "KOH scraping", "An antifungal, oral if widespread"], lastRealisticRescueWindow: "Any time: it stays treatable." },
+  }),
+};
+
+export const DRUG_SAFETY: GlobalHazardTemplate[] = [tineaIncognito, ...PROCEDURE_HAZARDS, co2Narcosis, paracetamolOverdose, negativeInotrope, retinoidTetracycline, steroidOnFace, isotretinoinCourse, clashQt, clashAvBlock, clashOpioidBenzo, clashSerotonin];

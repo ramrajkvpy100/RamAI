@@ -36,6 +36,8 @@ export interface PictureBrief {
   describe: string;
   /** Server-only context for finding a real image: the case's diagnosis. */
   topic?: string;
+  /** What this result now shows, to look for a real image of first. */
+  search?: string;
   /** How the picture should look, when the type's usual style doesn't fit (a blood smear isn't H&E). */
   style?: string;
   /** Drawn, never searched for: a portrait of an invented person must not be a real one. */
@@ -131,7 +133,7 @@ export async function makePicture(p: PictureBrief, budgetMs = PICTURE_BUDGET_MS)
   const kind = KIND[p.type];
   // Plain names find far more on Commons ("psoriasis", not "clinical photograph of psoriasis on the elbow"); skin photos get longer to look.
   const plain = p.topic?.replace(/\s*\(.*?\)\s*/g, " ").trim();
-  const real = p.aiOnly ? null : await findRealImage([p.type === "photo" && plain ? plain : "", p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`].filter(Boolean), accept, p.type === "photo" ? 18_000 : 10_000);
+  const real = p.aiOnly ? null : await findRealImage([p.search ?? "", p.type === "photo" && plain ? plain : "", p.topic ? `${kind} ${p.topic}` : "", p.topic ? `${p.topic} ${kind}` : "", p.topic ? `${p.view} ${p.topic}` : "", `${kind} ${p.view}`].filter(Boolean), accept, p.type === "photo" ? 18_000 : 10_000);
   if (real) return { ...real, checked: true };
   const drawn = await drawPicture(p, Math.max(15_000, left() - 2_000));
   // Checked, and drawn again, only while there's time for it: a picture shown beats a better one cut off.

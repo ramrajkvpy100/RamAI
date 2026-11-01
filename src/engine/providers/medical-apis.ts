@@ -15,12 +15,16 @@ async function getJSON<T>(url: string, timeoutMs = 4000): Promise<T | null> {
   if (hit && Date.now() - hit.at < DAY) return hit.value as T;
   try {
     const res = await fetch(url, { headers: { "User-Agent": AGENT, Accept: "application/json" }, signal: AbortSignal.timeout(timeoutMs) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn("[ramai] a medical lookup failed:", new URL(url).host, res.status);
+      return null;
+    }
     const value = (await res.json()) as T;
     if (cache.size >= 500) cache.delete(cache.keys().next().value!);
     cache.set(url, { at: Date.now(), value });
     return value;
-  } catch {
+  } catch (err) {
+    console.warn("[ramai] a medical lookup failed:", new URL(url).host, err instanceof Error ? err.message : err);
     return null;
   }
 }
