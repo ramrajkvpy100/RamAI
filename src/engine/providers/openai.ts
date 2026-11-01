@@ -963,7 +963,7 @@ export function clauseFor(targetId: string | undefined, text: string): string | 
   const drug = targetId ? formularyDrug(targetId) : undefined;
   if (!drug) return undefined;
   const names = [drug.generic, drug.id, ...(drug.aliases ?? []), ...drug.brands].map((x) => x.toLowerCase());
-  return text.split(/[.;,]|\band\b|\bthen\b|\bplus\b/i).find((c) => names.some((n) => c.toLowerCase().includes(n)));
+  return text.split(/;|[.,](?=\s|$)|\band\b|\bthen\b|\bplus\b/i).find((c) => names.some((n) => c.toLowerCase().includes(n)));
 }
 
 const TELLS_WHAT_TO_DO = /^(?:assess|obtain|order|consider|check|evaluate|rule out|send|arrange|perform|start|give|refer|pregnancy status is not established)\b/i;

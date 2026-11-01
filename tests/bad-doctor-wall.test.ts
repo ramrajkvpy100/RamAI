@@ -404,6 +404,10 @@ describe("what the doctor wrote, in a long order", () => {
     const text = "Give morphine 2 mg IV slowly and ondansetron 4 mg IV; repeat observations";
     expect(clauseFor("morphine", text)).toMatch(/2 mg/);
     expect(clauseFor("ondansetron", text)).toMatch(/4 mg/);
+    // A decimal isn't the end of a sentence.
+    expect(clauseFor("ns", "Give 0.9% saline 1 L and morphine 2.5 mg IV")).toMatch(/0\.9%/);
+    expect(clauseFor("morphine", "Give 0.9% saline 1 L and morphine 2.5 mg IV")).toMatch(/2\.5 mg/);
+    expect(clauseFor("morphine", "ondansetron 4 mg, morphine 1,000 mcg. Then rest")).toMatch(/1,000 mcg/);
   });
   it("what they said not to do isn't ordered", () => {
     expect(saidNotTo("measure:oxygen", "No supplemental oxygen, she's at 99%")).toBe(true);
