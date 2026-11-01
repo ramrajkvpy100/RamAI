@@ -1037,3 +1037,44 @@ describe("a timed order interrupted", () => {
     expect(text).not.toMatch(/infusion completed/);
   });
 });
+
+describe("a course of any length, in any case", () => {
+  const pick = (p: string) => ALL_CASES.find((c) => c.id.startsWith(p))!;
+  const lastWords = (state: { messages: readonly { role: string; text: string }[] }) => state.messages.filter((m) => m.role === "patient" || m.role === "attendant").at(-1)?.text ?? "";
+
+  for (const [order, minutes] of [["doxycycline 100 mg BD for 3 days", 3 * 1440], ["doxycycline 100 mg BD for 2 weeks", 2 * 10080], ["doxycycline 100 mg BD for 3 months", 3 * 43200], ["doxycycline 100 mg BD for 2 years", 2 * 525600]] as const) {
+    it(`"${order}": that time passes, and the patient says how it went, in one reply`, async () => {
+      const def = pick("derm-acne");
+      const opening = lastWords((await converse(def, [])).state);
+      const { hidden, state } = await converse(def, [order]);
+      expect(hidden.clock).toBeGreaterThanOrEqual(minutes);
+      expect(said(state)).toMatch(/elapsed — doxycycline course completed/);
+      expect(lastWords(state)).not.toBe(opening);
+    });
+  }
+
+  it("in an emergency case and on the phone too", async () => {
+    for (const p of ["em-adhf", "ph-acs"]) {
+      const { state } = await converse(pick(p), ["aspirin 75 mg OD for 5 days"]);
+      expect(said(state)).toMatch(/course/);
+    }
+  });
+
+  it("if a complication stops it early, it doesn't claim the whole course", async () => {
+    const { state } = await converse(pick("id-dengue"), ["Paracetamol 500 mg TDS for 8 weeks"]);
+    const text = said(state);
+    expect(text).toMatch(/of the 8 weeks paracetamol course — something has happened/);
+    expect(text).not.toMatch(/course completed/);
+  });
+
+  it("the visit afterwards doesn't repeat what they've just said", async () => {
+    const { state } = await converse(pick("derm-acne"), ["doxycycline 100 mg BD for 2 weeks", "follow up in 2 weeks"]);
+    const lines = state.messages.filter((m) => m.role === "patient").map((m) => m.text);
+    expect(new Set(lines).size).toBe(lines.length);
+  });
+
+  it("no course length means no jump", async () => {
+    const { hidden } = await converse(pick("derm-acne"), ["doxycycline 100 mg BD long term"]);
+    expect(hidden.clock).toBeLessThan(1440);
+  });
+});

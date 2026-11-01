@@ -229,6 +229,8 @@ export function describeSpan(minutes: number): string {
     return `${Number.isInteger(h) ? h : h.toFixed(1).replace(/\.0$/, "")} h`;
   }
   const days = Math.round(minutes / 1440);
+  if (days >= 365 && days % 365 === 0) return `${days / 365} year${days === 365 ? "" : "s"}`;
+  if (days >= 30 && days % 30 === 0) return `${days / 30} month${days === 30 ? "" : "s"}`;
   if (days % 7 === 0 && days >= 7) return `${days / 7} week${days === 7 ? "" : "s"}`;
   return `${days} day${days === 1 ? "" : "s"}`;
 }

@@ -138,6 +138,8 @@ type ShiftKey = "hr" | "sbp" | "dbp" | "rr" | "spo2" | "temp" | "gcs" | "rbs" | 
 export interface HiddenState {
   /** The oxygen now running (its device and flow). */
   oxygenOn?: string;
+  /** Which of the case's follow-ups has been told, so a better regimen can still change it. */
+  scenarioTold?: string;
   /** The oxygen now being breathed (%). */
   oxygenFio2?: number;
   /** Minutes spent in shock so far; when it last ended; breaths added by the acidosis. */
@@ -2190,13 +2192,13 @@ function runStepAfterConsent(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   return handleAction(ctx, intent);
 }
 
-/** A course's length in minutes, when it was said ("for 8 weeks"); nothing for "long term" or for over a year. */
+/** A course's length in minutes, whenever it was said ("for 8 weeks", "2 yrs", "for 3 days"); nothing for "long term". */
 export function courseMinutes(duration: string | undefined): number {
-  const m = duration?.match(/(\d+(?:\.\d+)?)\s*(hour|hr|day|week|wk|month|year)s?\b/i);
+  const m = duration?.match(/(\d+(?:\.\d+)?)\s*(min|minute|hour|hr|h|day|d|week|wk|month|mo|year|yr)s?\b/i);
   if (!m) return 0;
   const unit = m[2]!.toLowerCase();
-  const minutes = Number(m[1]) * (unit.startsWith("h") ? 60 : unit === "day" ? 1440 : unit === "week" || unit === "wk" ? 10080 : unit === "month" ? 43200 : 525600);
-  return minutes > 525600 ? 0 : minutes;
+  const per = unit.startsWith("mi") ? 1 : unit === "hour" || unit === "hr" || unit === "h" ? 60 : unit === "day" || unit === "d" ? 1440 : unit === "week" || unit === "wk" ? 10080 : unit === "month" || unit === "mo" ? 43200 : 525600;
+  return Number(m[1]) * per;
 }
 
 /** After a timed order: fluid balance over the time, what's changed on examination, and the patient's own word on a long wait. */
@@ -2689,7 +2691,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     }
   }
   // A course with its length said: the clinic visit moves on to the end of it, in this same reply (at the end of the turn, for all its orders).
-  const courseMin = prescribed && !def.guided && def.track === "opd" ? courseMinutes(duration) : 0;
+  const courseMin = !def.guided && !drug.fluid ? courseMinutes(duration) : 0;
   if (courseMin > 0) ctx.courseJump = { minutes: Math.max(ctx.courseJump?.minutes ?? 0, courseMin), names: [...(ctx.courseJump?.names ?? []), drug.generic.toLowerCase()] };
   // A course prescribed: taken as if its time is up — and the patient says, in their own words, what it did.
   // A take-home course is reported as it went — in clinic. In an emergency it's simply on the discharge sheet.
@@ -2728,6 +2730,8 @@ function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: For
   if (STATUS_RANK[now] > STATUS_RANK[before] || harms) says = "It hasn't helped, doctor — if anything I feel worse.";
   // (A drug that only eases symptoms — paracetamol, an antihistamine — eases them; it doesn't clear the illness.)
   else if (fits && duration && symptomatic(drug) && !core(def).has(rule!.id) && !(STATUS_RANK[now] < STATUS_RANK[before])) says = relief ? `${relief} But the main problem is still there.` : "It eased things a little, doctor, but the main problem is still there.";
+  // (Nor does one that prevents, or controls a long-term condition, make the problem "clear up".)
+  else if (["antiplatelet", "statin", "antihypertensive", "anticoagulant", "hypoglycaemic", "biguanide"].some((c) => drug.classes.includes(c as DrugClass))) says = "About the same, doctor. No new problems.";
   else if (STATUS_RANK[now] < STATUS_RANK[before] || (fits && duration)) says = relief ? `${relief} I feel much better overall.` : "It's much better, doctor — the problem is clearing up.";
   else if (relief) says = `${relief} But the main problem is still there.`;
   else says = "No real change, doctor. I feel about the same.";
@@ -3231,7 +3235,8 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
   const workingSays = working ? hazardLibrary(def).get(working.id)?.stages[working.stageIdx]?.patientSays : undefined;
   if (workingSays) fx.push({ type: "message", role: patientRole(def), kind: "speech", text: def.patient.age < 12 ? aboutThem(workingSays, def.patient.sex) : workingSays });
   const harmTold = !!workingSays || hidden.hazards.some((a) => !a.superseded && a.rescuedAt === undefined && !a.id.startsWith(EXPECTED_COURSE) && !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays);
-  if (scenario && visitNo === 1) {
+  if (scenario && (visitNo === 1 || (hidden.scenarioTold !== undefined && hidden.scenarioTold !== quality)) && hidden.scenarioTold !== quality) {
+    hidden.scenarioTold = quality;
     for (const line of scenario.lines) if (!harmTold || line.role !== patientRole(def)) fx.push({ type: "message", role: line.role, kind: line.kind, text: line.text, media: line.media });
     applyVitals(hidden, scenario.vitals);
     for (const f of scenario.facts ?? []) fx.push({ type: "fact", group: f.group, label: f.label, value: f.value, abnormal: f.abnormal });
@@ -3659,20 +3664,34 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   // A course with its length said: its time passes here, once all this turn's orders are in.
   if (ctx.courseJump && !hidden.closed && hidden.status !== "deceased" && !record.intents.some((i) => i.kind === "followup")) {
     const { minutes, names } = ctx.courseJump;
-    fx.push({ type: "message", role: "system", kind: "status", text: `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
     const statusBefore = hidden.status;
+    const clockBefore = hidden.clock;
     const advance = advanceClock(def, hidden, hidden.clock + minutes, true);
+    const passed = hidden.clock - clockBefore;
+    const stopped = advance.interrupted || (hidden.status as string) === "deceased" || passed < minutes - 0.5;
+    // Only what truly passed is claimed: a complication can stop the course early.
+    fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[+${describeSpan(Math.max(1, passed))} of the ${describeSpan(minutes)} ${names.join(" and ")} course — something has happened]` : `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
     fx.push(...advance.effects);
-    if (!advance.interrupted && (hidden.status as string) !== "deceased") {
-      // Harm from the course is told first; otherwise what the course has done.
+    if (!stopped) {
+      // Harm from the course is told first; then what the course has done; then the case's own follow-up, in its own words.
       const says0 = (a: ArmedHazard) => !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays;
       const working = hidden.hazards.find((a) => !a.superseded && !a.id.startsWith(EXPECTED_COURSE) && says0(a)) ?? hidden.hazards.find((a) => a.id.startsWith(EXPECTED_COURSE) && says0(a));
       const says = working ? hazardLibrary(def).get(working.id)!.stages[working.stageIdx]!.patientSays! : undefined;
+      const quality = treatmentQuality(def, hidden);
+      const scenario = def.followUp.find((f) => f.when === quality) ?? def.followUp.find((f) => f.when === "any");
       if (says) {
         fx.push({ type: "message", role: patientRole(def), kind: "speech", text: def.patient.age < 12 ? aboutThem(says, def.patient.sex) : says });
         for (const finding of Object.values(hazardLibrary(def).get(working!.id)!.stages[working!.stageIdx]!.examFindings ?? {})) if (finding) fx.push({ type: "message", role: "system", kind: "finding", text: `On review: ${finding}` });
+      } else if (scenario && hidden.scenarioTold !== quality) {
+        hidden.scenarioTold = quality;
+        for (const line of scenario.lines) fx.push({ type: "message", role: line.role, kind: line.kind, text: line.text, media: line.media } as TurnEffect);
+        applyVitals(hidden, scenario.vitals);
+        if (scenario.status !== hidden.status) {
+          hidden.status = scenario.status;
+          fx.push({ type: "patient_status", status: scenario.status });
+        }
       } else {
-        const last = hidden.drugs.filter((d) => d.mode === "prescribed").at(-1);
+        const last = hidden.drugs.filter((d) => d.duration).at(-1);
         const drug = last && formularyDrug(last.drugId);
         if (drug) fx.push(...afterCourse(def, hidden, drug, last!.duration, statusBefore).filter((e) => e.type === "message" && e.role !== "system"));
       }
