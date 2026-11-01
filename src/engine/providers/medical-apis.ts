@@ -35,7 +35,7 @@ const short = (text: unknown, max = 500) => {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 };
 
-function editDistance(a: string, b: string): number {
+export function editDistance(a: string, b: string): number {
   let row = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
     const next = [i];

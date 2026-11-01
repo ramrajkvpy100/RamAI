@@ -240,6 +240,8 @@ export interface PatientProfile {
   /** Female of reproductive age without reliable contraception. */
   pregnancyPossible?: boolean;
   pregnant?: boolean;
+  /** Weeks of gestation, when the pregnancy is known. */
+  gestationWeeks?: number;
   asthma?: boolean;
   ckd?: boolean;
   heartFailure?: boolean;

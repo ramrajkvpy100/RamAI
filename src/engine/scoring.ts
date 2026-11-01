@@ -374,9 +374,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     let frac: number;
     const notes: string[] = [];
     const died = hidden.status === "deceased" || hidden.hazards.some((h) => h.died);
-    const harms = hidden.hazards.filter((h) => !h.id.startsWith(EXPECTED_COURSE));
+    const harms = hidden.hazards.filter((h) => !h.id.startsWith(EXPECTED_COURSE) && !h.unavoidable);
     const manifested = harms.filter((h) => !h.superseded && h.manifestedAt !== undefined);
     if (died) { frac = 0; notes.push("The patient died"); }
+    else if (hidden.leftAma) { frac = 0.2; notes.push("Left against medical advice: the reasons were never explained"); }
     else if (hidden.code?.outcome === "rosc") { frac = 0.2; notes.push("Cardiac arrest — pulse regained, with harm"); }
     else if (manifested.length > 0) {
       const worst = manifested.some((h) => h.rescue !== "full" && h.rescue !== "partial") ? 0.1 : manifested.some((h) => h.rescue === "partial") ? 0.45 : 0.85;

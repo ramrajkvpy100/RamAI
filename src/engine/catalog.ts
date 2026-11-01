@@ -142,6 +142,15 @@ export function saneBody(patient: PatientIdentity, vitals: Record<VitalKey, Vita
 }
 
 /** Sensible defaults (for the patient's age and sex) when a case does not specify a vital. */
+/** Normal resting ranges by age (PALS-style bands for children), and the systolic below which a child is hypotensive. */
+export function normalVitals(age: number): { hr: [number, number]; rr: [number, number]; sbp: [number, number]; lowSbp: number } {
+  if (age < 1) return { hr: [100, 160], rr: [30, 60], sbp: [70, 100], lowSbp: 70 };
+  if (age < 3) return { hr: [90, 150], rr: [24, 40], sbp: [80, 110], lowSbp: 70 + 2 * age };
+  if (age < 6) return { hr: [80, 140], rr: [22, 34], sbp: [85, 115], lowSbp: 70 + 2 * age };
+  if (age < 13) return { hr: [70, 120], rr: [18, 30], sbp: [90, 120], lowSbp: Math.min(90, 70 + 2 * age) };
+  return { hr: [60, 100], rr: [12, 20], sbp: [100, 140], lowSbp: 90 };
+}
+
 export function defaultVitals(patient: PatientIdentity): Record<VitalKey, VitalPatch> {
   const { weight, height } = expectedBody(patient.age, patient.sex);
   // Where a case doesn't say: normal for the age.
@@ -1009,6 +1018,12 @@ export const MEASURES: CatalogMeasure[] = [
   { id: "refer", label: "Referral", kind: "disposition", durationMin: 2, match: ["refer", "referral", "consult", "consultation", "opinion", "call surgeon", "call cardiology", "call medicine"], note: "Referral made." },
   { id: "stop-fluids", label: "Stop IV fluids", kind: "supportive", durationMin: 0, match: ["stop fluids", "stop iv fluids", "stop the fluids", "stop ns", "stop saline", "fluid restriction", "restrict fluids", "stop infusion", "stop the drip", "stop drip", "stop the iv", "remove the drip", "stop the infusion"], note: "IV fluids stopped." },
   { id: "stop-drug", label: "Stop medication", kind: "supportive", durationMin: 0, match: ["stop the drug", "stop medication", "stop the medicine", "discontinue", "withhold", "stop all medicines", "hold the", "stop nsaid", "stop nsaids", "stop painkiller", "stop painkillers", "stop the painkiller", "stop the tablets"], note: "Medication withheld." },
+  { id: "central-line", label: "Central venous line", kind: "procedure", durationMin: 15, match: ["central line", "central venous", "cvc", "cv line", "ij line", "internal jugular line", "subclavian line", "femoral line"], note: "" },
+  { id: "chest-tube", label: "Chest tube", kind: "procedure", durationMin: 15, match: ["chest tube", "chest drain", "intercostal drain", "icd insertion", "insert icd", "tube thoracostomy", "thoracostomy"], note: "" },
+  { id: "paracentesis", label: "Paracentesis", kind: "procedure", durationMin: 15, match: ["paracentesis", "ascitic tap", "abdominal tap", "tap the ascites", "drain the ascites"], note: "" },
+  { id: "withdraw-tube", label: "Tube withdrawn and repositioned", kind: "procedure", durationMin: 2, match: ["withdraw the tube", "pull back the tube", "pull the tube back", "reposition the tube", "withdraw et tube", "withdraw the et", "pull back the et"], note: "Tube pulled back 2 cm; air entry equal on both sides." },
+  { id: "remove-line", label: "Central line removed", kind: "procedure", durationMin: 5, match: ["remove the line", "remove central line", "remove the central line", "take out the line", "pull the line"], note: "Line removed; tip sent for culture." },
+  { id: "oxygen-controlled", label: "Controlled oxygen (28% or less)", kind: "supportive", durationMin: 1, match: [], note: "" },
   { id: "oral-fluids", label: "Water by mouth", kind: "supportive", durationMin: 1, match: ["drink water", "give water", "sips of water", "free water", "water to drink", "oral water", "glass of water", "let her drink water", "let him drink water", "water orally", "water by mouth"], note: "Water given by mouth." },
   { id: "oral-glucose", label: "Oral glucose", kind: "supportive", durationMin: 1, match: ["oral glucose", "sugar water", "glucose powder", "glucon d", "give sugar", "sweet drink", "fruit juice", "glucose drink"], note: "Oral glucose given." },
 ];

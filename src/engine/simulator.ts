@@ -9,14 +9,18 @@
  */
 
 import { type CodeBlue, codeStartEffects, codeTurn, outcome as codeOutcome, rhythmFrom } from "./code-blue";
-import { EXPECTED_COURSE } from "./drug-safety";
+import { CO2_NARCOSIS, EXPECTED_COURSE } from "./drug-safety";
 import { consistentLabs } from "./abg-check";
 import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
-import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation, readVitalKeys } from "./catalog";
+import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation, readVitalKeys, normalVitals } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, routesFor, type DrugClass, type FormularyDrug } from "./formulary";
+import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProblem } from "./contraindications";
+import { BIG_STEPS, givesReason } from "./behaviour";
 import { liveClash } from "./interactions";
+import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
+import { compensated, creatinineClearance, followLabs, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
@@ -115,6 +119,8 @@ export interface ArmedHazard {
   orders?: string[];
   /** A complication of an order (the safety layer's), laid on top of the illness — not the illness's own course. */
   iatrogenic?: boolean;
+  /** A procedure's complication good technique couldn't have prevented: told, treated, and costs no marks. */
+  unavoidable?: boolean;
   /** How far its stages have moved each vital (layered on the illness), so recovery takes back exactly that. */
   shifted?: Partial<Record<ShiftKey, number>>;
   /** The patient's status, findings and words before it began — what recovery returns to. */
@@ -130,6 +136,12 @@ type ShiftKey = "hr" | "sbp" | "dbp" | "rr" | "spo2" | "temp" | "gcs" | "rbs" | 
 export interface HiddenState {
   /** The oxygen now running (its device and flow). */
   oxygenOn?: string;
+  /** A reluctant patient has been told why and agreed. */
+  consented?: boolean;
+  /** How many times they've refused without being told. */
+  refusals?: number;
+  /** They went home against advice. */
+  leftAma?: boolean;
   clock: number;
   setting: CareSetting;
   status: PatientStatus;
@@ -461,12 +473,13 @@ function applyVitals(hidden: HiddenState, patches: VitalPatch[] | undefined) {
 }
 
 /** Responding to treatment: abnormal pulse, breathing and saturation settle partway back. BP and temperature stay case-specific. */
-function settleVitals(hidden: HiddenState) {
+function settleVitals(hidden: HiddenState, age: number) {
   const patches: VitalPatch[] = [];
+  const chart = normalVitals(age);
   const hr = parseFloat(hidden.vitals.hr.value);
-  if (hr > 100) patches.push({ key: "hr", value: String(Math.max(96, Math.round(hr - Math.max(8, (hr - 90) * 0.4)))) });
+  if (hr > chart.hr[1]) patches.push({ key: "hr", value: String(Math.max(chart.hr[1] - 4, Math.round(hr - Math.max(8, (hr - chart.hr[1] + 10) * 0.4)))) });
   const rr = parseFloat(hidden.vitals.rr.value);
-  if (rr > 20) patches.push({ key: "rr", value: String(Math.max(20, Math.round(rr - 4))) });
+  if (rr > chart.rr[1]) patches.push({ key: "rr", value: String(Math.max(chart.rr[1], Math.round(rr - 4))) });
   const spo2 = parseFloat(hidden.vitals.spo2.value);
   if (spo2 > 0 && spo2 < 94) patches.push({ key: "spo2", value: String(Math.min(95, Math.round(spo2 + 2))) });
   applyVitals(hidden, patches);
@@ -643,7 +656,9 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
       const fd = drug && formularyDrug(drug.drugId);
       const acts = def.guided || !fd ? 0 : Math.min(90, Math.max(drug!.overMin ?? 0, kineticsFor(fd, drug!.route).peak));
       // (What acts within a minute, like adenosine, shows as soon as it's given.)
-      const delay = acts <= 1 ? 0 : acts;
+      // (An infection answers its treatment over hours, whatever the drug's own timing: the first signs at about three.)
+      const antiInfective = !def.guided && fd && SLOW_RESPONSE.some((c) => fd.classes.includes(c));
+      const delay = antiInfective ? Math.max(180, acts) : acts <= 1 ? 0 : acts;
       events.push({
         at: givenAt + delay,
         order: 4,
@@ -654,7 +669,7 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
           if (troubled || STATUS_RANK[hidden.status] <= STATUS_RANK.stable) return [];
           hidden.responded = { at: hidden.clock, order: drug ? orderKey(drug.drugId, drug.at) : undefined };
           hidden.status = "improving";
-          settleVitals(hidden);
+          settleVitals(hidden, def.patient.age);
           const response = def.onResponse;
           applyVitals(hidden, response?.vitals);
           for (const [examId, finding] of Object.entries(response?.examFindings ?? {})) if (finding) hidden.examOverrides[examId] = finding;
@@ -729,9 +744,10 @@ const ABNORMAL: Partial<Record<ShiftKey, [number, number]>> = { hr: [60, 100], s
 const SHIFT_LIMITS: Record<ShiftKey, [number, number]> = { hr: [0, 250], sbp: [0, 280], dbp: [0, 180], rr: [0, 60], spo2: [0, 100], temp: [86, 108], gcs: [3, 15], rbs: [10, 900], urine: [0, 1500] };
 
 /** Where a complication's stage takes a vital, given where the illness already has it. */
-function worseValue(key: ShiftKey, current: number, stage: number): number {
+function worseValue(key: ShiftKey, current: number, stage: number, age: number): number {
   if (key === "spo2" || key === "gcs") return Math.min(current, stage);
-  const range = ABNORMAL[key === "dbp" ? "sbp" : key];
+  const chart = normalVitals(age);
+  const range = key === "hr" ? chart.hr : key === "rr" ? chart.rr : key === "sbp" || key === "dbp" ? chart.sbp : ABNORMAL[key];
   if (!range) return stage;
   const [lo, hi] = range;
   if (stage > hi && current > hi) return Math.max(current, stage);
@@ -785,7 +801,7 @@ function layerStage(def: ClinicalCaseDefinition, hidden: HiddenState, armed: Arm
           sd = Math.min(sd, cd + 15);
         }
       }
-      const ns = worseValue("sbp", cs, ss);
+      const ns = worseValue("sbp", cs, ss, def.patient.age);
       // Diastolic follows the systolic's choice.
       const nd = ns === cs ? cd : sd;
       setNum(hidden, "sbp", ns, armed);
@@ -795,7 +811,7 @@ function layerStage(def: ClinicalCaseDefinition, hidden: HiddenState, armed: Arm
       const cur = readNum(hidden, v.key as ShiftKey);
       const target = parseFloat(v.value);
       if (cur === undefined || !Number.isFinite(target)) continue;
-      setNum(hidden, v.key as ShiftKey, worseValue(v.key as ShiftKey, cur, target), armed);
+      setNum(hidden, v.key as ShiftKey, worseValue(v.key as ShiftKey, cur, target, def.patient.age), armed);
       touched.add(v.key);
     } else {
       hidden.vitals[v.key] = { ...v };
@@ -1203,6 +1219,12 @@ function handleHistory(ctx: TurnContext, intent: ResolvedIntent, index: number):
   const entry = def.history.find((h) => h.id === intent.targetId);
   const attendant = entry ? entry.speaker === "attendant" : intent.payload?.speaker === "attendant";
   const reply = generated ? { text: generated, role: attendant ? ("attendant" as const) : patientRole(def) } : getPatientResponse(def, hidden, intent, hash(record.id + index));
+  // Too drowsy to answer: they can't give a history, whatever the question. (A relative still can.)
+  if (!attendant && parseFloat(hidden.vitals.gcs?.value ?? "") <= 10 && !def.guided) {
+    if (!fx.some((e) => e.type === "message" && e.text === TOO_DROWSY)) fx.push({ type: "message", role: patientRole(def), kind: "speech", text: TOO_DROWSY });
+    ctx.stages.push("history");
+    return fx;
+  }
   // Several questions, and one reply already written to all of them: it isn't said again piece by piece.
   const answered = !generated && record.intents.some((x, k) => k !== index && x.kind === "history" && x.targetId === "generated" && record.generated?.[String(k)]);
   // On a later visit, what they've been given is what they're on.
@@ -1827,6 +1849,11 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   }
 
   const testName = override?.short ?? cat?.short ?? override?.name ?? id;
+  // A lumbar puncture is a procedure as well as a test.
+  if (id === "csf" && !def.guided && def.track !== "phone" && !hidden.hazards.some((a) => a.id.startsWith("proc-lp") || a.id === "proc-spinal-haematoma")) {
+    const lp = lumbarPuncture(procedureContext(def, hidden, intent.phrase, id));
+    if (lp?.hazard) armHazard(def, hidden, lp.hazard, `lumbar puncture: ${lp.lapses.join(", ")}`, false);
+  }
 
   // Just done: shown again, not sent (or charged) twice — unless the doctor asks for a repeat.
   const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
@@ -1905,7 +1932,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   const restored = id === "ecg" && hidden.responded ? def.onResponse?.ecgAfter : undefined;
   if (restored) result = { rows: undefined, report: restored, media: result.media && { ...result.media, spec: { kind: "ecg", rate: parseFloat(hidden.vitals.hr.value) || 80, rhythm: "sinus" } } };
   // Whoever wrote these numbers, they must agree with each other.
-  if (result.rows) result = { ...result, rows: consistentLabs(result.rows) };
+  if (result.rows) result = { ...result, rows: consistentLabs(compensated(followLabs(result.rows, labContext(def, hidden)), def.truth.diagnosis)) };
   // The film as it was taken: an AP portable chest film can't judge the heart's size; a supine abdomen can't show fluid levels.
   if (id === "cxr" && study.view?.startsWith("AP")) {
     const spec = result.media?.spec;
@@ -1958,7 +1985,87 @@ const MAX_IV_RATE: Record<string, { mgPerMin: number; why: string }> = {
   amiodarone: { mgPerMin: 30, why: "Amiodarone that fast drops the pressure — it goes over 20–60 minutes." },
 };
 
+/** What has gone in so far, for the labs to follow. */
+function labContext(def: ClinicalCaseDefinition, hidden: HiddenState): LabContext {
+  const ran = hidden.drugs.filter((d) => d.mode === "given" && d.route === "IV" && d.volumeMl).map((d) => {
+    const until = d.stoppedAt ?? hidden.clock;
+    const over = d.overMin && d.overMin > 0 ? d.overMin : 60;
+    return { drugId: d.drugId, ml: d.volumeMl! * Math.min(1, Math.max(0, until - d.at) / over), ago: Math.max(0, hidden.clock - (d.at + over)) };
+  });
+  const retained = hidden.hazards.find((a) => a.id === CO2_NARCOSIS && a.armedAt !== undefined);
+  const co2Retained = retained ? Math.max(0, Math.min(45, 0.35 * ((retained.rescuedAt ?? hidden.clock) - retained.armedAt)) - (retained.rescuedAt !== undefined ? 0.2 * (hidden.clock - retained.rescuedAt) : 0)) : 0;
+  return {
+    weightKg: parseFloat(hidden.vitals.weight?.value ?? "") || 60,
+    age: def.patient.age,
+    sex: def.patient.sex,
+    heightCm: parseFloat(hidden.vitals.height?.value ?? "") || undefined,
+    fluids: ran.filter((f) => f.drugId !== "prbc"),
+    redCellUnits: ran.filter((f) => f.drugId === "prbc").reduce((sum, f) => sum + f.ml / 350, 0),
+    co2Retained,
+  };
+}
+
+const RETAINS_CO2 = /copd|chronic obstructive|emphysema|chronic bronchitis|obesity hypoventilation|kyphoscoliosis|motor neuron/i;
+
+/** Someone whose breathing already runs on a high CO₂: by the illness, or their history. */
+function retainsCO2(def: ClinicalCaseDefinition): boolean {
+  return RETAINS_CO2.test(`${def.truth.diagnosis} ${def.truth.qualifier ?? ""} ${def.history.filter((h) => h.group === "past").map((h) => h.reply).join(" ")}`);
+}
+
+/** What a procedure's outcome turns on, from this moment of this case. */
+function procedureContext(def: ClinicalCaseDefinition, hidden: HiddenState, phrase: string, id: string): ProcedureContext {
+  const rows = hidden.investigations.filter((i) => i.delivered).flatMap((i) => i.result.rows ?? []);
+  return {
+    phrase,
+    age: def.patient.age,
+    preoxygenated: !!hidden.oxygenOn,
+    sedated: hidden.drugs.some((d) => d.mode === "given" && hidden.clock - d.at <= 30 && ["ketamine", "midazolam", "propofol", "etomidate", "fentanyl", "rocuronium", "succinylcholine", "vecuronium", "thiopentone"].includes(d.drugId)),
+    plateletsLow: rows.some((r) => /platelet/i.test(r.analyte) && (r.flag === "low" || r.flag === "critical")),
+    roll: hash(`${def.id}|${id}|${Math.round(hidden.clock)}`) % 100,
+    raisedIcpSigns: /papill?o?edema|focal (?:weakness|deficit)|hemiparesis|fixed.{0,12}pupil|unequal pupil/i.test(`${storyOf(def)} ${def.exam.filter((e) => e.abnormal).map((e) => e.finding).join(" ")}`) || parseFloat(hidden.vitals.gcs.value) < 10,
+    headScanBack: hidden.investigations.some((i) => i.delivered && /\b(?:ct|mri)\b.*\b(?:head|brain)\b|\b(?:head|brain)\b.*\b(?:ct|mri)\b|ncct/i.test(i.name)),
+  };
+}
+
+const TOO_DROWSY = "(Too drowsy to answer: a moan, nothing more.)";
+
+/**
+ * A reluctant patient refuses a big step until they've been told why. The first refusal is theirs; told the reason, they agree;
+ * ordered again without one, they leave against advice. Returns what's said, or null to go on.
+ */
+function refusal(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] | null {
+  const { def, hidden, record: rec } = ctx;
+  if (def.guided || def.track === "phone" || !/reluctant/i.test(def.persona ?? "") || hidden.consented || hidden.discharged) return null;
+  if (parseFloat(hidden.vitals.gcs?.value ?? "") < 13) return null; // Can't refuse what they can't follow: treated in their best interests.
+  const id = intent.targetId ?? "";
+  const rule = def.therapeutics.find((t) => t.id === id);
+  if (!(BIG_STEPS.test(id) || rule?.kind === "admit" || (rule?.kind === "procedure" && /surg|ectomy|otomy|laparo|operat/i.test(`${rule.id} ${rule.label}`)))) return null;
+  const role = patientRole(def);
+  if (givesReason(rec.raw)) {
+    hidden.consented = true;
+    return [{ type: "message", role, kind: "speech", text: REFUSAL_AGREES }, ...runStepAfterConsent(ctx, intent)];
+  }
+  hidden.refusals = (hidden.refusals ?? 0) + 1;
+  if (hidden.refusals === 1) return [{ type: "message", role, kind: "speech", text: REFUSAL_FIRST }];
+  hidden.leftAma = true;
+  hidden.discharged = true;
+  return [
+    { type: "message", role, kind: "speech", text: REFUSAL_LEAVES },
+    { type: "message", role: "system", kind: "status", text: "Left against medical advice. Record your diagnosis and close the case." },
+    { type: "timeline", label: "Left against medical advice", category: "status" },
+  ];
+}
+
+const REFUSAL_FIRST = "Doctor, I don't want this. Nobody has told me why. I want to go home.";
+const REFUSAL_AGREES = "All right, doctor. If that's why, go ahead.";
+const REFUSAL_LEAVES = "I've told you, I'm not staying for this. I'm leaving.";
+
+function runStepAfterConsent(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
+  return handleAction(ctx, intent);
+}
+
 /** Medicines that work over weeks: no one's "full effect" comes within hours. */
+const SLOW_RESPONSE: DrugClass[] = ["antibiotic", "antimalarial", "antiviral", "antifungal"];
 const SLOW_TO_WORK: DrugClass[] = ["retinoid-systemic", "ssri", "tca", "statin", "antithyroid", "thyroid", "mood-stabiliser"];
 
 /** Where a vein takes far less than the mouth: the formulary's usual dose is the tablet's (metoprolol 5 mg IV, per the label, against 25 mg by mouth). */
@@ -2039,7 +2146,37 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   const why = dengue ? "With dengue" : "With the platelets low";
   if ((dengue || lowPlatelets) && (drug.classes.includes("nsaid") || drug.classes.includes("salicylate") || drug.classes.includes("antiplatelet"))) return `${why}, ${drug.classes.includes("antiplatelet") && !drug.classes.includes("nsaid") ? "an antiplatelet drug" : "an NSAID or aspirin"} can cause bleeding.`;
   if ((dengue || lowPlatelets) && dose?.route === "IM") return `${why}, an injection into the muscle can bleed into it — can it be given another way?`;
-  if (def.profile?.pregnant && drug.classes.includes("teratogen")) return "She's pregnant — this drug can harm the baby.";
+  // A pregnancy known in the room, or a test that's come back positive: every drug is read against the gestation.
+  if (def.track !== "phone" && def.patient.sex === "Female") {
+    const hcgBack = hidden.investigations.find((i) => i.defId === "upt" && i.delivered);
+    const hcgText = (hcgBack?.result.rows ?? []).map((r) => r.value).join(" ");
+    const hcgPositive = !!hcgBack && /positive|reactive|detected/i.test(hcgText) && !/\bnon|\bnot\b|negative/i.test(hcgText);
+    if (def.profile?.pregnant || hcgPositive) {
+      const weeks = def.profile?.gestationWeeks ?? gestationFrom(storyOf(def));
+      const risk = pregnancyRisk(drug, weeks);
+      if (risk) return `${hcgPositive && !def.profile?.pregnant ? "The pregnancy test is positive" : `She's pregnant${weeks ? `, ${weeks} weeks` : ""}`} — ${risk.charAt(0).toLowerCase()}${risk.slice(1)}`;
+    }
+  }
+  // What this drug must not be given in, from what's known in the room; and a dose by mouth no tablet can make.
+  // (Not on the phone: no nurse or pharmacist there.)
+  if (def.track !== "phone") {
+    const rowsBack = hidden.investigations.filter((i) => i.delivered).flatMap((i) => i.result.rows ?? []);
+    const contra = contraindication(drug, {
+      age: def.patient.age,
+      story: storyOf(def),
+      ckd: !!def.profile?.ckd,
+      pulse: parseFloat(vitalsNow(hidden).hr.value),
+      plateletsLow: rowsBack.some((r) => /platelet/i.test(r.analyte) && (r.flag === "low" || r.flag === "critical")),
+      crcl: (() => {
+        const cr = parseFloat([...rowsBack].reverse().find((r) => /^(?:serum )?creatinine\b/i.test(r.analyte))?.value ?? "");
+        return cr > 0 && def.patient.age >= 18 ? creatinineClearance(def.patient.age, parseFloat(hidden.vitals.weight?.value ?? "") || 60, cr, def.patient.sex) : undefined;
+      })(),
+    });
+    if (contra) return contra;
+    // (A child's dose is by weight, often as a liquid: no tablet has to make it up.)
+    const strength = def.patient.age >= 13 ? strengthProblem(drug, dose?.amount, dose?.unit, dose?.route) : null;
+    if (strength) return strength;
+  }
   // A serious clash with something they're on: the nurse or pharmacist stops it.
   // (Not on the phone: a relative at home can't know this.)
   const clash = def.track === "phone" ? null : liveClash(drug.id, [...hidden.drugs.filter((d) => d.stoppedAt === undefined && (d.mode === "prescribed" || hidden.clock - d.at <= 1440)).map((d) => d.drugId), ...(def.profile?.currentDrugs ?? [])]);
@@ -2048,8 +2185,6 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   // wherever she truly is. In a clinic with nothing to suggest it, forgetting the test is left to the marks.
   if (drug.classes.includes("teratogen") && def.patient.sex === "Female" && def.patient.age >= 12 && def.patient.age <= 50) {
     const test = hidden.investigations.find((i) => i.defId === "upt" && i.delivered);
-    const said = (test?.result.rows ?? []).map((r) => r.value).join(" ");
-    if (test && /positive|reactive|detected/i.test(said) && !/\bnon|\bnot\b|negative/i.test(said)) return "The pregnancy test is positive — this drug can harm the baby.";
     if (!test && (def.track === "emergency" || /\bectopic\b|\bpregnan|\bgravid|abruptio|placenta/i.test(def.truth.diagnosis))) return "Pregnancy hasn't been ruled out — this drug can harm a baby.";
   }
   // An acne drug that takes months, for someone critically ill.
@@ -2115,6 +2250,12 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
   const drug = intent.targetId ? formularyDrug(intent.targetId) : undefined;
+  // A case's own treatment read as a drug ("nebulised bronchodilators"): its drug, or the treatment itself.
+  const caseRule = drug ? undefined : def.therapeutics.find((t) => t.id === intent.targetId);
+  if (caseRule) {
+    const named = caseRule.drugIds?.find((d) => formularyDrug(d));
+    return named ? handleDrug(ctx, { ...intent, targetId: named }) : handleRule(ctx, caseRule, intent);
+  }
   if (!drug) {
     // "Start antibiotics", "give steroids": the nurse asks which one.
     const kind = typeof intent.payload?.drugClass === "string" ? intent.payload.drugClass : null;
@@ -2262,7 +2403,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     weightKg,
     unstable: (() => {
       const v = vitalsNow(hidden);
-      return parseFloat(v.spo2.value) < 92 || parseFloat(v.bp.value) < 90 || parseFloat(v.rr.value) > 28;
+      const chart = normalVitals(def.patient.age);
+      return parseFloat(v.spo2.value) < 92 || parseFloat(v.bp.value) < chart.lowSbp || parseFloat(v.rr.value) > (def.patient.age < 13 ? chart.rr[1] + 10 : 28);
     })(),
     diagnosis: def.truth.diagnosis,
     complaint: def.briefing,
@@ -2547,14 +2689,15 @@ function dischargeQuestion(ctx: TurnContext): string | null {
   if (hidden.discharged || ctx.def.track === "phone") return null;
   const v = vitalsNow(hidden);
   const num = (k: VitalKey) => parseFloat(v[k]?.value ?? "");
+  const chart = normalVitals(ctx.def.patient.age);
   const worries = [
     STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating ? (hidden.status === "critical" ? "critical" : "getting worse") : null,
     // An emergency patient not yet improving (a snakebite with clotting still to settle) isn't sent home on a quiet look.
     (ctx.def.track === "emergency" && hidden.status === "guarded" && !hidden.responded) ? "still unwell — not yet responding to treatment" : null,
     num("gcs") < 15 ? `GCS ${num("gcs")}` : null,
-    num("bp") < 90 ? `BP ${v.bp.value}` : null,
+    num("bp") < chart.lowSbp ? `BP ${v.bp.value}` : null,
     num("spo2") < 92 ? `SpO₂ ${num("spo2")}%` : null,
-    num("hr") > 130 ? `pulse ${num("hr")}` : null,
+    num("hr") > (ctx.def.patient.age < 13 ? chart.hr[1] + 20 : 130) ? `pulse ${num("hr")}` : null,
   ].filter(Boolean);
   if (!worries.length) return null;
   // "They're critical (BP 76/52, pulse 144)" — a state in words, the numbers beside it.
@@ -2607,6 +2750,34 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       return askAbout(ctx, { kind: "confirm", targetId: "measure:intubation", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
     }
   }
+  // A procedure can fail or go wrong, mostly by how it was done. (Not in the guided demo, which is there to be won.)
+  if (["intubation", "central-line", "chest-tube", "paracentesis"].includes(m.id) && !ctx.def.guided && ctx.def.track !== "phone" && hidden.status !== "deceased") {
+    const outcome = runProcedure(m.id, procedureContext(ctx.def, hidden, intent.phrase, m.id));
+    if (outcome) {
+      record(hidden, `measure:${m.id}`);
+      const fxp: TurnEffect[] = [];
+      const minutes = (m.durationMin ?? 10) + (outcome.extraMin ?? 0);
+      hidden.clock += minutes;
+      fxp.push({ type: "advance_time", minutes });
+      if (outcome.spo2Drop) {
+        applyVitals(hidden, [{ key: "spo2", value: String(Math.max(60, parseFloat(hidden.vitals.spo2.value) - outcome.spo2Drop)) }]);
+        fxp.push({ type: "vitals", readings: [reading(hidden, "spo2")] });
+      }
+      // A PHC or CHC has a laryngoscope and a bag — not capnography or a ventilator.
+      const basic = m.id === "intubation" && ["phc", "chc"].includes(ctx.def.level);
+      const note = basic ? `${outcome.note.replace(", confirmed on capnography", "").replace("; tube position confirmed", "")} Chest rise and equal air entry are the only check, and there's no ventilator here: someone bags by hand until transfer.` : outcome.note;
+      fxp.push({ type: "message", role: "system", kind: "action", text: note }, { type: "timeline", label: m.label, category: "procedure" });
+      if (outcome.hazard) {
+        armHazard(ctx.def, hidden, outcome.hazard, `${m.label.toLowerCase()}${outcome.lapses.length ? `: ${outcome.lapses.join(", ")}` : ""}`, false);
+        const armed = hidden.hazards.find((a) => a.id === outcome.hazard);
+        if (armed && outcome.unavoidable) armed.unavoidable = true;
+      }
+      noteResponse(hidden, m.label);
+      evaluateRescues(ctx.def, hidden);
+      ctx.stages.push("treatment");
+      return fxp;
+    }
+  }
   // The ICU for someone stable: the nurse checks first — an ICU bed is for the critically ill.
   if (m.id === "admit" && /\bicu|intensive\b/i.test(intent.phrase) && !intent.payload?.confirmed && STATUS_RANK[hidden.status] <= STATUS_RANK.stable) {
     const v = vitalsNow(hidden);
@@ -2653,6 +2824,15 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       // The same oxygen, "continued", is not more oxygen.
       const same = m.id === "oxygen" && hidden.oxygenOn === o2?.label;
       if (m.id === "oxygen") hidden.oxygenOn = o2?.label;
+      // Someone who retains CO₂, on more oxygen than they need, ventilates less and retains more. Above about 28% it starts; at
+      // that or less (2 L/min by prongs, or a 24–28% venturi) it stops.
+      if (m.id === "oxygen" && o2 && retainsCO2(ctx.def) && ctx.def.track !== "phone" && !ctx.def.guided) {
+        if (o2.fio2 > 29 && !same) armHazard(ctx.def, hidden, CO2_NARCOSIS, `oxygen by ${o2.label}`, false);
+        else {
+          record(hidden, "measure:oxygen-controlled");
+          evaluateRescues(ctx.def, hidden);
+        }
+      }
       if (spo2 > 0 && spo2 < 96 && !same) {
         if (m.id === "niv") applyVitals(hidden, [{ key: "spo2", value: String(Math.min(97, Math.round(spo2 + 6))) }]);
         else {
@@ -2752,6 +2932,8 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
 function handleAction(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const id = intent.targetId ?? "";
+  const refused = refusal(ctx, intent);
+  if (refused) return refused;
   if (id.startsWith("measure:")) return handleMeasure(ctx, id.slice("measure:".length), intent);
   const rule = def.therapeutics.find((r) => r.id === id);
   if (rule) return handleRule(ctx, rule, intent);
@@ -3304,6 +3486,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   const heard = new Set<string>();
   return fx.filter((e) => {
     if (e.type !== "message" || e.role === "doctor") return true;
+    if (!e.text.trim()) return false;
     const key = `${e.role}|${e.text}`;
     if (heard.has(key)) return false;
     heard.add(key);

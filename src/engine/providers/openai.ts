@@ -23,12 +23,13 @@
  */
 import { parseOrderDetails } from "../formulary";
 import { geminiConfigured, geminiJSON } from "./gemini";
-import { conditionReference, drugForms, drugReference, labPanels, nearestFormularyDrug, packFacts, resolveDrugName, within } from "./medical-apis";
+import { conditionReference, drugForms, drugReference, editDistance, labPanels, nearestFormularyDrug, packFacts, resolveDrugName, within } from "./medical-apis";
 import { withUntreatedCourse } from "./untreated";
 import "server-only";
 
 import { DEFAULT_MODEL, lightReasoning } from "@/lib/server/openai-check";
 
+import { stateOfMind } from "../behaviour";
 import type { ClinicalCaseDefinition } from "../case-definition";
 import { EXAMS, INVESTIGATIONS, MEASURES } from "../catalog";
 import { COUNTRY, type Country } from "../countries";
@@ -189,6 +190,13 @@ export function knownSoFar(ctx: InterpretContext): string {
 }
 
 /** Where the encounter stands — so replies fit the moment, and follow-ups ("in 2 seconds", "same again") read in context. */
+/** How they can talk right now, for whoever writes their words. */
+function mindNote(ctx: InterpretContext): string {
+  const v = vitalsNow(ctx.hidden);
+  const mind = stateOfMind({ diagnosis: ctx.def.truth.diagnosis, age: ctx.def.patient.age, gcs: parseFloat(v.gcs?.value ?? "") || 15, pain: parseFloat(v.pain?.value ?? "") || 0, status: ctx.hidden.status });
+  return mind ? `\nHow the patient speaks now: ${mind} Keep it true to the case facts, and never name the diagnosis.` : "";
+}
+
 function stateNote(ctx: InterpretContext): string {
   const h = ctx.hidden;
   const v = vitalsNow(h);
@@ -249,7 +257,7 @@ function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: Inter
 Patient: ${def.patient.age}-year-old ${def.patient.sex}, ${def.patient.city}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}.${def.persona ? ` The patient is ${def.persona} — their replies show it.` : ""}
 Diagnosis (never reveal): ${def.truth.diagnosis}.${monthsOld(def) ? `\nThe child is ${monthsOld(def)} months old: never say any other age.` : ""}
 
-NOW: ${stateNote(ctx)}
+NOW: ${stateNote(ctx)}${mindNote(ctx)}
 
 History entries (id | topic | what the patient says):
 ${history}
@@ -311,7 +319,7 @@ Rules:
       role: "user",
       content: `Patient: ${p.age}-year-old ${p.sex}${p.occupation ? `, ${p.occupation}` : ""}, ${p.city}.
 Scene: ${def.briefing}
-How the patient is now: ${ctx.hidden.status}${ctx.hidden.patientSays ? ` — "${ctx.hidden.patientSays}"` : ""}.${def.persona ? `\nThe patient is ${def.persona} — let it show.` : ""}
+How the patient is now: ${ctx.hidden.status}${ctx.hidden.patientSays ? ` — "${ctx.hidden.patientSays}"` : ""}.${mindNote(ctx)}${def.persona ? `\nThe patient is ${def.persona} — let it show.` : ""}
 Treatment so far: ${ctx.hidden.drugs.filter((d) => d.mode === "given").slice(-6).map((d) => `${d.generic} (minute ${Math.round(d.at)})`).join(", ") || "none yet"}.
 ${recent ? `Recent conversation:\n${recent}\n` : ""}
 The doctor said: """${said}"""
@@ -513,6 +521,7 @@ const PERSONAS = [
   "anxious — frightened it is something serious, asks again and again what is wrong and needs calm reassurance",
   "reluctant — doesn't want tests or admission, has stopped medicines before, and needs to be persuaded with reasons",
   "low health literacy — uses everyday words, misunderstands medical terms and needs things explained simply",
+  "reluctant and angry — has had bad experiences in hospitals, wants to leave, and threatens to go home against advice unless the reasons are explained",
 ];
 
 /** What's in season where the case is set: the conditions doctors are seeing this month. */
@@ -564,7 +573,7 @@ function dialoguePrompt(opts: StartOptions, concept: Concept, brief: Brief): Cha
 { "opening": [{ "role": "patient"|"attendant"|"nurse"|"system", "kind": "speech"|"action"|"status", "text" }] (1–3 lines: how the patient arrives and their first words — no diagnosis),
   "baselineVitals": { "bp": "128/82", "hr": "88", "rr", "temp" (°F), "spo2", "rbs", "weight", "height", "gcs"?, "pain"? },
   "triageVitals": ["vitals already on the board on arrival"],
-  "profile": { "allergies": [], "currentDrugs": [], "pregnancyPossible"?, "pregnant"? (only if the pregnancy is already known when she arrives), "asthma"?, "ckd"?, "heartFailure"?, "volume": "depleted"|"normal"|"overloaded" (the patient's fluid state now), "fluidDeficitMlPerKg"?: how much fluid they are short of, mL/kg — e.g. 30 for moderate dehydration or septic shock, 70–100 for DKA or severe cholera; 0 if not depleted },
+  "profile": { "allergies": [], "currentDrugs": [], "pregnancyPossible"?, "pregnant"? (only if the pregnancy is already known when she arrives), "gestationWeeks"? (with it), "asthma"?, "ckd"?, "heartFailure"?, "volume": "depleted"|"normal"|"overloaded" (the patient's fluid state now), "fluidDeficitMlPerKg"?: how much fluid they are short of, mL/kg — e.g. 30 for moderate dehydration or septic shock, 70–100 for DKA or severe cholera; 0 if not depleted },
   "history": [{ "id": "short_snake_case", "group": "complaint"|"hpi"|"past"|"medication"|"allergy"|"family"|"social"|"diet"|"sexual"|"obstetric"|"systemic", "label", "match": ["3–8 short lowercase phrases a doctor might type"], "reply": "what the patient says, lay words", "fact": "the fact in clinical shorthand", "abnormal"?, "importance": "essential"|"useful"|"minor", "speaker"?: "attendant" }] }
 history: 8–12 entries — the presenting complaint, its course, relevant positives and negatives, past history, medicines and allergies. Every positive in the case must be here. The complaint's reply says how long it has been going on, and its match includes "how long", "since when" and "kab se"; when a relative answers for a child, they speak of the child as he or she.`,
     },
@@ -654,8 +663,6 @@ const COURSE_VITALS = new Set(["hr", "bp", "rr", "spo2", "temp", "gcs", "pain", 
  * death inside the first 45 minutes, and on a clock only in an emergency. Anything left out just means the case runs without it.
  */
 export function courseOf(concept: Concept, m: z.infer<typeof ManagementSchema>, therapeutics: { id: string; kind: string; label?: string; appropriateness: string; drugIds: string[]; measureIds: string[] }[], track: string): Pick<ClinicalCaseDefinition, "hazards" | "onResponse"> & { definitiveTreatment?: NonNullable<ClinicalCaseDefinition["rubric"]["definitiveTreatment"]> } {
-  // Off on the live site until it has been proved in full games on new cases.
-  if (process.env.VERCEL && process.env.RAMAI_CASE_COURSE !== "on") return { hazards: [] };
   const course = m.course;
   const found = (course?.definitive ?? []).map((id) => therapeutics.find((t) => t.id === id)).filter((t): t is (typeof therapeutics)[number] => !!t && (t.appropriateness === "ideal" || t.appropriateness === "acceptable"));
   if (!course || found.length === 0) return { hazards: [] };
@@ -973,7 +980,13 @@ export function clauseFor(targetId: string | undefined, text: string): string | 
   const drug = targetId ? formularyDrug(targetId) : undefined;
   if (!drug) return undefined;
   const names = [drug.generic, drug.id, ...(drug.aliases ?? []), ...drug.brands].map((x) => x.toLowerCase());
-  return text.split(/;|[.,](?=\s|$)|\band\b|\bthen\b|\bplus\b/i).find((c) => names.some((n) => c.toLowerCase().includes(n)));
+  const clause = text.split(/;|[.,](?=\s|$)|\band\b|\bthen\b|\bplus\b|\bwith\b|\balong with\b|\+/i).find((c) => names.some((n) => c.toLowerCase().includes(n)));
+  if (!clause) return undefined;
+  // The words from its name on, if the dose follows it: another drug's dose earlier in the clause isn't this one's.
+  const lower = clause.toLowerCase();
+  const at = Math.min(...names.map((n) => lower.indexOf(n)).filter((i) => i >= 0));
+  const after = clause.slice(at);
+  return /\d/.test(after) ? after : clause;
 }
 
 const TELLS_WHAT_TO_DO = /^(?:assess|obtain|order|consider|check|evaluate|rule out|send|arrange|perform|start|give|refer|pregnancy status is not established)\b/i;
@@ -1011,8 +1024,11 @@ export function stockedSpelling(text: string): string | undefined {
   const known = (w: string) => FORMULARY.some((d) => drugMatchPhrases(d).some((p) => p.toLowerCase() === w.toLowerCase()));
   const words = (text.match(/[A-Za-z][A-Za-z-]{3,}/g) ?? []).filter((w) => !NOT_DRUGS.has(w.toLowerCase()) && !known(w));
   for (const w of words) {
-    const drug = nearestFormularyDrug(w) ?? nearestFormularyDrug(w.replace(/f/gi, "ph")); // "morfine"
-    if (drug) return text.replace(w, drug.generic);
+    // One letter out, or f for ph ("morfine"). Two letters can be a different drug altogether (nimodipine, nifedipine): that's left to the reference.
+    const phonetic = w.replace(/f/gi, "ph");
+    const respelt = known(phonetic) ? nearestFormularyDrug(phonetic) : nearestFormularyDrug(w);
+    const close = respelt && (known(phonetic) || drugMatchPhrases(formularyDrug(respelt.id)!).some((p) => !p.includes(" ") && editDistance(w.toLowerCase(), p.toLowerCase()) <= 1));
+    if (respelt && close) return text.replace(w, respelt.generic);
   }
   return undefined;
 }
@@ -1077,6 +1093,11 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
       if ((i.kind === "drug" || (i.kind === "action" && i.targetId?.startsWith("measure:"))) && saidNotTo(i.targetId, text)) continue;
       // "Keep the defibrillator ready" or "pads on" isn't a shock.
       if (i.kind === "action" && i.targetId === "measure:defib" && !/\b(?:shock|cardiover\w*|defibrillat(?:e|ion)|dc\b)/i.test(text)) continue;
+      // A case's own treatment read as a drug: its drug, so the doctor's dose is read for it.
+      if (i.kind === "drug" && i.targetId && !formularyDrug(i.targetId)) {
+        const named = ctx.def.therapeutics.find((t) => t.id === i.targetId)?.drugIds?.find((d) => formularyDrug(d));
+        if (named) i.targetId = named;
+      }
       // The same drug read twice from one sentence is one order.
       if (i.kind === "drug" && i.targetId && i.targetId !== "unknown") {
         if (drugSeen.has(i.targetId)) continue;

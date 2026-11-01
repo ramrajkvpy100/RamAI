@@ -8,6 +8,7 @@
 import { formularyDrug } from "./formulary";
 import { QT } from "./interactions";
 import type { LabRow } from "./types";
+import type { HazardStage } from "./case-definition";
 import type { DrugOrderContext, GlobalHazardTemplate } from "./physiology";
 
 const lab = (analyte: string, value: string, unit: string, reference: string, flag: LabRow["flag"]): LabRow => ({ analyte, value, unit, reference, flag });
@@ -329,4 +330,87 @@ const clashSerotonin: GlobalHazardTemplate = {
   }),
 };
 
-export const DRUG_SAFETY: GlobalHazardTemplate[] = [paracetamolOverdose, negativeInotrope, retinoidTetracycline, steroidOnFace, isotretinoinCourse, clashQt, clashAvBlock, clashOpioidBenzo, clashSerotonin];
+export const CO2_NARCOSIS = "co2-narcosis";
+
+/** Too much oxygen in someone who retains CO₂: set off by the oxygen order, not by a drug. */
+const co2Narcosis: GlobalHazardTemplate = {
+  id: CO2_NARCOSIS,
+  applies: () => true,
+  triggers: () => false,
+  build: () => ({
+    id: CO2_NARCOSIS,
+    label: "CO₂ narcosis from too much oxygen in a CO₂ retainer",
+    stages: [
+      { afterMin: 30, status: "deteriorating", vitals: [{ key: "gcs", value: "13" }, { key: "rr", value: "14" }], observation: { role: "nurse", text: "Doctor, the saturation looks good, but they're getting sleepy." }, patientSays: "(Sleepy, slow to answer.)" },
+      { afterMin: 75, status: "critical", vitals: [{ key: "gcs", value: "10" }, { key: "rr", value: "10" }], observation: { role: "nurse", text: "They're hard to wake now, with a flapping tremor, and the breathing is slow." }, examFindings: { neuro: "Drowsy. Flapping tremor of the outstretched hands." } },
+      { afterMin: 130, status: "critical", vitals: [{ key: "gcs", value: "7" }, { key: "rr", value: "7" }], observation: { role: "nurse", text: "They barely respond to pain, and the breathing is very slow." } },
+      { afterMin: 190, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "Respiratory arrest, then no pulse." } },
+    ],
+    rescue: [["measure:oxygen-controlled", "measure:niv", "measure:intubation"]],
+    fullRecoveryWindowMin: 90,
+    lastRescueMin: 180,
+    recovery: [{ afterMin: 60, status: "guarded", vitals: [{ key: "gcs", value: "14" }, { key: "rr", value: "20" }], patientSays: "(More awake.)" }],
+    review: {
+      cause: "High-flow oxygen was given to someone who retains CO₂.",
+      whyItCausedHarm: "More oxygen worsens ventilation–perfusion matching and the Haldane effect releases CO₂ from haemoglobin, while breathing falls: PaCO₂ climbs, pH falls, and CO₂ narcosis follows.",
+      earliestRescueWindow: "At the order: controlled oxygen (24–28%), target SpO₂ 88–92%, and an ABG.",
+      correctRescueSequence: ["Reduce to controlled oxygen, SpO₂ 88–92%", "Repeat the ABG", "NIV if pH below 7.35 with a raised PaCO₂", "Intubate if NIV fails or they can't protect the airway"],
+      lastRealisticRescueWindow: "Before respiratory arrest.",
+    },
+  }),
+};
+
+const procedureHazard = (id: string, label: string, stages: HazardStage[], rescue: string[][], lastRescueMin: number, recovery: HazardStage[], cause: string, why: string, sequence: string[]): GlobalHazardTemplate => ({
+  id,
+  applies: () => true,
+  triggers: () => false,
+  build: () => ({ id, label, stages, rescue, fullRecoveryWindowMin: Math.round(lastRescueMin / 2), lastRescueMin, recovery, review: { cause, whyItCausedHarm: why, earliestRescueWindow: "At the procedure: the technique, and checking straight afterwards.", correctRescueSequence: sequence, lastRealisticRescueWindow: `Within about ${lastRescueMin} minutes.` } }),
+});
+
+const PROCEDURE_HAZARDS: GlobalHazardTemplate[] = [
+  procedureHazard("proc-mainstem", "Right mainstem intubation",
+    [{ afterMin: 3, status: "deteriorating", vitals: [{ key: "spo2", value: "86" }], observation: { role: "nurse", text: "Doctor, the saturation is stuck in the 80s, and the left side of the chest isn't moving as well." }, examFindings: { rs: "Air entry much reduced on the left; good on the right. Tube at 26 cm at the lips." } },
+     { afterMin: 25, status: "critical", vitals: [{ key: "spo2", value: "78" }], observation: { role: "nurse", text: "Saturation is in the 70s and the airway pressures are high." } }],
+    [["measure:withdraw-tube", "measure:intubation"]], 120, [{ afterMin: 5, status: "guarded", vitals: [{ key: "spo2", value: "96" }] }],
+    "The tube went too far, into the right main bronchus.", "Only the right lung is ventilated, so the left is shunted and collapses.", ["Listen to both sides", "Pull the tube back until air entry is equal", "Check depth: about 21 cm at the lips in women, 23 cm in men", "Chest X-ray"]),
+  procedureHazard("proc-oesophageal", "Unrecognised oesophageal intubation",
+    [{ afterMin: 2, status: "critical", vitals: [{ key: "spo2", value: "74" }, { key: "hr", value: "136" }], observation: { role: "nurse", text: "Doctor, the saturation is dropping fast, and I can hear gurgling over the stomach. There's no CO₂ trace!" }, examFindings: { rs: "No breath sounds on either side. Gurgling over the epigastrium." } },
+     { afterMin: 6, status: "critical", vitals: [{ key: "spo2", value: "52" }, { key: "hr", value: "48" }, { key: "bp", value: "70/40" }], observation: { role: "nurse", text: "Saturation in the 50s, pulse dropping!" } },
+     { afterMin: 11, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "No pulse, doctor." } }],
+    [["measure:intubation"]], 10, [{ afterMin: 4, status: "guarded", vitals: [{ key: "spo2", value: "94" }, { key: "hr", value: "108" }, { key: "bp", value: "108/64" }] }],
+    "The tube was in the oesophagus, and placement wasn't confirmed.", "Nothing reaches the lungs: profound hypoxia, then bradycardia and arrest within minutes.", ["No CO₂ trace means the tube isn't in: pull it out", "Bag-mask ventilate", "Re-intubate, and confirm with waveform capnography"]),
+  procedureHazard("proc-pneumothorax", "Pneumothorax from line insertion",
+    [{ afterMin: 10, status: "deteriorating", vitals: [{ key: "spo2", value: "88" }, { key: "rr", value: "30" }, { key: "hr", value: "118" }], observation: { role: "nurse", text: "Doctor, they're more breathless since the line, and the saturation is falling." }, examFindings: { rs: "Reduced air entry and a hyper-resonant note on the side of the line." } },
+     { afterMin: 40, status: "critical", vitals: [{ key: "spo2", value: "76" }, { key: "bp", value: "78/46" }, { key: "hr", value: "142" }], observation: { role: "nurse", text: "BP is falling, the neck veins are full, and the trachea looks pushed over." } },
+     { afterMin: 70, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "No pulse, doctor." } }],
+    [["measure:chest-tube"]], 65, [{ afterMin: 10, status: "guarded", vitals: [{ key: "spo2", value: "95" }, { key: "rr", value: "20" }, { key: "hr", value: "98" }, { key: "bp", value: "110/68" }] }],
+    "The needle entered the pleura during a neck or subclavian line.", "Air under pressure collapses the lung and, if it builds, stops venous return.", ["Listen, and get a chest X-ray if stable", "Needle decompression if tension", "Chest tube"]),
+  procedureHazard("proc-arterial", "Arterial injury and bleeding",
+    [{ afterMin: 15, status: "deteriorating", vitals: [{ key: "hr", value: "118" }, { key: "bp", value: "98/60" }], observation: { role: "nurse", text: "Doctor, there's a swelling growing at the site, and the pulse is rising." } }],
+    [["drug:ns", "drug:rl", "drug:prbc", "measure:refer"]], 240, [{ afterMin: 30, status: "guarded", vitals: [{ key: "hr", value: "98" }, { key: "bp", value: "112/70" }] }],
+    "An artery was hit during the procedure.", "Bleeding collects at the site; low platelets or no ultrasound make it likelier.", ["Firm pressure", "Fluids or blood as needed", "Get the surgeons if it keeps growing"]),
+  procedureHazard("proc-line-infection", "Central line infection",
+    [{ afterMin: 1440, status: "deteriorating", vitals: [{ key: "temp", value: "102.6" }, { key: "hr", value: "116" }, { key: "bp", value: "102/60" }], observation: { role: "nurse", text: "Doctor, they've spiked a fever with rigors, and the line site is red." }, examFindings: { skin: "Redness and pus at the central line site." } }],
+    [["measure:remove-line"], ["drug:vancomycin", "drug:meropenem", "drug:ceftriaxone", "drug:pip-taz"]], 2880, [{ afterMin: 720, status: "improving", vitals: [{ key: "temp", value: "99.2" }, { key: "hr", value: "92" }, { key: "bp", value: "118/72" }] }],
+    "The line was placed without full sterile technique.", "Skin organisms track along the catheter into the blood.", ["Blood cultures, from the line and a vein", "Take the line out", "Antibiotics covering skin organisms"]),
+  procedureHazard("proc-tube-misplaced", "Misplaced chest tube",
+    [{ afterMin: 5, status: "deteriorating", vitals: [{ key: "spo2", value: "86" }, { key: "hr", value: "124" }], observation: { role: "nurse", text: "Doctor, the tube isn't swinging or bubbling, and they're no better." } },
+     { afterMin: 45, status: "critical", vitals: [{ key: "spo2", value: "76" }, { key: "bp", value: "82/50" }], observation: { role: "nurse", text: "They're getting worse, and the BP is dropping." } }],
+    [["measure:chest-tube"]], 120, [{ afterMin: 10, status: "guarded", vitals: [{ key: "spo2", value: "95" }, { key: "hr", value: "100" }, { key: "bp", value: "112/70" }] }],
+    "The tube sat outside the pleura, or wasn't in the safe triangle.", "An undrained chest stays compressed; a misplaced tube can injure the lung, liver or spleen.", ["Check for swing and bubbling, and an X-ray", "Replace it through the safe triangle, 5th space, mid-axillary line"]),
+  procedureHazard("proc-para-hypotension", "Circulatory dysfunction after large-volume paracentesis",
+    [{ afterMin: 120, status: "deteriorating", vitals: [{ key: "bp", value: "88/50" }, { key: "hr", value: "118" }, { key: "urine", value: "15" }], observation: { role: "nurse", text: "Doctor, the BP has dropped since the tap, and there's hardly any urine." } }],
+    [["drug:albumin", "drug:ns"]], 480, [{ afterMin: 60, status: "guarded", vitals: [{ key: "bp", value: "108/64" }, { key: "hr", value: "96" }, { key: "urine", value: "40" }] }],
+    "A large-volume tap was done without albumin.", "Taking off 5 L or more without albumin (6–8 g per litre) drops the effective circulating volume, and can bring on renal failure.", ["Albumin 6–8 g per litre removed", "Watch BP, urine and creatinine"]),
+  procedureHazard("proc-lp-herniation", "Brain herniation after lumbar puncture",
+    [{ afterMin: 20, status: "critical", vitals: [{ key: "gcs", value: "7" }, { key: "hr", value: "48" }, { key: "bp", value: "188/104" }, { key: "rr", value: "9" }], observation: { role: "nurse", text: "Doctor, they've suddenly gone unresponsive, with one big pupil, a slow pulse and a high BP!" }, examFindings: { neuro: "GCS 7. Right pupil fixed and dilated. Extensor posturing." } },
+     { afterMin: 90, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "Respiratory arrest, then no pulse." } }],
+    [["drug:hypertonic-saline", "measure:intubation"]], 80, [{ afterMin: 40, status: "guarded", vitals: [{ key: "gcs", value: "10" }, { key: "hr", value: "78" }, { key: "bp", value: "150/88" }, { key: "rr", value: "16" }] }],
+    "An LP was done with signs of raised intracranial pressure and no head scan first.", "Lowering pressure below the block pulls the brain down through the tentorium or foramen magnum.", ["CT head before LP with focal signs, papilloedema or a low GCS", "Head up, secure the airway", "Hypertonic saline or mannitol; get the neurosurgeons"]),
+  procedureHazard("proc-spinal-haematoma", "Spinal haematoma after lumbar puncture",
+    [{ afterMin: 240, status: "deteriorating", vitals: [], observation: { role: "nurse", text: "Doctor, they have back pain, and now can't move their legs properly or pass urine." }, examFindings: { neuro: "Bilateral leg weakness, a sensory level, and a palpable bladder." } }],
+    [["measure:refer"]], 720, [{ afterMin: 720, status: "guarded", vitals: [] }],
+    "An LP was done with low platelets.", "Bleeding into the spinal canal compresses the cord.", ["Correct platelets before an LP", "Urgent MRI spine", "Neurosurgery within hours"]),
+];
+
+export const DRUG_SAFETY: GlobalHazardTemplate[] = [...PROCEDURE_HAZARDS, co2Narcosis, paracetamolOverdose, negativeInotrope, retinoidTetracycline, steroidOnFace, isotretinoinCourse, clashQt, clashAvBlock, clashOpioidBenzo, clashSerotonin];

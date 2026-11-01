@@ -62,6 +62,9 @@ it("the average doctor", { timeout: 1_700_000 }, async () => {
   const provider = createOpenAIProvider();
   const out: string[] = [];
   const tally: Record<string, number> = {};
+  // An order the engine failed on shows in the transcript, not only in a log nobody reads.
+  const logged = console.error;
+  console.error = (...args: unknown[]) => { out.push(`   !! ${args.join(" ").slice(0, 300)}`); tally.engineErrors = (tally.engineErrors ?? 0) + 1; logged(...args); };
   for (const spec of (process.env.AUDIT_NEW ?? "").split(",").filter(Boolean)) {
     const [specialty, track] = spec.split("/");
     try {

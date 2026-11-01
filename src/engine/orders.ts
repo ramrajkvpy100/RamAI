@@ -125,6 +125,11 @@ export function phoneDrugQuestion(drug: FormularyDrug, needs: OrderNeed[]): stri
  */
 const PER_KG: Record<string, { perKg: number; unit: string; max: number; round: number }> = {
   paracetamol: { perKg: 15, unit: "mg", max: 1000, round: 10 },
+  meropenem: { perKg: 20, unit: "mg", max: 1000, round: 50 },
+  levetiracetam: { perKg: 30, unit: "mg", max: 3000, round: 50 },
+  phenobarbitone: { perKg: 20, unit: "mg", max: 1000, round: 10 },
+  lorazepam: { perKg: 0.1, unit: "mg", max: 4, round: 0.5 },
+  "magnesium-sulphate": { perKg: 50, unit: "mg", max: 2000, round: 50 },
   ibuprofen: { perKg: 10, unit: "mg", max: 400, round: 10 },
   amoxicillin: { perKg: 25, unit: "mg", max: 1000, round: 25 },
   "amoxicillin-clavulanate": { perKg: 25, unit: "mg", max: 875, round: 25 },

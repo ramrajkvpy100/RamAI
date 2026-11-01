@@ -8,9 +8,15 @@ vi.mock("server-only", () => ({}));
 
 import { expectedPH } from "@/engine/abg-check";
 import { ALL_CASES } from "@/engine/cases";
-import { defaultVitals, readVitalKeys, ROUTINE_VITALS } from "@/engine/catalog";
-import { FORMULARY } from "@/engine/formulary";
+import { defaultVitals, normalVitals, readVitalKeys, ROUTINE_VITALS } from "@/engine/catalog";
+import { FORMULARY, parseOrderDetails } from "@/engine/formulary";
+import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProblem, tabletStrengths } from "@/engine/contraindications";
 import { liveClash } from "@/engine/interactions";
+import { givesReason, stateOfMind } from "@/engine/behaviour";
+import { kineticsFor, profileFor } from "@/engine/pharmacology";
+import { lumbarPuncture, runProcedure, tubeProblem } from "@/engine/procedures";
+import { ckdEpi, compensated, creatinineClearance, followLabs, wintersPaCO2 } from "@/engine/lab-model";
+import { expectedPH as hh } from "@/engine/abg-check";
 import { generateDebrief } from "@/engine/debrief";
 import { clauseFor, courseOf, onlyFindings, saidNotTo, stockedSpelling, withoutFindings } from "@/engine/providers/openai";
 import { createHiddenState, runTurn } from "@/engine/simulator";
@@ -394,6 +400,12 @@ describe("what an illness does in an invented case", () => {
     expect(courseOf(concept, management({ ...written, definitive: ["aspirin-rule"] }), list, "emergency")).toEqual({ hazards: [] });
   });
 
+  it("aspirin alone doesn't take away an infarct's pain", () => {
+    const aspirin = FORMULARY.find((d) => d.id === "aspirin")!;
+    expect(profileFor(aspirin)!.effects.pain).toBe(-1);
+    expect(kineticsFor(aspirin, "PO").peak).toBe(30);
+  });
+
   it("a clinic case is on no clock, and a case without a course runs as before", () => {
     expect(courseOf(concept, management(written), therapeutics, "opd").hazards).toEqual([]);
     expect(courseOf(concept, management(undefined), therapeutics, "emergency")).toEqual({ hazards: [] });
@@ -424,9 +436,12 @@ describe("what the doctor wrote, in a long order", () => {
     expect(clauseFor("morphine", text)).toMatch(/2 mg/);
     expect(clauseFor("ondansetron", text)).toMatch(/4 mg/);
     // A decimal isn't the end of a sentence.
-    expect(clauseFor("ns", "Give 0.9% saline 1 L and morphine 2.5 mg IV")).toMatch(/0\.9%/);
+    expect(clauseFor("ns", "Give 0.9% saline 1 L and morphine 2.5 mg IV")).toMatch(/1 L/);
     expect(clauseFor("morphine", "Give 0.9% saline 1 L and morphine 2.5 mg IV")).toMatch(/2\.5 mg/);
     expect(clauseFor("morphine", "ondansetron 4 mg, morphine 1,000 mcg. Then rest")).toMatch(/1,000 mcg/);
+    expect(clauseFor("folic-acid", "Start methotrexate 15 mg orally once weekly with folic acid 1 mg orally daily")).toMatch(/^folic acid 1 mg/i);
+    expect(clauseFor("methotrexate", "Start methotrexate 15 mg orally once weekly with folic acid 1 mg orally daily")).toMatch(/^methotrexate 15 mg/i);
+    expect(clauseFor("paracetamol", "give 500 mg paracetamol")).toMatch(/500 mg/);
   });
   it("what they said not to do isn't ordered", () => {
     expect(saidNotTo("measure:oxygen", "No supplemental oxygen, she's at 99%")).toBe(true);
@@ -481,5 +496,331 @@ describe("a misspelt drug", () => {
     // Reading its own correction again finds nothing to change, for every stocked drug: no endless loop.
     for (const d of FORMULARY) for (const name of [d.generic, d.id, ...(d.aliases ?? []), ...d.brands]) expect(stockedSpelling(`give ${name} now`) ?? "", name).not.toContain(`${d.generic} ${d.generic}`);
     expect(stockedSpelling("give levosalbutamol neb now")).toBeUndefined();
+  });
+});
+
+describe("labs follow what was done", () => {
+  const r = (analyte: string, value: string, reference?: string, unit?: string) => ({ analyte, value, reference, unit, flag: "normal" as const });
+  const base = [r("Haemoglobin", "13.0", "12.0–16.0"), r("Albumin", "4.0", "3.5–5.2"), r("Sodium", "138", "135–145"), r("Chloride", "102", "98–107"), r("HCO₃⁻", "24", "22–26"), r("pCO₂", "40", "35–45", "mmHg"), r("pH", "7.40", "7.35–7.45")];
+  const adultCtx = { weightKg: 60, fluids: [], redCellUnits: 0, co2Retained: 0, age: 40, sex: "Male" };
+  const val = (rows: readonly { analyte: string; value: string }[], a: string) => Number(rows.find((x) => x.analyte === a)!.value);
+
+  it("saline dilutes haemoglobin and albumin, raises chloride and lowers bicarbonate, in proportion", () => {
+    const small = followLabs(base, { ...adultCtx, fluids: [{ drugId: "ns", ml: 1000, ago: 0 }] });
+    const large = followLabs(base, { ...adultCtx, fluids: [{ drugId: "ns", ml: 5000, ago: 0 }] });
+    expect(val(small, "Haemoglobin")).toBeLessThan(13);
+    expect(val(large, "Haemoglobin")).toBeLessThan(val(small, "Haemoglobin"));
+    expect(val(large, "Albumin")).toBeLessThan(4);
+    expect(val(large, "Chloride")).toBeGreaterThan(110);
+    expect(val(large, "HCO₃⁻")).toBeLessThan(val(small, "HCO₃⁻"));
+    expect(large.find((x) => x.analyte === "Chloride")!.flag).toBe("high");
+  });
+
+  it("Ringer lactate dilutes without the chloride; red cells raise haemoglobin; a small flush changes nothing", () => {
+    const rl = followLabs(base, { ...adultCtx, fluids: [{ drugId: "rl", ml: 3000, ago: 0 }] });
+    expect(val(rl, "Haemoglobin")).toBeLessThan(13);
+    expect(val(rl, "Chloride")).toBe(102);
+    expect(val(followLabs(base, { ...adultCtx, weightKg: 70, redCellUnits: 2 }), "Haemoglobin")).toBe(15);
+    expect(followLabs(base, { ...adultCtx, fluids: [{ drugId: "ns", ml: 100, ago: 0 }] })).toEqual(base);
+  });
+
+  it("Winter's formula corrects a written PaCO₂ only where no lung illness explains it", () => {
+    const dka = [r("HCO₃⁻", "10"), r("pCO₂", "40", undefined, "mmHg")];
+    expect(wintersPaCO2(10)).toBe(23);
+    expect(val(compensated(dka, "Diabetic ketoacidosis"), "pCO₂")).toBe(23);
+    expect(val(compensated(dka, "Severe pneumonia with sepsis"), "pCO₂")).toBe(40);
+    expect(val(compensated([r("HCO₃⁻", "10"), r("pCO₂", "25", undefined, "mmHg")], "Diabetic ketoacidosis"), "pCO₂")).toBe(25);
+  });
+
+  it("played through: a large saline load shows on the repeat bloods, with a pH that agrees", async () => {
+    const def = C("em-adhf");
+    const { state } = await converse(def, ["ns 3 litres iv over 3 hours", "yes", "wait 60 minutes", "wait 60 minutes", "wait 60 minutes", "abg", "cbc", "electrolytes"]);
+    const abg = [...state.investigations].reverse().find((i) => /abg|blood gas/i.test(i.name));
+    const rows = abg?.rows ?? [];
+    const get = (re: RegExp) => Number(rows.find((x) => re.test(x.analyte))?.value);
+    if (get(/^ph$/i) && get(/hco/i) && get(/co/i)) expect(Math.abs(hh(get(/hco/i), get(/pco/i)) - get(/^ph$/i))).toBeLessThanOrEqual(0.035);
+  });
+
+  it("high-flow oxygen in a CO₂ retainer brings narcosis and a rising PaCO₂; controlled oxygen stops it", async () => {
+    const base2 = ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+    const copd = { ...base2, truth: { ...base2.truth, diagnosis: "Acute exacerbation of COPD" }, hazards: [], rubric: { ...base2.rubric, definitiveTreatment: undefined } } as typeof base2;
+    const hurt = await converse(copd, ["oxygen 15 l non rebreather", "wait 60 minutes", "abg"]);
+    expect(hurt.hidden.hazards.some((h) => h.id === "co2-narcosis")).toBe(true);
+    expect(said(hurt.state)).toMatch(/getting sleepy/);
+    const pco2 = (s: typeof hurt.state) => Number(([...s.investigations].reverse().find((i) => /abg|blood gas/i.test(i.name))?.rows ?? []).find((x) => /pco/i.test(x.analyte))?.value);
+    const fine = await converse(copd, ["oxygen 2 l nasal prongs", "wait 60 minutes", "abg"]);
+    expect(fine.hidden.hazards.some((h) => h.id === "co2-narcosis")).toBe(false);
+    expect(pco2(hurt.state)).toBeGreaterThan(pco2(fine.state));
+    const saved = await converse(copd, ["oxygen 15 l non rebreather", "wait 60 minutes", "oxygen 2 l nasal prongs"]);
+    expect(saved.hidden.hazards.find((h) => h.id === "co2-narcosis")?.rescuedAt).toBeDefined();
+    // Someone who doesn't retain CO₂ is unharmed by the same oxygen.
+    const plain = await converse(base2, ["oxygen 15 l non rebreather"]);
+    expect(plain.hidden.hazards.some((h) => h.id === "co2-narcosis")).toBe(false);
+  });
+});
+
+describe("what a drug must not be given in, and what it comes in", () => {
+  const facts = (over = {}) => ({ age: 40, story: "", ckd: false, plateletsLow: false, ...over });
+  const drug = (id: string) => FORMULARY.find((d) => d.id === id)!;
+
+  it("each rule fires where it should, and not otherwise", () => {
+    expect(contraindication(drug("ibuprofen"), facts({ story: "I have vomited fresh blood twice" }))).toMatch(/bleeding/);
+    expect(contraindication(drug("ibuprofen"), facts({ story: "my knee hurts" }))).toBeNull();
+    expect(contraindication(drug("aspirin"), facts({ age: 6, story: "fever for 3 days" }))).toMatch(/Reye/);
+    expect(contraindication(drug("aspirin"), facts({ age: 6, story: "fever, Kawasaki" }))).toBeNull();
+    expect(contraindication(drug("doxycycline"), facts({ age: 6 }))).toMatch(/teeth/);
+    expect(contraindication(drug("doxycycline"), facts({ age: 20 }))).toBeNull();
+    expect(contraindication(drug("tramadol"), facts({ age: 9 }))).toMatch(/breathing/);
+    expect(contraindication(drug("metformin"), facts({ ckd: true }))).toMatch(/lactic/);
+    expect(contraindication(drug("ciprofloxacin"), facts({ story: "I have myasthenia" }))).toMatch(/myasthenia/);
+    expect(contraindication(drug("metoprolol"), facts({ pulse: 44 }))).toMatch(/under 50/);
+    expect(contraindication(drug("metoprolol"), facts({ pulse: 88 }))).toBeNull();
+  });
+
+  it("no written case's right treatment is queried", () => {
+    const wrong: string[] = [];
+    for (const def of ALL_CASES) for (const rule of def.therapeutics.filter((t) => t.appropriateness === "ideal")) for (const id of rule.drugIds ?? []) {
+      const d = FORMULARY.find((x) => x.id === id);
+      const said2 = d && contraindication(d, facts({ age: def.patient.age, story: storyOf(def), ckd: !!def.profile?.ckd }));
+      if (said2) wrong.push(`${def.id}: ${id}: ${said2}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it("every usual dose in the formulary can be made up, and an impossible one can't", () => {
+    const wrong = FORMULARY.flatMap((d) => {
+      const m = d.dose?.match(/^([\d.]+)\s*mg\b/i);
+      return m && strengthProblem(d, Number(m[1]), "mg", "PO") ? [`${d.id} ${d.dose}`] : [];
+    });
+    expect(wrong).toEqual([]);
+    expect(tabletStrengths("atorvastatin")).toContain(40);
+    expect(strengthProblem(drug("atorvastatin"), 33, "mg", "PO")).toMatch(/comes as/);
+    expect(strengthProblem(drug("atorvastatin"), 80, "mg", "PO")).toBeNull();
+    expect(strengthProblem(drug("atorvastatin"), 33, "mg", "IV")).toBeNull();
+    expect(strengthProblem(drug("aspirin"), 75, "mg", "PO")).toBeNull();
+    expect(strengthProblem(drug("metformin"), 1000, "mg", "PO")).toBeNull();
+  });
+});
+
+describe("by age", () => {
+  const facts = (over = {}) => ({ age: 40, story: "", ckd: false, plateletsLow: false, ...over });
+  const drug = (id: string) => FORMULARY.find((d) => d.id === id)!;
+  const r = (analyte: string, value: string, reference?: string, flag: "normal" | "low" | "high" = "normal") => ({ analyte, value, reference, flag });
+  const ctx = { weightKg: 12, fluids: [], redCellUnits: 0, co2Retained: 0, age: 2, sex: "Female", heightCm: 85 };
+
+  it("a child's vitals are read against a child's chart", () => {
+    expect(normalVitals(0).hr).toEqual([100, 160]);
+    expect(normalVitals(4).rr).toEqual([22, 34]);
+    expect(normalVitals(40).hr).toEqual([60, 100]);
+    expect(normalVitals(40).lowSbp).toBe(90);
+    expect(normalVitals(5).lowSbp).toBe(80);
+  });
+
+  it("a feverish 2-year-old with a pulse of 132 isn't called unwell for it at the door", async () => {
+    const child = ALL_CASES.find((c) => c.patient.age >= 1 && c.patient.age < 5 && c.track !== "phone")!;
+    const def = { ...child, baselineVitals: { ...child.baselineVitals, hr: { key: "hr", value: "132" }, bp: { key: "bp", value: "95/60" }, spo2: { key: "spo2", value: "99" }, rr: { key: "rr", value: "28" } }, initialStatus: "stable" } as typeof child;
+    expect(said((await converse(def, ["discharge"])).state)).not.toMatch(/pulse 132/);
+  });
+
+  it("a child's labs use a child's ranges, and a normal result is normal for the age", () => {
+    const rows = followLabs([r("Creatinine", "0.9", "0.7–1.3"), r("Haemoglobin", "8.0", "13–17", "low"), r("eGFR", "> 90", "> 90")], ctx);
+    expect(Number(rows[0]!.value)).toBeLessThanOrEqual(0.5);
+    expect(rows[0]!.flag).toBe("normal");
+    expect(rows[1]).toMatchObject({ value: "8.0", flag: "low", reference: "11–14" });
+    expect(rows[2]!.value).toBe("> 90");
+  });
+
+  it("eGFR follows the creatinine shown; clearance matches the worked example", () => {
+    expect(Math.round(ckdEpi(1.0, 50, "Male"))).toBe(92);
+    expect(Math.round(ckdEpi(3.0, 70, "Female"))).toBe(16);
+    expect(Math.round(creatinineClearance(80, 60, 2, "Male"))).toBe(25);
+    expect(followLabs([r("Creatinine", "3.0"), r("eGFR", "> 90")], { ...ctx, age: 70, weightKg: 60 })[1]).toMatchObject({ value: "16", flag: "critical" });
+  });
+
+  it("failing kidneys and older age are queried, from a creatinine that's back or the history", () => {
+    expect(contraindication(drug("metformin"), facts({ crcl: 22 }))).toMatch(/lactic/);
+    expect(contraindication(drug("metformin"), facts({ crcl: 60 }))).toBeNull();
+    expect(contraindication(drug("ibuprofen"), facts({ crcl: 20 }))).toMatch(/kidneys/);
+    expect(contraindication(drug("enoxaparin"), facts({ ckd: true }))).toMatch(/accumulates/);
+    expect(contraindication(drug("diazepam"), facts({ age: 78 }))).toMatch(/falls/);
+    expect(contraindication(drug("diazepam"), facts({ age: 78, story: "he is having seizures" }))).toBeNull();
+    expect(contraindication(drug("diazepam"), facts({ age: 40 }))).toBeNull();
+    expect(contraindication(drug("glimepiride"), facts({ age: 70 }))).toMatch(/low sugars/);
+  });
+});
+
+describe("in pregnancy", () => {
+  const drug = (id: string) => FORMULARY.find((d) => d.id === id)!;
+  it("every drug is read against the gestation", () => {
+    expect(pregnancyRisk(drug("isotretinoin"), 8)).toMatch(/harm the baby/);
+    expect(pregnancyRisk(drug("enalapril"), 30)).toMatch(/kidney failure/);
+    expect(pregnancyRisk(drug("ibuprofen"), 10)).toBeNull();
+    expect(pregnancyRisk(drug("ibuprofen"), 24)).toMatch(/amniotic/);
+    expect(pregnancyRisk(drug("ibuprofen"), 33)).toMatch(/ductus/);
+    expect(pregnancyRisk(drug("doxycycline"), 8)).toBeNull();
+    expect(pregnancyRisk(drug("doxycycline"), 20)).toMatch(/teeth/);
+    expect(pregnancyRisk(drug("paracetamol"), 30)).toBeNull();
+    expect(pregnancyRisk(drug("cotrimoxazole"), 10)).toMatch(/neural tube/);
+  });
+  it("reads the gestation from the story", () => {
+    expect(gestationFrom("She is 32 weeks pregnant with a headache")).toBe(32);
+    expect(gestationFrom("G2P1, POG 28 wks")).toBe(28);
+    expect(gestationFrom("at 10 weeks' gestation")).toBe(10);
+    expect(gestationFrom("cough for 3 weeks")).toBeUndefined();
+  });
+  it("played through, with no hint before she's known to be pregnant", async () => {
+    const base = ALL_CASES.find((c) => c.track === "emergency" && c.patient.sex === "Female" && c.patient.age >= 18 && !c.profile?.pregnant)!;
+    const known = { ...base, profile: { ...base.profile, pregnant: true, gestationWeeks: 33 }, therapeutics: base.therapeutics.filter((t) => !(t.drugIds ?? []).includes("ibuprofen")) } as typeof base;
+    expect(said((await converse(known, ["ibuprofen 400 mg po stat"])).state)).toMatch(/She's pregnant, 33 weeks — after 30 weeks/);
+    expect(said((await converse(base, ["ibuprofen 400 mg po stat"])).state)).not.toMatch(/pregnant/i);
+  });
+});
+
+describe("procedures can go wrong", () => {
+  const c = (over = {}) => ({ phrase: "", age: 50, preoxygenated: false, sedated: false, plateletsLow: false, roll: 50, raisedIcpSigns: false, headScanBack: false, ...over });
+  const good = { phrase: "RSI with ketamine and rocuronium, size 7.5 tube, confirm with capnography", preoxygenated: true };
+
+  it("technique decides most of it: careful intubation fails far less often than careless", () => {
+    const fails = (over: object) => Array.from({ length: 100 }, (_, roll) => runProcedure("intubation", c({ ...over, roll }))!).filter((o) => o.hazard || o.spo2Drop).length;
+    expect(fails(good)).toBeLessThan(25);
+    expect(fails({ phrase: "intubate" })).toBeGreaterThan(fails(good) + 25);
+  });
+
+  it("each lapse is named", () => {
+    expect(runProcedure("intubation", c({ phrase: "intubate" }))!.lapses).toContain("no pre-oxygenation");
+    expect(runProcedure("intubation", c({ phrase: "intubate" }))!.lapses).toContain("no induction drugs or paralysis");
+    expect(runProcedure("central-line", c({ phrase: "central line" }))!.lapses).toEqual(["no ultrasound guidance", "no sterile technique stated"]);
+    expect(tubeProblem("size 10 tube", 40)).toMatch(/wrong/);
+    expect(tubeProblem("size 7.5 tube", 40)).toBeUndefined();
+    expect(tubeProblem("size 7.5 tube", 2)).toMatch(/wrong/);
+    expect(tubeProblem("size 4.5 tube", 2)).toBeUndefined();
+  });
+
+  it("no capnography can mean an oesophageal tube; bad luck with good technique costs no marks", () => {
+    expect(runProcedure("intubation", c({ phrase: "intubate", roll: 2 }))!.hazard).toBe("proc-oesophageal");
+    expect(runProcedure("intubation", c({ ...good, roll: 2 }))!.hazard).toBeUndefined();
+    const unlucky = runProcedure("intubation", c({ ...good, roll: 95 }))!;
+    expect(unlucky.hazard).toBe("proc-mainstem");
+    expect(unlucky.unavoidable).toBe(true);
+  });
+
+  it("sterile technique and ultrasound protect a line; albumin protects a big tap", () => {
+    const infected = Array.from({ length: 100 }, (_, roll) => runProcedure("central-line", c({ phrase: "central line", roll }))!).filter((o) => o.hazard === "proc-line-infection").length;
+    const clean = Array.from({ length: 100 }, (_, roll) => runProcedure("central-line", c({ phrase: "sterile central line under ultrasound", roll }))!).filter((o) => o.hazard === "proc-line-infection").length;
+    expect(infected).toBeGreaterThan(20);
+    expect(clean).toBe(0);
+    expect(runProcedure("paracentesis", c({ phrase: "paracentesis, drain 6 litres" }))!.hazard).toBe("proc-para-hypotension");
+    expect(runProcedure("paracentesis", c({ phrase: "paracentesis, drain 6 litres with albumin" }))!.hazard).toBeUndefined();
+  });
+
+  it("an LP with raised-pressure signs and no scan can herniate; with the scan back it doesn't", () => {
+    expect(lumbarPuncture(c({ raisedIcpSigns: true }))!.hazard).toBe("proc-lp-herniation");
+    expect(lumbarPuncture(c({ raisedIcpSigns: true, headScanBack: true }))).toBeUndefined();
+    expect(lumbarPuncture(c({ plateletsLow: true }))!.hazard).toBe("proc-spinal-haematoma");
+  });
+
+  it("played through: replays the same, the tube can be pulled back, and the demo never fails", async () => {
+    const def = ALL_CASES.find((d) => d.track === "emergency" && d.patient.age >= 18)!;
+    const a = await converse(def, ["intubate", "yes"]);
+    const b = await converse(def, ["intubate", "yes"]);
+    expect(said(a.state)).toBe(said(b.state));
+    expect(said(a.state)).toMatch(/ntubat|Tube|attempt/);
+    const demo = ALL_CASES.find((d) => d.guided);
+    if (demo) {
+      const d = await converse(demo, ["intubate", "yes"]);
+      expect(d.hidden.hazards.some((h) => h.id.startsWith("proc-"))).toBe(false);
+    }
+  });
+});
+
+describe("how the patient behaves", () => {
+  const f = (over = {}) => ({ diagnosis: "Appendicitis", age: 40, gcs: 15, pain: 3, status: "stable", ...over });
+  const base = () => ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+
+  it("speech follows the illness and the numbers", () => {
+    expect(stateOfMind(f())).toBeUndefined();
+    expect(stateOfMind(f({ gcs: 13 }))).toMatch(/Confused/);
+    expect(stateOfMind(f({ gcs: 8 }))).toMatch(/Too drowsy/);
+    expect(stateOfMind(f({ pain: 9 }))).toMatch(/severe pain/);
+    expect(stateOfMind(f({ diagnosis: "Paranoid schizophrenia, acute relapse" }))).toMatch(/Paranoid/);
+    expect(stateOfMind(f({ diagnosis: "Major depressive disorder with suicidal ideation" }))).toMatch(/Flat/);
+    expect(stateOfMind(f({ diagnosis: "Acute mania" }))).toMatch(/Pressured/);
+  });
+
+  it("someone too drowsy can't give a history", async () => {
+    const def = { ...base(), baselineVitals: { ...base().baselineVitals, gcs: { key: "gcs", value: "8" } } } as ReturnType<typeof base>;
+    const text = said((await converse(def, ["how long has this been going on"])).state);
+    expect(text).toMatch(/Too drowsy to answer/);
+  });
+
+  it("a reluctant patient refuses until told why; told, they agree; pushed, they leave and it costs the marks", async () => {
+    const def = { ...base(), persona: "reluctant — doesn't want tests or admission" } as ReturnType<typeof base>;
+    expect(said((await converse(def, ["admit the patient"])).state)).toMatch(/I want to go home/);
+    const told = await converse(def, ["admit the patient", "admit him, because this could be dangerous if we leave it"]);
+    expect(said(told.state)).toMatch(/go ahead/);
+    expect(told.hidden.discharged).toBeFalsy();
+    const pushed = await converse(def, ["admit the patient", "just admit"]);
+    expect(said(pushed.state)).toMatch(/Left against medical advice/);
+    expect(pushed.hidden.leftAma).toBe(true);
+    expect(givesReason("admit")).toBe(false);
+    const after = generateDebrief(def, pushed.hidden, pushed.state);
+    expect(after.score.lines.find((l) => l.category === "outcome")!.notes.join(" ")).toMatch(/against medical advice/);
+  });
+
+  it("no refusal from someone not reluctant, or in the demo", async () => {
+    expect(said((await converse(base(), ["admit the patient"])).state)).not.toMatch(/I want to go home/);
+  });
+});
+
+describe("more from the new games", () => {
+  const base = () => ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+  const copd = () => ({ ...base(), truth: { ...base().truth, diagnosis: "Acute exacerbation of COPD" }, hazards: [] }) as ReturnType<typeof base>;
+
+  it("'continue oxygen' doesn't speed up CO₂ narcosis", async () => {
+    const once = await converse(copd(), ["oxygen 15 l non rebreather"]);
+    const twice = await converse(copd(), ["oxygen 15 l non rebreather", "oxygen 15 l non rebreather"]);
+    expect(said(twice.state)).not.toMatch(/getting sleepy/);
+    expect(once.hidden.hazards.find((h) => h.id === "co2-narcosis")?.armedAt).toBe(twice.hidden.hazards.find((h) => h.id === "co2-narcosis")?.armedAt);
+  });
+
+  it("a case's own treatment read as a drug gives that drug, not 'which medicine?'", () => {
+    const def = { ...base(), therapeutics: [{ id: "nebulised-bronchodilators", kind: "drug", drugIds: ["salbutamol"], label: "Nebulised bronchodilators", appropriateness: "ideal" }, ...base().therapeutics] } as ReturnType<typeof base>;
+    const fx = runTurn(def, createHiddenState(def), { id: "a", at: 0, raw: "x", intents: [{ kind: "drug", targetId: "nebulised-bronchodilators", phrase: "salbutamol 2.5 mg nebulised", matched: true, payload: { amount: 2.5, unit: "mg", route: "NEB" } }] });
+    expect(fx.flatMap((e) => (e.type === "message" ? [e.text] : [])).join(" ")).not.toMatch(/Which medicine/);
+  });
+
+  it("'by nebuliser' is a route", () => {
+    expect(parseOrderDetails("salbutamol 2.5 mg by nebuliser", { weightKg: 60 }).route).toBe("NEB");
+  });
+});
+
+describe("how fast treatment works", () => {
+  it("an infection doesn't settle within minutes of the antibiotic, but does within hours", async () => {
+    const base = ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+    const def = { ...base, hazards: [], initialStatus: "guarded", onResponse: { vitals: [{ key: "hr", value: "90" }], says: "I feel better." }, therapeutics: [{ id: "abx", kind: "drug", drugIds: ["ceftriaxone"], label: "Antibiotics", appropriateness: "ideal" }, ...base.therapeutics.filter((t) => t.appropriateness !== "ideal")], rubric: { ...base.rubric, definitiveTreatment: { ids: ["abx", "drug:ceftriaxone"], byMinute: 60, label: "Antibiotics" } } } as typeof base;
+    const soon = await converse(def, ["ceftriaxone 2 g iv"]);
+    expect(soon.hidden.responded).toBeUndefined();
+    const later = await converse(def, ["ceftriaxone 2 g iv", "wait 60 minutes", "wait 60 minutes", "wait 60 minutes", "wait 60 minutes"]);
+    expect(later.hidden.responded).toBeDefined();
+    expect(later.hidden.status).toBe("improving");
+  });
+});
+
+describe("from the last new games", () => {
+  it("a sound-alike is a different drug, not a misspelling", () => {
+    expect(stockedSpelling("nimodipin 60 mg po")).toBe("Nimodipine 60 mg po");
+    expect(stockedSpelling("nimodipine 60 mg po")).toBeUndefined();
+    expect(stockedSpelling("paracetmol 500 mg")).toBe("Paracetamol 500 mg");
+    expect(stockedSpelling("morfine 5 mg iv")).toBe("Morphine 5 mg iv");
+    expect(stockedSpelling("hydroxyzin 25 mg")).toBe("Hydroxyzine 25 mg");
+  });
+  it("a child's dose by weight isn't queried for its tablet size", async () => {
+    const child = ALL_CASES.find((c) => c.patient.age >= 1 && c.patient.age < 8 && c.track !== "phone")!;
+    expect(said((await converse(child, ["amoxicillin 45 mg/kg po tds for 5 days"])).state)).not.toMatch(/can't be made up/);
+  });
+  it("a doctor plainly explaining isn't taken for no reason", () => {
+    expect(givesReason("Your pulse and pressure have improved but we should watch you here tonight to make sure it stays that way")).toBe(true);
+    expect(givesReason("your blood count is low")).toBe(true);
+    expect(givesReason("just admit")).toBe(false);
   });
 });
