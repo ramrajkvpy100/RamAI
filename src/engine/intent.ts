@@ -759,7 +759,7 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   const testName = sent ?? (namedExam && !/^(?:general|systemic|physical|chest|heart|cardiac|abdomen|abdominal|cns|neuro\w*|skin|eye|ear|throat|blood|urine)\b/i.test(namedExam) ? namedExam : undefined);
   if (testName) {
     const read = resolveIntents(testName, ctx).filter((i) => i.kind === "investigation" && i.targetId && i.targetId !== "blood");
-    const payload = sent ? { private: true } : {};
+    const payload: Record<string, boolean> = sent ? { private: true } : {};
     return read.length ? read.map((i) => ({ ...i, phrase: raw, payload: { ...i.payload, ...payload } })) : [{ kind: "investigation", targetId: `adhoc:${testName.trim()}`, phrase: raw, matched: true, payload }];
   }
   // "Hint", "give me a hint", "I'm stuck": a nudge, only when asked for.
