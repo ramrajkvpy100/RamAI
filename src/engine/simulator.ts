@@ -15,7 +15,7 @@ import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } 
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation, readVitalKeys, normalVitals } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { fluidBalance, fluidOutcome, tierAt, volumeFactor, volumeState, type FluidGiven } from "./fluids";
-import { formularyDrug, routesFor, type DrugClass, type FormularyDrug } from "./formulary";
+import { formularyDrug, parseOrderDetails, routesFor, type DrugClass, type FormularyDrug } from "./formulary";
 import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProblem } from "./contraindications";
 import { BIG_STEPS, givesReason } from "./behaviour";
 import { liveClash, QT } from "./interactions";
@@ -2194,10 +2194,10 @@ function runStepAfterConsent(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
 
 /** A course's length in minutes, whenever it was said ("for 8 weeks", "2 yrs", "for 3 days"); nothing for "long term". */
 export function courseMinutes(duration: string | undefined): number {
-  const m = duration?.match(/(\d+(?:\.\d+)?)\s*(min|minute|hour|hr|h|day|d|week|wk|month|mo|year|yr)s?\b/i);
+  const m = duration?.match(/(\d+(?:\.\d+)?)\s*(sec|second|min|minute|hour|hr|h|day|d|week|wk|month|mo|year|yr)s?\b/i);
   if (!m) return 0;
   const unit = m[2]!.toLowerCase();
-  const per = unit.startsWith("mi") ? 1 : unit === "hour" || unit === "hr" || unit === "h" ? 60 : unit === "day" || unit === "d" ? 1440 : unit === "week" || unit === "wk" ? 10080 : unit === "month" || unit === "mo" ? 43200 : 525600;
+  const per = unit.startsWith("se") ? 1 / 60 : unit.startsWith("mi") ? 1 : unit === "hour" || unit === "hr" || unit === "h" ? 60 : unit === "day" || unit === "d" ? 1440 : unit === "week" || unit === "wk" ? 10080 : unit === "month" || unit === "mo" ? 43200 : 525600;
   return Number(m[1]) * per;
 }
 
@@ -2443,7 +2443,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       : { type: "message", role: "system", kind: "action", text: "Which medicine, dose and route?" });
     return fx;
   }
-  const mode = (intent.payload?.mode as "given" | "prescribed") ?? "prescribed";
+  let mode = (intent.payload?.mode as "given" | "prescribed") ?? "prescribed";
   if (def.track === "phone" && ["IV", "IM", "SC", "NEB"].includes(String(intent.payload?.route ?? drug.route))) {
     fx.push({ type: "message", role: "attendant", kind: "speech", text: "Doctor, we can't give injections or drips at home." });
     return fx;
@@ -2468,7 +2468,10 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     void _drop;
     return askAbout(ctx, { kind: "drug", targetId: drug.id, payload: { ...rest, mode }, phrase: intent.phrase, needs: ["route", ...drugNeeds(drug, rest, mode).filter((n) => n !== "route")] }, question, mode);
   }
-  const needs = drugNeeds(drug, p, mode);
+  // Something for seconds, minutes or hours is a single going: no "how often?", and it's given now.
+  const briefly = !drug.fluid && courseMinutes(p.duration as string | undefined) > 0 && courseMinutes(p.duration as string | undefined) < 1440;
+  if (briefly) mode = "given";
+  const needs = drugNeeds(drug, p, mode).filter((n) => !briefly || (n !== "frequency" && n !== "duration"));
   // A dose far too big is queried first: "how often?" can wait until the doctor has heard what it would do.
   const tooBig = needs.length > 0 && needs.every((n) => n === "frequency" || n === "duration") && p.confirmed !== true && !ctx.challenged.includes(drug.id) && !SURE_RE.test(ctx.record.raw)
     && typeof p.amount === "number" && typeof p.unit === "string" && doseMultiple(drug, { amount: p.amount, unit: p.unit }, parseFloat(hidden.vitals.weight?.value ?? "") || 60) >= 3;
@@ -2555,11 +2558,13 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   } else if (mode === "given") {
     const verb = route === "IV" && drug.fluid ? "running" : route === "NEB" ? "nebulisation started" : "given";
     const k = kineticsFor(drug, route);
-    const full = Math.max(k.peak, overMin ?? 0);
+    const full = drug.fluid && overMin ? overMin : Math.max(k.peak, overMin ?? 0);
     const rate = drug.fluid && overMin && !rateMlH ? ` over ${describeSpan(overMin)}` : "";
     // A cream is applied, not timed like an injection; a long effect is shown at the hour (time moves on at most an hour).
     const text = route === "TOP"
       ? `${drug.generic}${dose ? ` ${dose}` : ""} — applied.`
+      : !drug.fluid && courseMinutes(duration) > 0 && courseMinutes(duration) < 1440
+      ? `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}.`
       : SLOW_TO_WORK.some((c) => drug.classes.includes(c))
       ? `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}. It takes weeks to work.`
       : `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. Full effect by about ${describeSpan(full)} — here's how things are then.`;
@@ -2655,7 +2660,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // Watched from when it went in: at its onset and its peak, what changed is said. (Not a cream: it acts slowly, on the skin.)
   if (mode === "given" && route !== "TOP") {
     const k = kineticsFor(drug, route);
-    const peak = Math.max(k.peak, overMin ?? 0);
+    // The time the doctor said is the time that passes: a drip's, or "for 30 seconds" (that's run at the end of the turn).
+    const statedFor = !drug.fluid ? courseMinutes(duration) : 0;
+    const peak = drug.fluid && overMin ? overMin : Math.max(k.peak, overMin ?? 0);
     const acts = Object.keys(profileFor(drug)?.effects ?? {}).map((e) => EFFECT_VITAL[e as EffectKey]);
     const authored = (rule?.vitalsAfter ?? []).map((v) => v.key);
     // A fluid that floods the lungs is watched where it shows: breathing and saturation.
@@ -2669,7 +2676,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     });
     // No waiting on it: the case moves on to its full effect, or to the end of the time the doctor asked for, and it's reported now.
     const until = startedAt + peak;
-    if (until > hidden.clock && def.track !== "phone" && !def.guided) {
+    if (statedFor > 0 && !def.guided) {
+      // Its time passes below.
+    } else if (until > hidden.clock && def.track !== "phone" && !def.guided) {
       const span = until - hidden.clock;
       const name = `${dose ? `${dose} ` : ""}${drug.generic.toLowerCase()}`;
       // What this order rescues is rescued as it goes in, not after the time it takes to work.
@@ -3448,7 +3457,7 @@ function handleWait(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const elapsed = hidden.clock - before;
   const fx: TurnEffect[] = [];
   const silent = intent.payload?.silent === true;
-  if (!silent && elapsed >= 2 && !intent.payload?.untilResults) fx.push({ type: "message", role: "system", kind: "status", text: `${describeSpan(elapsed)} later` });
+  if (!silent && (elapsed >= 2 || (elapsed > 0 && typeof intent.payload?.minutes === "number" && intent.payload.minutes < 2)) && !intent.payload?.untilResults) fx.push({ type: "message", role: "system", kind: "status", text: `${describeSpan(elapsed)} later` });
   fx.push(...advance.effects);
   if (!silent) fx.push({ type: "timeline", label: `Observed for ${describeSpan(elapsed)}`, category: "monitor" });
   return fx;
@@ -3541,6 +3550,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   // Several vitals in one instruction are one measurement ("Check BP and RBS").
   const vitalKeys = readVitalKeys(record.intents.filter((i) => i.kind === "vitals").flatMap((i) => (i.targetId ?? "").split(",").filter(Boolean)));
   let vitalsDone = false;
+  const turnStart = hidden.clock;
   record.intents.forEach((intent, index) => {
     try {
     if (hidden.status === "deceased" && !["diagnosis", "differential", "close"].includes(intent.kind) && !(intent.kind === "action" && intent.targetId === "measure:cpr")) {
@@ -3661,18 +3671,35 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     }
   });
 
+  // Oxygen, BiPAP or the like "for 10 minutes": what's left of that time passes here too.
+  if (!ctx.courseJump && !hidden.closed && !def.guided) {
+    // (The measure itself, or the case's own step for it; under a day, so "admit for 3 days" stays an admission.)
+    const measure = record.intents.find((i) => i.kind === "action" && (i.targetId?.startsWith("measure:") || def.therapeutics.some((t) => t.id === i.targetId)));
+    const stated = measure ? courseMinutes(parseOrderDetails(record.raw, { weightKg: 60 }).duration) : 0;
+    const left = stated - (hidden.clock - turnStart);
+    const name = measure && (measure.targetId!.startsWith("measure:") ? catalogMeasure(measure.targetId!.slice(8))?.label : def.therapeutics.find((t) => t.id === measure.targetId)?.label);
+    if (stated > 0 && stated < 1440 && left > 0.01) ctx.courseJump = { minutes: left, names: [name?.toLowerCase() ?? "that"] };
+  }
   // A course with its length said: its time passes here, once all this turn's orders are in.
   if (ctx.courseJump && !hidden.closed && hidden.status !== "deceased" && !record.intents.some((i) => i.kind === "followup")) {
     const { minutes, names } = ctx.courseJump;
     const statusBefore = hidden.status;
     const clockBefore = hidden.clock;
+    const vitalsBefore = vitalsNow(hidden);
     const advance = advanceClock(def, hidden, hidden.clock + minutes, true);
     const passed = hidden.clock - clockBefore;
     const stopped = advance.interrupted || (hidden.status as string) === "deceased" || passed < minutes - 0.5;
     // Only what truly passed is claimed: a complication can stop the course early.
-    fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[+${describeSpan(Math.max(1, passed))} of the ${describeSpan(minutes)} ${names.join(" and ")} course — something has happened]` : `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
+    fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[+${describeSpan(Math.max(1, passed))} of the ${describeSpan(minutes)} ${names.join(" and ")} course — something has happened]` : minutes < 1440 ? `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")}]` : `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
     fx.push(...advance.effects);
-    if (!stopped) {
+    // Under a day: only what has really changed by now, not how the whole illness went.
+    if (!stopped && minutes < 1440) {
+      const now = vitalsNow(hidden);
+      const names2: [VitalKey, string, string][] = [["hr", "Pulse", "/min"], ["bp", "BP", ""], ["rr", "Breathing", "/min"], ["spo2", "SpO₂", "%"], ["temp", "Temperature", " °F"]];
+      const moved = names2.filter(([k]) => vitalsBefore[k]?.value !== now[k]?.value).map(([k, label, unit]) => `${label} ${vitalsBefore[k]!.value} → ${now[k]!.value}${unit}`);
+      fx.push({ type: "message", role: "system", kind: "finding", text: moved.length ? moved.join(" · ") : "No change in the vitals yet." });
+      fx.push({ type: "message", role: patientRole(def), kind: "speech", text: drugFeeling(actingDrugs(hidden), troublesOf(def, hidden), hidden.clock) ?? "About the same, doctor." });
+    } else if (!stopped) {
       // Harm from the course is told first; then what the course has done; then the case's own follow-up, in its own words.
       const says0 = (a: ArmedHazard) => !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays;
       const working = hidden.hazards.find((a) => !a.superseded && !a.id.startsWith(EXPECTED_COURSE) && says0(a)) ?? hidden.hazards.find((a) => a.id.startsWith(EXPECTED_COURSE) && says0(a));

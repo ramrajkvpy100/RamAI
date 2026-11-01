@@ -1078,3 +1078,43 @@ describe("a course of any length, in any case", () => {
     expect(hidden.clock).toBeLessThan(1440);
   });
 });
+
+describe("seconds and minutes too", () => {
+  const acne = () => ALL_CASES.find((c) => c.id.startsWith("derm-acne"))!;
+  const adhf = () => ALL_CASES.find((c) => c.id.startsWith("em-adhf"))!;
+  const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThanOrEqual(1.1);
+
+  it("'wait 30 seconds' is 30 seconds", async () => {
+    const { hidden, state } = await converse(adhf(), ["wait 30 seconds"]);
+    expect(hidden.clock).toBe(0.5);
+    expect(said(state)).toMatch(/30 sec later/);
+  });
+
+  it("a drug for seconds or minutes: that time passes, no 'how often?', and only what's changed by then", async () => {
+    for (const [order, minutes] of [["paracetamol 500 mg PO for 30 minutes", 30], ["paracetamol 500 mg PO for 45 seconds", 0.75], ["doxycycline 100 mg for 10 mins", 10]] as const) {
+      const { hidden, state } = await converse(acne(), [order]);
+      near(hidden.clock, minutes);
+      const text = said(state);
+      expect(text).not.toMatch(/how often|for how long/);
+      expect(text).toMatch(/elapsed — /);
+      expect(text).not.toMatch(/new ones keep coming/);
+    }
+    const short = said((await converse(adhf(), ["salbutamol 2.5 mg neb for 30 seconds"])).state);
+    expect(short).toMatch(/\+30 sec elapsed/);
+    expect(short).not.toMatch(/peak effect/);
+  });
+
+  it("a drip takes exactly the time ordered, and oxygen or BiPAP for a time runs that long", async () => {
+    near((await converse(adhf(), ["ns 100 ml iv over 10 minutes"])).hidden.clock, 10);
+    const o2 = await converse(adhf(), ["oxygen 5 l face mask for 10 minutes"]);
+    near(o2.hidden.clock, 10);
+    expect(said(o2.state)).toMatch(/elapsed — /);
+    near((await converse(adhf(), ["bipap for 10 minutes"])).hidden.clock, 10);
+  });
+
+  it("with no time said, a single dose still goes to its peak", async () => {
+    const { hidden, state } = await converse(adhf(), ["furosemide 40 mg iv"]);
+    expect(hidden.clock).toBeGreaterThanOrEqual(45);
+    expect(said(state)).toMatch(/peak effect/);
+  });
+});

@@ -127,10 +127,11 @@ function precededBy(tk: string[], index: number, phrases: readonly string[], win
 }
 
 function parseSpanMinutes(norm: string): number | null {
-  const m = norm.match(new RegExp(`\\b${NUMBER_TOKEN}\\s*(minute|minutes|min|hour|hours|h|day|days|week|weeks|month|months)\\b`));
+  const m = norm.match(new RegExp(`\\b${NUMBER_TOKEN}\\s*(second|seconds|sec|secs|minute|minutes|min|hour|hours|h|day|days|week|weeks|month|months)\\b`));
   if (!m?.[1] || !m[2]) return null;
   const n = wordToNumber(m[1]) ?? 1;
   const unit = m[2];
+  if (unit.startsWith("s")) return n / 60;
   if (unit.startsWith("min")) return n;
   if (unit.startsWith("h")) return n * 60;
   if (unit.startsWith("d")) return n * 1440;

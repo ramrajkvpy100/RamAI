@@ -506,10 +506,10 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
   }
 
   // The course: "for 5 days", "x 2 weeks" ("over 2 hours" is the rate, above — though "over 3 days" is still a course).
-  const dur = t.match(/\b(?:for|x|×)\s*(\d+|one|two|three|four|five|six|seven|eight|ten|twelve|fourteen|a|an)\s*(day|days|year|years|yr|yrs|week|weeks|wk|wks|month|months|hour|hours|hr|hrs|h|min|mins|minutes)\b/) ?? t.match(/\bover\s*(\d+|one|two|three|four|five|six|seven|eight|ten|twelve|fourteen|a|an)\s*(day|days|week|weeks|wk|wks|month|months)\b/);
+  const dur = t.match(/\b(?:for|x|×)\s*(\d+|one|two|three|four|five|six|seven|eight|ten|twelve|fourteen|a|an)\s*(day|days|year|years|yr|yrs|week|weeks|wk|wks|month|months|hour|hours|hr|hrs|h|min|mins|minute|minutes|sec|secs|second|seconds)\b/) ?? t.match(/\bover\s*(\d+|one|two|three|four|five|six|seven|eight|ten|twelve|fourteen|a|an)\s*(day|days|week|weeks|wk|wks|month|months)\b/);
   if (dur?.[1] && dur[2]) {
     const n = wordToNumber(dur[1]) ?? 1;
-    const unit = dur[2].replace(/^(yr|yrs)$/, "years").replace(/^(wk|wks)$/, "weeks").replace(/^(hr|hrs|h)$/, "hours").replace(/^(min|mins)$/, "minutes");
+    const unit = dur[2].replace(/^(sec|secs)$/, "seconds").replace(/^(yr|yrs)$/, "years").replace(/^(wk|wks)$/, "weeks").replace(/^(hr|hrs|h)$/, "hours").replace(/^(min|mins)$/, "minutes");
     const singular = unit.replace(/s$/, "");
     out.duration = `${n} ${n === 1 ? singular : singular + "s"}`;
   } else if (/\b(long term|longterm|life ?long|indefinitely|continue|continued|ongoing|till (?:next )?(?:review|follow up)|until (?:next )?(?:review|follow up)|chronic(?:ally)?)\b/.test(t)) {
