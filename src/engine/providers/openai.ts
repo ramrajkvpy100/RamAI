@@ -21,8 +21,9 @@
  * RAMAI_AI_VOICE=unscripted keeps scripted answers free and asks the model only
  * for questions the script doesn't cover.
  */
+import { parseOrderDetails } from "../formulary";
 import { geminiConfigured, geminiJSON } from "./gemini";
-import { conditionReference, drugReference, labPanels, resolveDrugName, within } from "./medical-apis";
+import { conditionReference, drugForms, drugReference, labPanels, resolveDrugName, within } from "./medical-apis";
 import { withUntreatedCourse } from "./untreated";
 import "server-only";
 
@@ -880,13 +881,19 @@ const NOT_DRUGS = new Set(["give", "start", "prescribe", "continue", "tablet", "
  * An order the rules couldn't place: is it a misspelt name, or a real drug the simulator doesn't stock? Eight seconds at
  * most, and nothing is changed unless the name is nearly certain.
  */
-async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corrected?: string; reference: string }> {
+async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corrected?: string; reference: string; nurse?: string }> {
   const words = [...new Set((text.match(/[A-Za-z][A-Za-z-]{3,}/g) ?? []).filter((w) => !NOT_DRUGS.has(w.toLowerCase())))].slice(0, 4);
   const found = (await within(Promise.all(words.map((w) => resolveDrugName(w))), 5000, [])).filter((d) => d !== null);
   if (found.length === 0) return { reference: "" };
   let corrected = text;
   for (const d of found) if (d.formularyId) corrected = corrected.replace(d.input, d.generic);
   if (corrected !== text) return { corrected, reference: "" };
+  // A drug that isn't made for the route ordered ("secukinumab PO"): the nurse says so, whichever model is reading.
+  const orderedOral = /\b(po|oral(?:ly)?|by mouth|tab(?:let)?s?|caps?(?:ule)?s?)\b/i.test(text);
+  const forms = orderedOral ? await within(drugForms(found[0]!.generic), 2500, null) : null;
+  if (forms?.routes.length && !forms.routes.some((r) => /oral/i.test(r))) {
+    return { reference: "", nurse: `Doctor, ${found[0]!.generic} doesn't come by mouth — it's ${forms.routes.join(" or ").toLowerCase()}. How do you want it given?` };
+  }
   const onAlready = [...new Set(ctx.hidden.drugs.filter((d) => d.mode === "given" || d.mode === "prescribed").map((d) => d.generic))];
   return { reference: await within(drugReference(found[0]!.generic, onAlready), 3000, "") };
 }
@@ -922,6 +929,19 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
     for (const i of parsed.data.intents) {
       if (askedOnly && (i.kind === "investigation" || i.kind === "drug")) continue;
       const intent: ResolvedIntent = { kind: i.kind, targetId: i.targetId, phrase: i.phrase || text, matched: i.kind !== "unknown", payload: i.payload };
+      // The dose the doctor wrote is the dose, whatever the model read: "morfine 50 mg" must never reach the nurse as 3 mg.
+      if (i.kind === "drug" && parsed.data.intents.filter((x) => x.kind === "drug").length === 1) {
+        const said = parseOrderDetails(text, { weightKg: parseFloat(ctx.hidden.vitals.weight.value) || 60 });
+        if (said.amount !== undefined && said.unit) {
+          const { usual: _usual, ...rest } = (i.payload ?? {}) as Record<string, string | number | boolean>;
+          intent.payload = { ...rest, amount: said.amount, unit: said.unit, dose: said.text ?? `${said.amount} ${said.unit}` };
+        }
+      }
+      // "All blood tests" isn't a test: it's asked about, as when the rules read it.
+      if (i.kind === "investigation" && /^adhoc:\s*(?:all|every|any)\b.*\btests?\b/i.test(i.targetId ?? "")) {
+        intent.targetId = "blood";
+        intent.payload = { ...i.payload, everything: true };
+      }
       if (i.kind === "history" && (!i.targetId || i.targetId === "generated" || !ctx.def.history.some((h) => h.id === i.targetId))) {
         intent.targetId = "generated";
         if (say(intents.length) && speaker === "attendant") intent.payload = { ...i.payload, speaker };
@@ -1246,6 +1266,7 @@ export function createOpenAIProvider(): ClinicalProvider {
       if (!ctx.def.guided && ORDER_WORDS.test(text) && ruled.some((i) => i.kind === "unknown" || (i.kind === "drug" && (!i.targetId || i.targetId === "unknown")))) {
         const lookup = await lookUpOrder(text, ctx);
         reference = lookup.reference;
+        if (lookup.nurse) return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: "nurse", settled: true } }], generated: { "0": lookup.nurse } };
         if (lookup.corrected) {
           const again = await mockProvider.interpret(lookup.corrected, ctx);
           if (again.intents.some((i) => i.kind === "drug" && i.targetId && i.targetId !== "unknown")) return this.interpret(lookup.corrected, ctx);
