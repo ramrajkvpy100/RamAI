@@ -53,7 +53,7 @@ const fluidFlood: GlobalHazardTemplate = {
         observation: { role: "nurse", text: "Bradycardia, then no pulse. The patient has arrested." },
       },
     ],
-    rescue: [["drug:furosemide", "drug:torsemide"], ["measure:oxygen", "measure:niv", "measure:intubation"]],
+    rescue: [["drug:furosemide", "drug:torsemide", "measure:niv", "measure:intubation"]],
     fullRecoveryWindowMin: 25,
     lastRescueMin: 60,
     recovery: [

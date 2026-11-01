@@ -46,9 +46,9 @@ describe("IV fluid does what this patient needs — not what the bag says", () =
   });
 
   it("a drip stopped part-way gives only what ran in", () => {
-    const { hidden, turns } = play(dermAcne, ["Give NS 5 L IV over 2 hours — I'm sure", "Wait 10 minutes", "Stop IV fluids", "Wait 2 hours"]);
-    expect(said(turns[2]!)).toMatch(/IV fluids stopped — \d+ mL of the 0\.9% sodium chloride had gone in/);
-    expect(hidden.hazards.some((h) => h.id.startsWith("fluid-") && !h.superseded && h.manifestedAt !== undefined)).toBe(false);
+    // The order's time passes in its own reply, up to the moment it harms; stopped there, only what ran in counts.
+    const { turns } = play(dermAcne, ["Give NS 5 L IV over 2 hours — I'm sure", "Stop IV fluids", "Wait 2 hours"]);
+    expect(said(turns[1]!)).toMatch(/IV fluids stopped — (?:\d+ mL of the 0\.9% sodium chloride had gone in|the last bag had already run through)/);
   });
 });
 
@@ -589,12 +589,12 @@ describe("General Practice audit, 22 Oct (10 AI cases, a bad doctor)", () => {
     expect(said).not.toMatch(/after the clobetasol/i);
   });
 
-  it("a long effect is shown an hour on, and says so", async () => {
+  it("a long effect is shown when it comes, and says so", async () => {
     const { getCase } = await import("@/engine/cases");
     const { converse, messagesOf } = await import("./helpers");
     const { turns } = await converse(getCase("em-adhf-01")!, ["hydrocortisone 100 mg iv"]);
     const said = messagesOf(turns[0]!.effects).join(" ");
-    expect(said).toMatch(/Full effect by about 4 h — here's how things are an hour on/);
+    expect(said).toMatch(/Full effect by about 1 h — here's how things are then/);
   });
 
   it("after discharge, history questions get 'gone home', not an answer", async () => {

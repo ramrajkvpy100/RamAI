@@ -618,6 +618,7 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
     "I feel less faint.": "Ab chakkar kam aa rahe hain.",
     "(Mumbles, can't stay awake.)": "(Budbudata hai, jaag nahi paa raha.)",
     "(Waking up.)": "(Hosh mein aa raha hai.)",
+    "The spots are getting better, doctor. My skin and lips are very dry, though.": "Doctor, daane kam ho rahe hain. Par skin aur hoth bahut sukhe hain.",
     "My lips have got very dry and cracked, doctor, and my skin feels dry too. A few more spots came at first.": "Doctor, mere hoth bahut sukh ke phat gaye hain, aur skin bhi sukhi lagti hai. Shuru mein kuch daane aur nikle the.",
     "The spots are much better, doctor. My skin and lips are very dry, though.": "Doctor, daane bahut kam ho gaye hain. Par skin aur hoth bahut sukhe hain.",
     "(Too drowsy to answer: a moan, nothing more.)": "(Neend mein itna hai ki jawab nahi de paata: bas ek karaah.)",

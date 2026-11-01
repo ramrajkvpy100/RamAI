@@ -80,6 +80,6 @@ describe("a prescribed course", () => {
     const { dermTinea: medPad } = await import("@/engine/cases/derm-tinea");
     
     const { state } = play(medPad, ["Prescribe cetirizine 10 mg oral OD for 5 days"]);
-    expect(said(state)).toMatch(/After 5 days of cetirizine/);
+    expect(said(state)).toMatch(/\+5 days elapsed — cetirizine course completed/);
   });
 });

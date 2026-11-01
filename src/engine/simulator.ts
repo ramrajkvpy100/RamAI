@@ -9,16 +9,16 @@
  */
 
 import { type CodeBlue, codeStartEffects, codeTurn, outcome as codeOutcome, rhythmFrom } from "./code-blue";
-import { CO2_NARCOSIS, EXPECTED_COURSE } from "./drug-safety";
-import { consistentLabs } from "./abg-check";
+import { CO2_NARCOSIS, EXPECTED_COURSE, TENSION } from "./drug-safety";
+import { consistentLabs, oxygenCeiling } from "./abg-check";
 import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation, readVitalKeys, normalVitals } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
-import { fluidOutcome, tierAt, volumeFactor, volumeState, type FluidGiven } from "./fluids";
+import { fluidBalance, fluidOutcome, tierAt, volumeFactor, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, routesFor, type DrugClass, type FormularyDrug } from "./formulary";
 import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProblem } from "./contraindications";
 import { BIG_STEPS, givesReason } from "./behaviour";
-import { liveClash } from "./interactions";
+import { liveClash, QT } from "./interactions";
 import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
 import { compensated, creatinineClearance, followLabs, LAB_PENDING, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
@@ -138,6 +138,12 @@ type ShiftKey = "hr" | "sbp" | "dbp" | "rr" | "spo2" | "temp" | "gcs" | "rbs" | 
 export interface HiddenState {
   /** The oxygen now running (its device and flow). */
   oxygenOn?: string;
+  /** The oxygen now being breathed (%). */
+  oxygenFio2?: number;
+  /** Minutes spent in shock so far; when it last ended; breaths added by the acidosis. */
+  shockMinutes?: number;
+  shockEndedAt?: number;
+  acidosisBreaths?: number;
   /** How many vagal manoeuvres have been tried, and whether one worked. */
   vagalTries?: number;
   vagalConverted?: boolean;
@@ -172,7 +178,7 @@ export interface HiddenState {
   actions: Record<string, number[]>;
   fluidMl: number;
   /** Changes a treatment brings, due when it has had time to act. */
-  scheduled: { at: number; patches: VitalPatch[]; status?: PatientStatus }[];
+  scheduled: { at: number; patches: VitalPatch[]; status?: PatientStatus; wearsOff?: string }[];
   /** Treatments being watched: the nurse reports what changed once each has had time to act. */
   watches: Watch[];
   /** Orders given without what's needed to carry them out — asked about, waiting for the doctor's answer. */
@@ -585,7 +591,10 @@ export function advanceClock(
     const next = events[0];
     if (!next) break;
     const at = Math.max(next.at, hidden.clock);
-    if (at > hidden.clock) passTime(hidden, at, step, effects);
+    if (at > hidden.clock) {
+      effects.push(...shockCascade(def, hidden, at - hidden.clock));
+      passTime(hidden, at, step, effects);
+    }
     // Fire every event at this instant together.
     const simultaneous = events.filter((e) => Math.max(e.at, hidden.clock) === at);
     let interrupt = false;
@@ -595,8 +604,43 @@ export function advanceClock(
     }
     if (interrupt && interruptible) return { effects, interrupted: true };
   }
-  if (hidden.clock < target) passTime(hidden, target, step, effects);
+  if (hidden.clock < target) {
+    effects.push(...shockCascade(def, hidden, target - hidden.clock));
+    passTime(hidden, target, step, effects);
+  }
   return { effects, interrupted: false };
+}
+
+/**
+ * Time in shock (MAP under 65, or a shock index over 1.1 in an adult): the kidneys shut down, lactate builds, and acidosis drives the
+ * breathing. Over once perfusion is back, when urine returns. The labs read the same clock (lab-model.ts).
+ */
+function shockCascade(def: ClinicalCaseDefinition, hidden: HiddenState, minutes: number): TurnEffect[] {
+  if (hidden.status === "deceased" || hidden.code?.active || def.guided || def.track === "phone") return [];
+  const v = vitalsNow(hidden);
+  const [s, d] = v.bp.value.split("/").map(parseFloat) as [number, number];
+  const hr = parseFloat(v.hr.value);
+  if (!(s > 0)) return [];
+  const map = (s + 2 * d) / 3;
+  const shocked = def.patient.age >= 13 ? map < 65 || hr / s > 1.1 : s < normalVitals(def.patient.age).lowSbp;
+  const weight = parseFloat(hidden.vitals.weight?.value ?? "") || 60;
+  const fx: TurnEffect[] = [];
+  if (shocked) {
+    hidden.shockMinutes = (hidden.shockMinutes ?? 0) + minutes;
+    hidden.shockEndedAt = undefined;
+    applyVitals(hidden, [{ key: "urine", value: String(Math.round(0.3 * weight)) }]);
+    const lactateUp = Math.min(12, (hidden.shockMinutes / 60) * 1.5);
+    const breaths = lactateUp > 2 ? Math.min(14, Math.round(lactateUp * 1.5)) : 0;
+    if (breaths > (hidden.acidosisBreaths ?? 0)) {
+      applyVitals(hidden, [{ key: "rr", value: String(Math.min(50, parseFloat(hidden.vitals.rr.value) + breaths - (hidden.acidosisBreaths ?? 0))) }]);
+      if (lactateUp >= 8 && (hidden.acidosisBreaths ?? 0) < 12) fx.push({ type: "message", role: "nurse", kind: "speech", text: "Doctor, the breathing has become deep and sighing." });
+      hidden.acidosisBreaths = breaths;
+    }
+  } else if ((hidden.shockMinutes ?? 0) > 0 && hidden.shockEndedAt === undefined) {
+    hidden.shockEndedAt = hidden.clock;
+    applyVitals(hidden, [{ key: "urine", value: String(Math.round(0.8 * weight)) }]);
+  }
+  return fx;
 }
 
 function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Map<string, HazardDefinition>): ClockEvent[] {
@@ -698,10 +742,13 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
       run: () => {
         hidden.scheduled = hidden.scheduled.filter((x) => x !== s);
         if (hidden.status === "deceased") return [];
+        // A reversal wearing off: not if it's been given again since, or is running.
+        if (s.wearsOff && hidden.drugs.some((d) => d.drugId === s.wearsOff && d.at > s.at - 75)) return [];
         applyVitals(hidden, s.patches);
-        if (!s.status || s.status === hidden.status) return [];
+        const said: TurnEffect[] = s.wearsOff ? [{ type: "message", role: "nurse", kind: "speech", text: "Doctor, they've gone drowsy again, and the breathing is slowing: the naloxone has worn off." }] : [];
+        if (!s.status || s.status === hidden.status) return said;
         hidden.status = s.status;
-        return [{ type: "patient_status", status: s.status }];
+        return [...said, { type: "patient_status", status: s.status }];
       },
     });
   }
@@ -1192,6 +1239,8 @@ export function treatmentQuality(def: ClinicalCaseDefinition, hidden: HiddenStat
 /* -------------------------------------------------------------------------- */
 
 interface TurnContext {
+  /** Courses ordered this turn with their length said: the time to pass once all are in. */
+  courseJump?: { minutes: number; names: string[] };
   def: ClinicalCaseDefinition;
   hidden: HiddenState;
   record: ActionRecord;
@@ -1465,7 +1514,7 @@ export function imagingPicture(def: ClinicalCaseDefinition, inv: OrderedInvestig
   const drawn = spec && spec.kind !== "ecg" && spec.kind !== "derm" ? spec.features.filter((f) => f.id !== "normal").map((f) => `${f.id.replace(/-/g, " ")}${f.side ? ` (${f.side})` : ""}${f.severity ? `, ${["mild", "moderate", "severe"][f.severity - 1]}` : ""}`) : [];
   const findings = inv.result.report?.trim() || (drawn.length ? drawn.join("; ") : "A normal study: no abnormality.");
   // A real image is looked for by what this result now shows, not the case's starting film.
-  const search = /kerley|alveolar opacit|pulmonary o?edema/i.test(findings) ? "acute pulmonary edema Kerley B lines chest xray" : undefined;
+  const search = /kerley|alveolar opacit|pulmonary o?edema/i.test(findings) ? "cardiogenic pulmonary edema heart failure chest xray" : undefined;
   return { type: ai.type, view: ai.view, describe: `${inv.name} of a ${def.patient.age}-year-old ${def.patient.sex.toLowerCase()}. It must show exactly this, and nothing else abnormal: ${findings}`, ...(search ? { search } : {}) };
 }
 
@@ -1951,7 +2000,14 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   const restored = id === "ecg" && hidden.responded ? def.onResponse?.ecgAfter : undefined;
   if (restored) result = { rows: undefined, report: restored, media: result.media && { ...result.media, spec: { kind: "ecg", rate: parseFloat(hidden.vitals.hr.value) || 80, rhythm: "sinus" } } };
   // Whoever wrote these numbers, they must agree with each other.
-  if (result.rows) result = { ...result, rows: consistentLabs(compensated(followLabs(result.rows, labContext(def, hidden)), def.truth.diagnosis)) };
+  if (result.rows) result = { ...result, rows: oxygenCeiling(consistentLabs(compensated(followLabs(result.rows, labContext(def, hidden)), def.truth.diagnosis)), hidden.oxygenFio2 ?? 21) };
+  // A gas drawn on oxygen says so.
+  if (id === "abg" && hidden.oxygenOn && result.report) result = { ...result, report: result.report.replace(/room air/i, hidden.oxygenOn) };
+  // The ECG as the patient's potassium, calcium and QT drugs now have it.
+  if (id === "ecg") {
+    const note = ecgNow(def, hidden);
+    if (note) result = { ...result, report: `${result.report ? `${result.report} ` : ""}${note}` };
+  }
   // The film as it was taken: an AP portable chest film can't judge the heart's size; a supine abdomen can't show fluid levels.
   if (id === "cxr" && study.view?.startsWith("AP")) {
     const spec = result.media?.spec;
@@ -2009,7 +2065,7 @@ const MAX_IV_RATE: Record<string, { mgPerMin: number; why: string }> = {
  * the vessels and the rest of the body take it up. A teaching approximation. (Enough of it floods the lungs: fluids.ts.)
  */
 function pressureRise(excessMl: number, weightKg: number, overMin: number | undefined, age: number): number | undefined {
-  if (excessMl < 100) return undefined;
+  if (excessMl < 100 || (overMin !== undefined && overMin >= 480)) return undefined;
   const speed = overMin === undefined || overMin > 120 ? 0.3 : overMin > 30 ? 0.6 : 1;
   return Math.min(35, (excessMl / Math.max(weightKg, 3)) * 1.5 * speed * (age >= 65 ? 1.2 : 1));
 }
@@ -2030,10 +2086,47 @@ function labContext(def: ClinicalCaseDefinition, hidden: HiddenState): LabContex
     heightCm: parseFloat(hidden.vitals.height?.value ?? "") || undefined,
     spo2Base: parseFloat(def.baselineVitals.spo2?.value ?? "") || undefined,
     spo2Now: parseFloat(vitalsNow(hidden).spo2.value) || undefined,
+    fio2: hidden.oxygenFio2 ?? 21,
+    shockMinutes: hidden.shockMinutes ?? 0,
+    hoursSinceShock: hidden.shockEndedAt !== undefined ? (hidden.clock - hidden.shockEndedAt) / 60 : 0,
+    potassiumShift: potassiumShift(hidden),
+    blunted: retainsCO2(def) || hidden.drugs.some((d) => d.mode === "given" && hidden.clock - d.at <= 240 && (d.classes.includes("opioid") || d.classes.includes("benzodiazepine"))),
     fluids: ran.filter((f) => f.drugId !== "prbc"),
     redCellUnits: ran.filter((f) => f.drugId === "prbc").reduce((sum, f) => sum + f.ml / 350, 0),
     co2Retained,
   };
+}
+
+/** What the drugs on board have done to potassium: each fades by its own half-life. */
+function potassiumShift(hidden: HiddenState): number {
+  let shift = 0;
+  for (const d of hidden.drugs) {
+    if (d.stoppedAt !== undefined) continue;
+    const hours = Math.max(0, hidden.clock - d.at) / 60;
+    const fade = (half: number) => 0.5 ** (hours / half);
+    if (d.mode === "given" && d.classes.includes("insulin") && d.route === "IV") shift -= 1 * fade(2);
+    else if (d.mode === "given" && d.classes.includes("bronchodilator") && d.route !== "PO") shift -= 0.3 * fade(3);
+    else if (d.mode === "given" && d.classes.includes("loop-diuretic")) shift -= 0.4 * fade(12);
+    else if (d.mode === "given" && d.drugId === "potassium-chloride") shift += Math.min(1.5, (d.amount ?? 20) / 50) * fade(8);
+    else if (d.mode === "prescribed" && (d.classes.includes("thiazide") || d.classes.includes("loop-diuretic"))) shift -= 0.3;
+    else if (d.mode === "prescribed" && (d.classes.includes("mra") || d.classes.includes("acei") || d.classes.includes("arb"))) shift += 0.3;
+  }
+  return shift;
+}
+
+/** What the current potassium, calcium and QT drugs add to an ECG report. */
+function ecgNow(def: ClinicalCaseDefinition, hidden: HiddenState): string {
+  const known = def.investigations.flatMap((i) => i.rows ?? []);
+  const reading = (re: RegExp) => parseFloat([...hidden.investigations].reverse().filter((i) => i.delivered).flatMap((i) => i.result.rows ?? []).find((r) => re.test(r.analyte))?.value ?? known.find((r) => re.test(r.analyte))?.value ?? "");
+  const k = (reading(/^(?:serum )?(?:potassium|k\+?)(?![a-z])/i) || 4.2) + (hidden.investigations.some((i) => i.delivered && (i.result.rows ?? []).some((r) => /^(?:serum )?potassium/i.test(r.analyte))) ? 0 : potassiumShift(hidden));
+  const ca = reading(/^(?:serum |total )?calcium\b/i);
+  const qtDrugs = hidden.drugs.filter((d) => d.stoppedAt === undefined && hidden.clock - d.at <= 1440 && QT.includes(d.drugId)).length;
+  const parts: string[] = [];
+  if (k >= 6.8) parts.push("Wide QRS merging with the T wave into a sine-wave pattern.");
+  else if (k >= 6) parts.push("Tall, peaked T waves.");
+  else if (k <= 3) parts.push("Flat T waves with U waves.");
+  if (qtDrugs >= 2 || (ca > 0 && ca < 7)) parts.push(`QTc about ${qtDrugs >= 2 ? 520 : 505} ms.`);
+  return parts.join(" ");
 }
 
 const RETAINS_CO2 = /copd|chronic obstructive|emphysema|chronic bronchitis|obesity hypoventilation|kyphoscoliosis|motor neuron/i;
@@ -2095,6 +2188,53 @@ const REFUSAL_LEAVES = "I've told you, I'm not staying for this. I'm leaving.";
 
 function runStepAfterConsent(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   return handleAction(ctx, intent);
+}
+
+/** A course's length in minutes, when it was said ("for 8 weeks"); nothing for "long term" or for over a year. */
+export function courseMinutes(duration: string | undefined): number {
+  const m = duration?.match(/(\d+(?:\.\d+)?)\s*(hour|hr|day|week|wk|month|year)s?\b/i);
+  if (!m) return 0;
+  const unit = m[2]!.toLowerCase();
+  const minutes = Number(m[1]) * (unit.startsWith("h") ? 60 : unit === "day" ? 1440 : unit === "week" || unit === "wk" ? 10080 : unit === "month" ? 43200 : 525600);
+  return minutes > 525600 ? 0 : minutes;
+}
+
+/** After a timed order: fluid balance over the time, what's changed on examination, and the patient's own word on a long wait. */
+function afterTheWait(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, route: string, span: number, volumeMl: number | undefined, amount: number | undefined, tier: number): TurnEffect[] {
+  const fx: TurnEffect[] = [];
+  if (hidden.status === "deceased") return fx;
+  const v = vitalsNow(hidden);
+  const diuretic = drug.classes.includes("loop-diuretic") && route === "IV";
+  // Fluid in and out over the time. Furosemide brings a brisk diuresis by its dose.
+  if ((drug.fluid && route === "IV" && volumeMl) || diuretic) {
+    const out = fluidBalance(span / 60, {
+      weightKg: parseFloat(hidden.vitals.weight?.value ?? "") || 60,
+      tempF: parseFloat(v.temp?.value ?? "") || 98.6,
+      rr: parseFloat(v.rr?.value ?? "") || 16,
+      urineMlPerH: parseFloat(hidden.vitals.urine?.value ?? "") || 50,
+      inMl: drug.fluid ? volumeMl ?? 0 : 0,
+      diuresisMl: diuretic ? Math.min(1200, 500 + 7.5 * (amount ?? 40)) : 0,
+    });
+    fx.push({ type: "message", role: "system", kind: "finding", text: `Over ${describeSpan(span)}: ${drug.fluid ? `in ${out.inMl.toLocaleString("en-US")} mL, ` : ""}urine ${out.urineMl.toLocaleString("en-US")} mL, insensible ${out.insensibleMl.toLocaleString("en-US")} mL. Net ${out.netMl >= 0 ? "+" : "−"}${Math.abs(out.netMl).toLocaleString("en-US")} mL.` });
+    // Slower than the losses, with nothing else going in: they run a little dry, but the lungs stay clear.
+    if (drug.fluid && span >= 480 && out.netMl <= -1000 && tier === 0) applyVitals(hidden, [{ key: "hr", value: String(Math.round(parseFloat(hidden.vitals.hr.value) + 6)) }]);
+  }
+  // The chest as it now is: congestion clears with a diuretic, wheeze eases with a bronchodilator.
+  const rs = systemFinding(def, hidden, "rs");
+  if (diuretic && /crackle|crepitation/i.test(rs)) {
+    hidden.examOverrides.rs = "Crackles much reduced, at the bases only.";
+    fx.push({ type: "message", role: "system", kind: "finding", text: `Chest now: ${hidden.examOverrides.rs}` });
+  }
+  if (drug.classes.includes("bronchodilator") && /wheez|rhonchi/i.test(rs)) {
+    hidden.examOverrides.rs = "Wheeze much reduced, with better air entry.";
+    fx.push({ type: "message", role: "system", kind: "finding", text: `Chest now: ${hidden.examOverrides.rs}` });
+  }
+  // After hours, how they feel, in their own words.
+  if (span >= 240 && !fx.some((e) => e.type === "message" && e.role === patientRole(def))) {
+    const said = hidden.patientSays && !hidden.patientSays.startsWith("(") ? hidden.patientSays : STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating ? "I feel worse, doctor." : "About the same, doctor.";
+    fx.push({ type: "message", role: patientRole(def), kind: "speech", text: said });
+  }
+  return fx;
 }
 
 /** Medicines that work over weeks: no one's "full effect" comes within hours. */
@@ -2341,7 +2481,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   let dose = (p.dose as string | undefined) ?? drug.dose;
   const frequency = (p.frequency as string | undefined) ?? (mode === "prescribed" ? drug.frequency : "stat");
   const duration = p.duration as string | undefined;
-  const volumeMl = drug.fluid ? (typeof p.volumeMl === "number" ? p.volumeMl : drug.id === "prbc" ? 350 * (typeof p.amount === "number" ? p.amount : 1) : 500) : undefined;
+  // "At 100 mL/h for 8 hours": the volume is the rate times the time.
+  const rateAndHours = drug.fluid && typeof p.rateMlH === "number" && typeof p.volumeMl !== "number" ? (courseMinutes(p.duration as string | undefined) / 60) * p.rateMlH : 0;
+  const volumeMl = rateAndHours > 0 ? rateAndHours : drug.fluid ? (typeof p.volumeMl === "number" ? p.volumeMl : drug.id === "prbc" ? 350 * (typeof p.amount === "number" ? p.amount : 1) : 500) : undefined;
   // A drip at a rate: the bag runs over as long as that rate takes.
   const rateMlH = typeof p.rateMlH === "number" && p.rateMlH > 0 ? p.rateMlH : undefined;
   if (drug.fluid && volumeMl && typeof p.dose !== "string") dose = volumeMl >= 1000 ? `${+(volumeMl / 1000).toFixed(2)} L` : `${volumeMl} mL`;
@@ -2417,8 +2559,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const text = route === "TOP"
       ? `${drug.generic}${dose ? ` ${dose}` : ""} — applied.`
       : SLOW_TO_WORK.some((c) => drug.classes.includes(c))
-      ? `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}. It takes weeks to work — here's how things are an hour on.`
-      : `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. Full effect by about ${describeSpan(full)} — ${full > 60 ? "here's how things are an hour on" : "here's how things are then"}.`;
+      ? `${drug.generic}${dose ? ` ${dose}` : ""} ${route} — ${verb}. It takes weeks to work.`
+      : `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${rate} — ${verb}. Full effect by about ${describeSpan(full)} — here's how things are then.`;
     fx.push({ type: "message", role: "system", kind: "action", text });
   } else {
     fx.push({ type: "message", role: "system", kind: "action", text: `Prescribed — ${prescriptionLine({ generic: drug.generic, dose, route, frequency, duration })}` });
@@ -2523,20 +2665,38 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       authored: authored.length && !def.guided ? { keys: authored, from: hidden.clock + Math.min(k.onset, Math.max(1, overMin ?? 0, k.peak)) } : undefined,
       at: startedAt, checks, keys: [...acts, ...authored, ...lungs],
     });
-    // No waiting on it: the case moves on to its full effect at once, and what changed is reported now.
+    // No waiting on it: the case moves on to its full effect, or to the end of the time the doctor asked for, and it's reported now.
     const until = startedAt + peak;
-    // Never a "skip ahead" button: time moves on by itself — up to an hour for a long drip, so it can still be stopped part-way.
-    if (until > hidden.clock && def.track !== "phone") {
+    if (until > hidden.clock && def.track !== "phone" && !def.guided) {
+      const span = until - hidden.clock;
+      const name = `${dose ? `${dose} ` : ""}${drug.generic.toLowerCase()}`;
+      // What this order rescues is rescued as it goes in, not after the time it takes to work.
+      evaluateRescues(def, hidden);
+      const clockBefore = hidden.clock;
+      const passed = handleWait(ctx, { kind: "wait", phrase: "", matched: true, payload: { minutes: span, silent: true } });
+      // A complication can stop the clock early: then it says so, and counts only what ran in.
+      const stopped = hidden.clock < clockBefore + span - 0.5;
+      const ran = Math.max(1, hidden.clock - startedAt);
+      fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[+${describeSpan(ran)} elapsed — ${name}${drug.fluid ? " infusion still running" : ""}: something has changed]` : drug.fluid && overMin ? `[+${describeSpan(peak)} elapsed — ${name} infusion completed]` : `[+${describeSpan(peak)} — peak effect of ${route} ${drug.generic.toLowerCase()}]` });
+      fx.push(...passed);
+      fx.push(...afterTheWait(def, hidden, drug, route, stopped ? ran : peak, drug.fluid && volumeMl ? Math.round(volumeMl * Math.min(1, ran / Math.max(1, overMin ?? ran))) : volumeMl, amount, fluid?.tier ?? 0));
+    } else if (until > hidden.clock && def.track !== "phone") {
       fx.push(...handleWait(ctx, { kind: "wait", phrase: "", matched: true, payload: { minutes: Math.min(60, until - hidden.clock) } }));
     } else if (until > hidden.clock) fx.push({ type: "watching", label: drug.generic, until });
+    // A short-acting reversal doesn't outlast a long-acting opioid: unless it's repeated or run as an infusion, the breathing falls again.
+    if (drug.classes.includes("opioid-antagonist") && !overMin && !/infusion/i.test(intent.phrase) && hidden.hazards.some((a) => a.id === "opioid-respiratory-depression" && hidden.clock - a.armedAt <= 360)) {
+      hidden.scheduled.push({ at: given.at + 90, patches: [{ key: "rr", value: "8" }, { key: "spo2", value: "86" }, { key: "gcs", value: "10" }], status: "deteriorating", wearsOff: drug.id });
+    }
   }
+  // A course with its length said: the clinic visit moves on to the end of it, in this same reply (at the end of the turn, for all its orders).
+  const courseMin = prescribed && !def.guided && def.track === "opd" ? courseMinutes(duration) : 0;
+  if (courseMin > 0) ctx.courseJump = { minutes: Math.max(ctx.courseJump?.minutes ?? 0, courseMin), names: [...(ctx.courseJump?.names ?? []), drug.generic.toLowerCase()] };
   // A course prescribed: taken as if its time is up — and the patient says, in their own words, what it did.
   // A take-home course is reported as it went — in clinic. In an emergency it's simply on the discharge sheet.
   // (Not when this order has just set harm going: that shows at the follow-up.)
   // (Not where the doctor has booked a review in this same order, or for a course already reported: the visit says how it went.)
   // (Nor for a long course or a drug that takes weeks: months can't pass in one line and then be followed by a visit weeks later.)
-  const longCourse = /\b(?:month|year)s?\b/i.test(duration ?? "") || /\b(?:[5-9]|\d{2,}) weeks?\b/i.test(duration ?? "") || SLOW_TO_WORK.some((c) => drug.classes.includes(c));
-  const reviewBooked = longCourse || ctx.record.intents.some((i) => i.kind === "followup") || hidden.drugs.filter((d) => d.drugId === drug.id && d.mode === "prescribed").length > 1;
+  const reviewBooked = courseMin > 0 || SLOW_TO_WORK.some((c) => drug.classes.includes(c)) || ctx.record.intents.some((i) => i.kind === "followup") || hidden.drugs.filter((d) => d.drugId === drug.id && d.mode === "prescribed").length > 1;
   if (prescribed && !def.guided && def.track === "opd" && !reviewBooked && !triggered.some((hz) => !hz.startsWith(EXPECTED_COURSE))) fx.push(...afterCourse(def, hidden, drug, duration, statusBefore));
   noteResponse(hidden, `${label} ${mode}`);
   evaluateRescues(def, hidden);
@@ -2801,6 +2961,9 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       return askAbout(ctx, { kind: "confirm", targetId: "measure:intubation", payload: { question }, phrase: intent.phrase, needs: [] }, question, "given");
     }
   }
+  // Positive pressure on an undrained pneumothorax turns it into a tension one.
+  if ((m.id === "intubation" || m.id === "niv") && ctx.def.track !== "phone" && !ctx.def.guided && !done(hidden, "measure:chest-tube") && !done(hidden, "measure:needle-decompression")
+    && (hidden.hazards.some((a) => a.id === "proc-pneumothorax" && a.rescuedAt === undefined) || /\bpneumothorax\b/i.test(ctx.def.truth.diagnosis))) armHazard(ctx.def, hidden, TENSION, m.label.toLowerCase(), false);
   // A procedure can fail or go wrong, mostly by how it was done. (Not in the guided demo, which is there to be won.)
   if (["intubation", "central-line", "chest-tube", "paracentesis"].includes(m.id) && !ctx.def.guided && ctx.def.track !== "phone" && hidden.status !== "deceased") {
     const outcome = runProcedure(m.id, procedureContext(ctx.def, hidden, intent.phrase, m.id));
@@ -2874,7 +3037,10 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       const shunt = hidden.hazards.some((a) => !a.superseded && a.manifestedAt !== undefined && !a.died && a.rescuedAt === undefined);
       // The same oxygen, "continued", is not more oxygen.
       const same = m.id === "oxygen" && hidden.oxygenOn === o2?.label;
-      if (m.id === "oxygen") hidden.oxygenOn = o2?.label;
+      if (m.id === "oxygen") {
+        hidden.oxygenOn = o2?.label;
+        hidden.oxygenFio2 = o2?.fio2;
+      }
       // Someone who retains CO₂, on more oxygen than they need, ventilates less and retains more. Above about 28% it starts; at
       // that or less (2 L/min by prongs, or a 24–28% venturi) it stops.
       if (m.id === "oxygen" && o2 && retainsCO2(ctx.def) && ctx.def.track !== "phone" && !ctx.def.guided) {
@@ -3490,6 +3656,28 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     }
   });
 
+  // A course with its length said: its time passes here, once all this turn's orders are in.
+  if (ctx.courseJump && !hidden.closed && hidden.status !== "deceased" && !record.intents.some((i) => i.kind === "followup")) {
+    const { minutes, names } = ctx.courseJump;
+    fx.push({ type: "message", role: "system", kind: "status", text: `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
+    const statusBefore = hidden.status;
+    const advance = advanceClock(def, hidden, hidden.clock + minutes, true);
+    fx.push(...advance.effects);
+    if (!advance.interrupted && (hidden.status as string) !== "deceased") {
+      // Harm from the course is told first; otherwise what the course has done.
+      const says0 = (a: ArmedHazard) => !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays;
+      const working = hidden.hazards.find((a) => !a.superseded && !a.id.startsWith(EXPECTED_COURSE) && says0(a)) ?? hidden.hazards.find((a) => a.id.startsWith(EXPECTED_COURSE) && says0(a));
+      const says = working ? hazardLibrary(def).get(working.id)!.stages[working.stageIdx]!.patientSays! : undefined;
+      if (says) {
+        fx.push({ type: "message", role: patientRole(def), kind: "speech", text: def.patient.age < 12 ? aboutThem(says, def.patient.sex) : says });
+        for (const finding of Object.values(hazardLibrary(def).get(working!.id)!.stages[working!.stageIdx]!.examFindings ?? {})) if (finding) fx.push({ type: "message", role: "system", kind: "finding", text: `On review: ${finding}` });
+      } else {
+        const last = hidden.drugs.filter((d) => d.mode === "prescribed").at(-1);
+        const drug = last && formularyDrug(last.drugId);
+        if (drug) fx.push(...afterCourse(def, hidden, drug, last!.duration, statusBefore).filter((e) => e.type === "message" && e.role !== "system"));
+      }
+    }
+  }
   // One acknowledgement for everything sent to the lab or imaging this turn.
   if (ctx.sent.length > 0) {
     fx.push({ type: "timeline", label: `${ctx.sent.map((i) => i.name).join(", ")} ordered`, category: "investigation" });

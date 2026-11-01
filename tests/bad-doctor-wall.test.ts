@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { consistentLabs, expectedPH } from "@/engine/abg-check";
+import { alveolarPO2, consistentLabs, expectedPH, oxygenCeiling } from "@/engine/abg-check";
 import { ALL_CASES } from "@/engine/cases";
 import { defaultVitals, normalVitals, readVitalKeys, ROUTINE_VITALS } from "@/engine/catalog";
 import { FORMULARY, parseOrderDetails } from "@/engine/formulary";
@@ -112,16 +112,16 @@ describe("the dangerous orders", () => {
   });
 
   it("isotretinoin with doxycycline: weeks later, headache and papilloedema", async () => {
-    const { state } = await converse(C("derm-acne"), ["Isotretinoin 40 mg OD for 8 weeks", "Doxycycline 100 mg BD for 8 weeks", "wait 2 weeks", "fundoscopy"]);
+    const { state } = await converse(C("derm-acne"), ["Isotretinoin 40 mg OD long term", "Doxycycline 100 mg BD long term", "wait 2 weeks", "fundoscopy"]);
     expect(said(state)).toMatch(/headaches/);
     expect(said(state)).toMatch(/papilloedema/i);
     expect(said(state)).not.toMatch(/small bumps/);
   });
 
   it("isotretinoin alone isn't called harm: dry lips at follow-up, nothing at 30 minutes", async () => {
-    const early = await converse(C("derm-acne"), ["Isotretinoin 40 mg OD for 8 weeks", "wait 30 minutes"]);
+    const early = await converse(C("derm-acne"), ["Isotretinoin 40 mg OD long term", "wait 30 minutes"]);
     expect(said(early.state)).not.toMatch(/cracked/);
-    const later = await converse(C("derm-acne"), ["Isotretinoin 40 mg OD for 8 weeks", "follow up in 2 weeks"]);
+    const later = await converse(C("derm-acne"), ["Isotretinoin 40 mg OD long term", "follow up in 2 weeks"]);
     expect(said(later.state)).toMatch(/cracked/);
     expect(later.state.patientStatus).not.toBe("guarded");
   });
@@ -442,6 +442,7 @@ describe("what the doctor wrote, in a long order", () => {
     expect(clauseFor("folic-acid", "Start methotrexate 15 mg orally once weekly with folic acid 1 mg orally daily")).toMatch(/^folic acid 1 mg/i);
     expect(clauseFor("methotrexate", "Start methotrexate 15 mg orally once weekly with folic acid 1 mg orally daily")).toMatch(/^methotrexate 15 mg/i);
     expect(clauseFor("paracetamol", "give 500 mg paracetamol")).toMatch(/500 mg/);
+    expect(clauseFor("cefixime", "An organism susceptible to cefixime; discharge on cefixime 400 mg by mouth once daily")).toMatch(/400 mg/);
   });
   it("what they said not to do isn't ordered", () => {
     expect(saidNotTo("measure:oxygen", "No supplemental oxygen, she's at 99%")).toBe(true);
@@ -883,10 +884,10 @@ describe("the seven fixes", () => {
   });
   it("isotretinoin for acne shows at the visit and on the skin, with one consistent story", async () => {
     const def = ALL_CASES.find((c) => c.id.startsWith("derm-acne"))!;
-    const { state } = await converse(def, ["Isotroin 40mg PO OD", "for 6 months", "Follow up after 6 weeks", "examine the skin"]);
+    const { state } = await converse(def, ["Isotroin 40mg PO OD long term", "Follow up after 6 weeks", "examine the skin"]);
     const text = said(state);
-    expect(text).toMatch(/spots are much better/);
-    expect(text).toMatch(/70% fewer/);
+    expect(text).toMatch(/spots are getting better/);
+    expect(text).toMatch(/40% fewer/);
     expect(text).not.toMatch(/After 6 months/);
     expect(text).not.toMatch(/It's worse/);
   });
@@ -925,5 +926,114 @@ describe("the seven fixes", () => {
     const text = said((await converse(base, ["anti ccp antibodies"])).state);
     expect(text).not.toMatch(/Within normal limits/);
     expect(LAB_PENDING).toMatch(/Pending/);
+  });
+});
+
+describe("orders that take time, and the organs together", () => {
+  const rows = (state: { investigations: readonly { name: string; rows?: readonly { analyte: string; value: string }[] }[] }, re: RegExp) => [...state.investigations].reverse().find((i) => re.test(i.name))?.rows ?? [];
+  const val = (r: readonly { analyte: string; value: string }[], re: RegExp) => Number(r.find((x) => re.test(x.analyte))?.value);
+  const stable = () => ALL_CASES.find((c) => c.track === "opd" && c.patient.age >= 18)!;
+  const adhf = () => C("em-adhf");
+  const acne = () => ALL_CASES.find((c) => c.id.startsWith("derm-acne"))!;
+
+  it("NS 500 mL in 20 hours: 20 hours pass in that one reply, losses counted, no pulmonary oedema", async () => {
+    const { hidden, state } = await converse(stable(), ["NS IV 500 ml in 20 hours"]);
+    expect(hidden.clock).toBeGreaterThanOrEqual(1200);
+    expect(hidden.hazards.some((h) => h.id.startsWith("fluid-"))).toBe(false);
+    const text = said(state);
+    expect(text).toMatch(/\[\+20 h elapsed — .*infusion completed\]/);
+    expect(text).toMatch(/Over 20 h: in 500 mL, urine [\d,]+ mL, insensible [\d,]+ mL\. Net −/);
+    expect(text).not.toMatch(/fluids have gone in|flood/);
+  });
+
+  it("a rate gives the time: 1 L at 125 mL/h is 8 hours", async () => {
+    const { hidden, state } = await converse(stable(), ["NS IV 1000 ml at 125 ml/hr"]);
+    expect(hidden.clock).toBeGreaterThanOrEqual(480);
+    expect(said(state)).toMatch(/\+8 h elapsed/);
+  });
+
+  it("3 L in 30 min in heart failure floods the lungs; furosemide then clears them, at its peak, in one reply", async () => {
+    const first = await converse(adhf(), ["NS IV 3000 ml over 30 mins", "yes", "ABG"]);
+    const spo2After = parseFloat(first.hidden.vitals.spo2.value);
+    expect(spo2After).toBeLessThan(88);
+    const flooded = rows(first.state, /abg/i);
+    const second = await converse(adhf(), ["NS IV 3000 ml over 30 mins", "yes", "ABG", "Furosemide 80 mg IV", "repeat ABG", "examine the chest"]);
+    const text = said(second.state);
+    expect(text).toMatch(/peak effect of IV furosemide/);
+    expect(text).toMatch(/urine [\d,]+ mL/);
+    const urine = Number(text.match(/Over \d+ min: urine ([\d,]+) mL/)?.[1]?.replace(",", ""));
+    expect(urine).toBeGreaterThanOrEqual(600);
+    expect(val(rows(second.state, /abg/i), /^p\s*o/i) >= val(flooded, /^p\s*o/i)).toBe(true);
+    expect(parseFloat(second.hidden.vitals.spo2.value)).toBeGreaterThanOrEqual(spo2After);
+  });
+
+  it("Isotroin for 8 weeks: one reply reports the 8 weeks, about 75% clearer, cheilitis, and the labs follow", async () => {
+    const { hidden, state } = await converse(acne(), ["Isotroin 40mg PO OD for 8 weeks", "LFT", "Lipid Profile"]);
+    expect(hidden.clock).toBeGreaterThanOrEqual(8 * 10080);
+    const text = said(state);
+    expect(text).toMatch(/\+8 weeks elapsed/);
+    expect(text).toMatch(/75% fewer/);
+    expect(text).toMatch(/cheilitis/i);
+    expect(val(rows(state, /lipid/i), /triglyceride/i)).toBeGreaterThan(150);
+    expect(val(rows(state, /lft|liver/i), /alt/i)).toBeGreaterThan(45);
+  });
+
+  it("the ABG and oxygen always agree, across a whole messy case", async () => {
+    const { state } = await converse(adhf(), ["ABG", "oxygen 15 l non rebreather", "ABG", "NS IV 3000 ml over 30 mins", "yes", "repeat ABG", "Furosemide 80 mg IV", "repeat ABG"]);
+    const gases = state.investigations.filter((i) => /abg/i.test(i.name));
+    expect(gases.length).toBeGreaterThanOrEqual(1);
+    for (const g of gases) {
+      const r = g.rows ?? [];
+      const [ph, h, p, o] = [val(r, /^ph$/i), val(r, /^hco/i), val(r, /^p\s*co/i), val(r, /^p\s*o/i)];
+      expect(Math.abs(ph - expectedPH(h, p))).toBeLessThanOrEqual(0.03);
+      expect(o).toBeLessThan(alveolarPO2(85, p));
+    }
+    expect(oxygenCeiling([{ analyte: "pO₂", value: "300", flag: "normal" }, { analyte: "pCO₂", value: "40", flag: "normal" }], 21)[0]!.value).toBe("94");
+  });
+
+  it("potassium follows pH and the drugs; the ECG follows potassium", () => {
+    const ctx = { weightKg: 60, fluids: [], redCellUnits: 0, co2Retained: 0, age: 40, sex: "Male" };
+    const r = (analyte: string, value: string) => ({ analyte, value, flag: "normal" as const });
+    const base = [r("Potassium", "4.0"), r("HCO₃⁻", "24"), r("pCO₂", "40")];
+    expect(Number(followLabs(base, { ...ctx, potassiumShift: -1 })[0]!.value)).toBe(3);
+    const shocked = followLabs([...base, r("Lactate", "1.0"), r("Creatinine", "1.0")], { ...ctx, shockMinutes: 240 });
+    expect(val(shocked, /lactate/i)).toBeGreaterThan(6);
+    expect(val(shocked, /^hco/i)).toBeLessThan(20);
+    expect(val(shocked, /^p/i)).toBeLessThan(40);
+    expect(val(shocked, /potassium/i)).toBeGreaterThan(4);
+    expect(val(shocked, /creatinine/i)).toBeGreaterThan(1.2);
+    const after = followLabs([...base, r("Lactate", "1.0")], { ...ctx, shockMinutes: 240, hoursSinceShock: 8 });
+    expect(val(after, /lactate/i)).toBeLessThan(val(shocked, /lactate/i));
+  });
+
+  it("naloxone wears off before a large opioid does, unless repeated", async () => {
+    const em = ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+    const once = await converse(em, ["morphine 50 mg iv", "yes", "naloxone 0.4 mg iv", "wait 2 hours"]);
+    expect(said(once.state)).toMatch(/naloxone has worn off/);
+    const again = await converse(em, ["morphine 50 mg iv", "yes", "naloxone 0.4 mg iv", "wait 60 minutes", "naloxone 0.4 mg iv", "wait 30 minutes"]);
+    expect(said(again.state)).not.toMatch(/naloxone has worn off/);
+  });
+
+  it("insulin in a normal sugar without dextrose brings hypoglycaemia", async () => {
+    const { hidden } = await converse(stable(), ["insulin regular 10 units iv", "yes", "wait 60 minutes"]);
+    expect(hidden.hazards.some((h) => /hypoglyc/i.test(h.id))).toBe(true);
+  });
+
+  it("positive pressure on an undrained pneumothorax brings tension; a drain prevents it", async () => {
+    const base = ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+    const ptx = { ...base, truth: { ...base.truth, diagnosis: "Spontaneous pneumothorax" }, hazards: [], rubric: { ...base.rubric, definitiveTreatment: undefined } } as typeof base;
+    const hurt = await converse(ptx, ["bipap", "yes", "wait 5 minutes"]);
+    expect(hurt.hidden.hazards.some((h) => h.id === "tension-pneumothorax")).toBe(true);
+    const safe = await converse(ptx, ["needle decompression", "bipap", "yes", "wait 5 minutes"]);
+    expect(safe.hidden.hazards.some((h) => h.id === "tension-pneumothorax")).toBe(false);
+  });
+});
+
+describe("a timed order interrupted", () => {
+  it("doesn't claim to have completed, and counts only what ran in", async () => {
+    const def = C("em-adhf");
+    const text = said((await converse(def, ["NS 5 litres over 5 hours", "yes"])).state);
+    expect(text).toMatch(/infusion still running: something has changed/);
+    expect(text).not.toMatch(/infusion completed/);
   });
 });

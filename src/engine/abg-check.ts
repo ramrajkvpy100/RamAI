@@ -39,3 +39,15 @@ export function consistentLabs(rows: readonly LabRow[]): LabRow[] {
   }
   return changed.size ? rows.map((r) => changed.get(r) ?? r) : [...rows];
 }
+
+/** The alveolar gas equation: the oxygen there is to breathe in (mmHg), at sea level. */
+export const alveolarPO2 = (fio2Percent: number, paco2: number) => (fio2Percent / 100) * 713 - paco2 / 0.8;
+
+/** No artery holds more oxygen than the alveolus: PaO₂ stays at least 5 mmHg below PAO₂, whoever wrote it. */
+export function oxygenCeiling(rows: readonly LabRow[], fio2Percent: number): LabRow[] {
+  const po2 = find(rows, /^p\s*a?\s*o[2₂](?![a-z0-9])/i);
+  const shown = num(po2);
+  if (!po2 || shown === undefined) return [...rows];
+  const ceiling = Math.max(10, Math.floor(alveolarPO2(fio2Percent, num(find(rows, /^p\s*a?\s*co[2₂](?![a-z0-9])/i)) ?? 40) - 5));
+  return shown <= ceiling ? [...rows] : rows.map((r) => (r === po2 ? { ...r, value: String(ceiling) } : r));
+}

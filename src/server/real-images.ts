@@ -58,7 +58,7 @@ export async function findRealImage(queries: string[], accept: (image: { mime: s
   for (const q of clean.slice(0, 2)) {
     const left = deadline - Date.now();
     if (left < 3000) break;
-    const figures = (await openIImages(q, undefined, left - 1500)).filter((f) => !UNWANTED.test(f.caption) && !COMPOSITE.test(f.caption));
+    const figures = (await openIImages(q, undefined, left - 1500)).filter((f) => !UNWANTED.test(f.caption) && !COMPOSITE.test(f.caption) && !(/cardiogenic/i.test(q) && NOT_CARDIOGENIC.test(f.caption)));
     const found = await tryImages(figures.slice(0, 3), accept, deadline, exclude);
     if (found) return found;
   }
@@ -66,6 +66,9 @@ export async function findRealImage(queries: string[], accept: (image: { mime: s
 }
 
 /** "(a) … (b) …", "A, B", "Panel C": a figure made of several pictures. */
+/** Pulmonary oedema from something other than the heart: not the picture for heart failure. */
+const NOT_CARDIOGENIC = /aspiration|drowning|submersion|contusion/i;
+
 const COMPOSITE = /\bpanels?\b|\(\s*[a-d]\s*\)|\b[a-dA-D]\s*[,&]\s*[b-eB-E]\b|\b[a-d]\s*[-–]\s*[b-f]\b/;
 
 async function tryImages(images: OpenImage[], accept: (image: { mime: string; base64: string }) => Promise<boolean>, deadline: number, exclude: readonly string[]): Promise<{ mime: string; base64: string; credit: Credit } | null> {
@@ -114,7 +117,7 @@ async function searchOnce(query: string, accept: (image: { mime: string; base64:
       const meta = info.extmetadata ?? {};
       const license = plain(meta.LicenseShortName?.value);
       const words = `${p.title} ${plain(meta.ImageDescription?.value)} ${plain(meta.ObjectName?.value)}`;
-      return LICENSE_OK.test(license) && !UNWANTED.test(words);
+      return LICENSE_OK.test(license) && !UNWANTED.test(words) && !(/cardiogenic/i.test(query) && NOT_CARDIOGENIC.test(words));
     })
     .slice(0, 3);
   for (const { info } of candidates) {

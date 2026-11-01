@@ -201,3 +201,15 @@ export function fluidOutcome(state: VolumeState, before: readonly FluidGiven[], 
   excessAfter = Math.round(excessAfter);
   return { filledMl: Math.round(filledMl), benefit, excessBefore: Math.round(excessBefore), excessAfter, tierBefore, tier, crossAfterMin, large: effective >= 10 * state.weightKg };
 }
+
+/**
+ * Fluid in and out over a time: urine at the kidneys' rate (with any diuresis on top), and insensible loss of about 0.5 mL/kg/h, more
+ * with fever (10 mL/h per °C above 37) and with fast breathing. Why 25 mL/h can't flood anyone's lungs: it's less than the losses.
+ */
+export function fluidBalance(hours: number, b: { weightKg: number; tempF: number; rr: number; urineMlPerH: number; inMl: number; diuresisMl: number }) {
+  const feverC = Math.max(0, (b.tempF - 32) / 1.8 - 37);
+  const insensiblePerH = 0.5 * b.weightKg + 10 * feverC + Math.max(0, b.rr - 20) * 1.5;
+  const urineMl = Math.round(b.urineMlPerH * hours + b.diuresisMl);
+  const insensibleMl = Math.round(insensiblePerH * hours);
+  return { inMl: Math.round(b.inMl), urineMl, insensibleMl, netMl: Math.round(b.inMl - urineMl - insensibleMl) };
+}

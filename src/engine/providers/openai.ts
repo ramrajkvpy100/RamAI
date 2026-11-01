@@ -256,8 +256,11 @@ function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: Inter
   // Only what this message could mean goes in: the id lists were most of the prompt, and most of the wait.
   const said = (`${clause} ${normalise(clause)} ${guess} ${ctx.hidden.pendingOrders?.map((o) => o.targetId).join(" ") ?? ""} ${ctx.transcript.filter((m) => m.role === "doctor").slice(-2).map((m) => m.text).join(" ")}`).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
   const near = (...names: readonly string[]) => names.some((name) => { const n = name.toLowerCase(); return said.some((w) => n.includes(w) || (w.length >= 5 && n.split(/[^a-z0-9]+/).some((p) => p.length >= 5 && (p.includes(w) || w.includes(p) || editDistance(p, w) <= 2)))); });
-  const history = def.history.map((h) => (near(h.id, h.label, ...(h.match ?? [])) ? `${h.id} | ${h.label} | patient says: ${h.reply}` : `${h.id} | ${h.label} | ${h.reply.slice(0, 70)}`)).join("\n");
-  const exams = [...def.exam.map((e) => `${e.id} | ${e.label}`), ...EXAMS.filter((e) => ["general", "cvs", "rs", "abdomen", "cns", "neuro"].includes(e.id) || near(e.id, e.label)).filter((e) => !def.exam.some((x) => x.id === e.id)).map((e) => `${e.id} | ${e.label}`)].join("\n");
+  // (What never changes in a case comes first, so OpenAI's automatic prefix caching can reuse it from turn to turn.)
+  const history = def.history.map((h) => `${h.id} | ${h.label} | ${h.reply.slice(0, 70)}`).join("\n");
+  const inFull = def.history.filter((h) => h.reply.length > 70 && near(h.id, h.label, ...(h.match ?? []))).map((h) => `${h.id}: ${h.reply}`).join("\n");
+  const caseExams = def.exam.map((e) => `${e.id} | ${e.label}`).join("\n");
+  const otherExams = EXAMS.filter((e) => ["general", "cvs", "rs", "abdomen", "cns", "neuro"].includes(e.id) || near(e.id, e.label)).filter((e) => !def.exam.some((x) => x.id === e.id)).map((e) => `${e.id} | ${e.label}`).join("; ");
   const invs = [...new Set([...def.investigations.map((i) => i.id), ...ctx.hidden.investigations.map((i) => i.defId), ...INVESTIGATIONS.filter((i) => near(i.id, i.name, ...i.match)).map((i) => i.id)])].join(", ");
   const measures = MEASURES.filter((m) => ["oxygen", "monitor", "iv-access", "stop-drug", "stop-fluids", "refer", "admit", "discharge"].includes(m.id) || near(m.id, m.label, ...m.match)).map((m) => m.id).join(", ");
   const rules = def.therapeutics.map((r) => `${r.id} (${r.kind}: ${r.label.slice(0, 50)})`).join(", ");
@@ -285,19 +288,20 @@ For anything else no id covers — a remark, reassurance, small talk, or a reque
 Patient: ${def.patient.age}-year-old ${def.patient.sex}, ${def.patient.city}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}.${def.persona ? ` The patient is ${def.persona} — their replies show it.` : ""}
 Diagnosis (never reveal): ${def.truth.diagnosis}.${monthsOld(def) ? `\nThe child is ${monthsOld(def)} months old: never say any other age.` : ""}
 
-NOW: ${stateNote(ctx)}${mindNote(ctx)}
-
-History entries (id | topic | what the patient says):
+History entries (id | topic | what the patient says, in brief):
 ${history}
 
-Examinations (id | label):
-${exams}
+Case examinations (id | label):
+${caseExams}
 
+Case therapeutic rule ids: ${rules}
+
+NOW: ${stateNote(ctx)}${mindNote(ctx)}
+${inFull ? `\nIn full, what this message may be asking about:\n${inFull}\n` : ""}
+Other examinations that may apply: ${otherExams || "none"}
 Investigation ids: ${invs}
 Supportive measure ids (use as "measure:<id>"): ${measures}
-Case therapeutic rule ids: ${rules}
 Formulary drug ids matching this message: ${drugs || "none"} (a drug named that isn't here: kind "drug", targetId "unknown")
-
 
 The doctor said: """${clause}"""${plainEnglish(clause)}${guess ? `\n(A quick keyword reading took it as: ${guess}. Keep it if it is what the doctor meant; correct it if not — a question is never an order, history is not examination, and asking for results is not a new test.)` : ""}`,
     },
@@ -997,7 +1001,9 @@ export function clauseFor(targetId: string | undefined, text: string): string | 
   const drug = targetId ? formularyDrug(targetId) : undefined;
   if (!drug) return undefined;
   const names = [drug.generic, drug.id, ...(drug.aliases ?? []), ...drug.brands].map((x) => x.toLowerCase());
-  const clause = text.split(/;|[.,](?=\s|$)|\band\b|\bthen\b|\bplus\b|\bwith\b|\balong with\b|\+/i).find((c) => names.some((n) => c.toLowerCase().includes(n)));
+  // (The clause with a number in it, if the name comes up more than once: "susceptible to cefixime; discharge on cefixime 400 mg".)
+  const naming = text.split(/;|[.,](?=\s|$)|\band\b|\bthen\b|\bplus\b|\bwith\b|\balong with\b|\+/i).filter((c) => names.some((n) => c.toLowerCase().includes(n)));
+  const clause = naming.find((c) => /\d/.test(c)) ?? naming[0];
   if (!clause) return undefined;
   // The words from its name on, if the dose follows it: another drug's dose earlier in the clause isn't this one's.
   const lower = clause.toLowerCase();
@@ -1138,6 +1144,8 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
           ...(said.volumeMl ? { volumeMl: said.volumeMl } : {}),
           ...(said.overMin !== undefined ? { overMin: said.overMin } : timeWritten && typeof _read === "number" ? { overMin: _read } : {}),
           ...(said.rapid ? { rapid: true } : {}),
+          ...(said.duration ? { duration: said.duration } : {}),
+          ...(said.frequency ? { frequency: said.frequency } : {}),
         };
       }
       // "All blood tests" isn't a test: it's asked about, as when the rules read it.
@@ -1317,19 +1325,22 @@ export function createOpenAIProvider(): ClinicalProvider {
         if (brief.specialty === "Pediatrics" && outline.data.patient.age > 17) throw new UpstreamError(`a paediatric case came back with an adult (age ${outline.data.patient.age})`);
         const concept = { ...outline.data, patient: { ...outline.data.patient, age: outline.data.patient.age } };
         const level = levelMeta(brief.level, country).label;
-        // The three parts are written in parallel; one senior then reads the whole case, and only what they find is sent back.
+        // Each part is written, then checked by a consultant the moment it's ready — the three in parallel.
         let [d, f, m] = await Promise.all([
           chatJSON(dialoguePrompt(opts, concept, brief), 3400, false, partTimeout())
-            .then((x) => DialogueSchema.parse(x)),
+            .then((x) => DialogueSchema.parse(x))
+            .then((part) => reviewPart("history and vitals", part, dialogueReviewPrompt(concept, part, country), 5000, applyDialogueReview, left())),
           chatJSON(findingsPrompt(opts, concept, brief), 5800, false, partTimeout())
             .then((x) => FindingsSchema.parse(x))
+            .then((part) => reviewPart("findings and results", part, findingsReviewPrompt(concept, part, country), 8000, applyFindingsReview, left()))
             .then((part) => {
               const checked = checkLabFlags(part);
               if (checked.fixes.length) console.info(`[ramai] lab flags corrected: ${checked.fixes.join(" | ")}`);
               return checked.part;
             }),
           chatJSON(managementPrompt(opts, concept, brief), 4200, false, partTimeout())
-            .then((x) => ManagementSchema.parse(x)),
+            .then((x) => ManagementSchema.parse(x))
+            .then((part) => reviewPart("management and marking key", part, managementReviewPrompt(concept, part, country, level), 6000, applyManagementReview, left())),
         ]);
         if (d.history.length < 4 || f.exam.length < 1 || m.therapeutics.length < 2) {
           throw new UpstreamError(`a part came back too thin (history ${d.history.length}, exam ${f.exam.length}, treatments ${m.therapeutics.length})`);

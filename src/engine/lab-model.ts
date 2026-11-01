@@ -7,6 +7,7 @@
  * 70 mL/kg, about a quarter of isotonic crystalloid staying in the vessels, extracellular fluid 20% of body weight, and the
  * Boston rules for how PaCO₂ follows a metabolic change (Winter's formula below 24 mEq/L).
  */
+import { alveolarPO2, expectedPH } from "./abg-check";
 import type { LabRow } from "./types";
 
 export interface FluidGiven {
@@ -30,6 +31,15 @@ export interface LabContext {
   /** SpO₂ on arrival and now, for PaO₂ to follow. */
   spo2Base?: number;
   spo2Now?: number;
+  /** Oxygen being breathed (%), 21 on room air. */
+  fio2?: number;
+  /** Time in shock so far, and hours since it ended. */
+  shockMinutes?: number;
+  hoursSinceShock?: number;
+  /** What the drugs on board have done to potassium (mEq/L). */
+  potassiumShift?: number;
+  /** Breathing can't compensate: opioids, sedatives, CO₂ retention, fatigue. */
+  blunted?: boolean;
 }
 
 const SALINE = new Set(["ns", "saline-3", "normal-saline"]);
@@ -41,14 +51,18 @@ export const LAB_PENDING = "Pending: lab analyser busy. Order it again to re-run
 const left = (ago: number) => Math.exp(-Math.max(0, ago) / 480);
 
 /** Severinghaus: oxygen saturation (%) from PaO₂ (mmHg). */
-export const severinghaus = (pao2: number) => 100 / (23400 / (pao2 ** 3 + 150 * pao2) + 1);
+export const severinghaus = (pao2: number, pH = 7.4) => {
+  // The Bohr shift: acid moves the curve right, so the same PaO₂ carries less.
+  const p = pao2 * 10 ** (0.48 * (pH - 7.4));
+  return 100 / (23400 / (p ** 3 + 150 * p) + 1);
+};
 
 /** The PaO₂ that gives this saturation. */
-export function pao2ForSaturation(saturation: number): number {
+export function pao2ForSaturation(saturation: number, pH = 7.4): number {
   let [lo, hi] = [5, 600];
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
-    if (severinghaus(mid) < saturation) lo = mid;
+    if (severinghaus(mid, pH) < saturation) lo = mid;
     else hi = mid;
   }
   return (lo + hi) / 2;
@@ -136,14 +150,11 @@ function moved(rows: readonly LabRow[], ctx: LabContext): LabRow[] {
   const crystalloid = ctx.fluids.filter((f) => CRYSTALLOID.has(f.drugId)).reduce((sum, f) => sum + f.ml * left(f.ago), 0);
   const saline = ctx.fluids.filter((f) => SALINE.has(f.drugId)).reduce((sum, f) => sum + f.ml * left(f.ago), 0);
   const out = new Map<LabRow, LabRow>();
-  // PaO₂ moves with the saturation along the dissociation curve, from wherever the written result started.
-  const po2 = analyte(rows, /^(?:pa?o2|pa?o₂)(?![a-z0-9])/i);
-  const po2Now = plain(po2);
-  if (po2 && po2Now !== undefined && ctx.spo2Base && ctx.spo2Now && ctx.spo2Now > 0 && Math.abs(ctx.spo2Now - ctx.spo2Base) >= 1 && !/kpa/i.test(po2.unit ?? "")) {
-    const target = Math.min(99, Math.max(30, severinghaus(po2Now) + ctx.spo2Now - ctx.spo2Base));
-    set(out, po2, pao2ForSaturation(target), 0);
-  }
-  if (crystalloid < 250 && ctx.redCellUnits === 0 && ctx.co2Retained < 1) return rows.map((r) => out.get(r) ?? r);
+  const shockHours = (ctx.shockMinutes ?? 0) / 60;
+  const fio2 = ctx.fio2 ?? 21;
+  const quiet = crystalloid < 250 && ctx.redCellUnits === 0 && ctx.co2Retained < 1 && shockHours === 0 && !ctx.potassiumShift;
+  const oxygenMoved = (ctx.spo2Base && ctx.spo2Now && Math.abs(ctx.spo2Now - ctx.spo2Base) >= 1) || fio2 > 21;
+  if (quiet && !oxygenMoved) return [...rows];
 
   // Dilution: the same red cells and albumin in more plasma water.
   const bloodMl = 70 * weight;
@@ -175,14 +186,55 @@ function moved(rows: readonly LabRow[], ctx: LabContext): LabRow[] {
   const pco2 = analyte(rows, /^(?:pa?co2|pa?co₂)/i);
   const pco2Now = plain(pco2);
   const kpa = pco2 ? /kpa/i.test(pco2.unit ?? "") : false;
-  const hco3After = hco3Now === undefined ? undefined : Math.max(4, hco3Now - 0.6 * (clAfter - clBase));
+  // Shock: lactate climbs with its duration and uses up bicarbonate one for one; once it's over, about 20% clears each hour.
+  const clearing = 0.8 ** (ctx.hoursSinceShock ?? 0);
+  const lactateUp = Math.min(12, shockHours * 1.5) * clearing;
+  const lactate = analyte(rows, /^(?:serum |blood )?lactate\b/i);
+  const lactateNow = plain(lactate);
+  if (lactateUp > 0.05 && lactateNow !== undefined) set(out, lactate, lactateNow + lactateUp, 1);
+  const hco3After = hco3Now === undefined ? undefined : Math.max(4, hco3Now - 0.6 * (clAfter - clBase) - lactateUp);
   if (hco3 && hco3After !== undefined && hco3After !== hco3Now) set(out, hco3, hco3After, 1);
+  // Pre-renal injury from the hours of poor perfusion.
+  const renal = 1 + Math.min(2.5, shockHours * 0.12) * clearing;
+  if (renal > 1.01) {
+    const creatinine = analyte(rows, /^(?:serum )?creatinine\b/i);
+    const urea = analyte(rows, /^(?:serum |blood )?(?:urea|bun)\b/i);
+    const [c, u] = [plain(creatinine), plain(urea)];
+    if (c !== undefined) set(out, creatinine, c * renal, 1);
+    if (u !== undefined) set(out, urea, u * (1 + (renal - 1) * 1.4), 0);
+  }
+  let pco2After = pco2Now;
   if (pco2 && pco2Now !== undefined && !kpa) {
-    // Breathing follows the bicarbonate (about 1.2 mmHg per mEq/L, Winter's range); retained CO₂ adds to it.
-    const compensated = hco3Now !== undefined && hco3After !== undefined ? pco2Now - 1.2 * (hco3Now - hco3After) : pco2Now;
-    set(out, pco2, compensated + ctx.co2Retained, 0);
+    // Breathing follows the bicarbonate (about 1.2 mmHg per mEq/L, Winter's range), unless something blunts it; retained CO₂ adds to it.
+    const compensated = hco3Now !== undefined && hco3After !== undefined && !ctx.blunted ? pco2Now - 1.2 * (hco3Now - hco3After) : pco2Now;
+    pco2After = Math.max(10, compensated + ctx.co2Retained);
+    if (Math.abs(pco2After - pco2Now) >= 0.5) set(out, pco2, pco2After, 0);
     // Retained CO₂ raises bicarbonate a little at once (about 1 per 10 mmHg).
     if (ctx.co2Retained >= 10 && hco3 && hco3After !== undefined) set(out, hco3, hco3After + ctx.co2Retained / 10, 1);
+  }
+  const shownHco3 = plain(hco3 ? out.get(hco3) ?? hco3 : undefined) ?? hco3Now;
+  const shownPh = shownHco3 && pco2After ? expectedPH(shownHco3, pco2After) : 7.4;
+  // Potassium: about 0.5 mEq/L against every 0.1 of pH, on top of what the drugs have done.
+  const potassium = analyte(rows, /^(?:serum )?(?:potassium|k\+?)(?![a-z])/i);
+  const kNow = plain(potassium);
+  if (kNow !== undefined) {
+    const startPh = hco3Now && pco2Now ? expectedPH(hco3Now, pco2Now) : shownPh;
+    const k = kNow - 5 * (shownPh - startPh) + (ctx.potassiumShift ?? 0);
+    if (Math.abs(k - kNow) >= 0.05) set(out, potassium, Math.max(1.5, k), 1);
+  }
+  // Oxygen: on air or with the saturation below the flat of the curve, PaO₂ moves with the saturation (Severinghaus);
+  // on the flat, it's what the alveolus offers less a gap that widens with the oxygen given, as shunt does.
+  const po2 = analyte(rows, /^(?:pa?o2|pa?o₂)(?![a-z0-9])/i);
+  const po2Now = plain(po2);
+  if (po2 && po2Now !== undefined && !/kpa/i.test(po2.unit ?? "")) {
+    const [base, now] = [ctx.spo2Base, ctx.spo2Now];
+    let target: number | undefined;
+    if (base && now && now > 0 && Math.abs(now - base) >= 1 && now < 97) target = pao2ForSaturation(Math.max(30, severinghaus(po2Now) + now - base), shownPh);
+    else if (fio2 > 21) {
+      const gap = Math.max(5, alveolarPO2(21, pco2Now ?? 40) - po2Now) * (1 + (fio2 - 21) / 50);
+      target = Math.max(po2Now, alveolarPO2(fio2, pco2After ?? 40) - gap);
+    }
+    if (target !== undefined) set(out, po2, target, 0);
   }
   return rows.map((r) => out.get(r) ?? r);
 }

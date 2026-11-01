@@ -204,14 +204,27 @@ const isotretinoinCourse: GlobalHazardTemplate = {
       },
       {
         afterMin: 28 * 1440, status: "stable", interrupts: false, vitals: [],
-        // Acne answers it by now; the dryness stays.
+        // Acne has started to answer by now; the dryness stays.
         ...(/\bacne\b/i.test(def.truth.diagnosis)
           ? {
-              examFindings: { [def.exam.find((e) => e.group === "local-exam")?.id ?? "skin"]: "About 70% fewer inflammatory papules, pustules and nodules. Residual post-inflammatory hyperpigmentation. Dry, flaking skin and cheilitis.", ent: "Dry, cracked lips (cheilitis); dry nasal mucosa." },
-              patientSays: "The spots are much better, doctor. My skin and lips are very dry, though.",
+              examFindings: { [def.exam.find((e) => e.group === "local-exam")?.id ?? "skin"]: "About 40% fewer inflammatory papules, pustules and nodules. Dry, flaking skin and cheilitis.", ent: "Dry, cracked lips (cheilitis); dry nasal mucosa." },
+              patientSays: "The spots are getting better, doctor. My skin and lips are very dry, though.",
             }
           : {}),
         investigations: { lipid: { rows: [lab("Total cholesterol", "218", "mg/dL", "<200", "high"), lab("Triglycerides", "245", "mg/dL", "<150", "high"), lab("HDL", "42", "mg/dL", ">40", "normal"), lab("LDL", "127", "mg/dL", "<100", "high")] } },
+      },
+      {
+        afterMin: 56 * 1440, status: "stable", interrupts: false, vitals: [],
+        ...(/\bacne\b/i.test(def.truth.diagnosis)
+          ? {
+              examFindings: { [def.exam.find((e) => e.group === "local-exam")?.id ?? "skin"]: "About 75% fewer inflammatory papules, pustules and nodules. Residual post-inflammatory hyperpigmentation. Dry, flaking skin and cheilitis.", ent: "Dry, cracked lips (cheilitis); dry nasal mucosa." },
+              patientSays: "The spots are much better, doctor. My skin and lips are very dry, though.",
+            }
+          : {}),
+        investigations: {
+          lipid: { rows: [lab("Total cholesterol", "218", "mg/dL", "<200", "high"), lab("Triglycerides", "245", "mg/dL", "<150", "high"), lab("HDL", "42", "mg/dL", ">40", "normal"), lab("LDL", "127", "mg/dL", "<100", "high")] },
+          lft: { rows: [lab("AST (SGOT)", "46", "U/L", "<40", "high"), lab("ALT (SGPT)", "62", "U/L", "<45", "high"), lab("Total bilirubin", "0.7", "mg/dL", "0.2–1.2", "normal"), lab("Alkaline phosphatase", "78", "U/L", "40–130", "normal")] },
+        },
       },
     ],
     rescue: [["measure:stop-drug"]],
@@ -374,7 +387,14 @@ const procedureHazard = (id: string, label: string, stages: HazardStage[], rescu
   build: () => ({ id, label, stages, rescue, fullRecoveryWindowMin: Math.round(lastRescueMin / 2), lastRescueMin, recovery, review: { cause, whyItCausedHarm: why, earliestRescueWindow: "At the procedure: the technique, and checking straight afterwards.", correctRescueSequence: sequence, lastRealisticRescueWindow: `Within about ${lastRescueMin} minutes.` } }),
 });
 
+export const TENSION = "tension-pneumothorax";
+
 const PROCEDURE_HAZARDS: GlobalHazardTemplate[] = [
+  procedureHazard(TENSION, "Tension pneumothorax on positive-pressure ventilation",
+    [{ afterMin: 3, status: "critical", vitals: [{ key: "bp", value: "72/40" }, { key: "hr", value: "144" }, { key: "spo2", value: "72" }], observation: { role: "nurse", text: "Doctor, the pressure has crashed since the ventilation started, the neck veins are full, and the trachea is pushed over!" }, examFindings: { rs: "Absent breath sounds and a hyper-resonant note on the affected side; trachea deviated away." } },
+     { afterMin: 15, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "No pulse, doctor. Pulseless electrical activity." } }],
+    [["measure:chest-tube", "measure:needle-decompression"]], 14, [{ afterMin: 3, status: "guarded", vitals: [{ key: "bp", value: "106/66" }, { key: "hr", value: "108" }, { key: "spo2", value: "93" }] }],
+    "Positive pressure was applied to an undrained pneumothorax.", "Each breath forces more air through the leak; it can't escape, so pressure builds, collapses the lung and stops venous return.", ["Needle decompression at once", "Chest tube", "Then continue ventilation"]),
   procedureHazard("proc-mainstem", "Right mainstem intubation",
     [{ afterMin: 3, status: "deteriorating", vitals: [{ key: "spo2", value: "86" }], observation: { role: "nurse", text: "Doctor, the saturation is stuck in the 80s, and the left side of the chest isn't moving as well." }, examFindings: { rs: "Air entry much reduced on the left; good on the right. Tube at 26 cm at the lips." } },
      { afterMin: 25, status: "critical", vitals: [{ key: "spo2", value: "78" }], observation: { role: "nurse", text: "Saturation is in the 70s and the airway pressures are high." } }],

@@ -75,7 +75,7 @@ const BY_CLASS: [DrugClass, Profile][] = [
     feels: { when: "breathing", says: "Breathing is a little easier now." },
   }],
   ["nitrate", { kinetics: { SL: { onset: 1, peak: 4, duration: 30 }, IV: { onset: 1, peak: 3, duration: 30 }, PO: { onset: 30, peak: 60, duration: 480 }, default: { onset: 2, peak: 5, duration: 30 } }, effects: { sbp: -18, dbp: -8, hr: 8, pain: -1 } }],
-  ["loop-diuretic", { kinetics: { IV: { onset: 5, peak: 30, duration: 360 }, PO: { onset: 60, peak: 120, duration: 480 }, default: { onset: 30, peak: 90, duration: 480 } }, effects: { urine: 150, sbp: -5 }, feels: { when: "urine", says: "I need to pass urine, doctor." } }],
+  ["loop-diuretic", { kinetics: { IV: { onset: 5, peak: 45, duration: 360 }, PO: { onset: 60, peak: 120, duration: 480 }, default: { onset: 30, peak: 90, duration: 480 } }, effects: { urine: 150, sbp: -5 }, feels: { when: "urine", says: "I need to pass urine, doctor." } }],
   ["thiazide", { kinetics: { default: { onset: 120, peak: 360, duration: 1440 } }, effects: { urine: 30, sbp: -4 } }],
   ["mra", { kinetics: { default: SLOW }, effects: { urine: 15 } }],
   ["beta-blocker", { kinetics: { IV: { onset: 5, peak: 20, duration: 360 }, PO: { onset: 60, peak: 120, duration: 720 }, default: { onset: 60, peak: 120, duration: 720 } }, effects: { hr: -12, sbp: -10, dbp: -6 } }],
@@ -89,7 +89,7 @@ const BY_CLASS: [DrugClass, Profile][] = [
   ["antipsychotic", { kinetics: { IM: { onset: 15, peak: 40, duration: 360 }, IV: { onset: 5, peak: 15, duration: 240 }, default: { onset: 60, peak: 180, duration: 720 } }, effects: { gcs: -1, hr: 4 } }],
   ["sedating-antihistamine", { kinetics: { IV: { onset: 5, peak: 20, duration: 240 }, default: { onset: 30, peak: 90, duration: 360 } }, effects: { hr: 3 }, feels: { when: "itch", says: "The itching is much less now — I feel a bit sleepy." } }],
   ["antihistamine", { kinetics: { IV: { onset: 5, peak: 20, duration: 240 }, default: { onset: 30, peak: 90, duration: 720 } }, effects: {}, feels: { when: "itch", says: "The itching has settled down." } }],
-  ["steroid-systemic", { kinetics: { default: { onset: 60, peak: 240, duration: 720 } }, effects: { rbs: 40 } }],
+  ["steroid-systemic", { kinetics: { IV: { onset: 30, peak: 60, duration: 720 }, default: { onset: 60, peak: 240, duration: 720 } }, effects: { rbs: 40 } }],
   ["blood-product", { kinetics: { default: { onset: 10, peak: 60, duration: 360 } }, effects: { sbp: { toward: 118, by: 0.25, below: 105 }, hr: { toward: 88, by: 0.2, above: 100 } } }],
   ["colloid", { kinetics: { default: { onset: 5, peak: 20, duration: 240 } }, effects: { sbp: { toward: 118, by: 0.2, below: 105 } } }],
   ["fluid", {
@@ -107,6 +107,7 @@ const BY_CLASS: [DrugClass, Profile][] = [
     feels: { when: "pain", says: "The pain is better than before." },
   }],
   ["antispasmodic", { kinetics: { IV: { onset: 3, peak: 10, duration: 120 }, default: { onset: 20, peak: 60, duration: 240 } }, effects: { pain: -2 }, feels: { when: "pain", says: "The cramps have settled a bit." } }],
+  ["antibiotic", { kinetics: { IV: { onset: 10, peak: 30, duration: 480 }, default: { onset: 30, peak: 90, duration: 480 } }, effects: {} }],
   ["analgesic", { kinetics: { default: PO }, effects: { pain: -2 }, feels: { when: "pain", says: "The pain is a bit better." } }],
   ["antiemetic", { kinetics: { IV: { onset: 3, peak: 15, duration: 360 }, default: { onset: 20, peak: 60, duration: 480 } }, effects: {}, feels: { when: "nausea", says: "The vomiting feeling has settled, doctor." } }],
   ["electrolyte", { kinetics: { default: { onset: 5, peak: 30, duration: 240 } }, effects: {} }],
@@ -194,7 +195,9 @@ export function timeCourse(k: Kinetics, minutes: number, overMin = 0): number {
   if (minutes >= end) return 0;
   const rise = smoothstep(Math.min(k.onset, peak), peak, minutes);
   if (minutes <= peak) return rise;
-  return 0.5 * (1 + Math.cos((Math.PI * (minutes - peak)) / (end - peak)));
+  // Past the peak it washes out by half-lives (about a quarter of its working time each), reaching nothing by its end.
+  const halfLife = (end - peak) / 4;
+  return Math.max(0, 0.5 ** ((minutes - peak) / halfLife) - 0.0625) / 0.9375;
 }
 
 /* -------------------------------------------------------------------------- */
