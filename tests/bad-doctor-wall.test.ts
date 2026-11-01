@@ -9,9 +9,10 @@ vi.mock("server-only", () => ({}));
 import { expectedPH } from "@/engine/abg-check";
 import { ALL_CASES } from "@/engine/cases";
 import { defaultVitals, readVitalKeys, ROUTINE_VITALS } from "@/engine/catalog";
+import { FORMULARY } from "@/engine/formulary";
 import { liveClash } from "@/engine/interactions";
 import { generateDebrief } from "@/engine/debrief";
-import { clauseFor, courseOf, onlyFindings, saidNotTo, withoutFindings } from "@/engine/providers/openai";
+import { clauseFor, courseOf, onlyFindings, saidNotTo, stockedSpelling, withoutFindings } from "@/engine/providers/openai";
 import { createHiddenState, runTurn } from "@/engine/simulator";
 import type { ActionRecord } from "@/engine/types";
 
@@ -470,5 +471,15 @@ describe("two drugs that clash", () => {
     expect(liveClash("paracetamol", ["ondansetron", "warfarin"])).toBeNull();
     expect(liveClash("ibuprofen", ["warfarin"])?.other).toBe("warfarin");
     expect(liveClash("warfarin", ["ibuprofen"])?.other).toBe("ibuprofen");
+  });
+});
+
+describe("a misspelt drug", () => {
+  it("is put right once, and a right name is never 'corrected'", () => {
+    expect(stockedSpelling("morfine 50 mg iv")).toBe("Morphine 50 mg iv");
+    expect(stockedSpelling("Morphine 50 mg iv")).toBeUndefined();
+    // Reading its own correction again finds nothing to change, for every stocked drug: no endless loop.
+    for (const d of FORMULARY) for (const name of [d.generic, d.id, ...(d.aliases ?? []), ...d.brands]) expect(stockedSpelling(`give ${name} now`) ?? "", name).not.toContain(`${d.generic} ${d.generic}`);
+    expect(stockedSpelling("give levosalbutamol neb now")).toBeUndefined();
   });
 });

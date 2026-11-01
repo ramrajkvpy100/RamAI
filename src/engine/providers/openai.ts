@@ -32,7 +32,7 @@ import { DEFAULT_MODEL, lightReasoning } from "@/lib/server/openai-check";
 import type { ClinicalCaseDefinition } from "../case-definition";
 import { EXAMS, INVESTIGATIONS, MEASURES } from "../catalog";
 import { COUNTRY, type Country } from "../countries";
-import { FORMULARY, formularyDrug } from "../formulary";
+import { drugMatchPhrases, FORMULARY, formularyDrug } from "../formulary";
 import { levelMeta, trackLabel } from "../levels";
 import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Specialty, VitalPatch } from "../types";
 import { CARE_LEVELS, PLAYABLE_TRACKS } from "../types";
@@ -1006,11 +1006,22 @@ const NOT_DRUGS = new Set(["oxygen", "nitrogen", "helium", "water", "saline", "b
  * An order the rules couldn't place: is it a misspelt name, or a real drug the simulator doesn't stock? Eight seconds at
  * most, and nothing is changed unless the name is nearly certain.
  */
+/** The order with a stocked drug's misspelt name put right. (Only a word that isn't already one of its names: "levosalbutamol" is no misspelling of "Levosalbutamol + Ipratropium".) */
+export function stockedSpelling(text: string): string | undefined {
+  const known = (w: string) => FORMULARY.some((d) => drugMatchPhrases(d).some((p) => p.toLowerCase() === w.toLowerCase()));
+  const words = (text.match(/[A-Za-z][A-Za-z-]{3,}/g) ?? []).filter((w) => !NOT_DRUGS.has(w.toLowerCase()) && !known(w));
+  for (const w of words) {
+    const drug = nearestFormularyDrug(w) ?? nearestFormularyDrug(w.replace(/f/gi, "ph")); // "morfine"
+    if (drug) return text.replace(w, drug.generic);
+  }
+  return undefined;
+}
+
 async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corrected?: string; reference: string; nurse?: string }> {
   const words = [...new Set((text.match(/[A-Za-z][A-Za-z-]{3,}/g) ?? []).filter((w) => !NOT_DRUGS.has(w.toLowerCase())))].slice(0, 4);
   // A stocked drug misspelt ("morfine"): known here, without waiting on an outside service.
-  const stocked = words.map((w) => [w, nearestFormularyDrug(w)] as const).find(([w, d]) => d && d.generic.toLowerCase() !== w.toLowerCase());
-  if (stocked) return { corrected: text.replace(stocked[0], stocked[1]!.generic), reference: "" };
+  const respelt = stockedSpelling(text);
+  if (respelt) return { corrected: respelt, reference: "" };
   const found = (await within(Promise.all(words.map((w) => resolveDrugName(w))), 5000, [])).filter((d) => d !== null);
   if (found.length === 0) return { reference: "" };
   let corrected = text;
@@ -1406,7 +1417,9 @@ export function createOpenAIProvider(): ClinicalProvider {
       return { specialties: all(ALL_SPECIALTIES), tracks: all(PLAYABLE_TRACKS), levels: all(CARE_LEVELS) };
     },
 
-    async interpret(text, ctx): Promise<Interpretation> {
+    async interpret(written, ctx): Promise<Interpretation> {
+      // No order is this long; the rules and the model read what's reasonable.
+      const text = written.slice(0, 2000);
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
       const rules = await mockProvider.interpret(text, ctx);
       // In a cardiac arrest the orders are read by rules alone: no waiting on a model.
@@ -1423,13 +1436,14 @@ export function createOpenAIProvider(): ClinicalProvider {
       const ruled = rules.intents;
       // An order the rules couldn't place: a misspelt name is corrected and read again; a drug not stocked gets its official facts.
       let reference = "";
-      if (!ctx.def.guided && ORDER_WORDS.test(text) && ruled.some((i) => i.kind === "unknown" || (i.kind === "drug" && (!i.targetId || i.targetId === "unknown")))) {
+      const retried = (ctx as InterpretContext & { respelt?: boolean }).respelt;
+      if (!ctx.def.guided && !retried && ORDER_WORDS.test(text) && ruled.some((i) => i.kind === "unknown" || (i.kind === "drug" && (!i.targetId || i.targetId === "unknown")))) {
         const lookup = await lookUpOrder(text, ctx);
         reference = lookup.reference;
         if (lookup.nurse) return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: "nurse", settled: true } }], generated: { "0": lookup.nurse } };
         if (lookup.corrected) {
           const again = await mockProvider.interpret(lookup.corrected, ctx);
-          if (again.intents.some((i) => i.kind === "drug" && i.targetId && i.targetId !== "unknown")) return this.interpret(lookup.corrected, ctx);
+          if (again.intents.some((i) => i.kind === "drug" && i.targetId && i.targetId !== "unknown")) return this.interpret(lookup.corrected, { ...ctx, respelt: true } as InterpretContext);
         }
       }
       // The doctor answered an order's question: that's settled; the rest isn't worth a model call to reread.
