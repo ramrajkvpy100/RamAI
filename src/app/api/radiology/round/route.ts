@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         const options = shuffle([item, ...shuffle(pool.filter((x) => x.id !== item.id)).slice(0, 3)]);
         return { item: item.id, image: s.src, ecg: null, options: options.map((o) => o.label), answer: options.indexOf(item), key: item.key, keys: options.map((o) => o.key), credit: { author: s.author, license: s.license, source: s.source }, source: "commons" as const, brief: { history: item.history, question: item.question } };
       });
-      return ok({ items: items.slice(0, 300) });
+      return ok({ items: items.slice(0, 2000) });
     }
     const modality = body.modality as Modality;
     // Every picture in the bank with a request form: each system shows all it has.
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       const options = shuffle([item, ...(near.length >= 3 ? shuffle(near) : [...shuffle(near), ...shuffle(others.slice(near.length))]).slice(0, 3)]);
       return { item: item.id, image: s.src, ecg: null, options: options.map((o) => o.label), answer: options.indexOf(item), key: item.key, keys: options.map((o) => o.key), credit: { author: s.author, license: s.license, source: s.source }, source: "commons", brief: RADIOLOGY_BRIEFS[s.item]! };
     });
-    const items = shuffle([...kept, ...banked]).slice(0, 300);
+    const items = shuffle([...kept, ...banked]).slice(0, 2000);
     // The bank fills in the background: a few more real studies (from Wikimedia Commons, checked) for next time.
     if (picturesAvailable() && items.length < 12) {
       after(() =>
