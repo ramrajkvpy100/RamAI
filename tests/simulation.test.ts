@@ -103,8 +103,8 @@ describe("orders are executed — and have consequences", () => {
     expect(hidden.hazards).toHaveLength(0);
   });
 
-  it("sildenafil with a nitrate collapses the patient later — the follow-up is interrupted", () => {
-    const { hidden, state, turns } = play(medPad, ["Prescribe sildenafil 50 mg SOS", "Follow up after 2 weeks"]);
+  it("sildenafil with a nitrate is queried, and if confirmed collapses the patient later — the follow-up is interrupted", () => {
+    const { hidden, state, turns } = play(medPad, ["Prescribe sildenafil 50 mg SOS — I'm sure", "Follow up after 2 weeks"]);
     expect(hidden.hazards[0]?.id).toBe("pde5-nitrate");
     expect(state.setting).toBe("ER");
     expect(state.patientStatus).toBe("critical");

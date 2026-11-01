@@ -23,7 +23,7 @@
  */
 import { parseOrderDetails } from "../formulary";
 import { geminiConfigured, geminiJSON } from "./gemini";
-import { conditionReference, drugForms, drugReference, labPanels, packFacts, resolveDrugName, within } from "./medical-apis";
+import { conditionReference, drugForms, drugReference, labPanels, nearestFormularyDrug, packFacts, resolveDrugName, within } from "./medical-apis";
 import { withUntreatedCourse } from "./untreated";
 import "server-only";
 
@@ -599,7 +599,7 @@ function managementPrompt(opts: StartOptions, concept: Concept, brief: Brief): C
 { "therapeutics": [{ "id", "kind": "drug"|"procedure"|"counsel"|"referral"|"admit"|"discharge"|"supportive", "drugIds"?, "drugClasses"?, "measureIds"?, "concernsDrugs"?, "match"?: ["phrases a doctor might type"], "label", "appropriateness": "ideal"|"acceptable"|"neutral"|"unnecessary"|"harmful"|"dangerous", "note"?, "critique"?: { "what", "why" (one line — and the guideline it follows, e.g. WHO, ICMR, NICE or AHA, where one applies), "better", "severity": "minor"|"moderate"|"major" }, "praise"? }],
   "reasoning": [{ "stage": "History", "text" }, { "stage": "Examination", "text" }, { "stage": "Investigation", "text" }, { "stage": "Diagnosis", "text" }],
   "rubric": { "diagnosisAccept": ["names and synonyms that count as correct"], "diagnosisPartial": ["right idea but not specific: the wider group, in plain words"], "diagnosisWrong": ["words that make an otherwise-close diagnosis wrong, e.g. the wrong type, side or organism"], "differentials": [], "idealTreatment": [["therapeutic ids, any one of which satisfies this step"], …], "expertActionCount", "followUpDays"?: { "min", "max" }, "expectsReassessment" },
-  "course": { "definitive": ["ids of the therapeutics that actually treat this disease, after which this patient gets better; where this centre can't do it, the stabilising treatment and the referral"], "byMinute": minutes from arrival by which it should have started, "label": "its short name", "response": { "vitals": [{ "key": "hr"|"bp"|"rr"|"spo2"|"temp"|"gcs"|"pain"|"rbs"|"urine", "value" }] (this patient's real numbers once it has worked, right for their age), "says": "what they say as it works", "ecgAfter"?: "the ECG report, only if the treatment restores a normal rhythm" }, "untreated": [{ "afterMin": minutes from arrival, "status": "deteriorating"|"critical"|"deceased", "vitals": [{ "key", "value" }], "nurse": "what the nurse sees; never the diagnosis" }] (how this illness really progresses untreated, at its true pace; empty if it isn't an illness that worsens within hours) },
+  "course": { "definitive": ["ids of the therapeutics that actually treat this disease, after which this patient gets better; where this centre can't do it, the stabilising treatment and the referral"], "byMinute": minutes from arrival by which it should have started, "label": "its short name", "response": { "vitals": [{ "key": "hr"|"bp"|"rr"|"spo2"|"temp"|"gcs"|"pain"|"rbs"|"urine", "value" }] (this patient's real numbers once it has worked, right for their age; temperature in °F), "says": "what they say as it works, true after any of the definitive treatments", "ecgAfter"?: "the ECG report once it has worked, only if the treatment changes the ECG", "examAfter"?: { "exam id": "that examination's finding once it has worked" } }, "untreated": [{ "afterMin": minutes from arrival, "status": "deteriorating"|"critical"|"deceased", "vitals": [{ "key", "value" }], "nurse": "what the nurse sees; never the diagnosis" }] (how this illness really progresses untreated, at its true pace; empty if it isn't an illness that worsens within hours) },
   "followUp": [{ "when": "ideal"|"acceptable"|"harmful"|"untreated"|"any", "status": "recovered"|"improving"|"stable"|"guarded"|"deteriorating"|"critical", "lines": [{ "role", "kind", "text" }] }] } — follow-up lines are what the patient or family say and what is seen or measured; never name the diagnosis or a complication
 therapeutics: 5–10 — the right treatments and common wrong or harmful ones. Labels are short names ("Emergency laparotomy"), and a procedure's note says what was found or done, never what to do. Name a harmful one as the treatment itself ("NSAIDs for the pain", rated harmful), never as advice ("Avoid NSAIDs"). drugIds only from: ${FORMULARY.map((d) => d.id).join(", ")}. measureIds only from: ${MEASURES.map((m) => m.id).join(", ")}.`,
     },
@@ -653,20 +653,30 @@ const COURSE_VITALS = new Set(["hr", "bp", "rr", "spo2", "temp", "gcs", "pain", 
  * What the writer says this illness does, made safe to run: numbers checked one by one, only treatments the case has, no
  * death inside the first 45 minutes, and on a clock only in an emergency. Anything left out just means the case runs without it.
  */
-export function courseOf(concept: Concept, m: z.infer<typeof ManagementSchema>, therapeutics: { id: string; kind: string; appropriateness: string; drugIds: string[]; measureIds: string[] }[], track: string): Pick<ClinicalCaseDefinition, "hazards" | "onResponse"> & { definitiveTreatment?: NonNullable<ClinicalCaseDefinition["rubric"]["definitiveTreatment"]> } {
+export function courseOf(concept: Concept, m: z.infer<typeof ManagementSchema>, therapeutics: { id: string; kind: string; label?: string; appropriateness: string; drugIds: string[]; measureIds: string[] }[], track: string): Pick<ClinicalCaseDefinition, "hazards" | "onResponse"> & { definitiveTreatment?: NonNullable<ClinicalCaseDefinition["rubric"]["definitiveTreatment"]> } {
   // Off on the live site until it has been proved in full games on new cases.
   if (process.env.VERCEL && process.env.RAMAI_CASE_COURSE !== "on") return { hazards: [] };
   const course = m.course;
-  const rules = (course?.definitive ?? []).map((id) => therapeutics.find((t) => t.id === id)).filter((t): t is (typeof therapeutics)[number] => !!t && (t.appropriateness === "ideal" || t.appropriateness === "acceptable"));
-  if (!course || rules.length === 0) return { hazards: [] };
-  const plausible = (vitals: { key: string; value: string }[]) => vitals.filter((v) => COURSE_VITALS.has(v.key) && /\d/.test(v.value) && sanityProblems({ patient: { age: concept.patient.age ?? 40, sex: concept.patient.sex ?? "" }, diagnosis: concept.diagnosis }, { [v.key]: v.value }).length === 0) as VitalPatch[];
+  const found = (course?.definitive ?? []).map((id) => therapeutics.find((t) => t.id === id)).filter((t): t is (typeof therapeutics)[number] => !!t && (t.appropriateness === "ideal" || t.appropriateness === "acceptable"));
+  if (!course || found.length === 0) return { hazards: [] };
+  // A disease the case says needs an operation or reperfusion is cured by that, not by the antibiotics or aspirin on the way to it.
+  // Aspirin or a painkiller on the way to the real treatment relieves or supports: it doesn't make a STEMI's pain go.
+  const RELIEVES = new Set(["aspirin", "clopidogrel", "ticagrelor", "prasugrel", "paracetamol", "ibuprofen", "diclofenac", "morphine", "tramadol", "ondansetron", "pantoprazole", "gtn"]);
+  const cures = found.filter((t) => !(t.kind === "drug" && t.drugIds.length > 0 && t.drugIds.every((d) => RELIEVES.has(d))));
+  const major = cures.filter((t) => t.kind === "procedure" && /surg|ectomy|otomy|laparo|theatre|operat|\bpci\b|angioplast|thrombect|embolis/i.test(`${t.id} ${t.label ?? ""}`));
+  const rules = major.length ? major : cures;
+  if (rules.length === 0) return { hazards: [] };
+  // The app's temperatures are in °F, whichever the writer used.
+  const fahrenheit = (v: { key: string; value: string }) => (v.key === "temp" && parseFloat(v.value) <= 45 ? { ...v, value: String(Math.round((parseFloat(v.value) * 9) / 5 * 10 + 320) / 10) } : v);
+  const plausible = (vitals: { key: string; value: string }[]) => vitals.map(fahrenheit).filter((v) => COURSE_VITALS.has(v.key) && /\d/.test(v.value) && sanityProblems({ patient: { age: concept.patient.age ?? 40, sex: concept.patient.sex ?? "" }, diagnosis: concept.diagnosis }, { [v.key]: v.value }).length === 0) as VitalPatch[];
   const giveaway = (text?: string) => !!text && [concept.diagnosis, ...m.rubric.diagnosisAccept].some((x) => x.length > 3 && text.toLowerCase().includes(x.toLowerCase()));
   // Each treatment by its own name, and the drug or the measure however it's ordered ("adenosine", "cardiovert").
   const ids = [...new Set(rules.flatMap((t) => [t.id, ...t.drugIds.map((d) => `drug:${d}`), ...t.measureIds.filter((x) => !["refer", "admit", "monitor", "iv-access"].includes(x)).map((x) => `measure:${x}`)]))];
   const byMinute = Math.min(240, Math.max(5, Math.round(course.byMinute) || 30));
   const vitals = plausible(course.response.vitals);
   const says = giveaway(course.response.says) ? undefined : course.response.says;
-  const onResponse = { ...(vitals.length ? { vitals } : {}), ...(says ? { says, patientSays: says } : {}), ...(course.response.ecgAfter ? { ecgAfter: course.response.ecgAfter } : {}) };
+  const examAfter = Object.fromEntries(Object.entries(course.response.examAfter ?? {}).filter(([, text]) => !giveaway(text)).map(([id, text]) => [id, onlyFindings(text)]));
+  const onResponse = { ...(vitals.length ? { vitals } : {}), ...(says ? { says, patientSays: says } : {}), ...(course.response.ecgAfter ? { ecgAfter: course.response.ecgAfter } : {}), ...(Object.keys(examAfter).length ? { examFindings: examAfter } : {}) };
   const definitiveTreatment = { ids, byMinute, label: course.label || rules[0]!.id };
   // A death comes at its true pace, never in the first 45 minutes; and nothing follows it.
   const ladder = track === "emergency" ? course.untreated.map((s) => ({ ...s, afterMin: s.status === "deceased" ? Math.max(45, s.afterMin) : s.afterMin })).sort((a, b) => a.afterMin - b.afterMin) : [];
@@ -943,7 +953,7 @@ const withReference = (messages: ChatMessage[], reference: string): ChatMessage[
   reference ? [...messages.slice(0, -1), { role: "system", content: reference }, messages[messages.length - 1]!] : messages;
 
 const ORDER_WORDS = /\b(give|start|prescribe|add|continue|tab|tabs|tablet|cap|capsule|inj|injection|syp|syrup|iv|im|po|sc|stat|od|bd|tds|qid)\b|\d\s*(mg|mcg|µg|g|ml|iu|units?)\b/i;
-const FINDINGS = /\b(?:on (?:listening|auscultation|examination)|crackles?|crepitations?|rhonchi|the (?:glucose|sugar|saturation|oxygen level|ha?emoglobin|result|report|x-?ray|ecg|scan) (?:was|is|came|shows?|showed))\b/i;
+const FINDINGS = /\b(?:on (?:listening|auscultation|examination)|crackles?|crepitations?|rhonchi|(?:his|her|their|my)? ?(?:spo2|spo₂|oxygen level|breathing rate|respiratory rate|pulse|bp|blood pressure) is \d|the (?:glucose|sugar|saturation|oxygen level|ha?emoglobin|result|report|x-?ray|ecg|scan) (?:was|is|came|shows?|showed))\b/i;
 const NEGATED = "(?:no|not|avoid|without|withhold|don'?t give|do not give|never give|nil)";
 const MEASURE_WORDS: Record<string, string> = { oxygen: "(?:supplemental |extra |additional )?oxygen", "oral-fluids": "(?:oral |any )?(?:fluids?|water|feeds?)", defib: "(?:shock|cardioversion|defibrillation)" };
 
@@ -969,7 +979,11 @@ export function clauseFor(targetId: string | undefined, text: string): string | 
 const TELLS_WHAT_TO_DO = /^(?:assess|obtain|order|consider|check|evaluate|rule out|send|arrange|perform|start|give|refer|pregnancy status is not established)\b/i;
 /** An examination says what's found: a sentence telling the doctor what to do next is a hint, and is taken out. */
 export function onlyFindings(text: string): string {
-  const kept = text.split(/(?<=[.!?])\s+/).filter((s) => !TELLS_WHAT_TO_DO.test(s.trim()));
+  // (Nor does it carry the vitals: those are on the monitor, and written here they go stale as the patient changes.)
+  const VITAL = /\b(?:temperature|temp|pulse|heart rate|hr|blood pressure|bp|respiratory rate|rr|oxygen saturation|saturation|spo2|spo₂)\b(?:\s+(?:is|of|was))?[\s:]*\d+(?:[./]\d+)*\s*(?:°\s*[cf]|\/min|bpm|mmhg|%)?(?:\s+on room air)?(?:,?\s*regular)?/gi;
+  const kept = text.split(/(?<=[.!?])\s+(?=[A-Z])/).filter((s) => !TELLS_WHAT_TO_DO.test(s.trim()))
+    .map((s) => s.replace(VITAL, "").replace(/\s*[,;]\s*(?=[,;.])/g, "").replace(/^[\s,;]+/, "").replace(/\s+\./g, ".").replace(/\s{2,}/g, " ").trim())
+    .filter((s) => /[a-z]{3}/i.test(s)).map((s) => s.charAt(0).toUpperCase() + s.slice(1));
   return kept.length ? kept.join(" ") : text;
 }
 
@@ -994,6 +1008,9 @@ const NOT_DRUGS = new Set(["oxygen", "nitrogen", "helium", "water", "saline", "b
  */
 async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corrected?: string; reference: string; nurse?: string }> {
   const words = [...new Set((text.match(/[A-Za-z][A-Za-z-]{3,}/g) ?? []).filter((w) => !NOT_DRUGS.has(w.toLowerCase())))].slice(0, 4);
+  // A stocked drug misspelt ("morfine"): known here, without waiting on an outside service.
+  const stocked = words.map((w) => [w, nearestFormularyDrug(w)] as const).find(([w, d]) => d && d.generic.toLowerCase() !== w.toLowerCase());
+  if (stocked) return { corrected: text.replace(stocked[0], stocked[1]!.generic), reference: "" };
   const found = (await within(Promise.all(words.map((w) => resolveDrugName(w))), 5000, [])).filter((d) => d !== null);
   if (found.length === 0) return { reference: "" };
   let corrected = text;
@@ -1019,7 +1036,8 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
     const raw = await chatJSON(withReference(interpretPrompt(ctx.def, text, ctx, guess), reference), 2400, true, 12_000, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
-    const { speaker } = parsed.data;
+    // "I'll give the saline" in an emergency is the nurse, whoever the model put it down to.
+    const speaker = parsed.data.speaker !== "nurse" && ctx.def.track === "emergency" && /^(?:okay[,.]?\s*)?I['’]ll (?:give|start|arrange|send|monitor|update)\b/i.test(parsed.data.message ?? "") ? "nurse" : parsed.data.speaker;
     // A parent answering for a small child in the child's voice ("I haven't had a fever"): put back in the third person.
     const firstPerson = /^(?:no,?\s+|yes,?\s+)?(?:doctor,?\s+)?I(?:'ve| have|'m| am| feel| haven't| don't| sleep| slept| had| was)\b/i;
     const roomSoFar = `${ctx.def.history.map((h) => h.reply).join(" ")} ${ctx.transcript.map((m) => m.text).join(" ")}`;
@@ -1046,6 +1064,8 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
       if (askedOnly && (i.kind === "investigation" || i.kind === "drug")) continue;
       // "No supplemental oxygen", "no further medicine", "give no oral fluids": said not to, so it isn't an order.
       if ((i.kind === "drug" || (i.kind === "action" && i.targetId?.startsWith("measure:"))) && saidNotTo(i.targetId, text)) continue;
+      // "Keep the defibrillator ready" or "pads on" isn't a shock.
+      if (i.kind === "action" && i.targetId === "measure:defib" && !/\b(?:shock|cardiover\w*|defibrillat(?:e|ion)|dc\b)/i.test(text)) continue;
       // The same drug read twice from one sentence is one order.
       if (i.kind === "drug" && i.targetId && i.targetId !== "unknown") {
         if (drugSeen.has(i.targetId)) continue;

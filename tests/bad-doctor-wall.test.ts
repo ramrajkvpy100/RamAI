@@ -9,6 +9,7 @@ vi.mock("server-only", () => ({}));
 import { expectedPH } from "@/engine/abg-check";
 import { ALL_CASES } from "@/engine/cases";
 import { defaultVitals, readVitalKeys, ROUTINE_VITALS } from "@/engine/catalog";
+import { liveClash } from "@/engine/interactions";
 import { generateDebrief } from "@/engine/debrief";
 import { clauseFor, courseOf, onlyFindings, saidNotTo, withoutFindings } from "@/engine/providers/openai";
 import { createHiddenState, runTurn } from "@/engine/simulator";
@@ -375,6 +376,23 @@ describe("what an illness does in an invented case", () => {
     expect(stages.some((s) => /SVT/.test(s.observation!.text))).toBe(false);
   });
 
+  it("a temperature comes out in the app's unit", () => {
+    const { onResponse } = courseOf(concept, management({ ...written, response: { vitals: [{ key: "temp", value: "37" }, { key: "temp", value: "99.1" }] } }), therapeutics, "emergency");
+    expect(onResponse!.vitals!.map((v) => v.value)).toEqual(["98.6", "99.1"]);
+  });
+
+  it("an operation's disease is cured by the operation, not the antibiotics on the way", () => {
+    const list = [{ id: "ceftriaxone-rule", kind: "drug", label: "Antibiotics", appropriateness: "ideal", drugIds: ["ceftriaxone"], measureIds: [] }, { id: "appendicectomy", kind: "procedure", label: "Laparoscopic appendicectomy", appropriateness: "ideal", drugIds: [], measureIds: [] }];
+    const { definitiveTreatment } = courseOf(concept, management({ ...written, definitive: ["ceftriaxone-rule", "appendicectomy"] }), list, "emergency");
+    expect(definitiveTreatment!.ids).toEqual(["appendicectomy"]);
+  });
+
+  it("aspirin or a painkiller isn't what cures it", () => {
+    const list = [{ id: "aspirin-rule", kind: "drug", label: "Aspirin", appropriateness: "ideal", drugIds: ["aspirin"], measureIds: [] }, { id: "lysis", kind: "drug", label: "Thrombolysis", appropriateness: "ideal", drugIds: ["tenecteplase"], measureIds: [] }];
+    expect(courseOf(concept, management({ ...written, definitive: ["aspirin-rule", "lysis"] }), list, "emergency").definitiveTreatment!.ids).toEqual(["lysis", "drug:tenecteplase"]);
+    expect(courseOf(concept, management({ ...written, definitive: ["aspirin-rule"] }), list, "emergency")).toEqual({ hazards: [] });
+  });
+
   it("a clinic case is on no clock, and a case without a course runs as before", () => {
     expect(courseOf(concept, management(written), therapeutics, "opd").hazards).toEqual([]);
     expect(courseOf(concept, management(undefined), therapeutics, "emergency")).toEqual({ hazards: [] });
@@ -419,5 +437,38 @@ describe("what the doctor wrote, in a long order", () => {
   });
   it("an examination doesn't tell the doctor what to do next", () => {
     expect(onlyFindings("Tender in the right upper quadrant. Pregnancy status is not established. Obtain urine hCG.")).toBe("Tender in the right upper quadrant.");
+    expect(onlyFindings("Anxious and sweaty. Pulse 96/min, regular; blood pressure 148/88 mmHg; respiratory rate 20/min; oxygen saturation 97% on room air.")).toBe("Anxious and sweaty.");
+    expect(onlyFindings("Respiratory rate 58/min with subcostal recession and nasal flaring.")).toBe("With subcostal recession and nasal flaring.");
+    expect(onlyFindings("Temperature 37.4 °C, alert.")).toMatch(/alert/i);
+  });
+});
+
+describe("two drugs that clash", () => {
+  const adult = () => ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18 && !c.profile?.currentDrugs?.length)!;
+  const onOwn = (drug: string) => { const base = adult(); return { ...base, profile: { ...base.profile, currentDrugs: [drug] } } as typeof base; };
+
+  it("the nurse queries the pair before it's given, whichever came first, or if it's the patient's own medicine", async () => {
+    const pairs: [string, string][] = [["ondansetron 4 mg iv", "azithromycin 500 mg iv"], ["morphine 2 mg iv", "midazolam 2 mg iv"], ["metoprolol 5 mg iv", "diltiazem 20 mg iv"]];
+    for (const [first, second] of pairs) {
+      const text = said((await converse(adult(), [first, second])).state);
+      expect(text).toMatch(/Do you still want it/);
+    }
+    expect(said((await converse(onOwn("sildenafil"), ["gtn 0.4 mg sl"])).state)).toMatch(/Do you still want it/);
+    expect(said((await converse(onOwn("warfarin"), ["ibuprofen 400 mg po stat"])).state)).toMatch(/warfarin/i);
+  });
+
+  it("said again, it's given and the harm follows; the right rescue reverses it", async () => {
+    const hurt = await converse(adult(), ["ondansetron 4 mg iv", "azithromycin 500 mg iv", "yes", "wait 30 minutes"]);
+    expect(hurt.hidden.hazards.some((h) => h.id === "clash-qt")).toBe(true);
+    expect(said(hurt.state)).toMatch(/QT is very long/);
+    const saved = await converse(adult(), ["ondansetron 4 mg iv", "azithromycin 500 mg iv", "yes", "wait 30 minutes", "magnesium sulphate 2 g iv over 15 minutes"]);
+    expect(saved.hidden.hazards.find((h) => h.id === "clash-qt")?.rescuedAt).toBeDefined();
+  });
+
+  it("a safe pair isn't queried, and every drug the rules name is in the formulary or is a known outside name", async () => {
+    expect(said((await converse(adult(), ["paracetamol 1 g iv", "ondansetron 4 mg iv"])).state)).not.toMatch(/QT-prolonging|Do you still want it/);
+    expect(liveClash("paracetamol", ["ondansetron", "warfarin"])).toBeNull();
+    expect(liveClash("ibuprofen", ["warfarin"])?.other).toBe("warfarin");
+    expect(liveClash("warfarin", ["ibuprofen"])?.other).toBe("ibuprofen");
   });
 });

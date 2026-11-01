@@ -16,6 +16,7 @@ import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagV
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
 import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, routesFor, type DrugClass, type FormularyDrug } from "./formulary";
+import { liveClash } from "./interactions";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
@@ -1206,7 +1207,9 @@ function handleHistory(ctx: TurnContext, intent: ResolvedIntent, index: number):
   const answered = !generated && record.intents.some((x, k) => k !== index && x.kind === "history" && x.targetId === "generated" && record.generated?.[String(k)]);
   // On a later visit, what they've been given is what they're on.
   const given = [...new Set(hidden.drugs.filter((d) => d.mode === "prescribed").map((d) => d.generic.toLowerCase()))];
-  const medicines = !generated && entry?.group === "medication" && given.length > 0 ? `I'm using the ${given.join(" and the ")} you gave me, doctor. ${reply.text}` : reply.text;
+  // Once they've responded, how the complaint is now isn't how it was.
+  const better = !generated && hidden.responded && hidden.patientSays && !hidden.patientSays.startsWith("(") && (entry?.group === "complaint" || entry?.group === "hpi") ? hidden.patientSays : undefined;
+  const medicines = better ?? (!generated && entry?.group === "medication" && given.length > 0 ? `I'm using the ${given.join(" and the ")} you gave me, doctor. ${reply.text}` : reply.text);
   if (!answered) fx.push({ type: "message", role: reply.role, kind: "speech", text: medicines });
 
   if (entry) {
@@ -2037,6 +2040,10 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   if ((dengue || lowPlatelets) && (drug.classes.includes("nsaid") || drug.classes.includes("salicylate") || drug.classes.includes("antiplatelet"))) return `${why}, ${drug.classes.includes("antiplatelet") && !drug.classes.includes("nsaid") ? "an antiplatelet drug" : "an NSAID or aspirin"} can cause bleeding.`;
   if ((dengue || lowPlatelets) && dose?.route === "IM") return `${why}, an injection into the muscle can bleed into it — can it be given another way?`;
   if (def.profile?.pregnant && drug.classes.includes("teratogen")) return "She's pregnant — this drug can harm the baby.";
+  // A serious clash with something they're on: the nurse or pharmacist stops it.
+  // (Not on the phone: a relative at home can't know this.)
+  const clash = def.track === "phone" ? null : liveClash(drug.id, [...hidden.drugs.filter((d) => d.stoppedAt === undefined && (d.mode === "prescribed" || hidden.clock - d.at <= 1440)).map((d) => d.drugId), ...(def.profile?.currentDrugs ?? [])]);
+  if (clash) return `${def.patient.sex === "Female" ? "She's" : def.patient.sex === "Male" ? "He's" : "They're"} on ${formularyDrug(clash.other)?.generic.toLowerCase() ?? clash.other} — ${clash.effect.charAt(0).toLowerCase()}${clash.effect.slice(1)}`;
   // A drug that can harm a baby, for a woman who could be pregnant: asked in any emergency (so it gives nothing away), and
   // wherever she truly is. In a clinic with nothing to suggest it, forgetting the test is left to the marks.
   if (drug.classes.includes("teratogen") && def.patient.sex === "Female" && def.patient.age >= 12 && def.patient.age <= 50) {
@@ -3214,6 +3221,8 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
         fx.push({ type: "case_status", status: "complete" });
         break;
       case "unknown": {
+        // A stray phrase in an order otherwise understood ("please sit still") needs no "say that again".
+        if (!record.generated?.[String(index)] && record.intents.some((x, k) => k !== index && x.kind !== "unknown")) break;
         hidden.unrecognised += 1;
         // The model's answer, when it wrote one: whoever in the room would reply.
         const said = record.generated?.[String(index)];

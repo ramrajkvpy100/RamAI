@@ -6,6 +6,7 @@
  * Source-checked, not yet reviewed by a clinician.
  */
 import { formularyDrug } from "./formulary";
+import { QT } from "./interactions";
 import type { LabRow } from "./types";
 import type { DrugOrderContext, GlobalHazardTemplate } from "./physiology";
 
@@ -213,4 +214,119 @@ const isotretinoinCourse: GlobalHazardTemplate = {
   }),
 };
 
-export const DRUG_SAFETY: GlobalHazardTemplate[] = [paracetamolOverdose, negativeInotrope, retinoidTetracycline, steroidOnFace, isotretinoinCourse];
+/** The two sides of a pair, whichever came first, counting the patient's own medicines. */
+const pairs = (o: DrugOrderContext, p: { currentDrugs?: string[] }, drugIds: readonly string[], a: readonly string[], b: readonly string[]) => {
+  const rest = [...drugIds, ...(p.currentDrugs ?? [])].map((d) => d.toLowerCase()).filter((d) => d !== o.drug.id);
+  const within = (list: readonly string[]) => rest.some((d) => list.some((x) => d === x || d.startsWith(`${x} `) || d.startsWith(`${x}-`)));
+  return (a.includes(o.drug.id) && within(b)) || (b.includes(o.drug.id) && within(a));
+};
+
+const SSRIS = ["sertraline", "fluoxetine", "escitalopram"];
+const STOPPED_HEART = { vitals: [{ key: "hr" as const, value: "0" }, { key: "bp" as const, value: "0/0" }, { key: "spo2" as const, value: "0" }, { key: "rr" as const, value: "0" }, { key: "gcs" as const, value: "3" }] };
+
+const clashQt: GlobalHazardTemplate = {
+  id: "clash-qt",
+  applies: () => true,
+  // Into a vein, where levels rise at once. (By mouth it's queried, and named in the debrief.)
+  triggers: (o, p, snap) => o.mode === "given" && o.route === "IV" && pairs(o, p, snap.drugIds, QT, QT),
+  build: () => ({
+    id: "clash-qt",
+    label: "Torsades de pointes from two QT-prolonging drugs",
+    stages: [
+      { afterMin: 20, status: "deteriorating", vitals: [{ key: "hr", value: "58" }], observation: { role: "nurse", text: "Doctor, the monitor shows the QT is very long now, and there are extra beats." }, investigations: { ecg: { report: "Sinus bradycardia with frequent ventricular ectopics. QTc about 560 ms." } } },
+      { afterMin: 50, status: "critical", vitals: [{ key: "hr", value: "190" }, { key: "bp", value: "74/40" }, { key: "gcs", value: "11" }], observation: { role: "nurse", text: "Runs of a twisting, wide-complex rhythm on the monitor — they keep passing out!" }, investigations: { ecg: { report: "Polymorphic VT with a twisting axis (torsades de pointes); QTc about 600 ms between runs." } } },
+      { afterMin: 90, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "It's gone into ventricular fibrillation. No pulse." } },
+    ],
+    rescue: [["drug:magnesium-sulphate"]],
+    fullRecoveryWindowMin: 40,
+    lastRescueMin: 85,
+    recovery: [{ afterMin: 20, status: "guarded", vitals: [{ key: "hr", value: "84" }, { key: "bp", value: "108/68" }, { key: "gcs", value: "15" }], patientSays: "I feel more with it." }],
+    review: {
+      cause: "Two QT-prolonging drugs were given together.",
+      whyItCausedHarm: "Each delays repolarisation; together they prolong the QT enough for early after-depolarisations and torsades.",
+      earliestRescueWindow: "At the order: check the ECG, potassium and magnesium, and choose a drug that doesn't prolong the QT.",
+      correctRescueSequence: ["Stop both drugs", "IV magnesium 2 g", "Correct potassium", "Defibrillate if it degenerates to VF"],
+      lastRealisticRescueWindow: "Before it degenerates into VF.",
+    },
+  }),
+};
+
+const clashAvBlock: GlobalHazardTemplate = {
+  id: "clash-av-block",
+  applies: () => true,
+  triggers: (o, p, snap) => o.mode === "given" && o.route === "IV" && pairs(o, p, snap.drugIds, ["metoprolol", "atenolol", "propranolol", "labetalol", "esmolol"], ["diltiazem", "verapamil"]),
+  build: () => ({
+    id: "clash-av-block",
+    label: "Heart block from a beta-blocker with a rate-limiting calcium-channel blocker",
+    stages: [
+      { afterMin: 10, status: "critical", vitals: [{ key: "hr", value: "38" }, { key: "bp", value: "78/46" }], observation: { role: "nurse", text: "Doctor, the pulse has dropped into the 30s and the BP is falling." }, investigations: { ecg: { report: "Complete heart block, ventricular rate about 38." } } },
+      { afterMin: 40, status: "critical", vitals: [{ key: "hr", value: "28" }, { key: "bp", value: "60/32" }, { key: "gcs", value: "10" }], observation: { role: "nurse", text: "Pulse in the 20s, and they're barely rousable." } },
+      { afterMin: 80, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "Asystole. No pulse." } },
+    ],
+    rescue: [["drug:atropine", "drug:adrenaline", "drug:calcium-gluconate", "drug:glucagon"]],
+    fullRecoveryWindowMin: 30,
+    lastRescueMin: 70,
+    recovery: [{ afterMin: 20, status: "guarded", vitals: [{ key: "hr", value: "62" }, { key: "bp", value: "98/60" }, { key: "gcs", value: "15" }], patientSays: "I feel less faint." }],
+    review: {
+      cause: "A beta-blocker and a rate-limiting calcium-channel blocker were given together into a vein.",
+      whyItCausedHarm: "Both slow the AV node and depress the heart muscle: together they can cause complete heart block and shock.",
+      earliestRescueWindow: "At the order: use one or the other, never both IV.",
+      correctRescueSequence: ["Stop both", "Atropine", "IV calcium and glucagon", "Adrenaline infusion or pacing"],
+      lastRealisticRescueWindow: "Before asystole.",
+    },
+  }),
+};
+
+const clashOpioidBenzo: GlobalHazardTemplate = {
+  id: "clash-opioid-benzo",
+  applies: () => true,
+  triggers: (o, p, snap) => o.mode === "given" && (o.route === "IV" || o.route === "IM") && !snap.unstable && pairs(o, p, snap.drugIds, ["morphine", "tramadol", "fentanyl", "pethidine"], ["diazepam", "midazolam", "lorazepam", "alprazolam"]),
+  build: () => ({
+    id: "clash-opioid-benzo",
+    label: "Respiratory depression from an opioid with a benzodiazepine",
+    stages: [
+      { afterMin: 8, status: "deteriorating", vitals: [{ key: "rr", value: "8" }, { key: "spo2", value: "86" }, { key: "gcs", value: "10" }], observation: { role: "nurse", text: "Doctor, they're very drowsy and hardly breathing." }, patientSays: "(Mumbles, can't stay awake.)" },
+      { afterMin: 25, status: "critical", vitals: [{ key: "rr", value: "5" }, { key: "spo2", value: "70" }, { key: "gcs", value: "7" }], observation: { role: "nurse", text: "Breathing is very shallow. Saturation is falling." } },
+      { afterMin: 50, status: "deceased", ...STOPPED_HEART, observation: { role: "nurse", text: "Apnoeic. No pulse." } },
+    ],
+    rescue: [["drug:naloxone", "drug:flumazenil", "measure:intubation"]],
+    fullRecoveryWindowMin: 25,
+    lastRescueMin: 45,
+    recovery: [{ afterMin: 15, status: "guarded", vitals: [{ key: "rr", value: "14" }, { key: "spo2", value: "95" }, { key: "gcs", value: "14" }], patientSays: "(Waking up.)" }],
+    review: {
+      cause: "An opioid and a benzodiazepine were given together.",
+      whyItCausedHarm: "Each depresses the brainstem's drive to breathe, and together far more than either alone.",
+      earliestRescueWindow: "At the order: lowest doses, with monitoring and oxygen ready.",
+      correctRescueSequence: ["Open the airway, bag-mask ventilate", "Naloxone", "Intubate if it doesn't respond"],
+      lastRealisticRescueWindow: "Before the arrest.",
+    },
+  }),
+};
+
+const clashSerotonin: GlobalHazardTemplate = {
+  id: "clash-serotonin",
+  applies: () => true,
+  triggers: (o, p, snap) => pairs(o, p, snap.drugIds, SSRIS, ["tramadol", "linezolid"]),
+  build: () => ({
+    id: "clash-serotonin",
+    label: "Serotonin syndrome",
+    prescribedOnsetMin: 720,
+    stages: [
+      { afterMin: 120, status: "deteriorating", vitals: [{ key: "hr", value: "122" }, { key: "temp", value: "101.8" }, { key: "bp", value: "158/96" }], observation: { role: "nurse", text: "Doctor, they're agitated and sweating, with a tremor and jerking legs." }, examFindings: { neuro: "Tremor, inducible ankle clonus, brisk reflexes, worse in the legs. Dilated pupils." }, patientSays: "I can't keep still. I'm shaking." },
+      { afterMin: 300, status: "critical", vitals: [{ key: "hr", value: "138" }, { key: "temp", value: "104.5" }, { key: "gcs", value: "11" }], observation: { role: "nurse", text: "Temperature is climbing fast, they're rigid and confused." } },
+    ],
+    rescue: [["measure:stop-drug"], ["drug:lorazepam", "drug:diazepam", "drug:midazolam"]],
+    fullRecoveryWindowMin: 240,
+    lastRescueMin: 600,
+    recovery: [{ afterMin: 180, status: "improving", vitals: [{ key: "hr", value: "94" }, { key: "temp", value: "99.2" }, { key: "bp", value: "132/80" }, { key: "gcs", value: "15" }], patientSays: "The shaking has settled." }],
+    review: {
+      cause: "An SSRI was combined with another serotonergic drug.",
+      whyItCausedHarm: "Too much serotonin at central and peripheral receptors causes clonus, agitation and hyperthermia.",
+      earliestRescueWindow: "At the order: check what they're already taking.",
+      correctRescueSequence: ["Stop the serotonergic drugs", "Benzodiazepines", "Active cooling", "Cyproheptadine if available"],
+      lastRealisticRescueWindow: "Before severe hyperthermia.",
+    },
+  }),
+};
+
+export const DRUG_SAFETY: GlobalHazardTemplate[] = [paracetamolOverdose, negativeInotrope, retinoidTetracycline, steroidOnFace, isotretinoinCourse, clashQt, clashAvBlock, clashOpioidBenzo, clashSerotonin];

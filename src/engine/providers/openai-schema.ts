@@ -227,7 +227,7 @@ export const ManagementSchema = z.object({
     definitive: strs(4, 40),
     byMinute: z.coerce.number().catch(30),
     label: str(80),
-    response: z.object({ vitals: listOf(CourseVital, 8), says: optStr(160), ecgAfter: optStr(200) }).catch({ vitals: [] }),
+    response: z.object({ vitals: listOf(CourseVital, 8), says: optStr(160), ecgAfter: optStr(200), examAfter: z.record(z.string(), z.string().max(240)).optional().catch(undefined) }).catch({ vitals: [] }),
     untreated: listOf(z.object({ afterMin: z.coerce.number(), status: z.enum(["deteriorating", "critical", "deceased"]).catch("deteriorating"), vitals: listOf(CourseVital, 8), nurse: optStr(160) }), 4),
   }).optional().catch(undefined),
   reasoning: listOf(z.object({ stage: z.enum(["History", "Examination", "Investigation", "Diagnosis"]), text: str(500) }), 4),
