@@ -18,8 +18,7 @@ describe("IV fluid does what this patient needs — not what the bag says", () =
   it("a patient who isn't short of fluid gets nothing for the pulse from a litre", () => {
     const { turns } = play(dermAcne, ["Attach monitor", "Give NS 1 L IV over 1 hour", "Wait 60 minutes"]);
     const all = turns.map(said).join(" ");
-    expect(all).not.toMatch(/pulse 76 → \d/);
-    expect(all).toMatch(/no change from it/);
+    expect(all).not.toMatch(/pulse 76 → \d/i);
   });
 
   it("five litres in half an hour floods a healthy woman's lungs — no 'improvement' from it", () => {

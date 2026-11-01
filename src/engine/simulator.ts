@@ -14,7 +14,7 @@ import { consistentLabs } from "./abg-check";
 import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation, readVitalKeys, normalVitals } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
-import { fluidOutcome, tierAt, volumeState, type FluidGiven } from "./fluids";
+import { fluidOutcome, tierAt, volumeFactor, volumeState, type FluidGiven } from "./fluids";
 import { formularyDrug, routesFor, type DrugClass, type FormularyDrug } from "./formulary";
 import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProblem } from "./contraindications";
 import { BIG_STEPS, givesReason } from "./behaviour";
@@ -88,6 +88,8 @@ export interface GivenDrug {
   overMin?: number;
   /** IV fluid: the share of the patient's deficit it filled (0–1) — all it does for the circulation (fluids.ts). */
   benefit?: number;
+  /** Fluid beyond the deficit: the rise in systolic pressure it brings at its peak. */
+  pressureLoad?: number;
   /** An infusion stopped part-way: when. */
   stoppedAt?: number;
   /** Its effects are played out by a toxicity hazard rather than the drug-effect layer. */
@@ -421,7 +423,7 @@ export function openingEffects(def: ClinicalCaseDefinition, hidden: HiddenState)
 
 /** The drugs given, as the effect layer reads them. An IV fluid acts by how much of the patient's deficit it filled — nothing, if they had none. */
 function actingDrugs(hidden: HiddenState): ActingDrug[] {
-  return hidden.drugs.map((d) => ({ drugId: d.drugId, at: d.at, route: d.route, mode: d.mode, multiple: d.benefit !== undefined ? d.benefit * 5 : d.multiple ?? 1, overMin: d.overMin, skip: d.toxic ? "all" : d.authored }));
+  return hidden.drugs.map((d) => ({ drugId: d.drugId, at: d.at, route: d.route, mode: d.mode, multiple: d.benefit !== undefined ? d.benefit * 5 : d.multiple ?? 1, overMin: d.overMin, pressureLoad: d.pressureLoad, skip: d.toxic ? "all" : d.authored }));
 }
 
 /** The vitals as they are this minute: the patient's own course (the illness, the case's hazards) moved by every drug acting now. */
@@ -1985,6 +1987,16 @@ const MAX_IV_RATE: Record<string, { mgPerMin: number; why: string }> = {
   amiodarone: { mgPerMin: 30, why: "Amiodarone that fast drops the pressure — it goes over 20–60 minutes." },
 };
 
+/**
+ * What fluid beyond the deficit does to the pressure: about 1.5 mmHg systolic per mL/kg when it goes in fast, less when slowly, as
+ * the vessels and the rest of the body take it up. A teaching approximation. (Enough of it floods the lungs: fluids.ts.)
+ */
+function pressureRise(excessMl: number, weightKg: number, overMin: number | undefined, age: number): number | undefined {
+  if (excessMl < 100) return undefined;
+  const speed = overMin === undefined || overMin > 120 ? 0.3 : overMin > 30 ? 0.6 : 1;
+  return Math.min(35, (excessMl / Math.max(weightKg, 3)) * 1.5 * speed * (age >= 65 ? 1.2 : 1));
+}
+
 /** What has gone in so far, for the labs to follow. */
 function labContext(def: ClinicalCaseDefinition, hidden: HiddenState): LabContext {
   const ran = hidden.drugs.filter((d) => d.mode === "given" && d.route === "IV" && d.volumeMl).map((d) => {
@@ -2342,7 +2354,11 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const ivUsual = route === "IV" && unit === "mg" && amount !== undefined ? IV_USUAL_MG[drug.id] : undefined;
   const multiple = (def.patient.age < 13 ? childDoseMultiple(drug.id, amount, unit, weightKg) : undefined) ?? (ivUsual ? amount! / ivUsual : doseMultiple(drug, { amount, unit, volumeMl }, weightKg));
   // A drip "stat" or "fast" runs as fast as a pressure bag through a wide cannula allows (about 100 mL a minute) — not in one minute.
-  const overMin = drug.fluid && rateMlH && volumeMl ? Math.round((volumeMl / rateMlH) * 60) : typeof p.overMin === "number" && p.overMin > 0 ? (drug.fluid && p.rapid === true ? Math.max(5, (volumeMl ?? 500) / 100) : p.overMin) : undefined;
+  const askedOver = drug.fluid && rateMlH && volumeMl ? Math.round((volumeMl / rateMlH) * 60) : typeof p.overMin === "number" && p.overMin > 0 ? (drug.fluid && p.rapid === true ? Math.max(5, (volumeMl ?? 500) / 100) : p.overMin) : undefined;
+  // A cannula has a limit: wide open with a pressure bag, about 250 mL a minute.
+  const fastest = drug.fluid && volumeMl && volumeMl <= 5000 && route === "IV" ? Math.ceil(volumeMl / 250) : 0;
+  const overMin = askedOver !== undefined && askedOver < fastest ? fastest : askedOver;
+  if (askedOver !== undefined && askedOver < fastest && def.track !== "phone") fx.push({ type: "message", role: "nurse", kind: "speech", text: `Doctor, that can't run in ${describeSpan(askedOver)}. Wide open with a pressure bag, it takes about ${describeSpan(fastest)}.` });
   // IV fluid acts by what the patient needs: it fills a deficit (and helps), and beyond it, less what
   // the kidneys clear, it collects in the lungs.
   let fluid: ReturnType<typeof fluidOutcome> | undefined;
@@ -2356,6 +2372,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const given: GivenDrug = {
     drugId: drug.id, generic: drug.generic, brand: drug.brands[0], classes: drug.classes, at: hidden.clock,
     mode, route, dose, amount, unit, frequency, duration, volumeMl, multiple, overMin, benefit: fluid?.benefit,
+    pressureLoad: drug.fluid && route === "IV" && mode === "given" && volumeMl ? pressureRise(volumeMl * volumeFactor(drug.id) - (fluid?.filledMl ?? 0), weightKg, overMin, def.patient.age) : undefined,
     authored: rule && def.rubric.definitiveTreatment?.ids.includes(rule.id) ? "all" : rule?.vitalsAfter?.flatMap((v): EffectKey[] => (v.key === "bp" ? ["sbp", "dbp"] : [v.key as EffectKey])),
     ruleId: rule?.id, appropriateness, doseError, frequencyError,
   };

@@ -824,3 +824,38 @@ describe("from the last new games", () => {
     expect(givesReason("just admit")).toBe(false);
   });
 });
+
+describe("case report: fluid in someone who isn't short of it (Case #47)", () => {
+  const def = () => {
+    const base = ALL_CASES.find((c) => c.track === "opd" && c.patient.age >= 18)!;
+    return { ...base, baselineVitals: { ...base.baselineVitals, bp: { key: "bp", value: "164/100" } }, profile: { ...base.profile, volume: "normal" } } as typeof base;
+  };
+  const sbp = (bp: string) => parseFloat(bp);
+
+  it("a rapid litre raises the pressure, in proportion, and it fades", async () => {
+    const one = await converse(def(), ["iv ns 500 ml in 50 sec", "bp"]);
+    expect(sbp(one.hidden.vitals.bp.value)).toBe(164);
+    const shown = said(one.state);
+    const after = Number(shown.match(/BP (\d+)\/\d+ mmHg/)?.[1]);
+    expect(after).toBeGreaterThan(164);
+    const two = await converse(def(), ["iv ns 500 ml in 50 sec", "give 500 ml rl iv in 10 sec", "bp"]);
+    const afterTwo = [...said(two.state).matchAll(/BP (\d+)\/\d+ mmHg/g)].map((m) => Number(m[1])).at(-1)!;
+    expect(afterTwo).toBeGreaterThan(after);
+    const later = await converse(def(), ["iv ns 500 ml in 50 sec", "wait 4 hours", "bp"]);
+    const faded = [...said(later.state).matchAll(/BP (\d+)\/\d+ mmHg/g)].map((m) => Number(m[1])).at(-1)!;
+    expect(faded).toBeLessThanOrEqual(165);
+  });
+
+  it("no order runs faster than a cannula can, and it says so", async () => {
+    const text = said((await converse(def(), ["give 500 ml rl iv in 10 sec"])).state);
+    expect(text).toMatch(/can't run in 10 sec/);
+    expect(text).toMatch(/over 2 min/);
+    expect(text).not.toMatch(/over 0 min/);
+  });
+
+  it("someone short of fluid still gets the benefit, not a false rise", async () => {
+    const shocked = C("obg-pph");
+    const given = await converse(shocked, ["ns 500 ml iv over 15 minutes"]);
+    expect(given.hidden.drugs[0]?.pressureLoad ?? 0).toBeLessThan(10);
+  });
+});

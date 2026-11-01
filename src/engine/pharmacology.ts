@@ -209,6 +209,8 @@ export interface ActingDrug {
   mode: "given" | "prescribed";
   multiple: number;
   overMin?: number;
+  /** IV fluid beyond what the patient lacked: the rise in systolic pressure it brings at its peak (mmHg), fading as it redistributes. */
+  pressureLoad?: number;
   /** Its effects are played by a toxicity hazard instead, or are the case's own (already in its course). */
   skip?: EffectKey[] | "all";
 }
@@ -254,6 +256,13 @@ export function drugEffects(drugs: readonly ActingDrug[], vitals: Record<VitalKe
     for (const cls of p.reverses) reversal.set(cls, Math.max(reversal.get(cls) ?? 0, 0.9 * on));
   }
   for (const d of given) {
+    if (d.pressureLoad && !(Array.isArray(d.skip) && d.skip.includes("sbp"))) {
+      const t = clock - d.at;
+      const over = Math.max(d.overMin ?? 1, 1);
+      const share = t <= 0 ? 0 : t < over ? t / over : Math.exp(-(t - over) / 45);
+      if (base.sbp !== undefined) deltas.sbp = (deltas.sbp ?? 0) + d.pressureLoad * share;
+      if (base.dbp !== undefined) deltas.dbp = (deltas.dbp ?? 0) + 0.4 * d.pressureLoad * share;
+    }
     const drug = formularyDrug(d.drugId);
     const p = drug && profileFor(drug);
     if (!drug || !p) continue;

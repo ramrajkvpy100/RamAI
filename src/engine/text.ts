@@ -222,6 +222,7 @@ export function formatClock(arrivalMinuteOfDay: number, elapsed: number): string
 
 /** Human description of a sim-time span: "45 min", "3 h", "2 weeks". */
 export function describeSpan(minutes: number): string {
+  if (minutes < 1) return `${Math.round(minutes * 60)} sec`;
   if (minutes < 60) return `${Math.round(minutes)} min`;
   if (minutes < 1440) {
     const h = minutes / 60;
