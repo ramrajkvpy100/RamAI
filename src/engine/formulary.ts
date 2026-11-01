@@ -179,7 +179,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "prednisolone", generic: "Prednisolone", brands: ["Wysolone", "Omnacortil"], aliases: ["prednisone", "pred"], classes: ["steroid-systemic"], route: "PO", dose: "40 mg", frequency: "OD" },
   { id: "dexamethasone", generic: "Dexamethasone", brands: ["Dexona", "Decdan"], aliases: ["dexa"], classes: ["steroid-systemic"], route: "IV", dose: "8 mg", frequency: "stat" },
   { id: "hydrocortisone", generic: "Hydrocortisone", brands: ["Lycortin-S"], aliases: ["hydrocortisone iv", "hc"], classes: ["steroid-systemic"], route: "IV", dose: "100 mg", frequency: "stat" },
-  { id: "methylprednisolone", generic: "Methylprednisolone", brands: ["Solu-Medrol", "Medrol"], aliases: ["solu medrone"], classes: ["steroid-systemic"], route: "IV", dose: "125 mg", frequency: "stat" },
+  { id: "methylprednisolone", generic: "Methylprednisolone", brands: ["Solu-Medrol", "Medrol"], aliases: ["solu medrone", "solumedrol", "solu medrol", "solumedrone", "methylpred"], classes: ["steroid-systemic"], route: "IV", dose: "125 mg", frequency: "stat" },
 
   // Antivirals, antimalarials
   { id: "acyclovir", generic: "Aciclovir", brands: ["Acivir", "Zovirax"], aliases: ["acyclovir", "aciclovir"], classes: ["antiviral"], route: "PO", dose: "800 mg", frequency: "5 times daily" },

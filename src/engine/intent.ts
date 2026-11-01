@@ -751,6 +751,17 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
   // Plain instructions to the patient ("stand up", "take a deep breath") — answered at once, no AI needed —
   // unless the case has its own step for them (sitting a breathless patient up is treatment).
   const instruction = /^\s*(?:please\s+|can you\s+|could you\s+|make (?:him|her|them|the patient)\s+)?(?:stand(?: up)?|get up|sit(?: (?:him|her|them|the patient))?(?: up| down| upright)?|prop (?:him|her|them|the patient) up|lie (?:down|flat)|lie on (?:your|the|his|her) (?:back|side|left|right)|turn (?:over|to (?:your|the|his|her) (?:left|right|side))|walk(?: a few steps| for me| around)?|take a (?:deep )?breath|breathe (?:in|deeply)|hold your breath|open your mouth|say (?:aa+h|ahh+)|stick out your tongue|show (?:me )?your tongue|relax|cough)\b[^?]{0,30}$/i.test(raw);
+  // "Senior mam, what is the diagnosis?", "sir what do you think": asking the senior, never the patient.
+  if (/^\s*(?:(?:dear|hey|ok)\s+)?(?:(?:madam|ma'?am|mam|sir)\s+)?(?:senior\s+)?(?:madam|ma'?am|mam|sir)?\b[\s,]*(?:what(?:'s| is)? (?:the |your )?(?:diagnosis|plan|next step)|what do you (?:think|suggest|advise)|please help|help me|what should i do)\b/i.test(raw)) return [{ kind: "hint", phrase: raw, matched: true }];
+  // "Send Fluorescein to a private lab", "order fluorescein examination": the test named, known to the case or not.
+  const sent = /^\s*(?:please\s+)?(?:send|order|get|do)\s+(?:a\s+|an\s+|the\s+)?(.+?)\s+(?:to|from|at|in)\s+(?:a\s+|an\s+|the\s+)?(?:private|outside)(?:\s+lab(?:oratory)?)?\s*\.?$/i.exec(raw)?.[1];
+  const namedExam = /^\s*(?:please\s+)?order\s+(?:a\s+|an\s+|the\s+)?([a-z][\w -]{2,40}?)\s+(?:examination|exam|test)\s*\.?$/i.exec(raw)?.[1];
+  const testName = sent ?? (namedExam && !/^(?:general|systemic|physical|chest|heart|cardiac|abdomen|abdominal|cns|neuro\w*|skin|eye|ear|throat|blood|urine)\b/i.test(namedExam) ? namedExam : undefined);
+  if (testName) {
+    const read = resolveIntents(testName, ctx).filter((i) => i.kind === "investigation" && i.targetId && i.targetId !== "blood");
+    const payload = sent ? { private: true } : {};
+    return read.length ? read.map((i) => ({ ...i, phrase: raw, payload: { ...i.payload, ...payload } })) : [{ kind: "investigation", targetId: `adhoc:${testName.trim()}`, phrase: raw, matched: true, payload }];
+  }
   // "Hint", "give me a hint", "I'm stuck": a nudge, only when asked for.
   if (/^\s*(?:please\s+)?(?:give me |show me |i need |any )?(?:a |another )?(?:hint|clue)s?\b|\bi'?m stuck\b|\bwhat (?:should|do) i do next\b|^\s*(?:dear\s+|hey\s+|ok\s+)?senior\b/i.test(raw)) return [{ kind: "hint", phrase: raw, matched: true }];
   // "Call cardiology", "surgery consult", "ortho opinion": another department's view.

@@ -8,6 +8,7 @@
  * this file must be deterministic for a given (definition, records) pair.
  */
 
+import { consistentLabs } from "./abg-check";
 import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation } from "./catalog";
 import type { ClinicalCaseDefinition, HazardDefinition, HazardStage, TherapeuticRule, Appropriateness } from "./case-definition";
@@ -1654,7 +1655,7 @@ function orderAdhoc(ctx: TurnContext, id: string): TurnEffect[] {
   const prior = [...hidden.investigations].reverse().find((i) => i.defId === id);
   if (prior && !prior.delivered) return [{ type: "message", role: "system", kind: "status", text: `${prior.name} is already sent — about ${Math.max(1, Math.round(prior.resultAt - hidden.clock))} min.` }];
   const generated = generatedResult(ctx.record, id);
-  const result: OrderedInvestigation["result"] = generated?.rows?.length || generated?.report ? { rows: generated.rows, report: generated.report } : { report: "Within normal limits." };
+  const result: OrderedInvestigation["result"] = generated?.rows?.length || generated?.report ? { rows: generated.rows && consistentLabs(generated.rows), report: generated.report } : { report: "Within normal limits." };
   const turnaround = INSTANT_RESULTS ? 0 : 60;
   // A scan, a biopsy, a scope: a picture the doctor reads, drawn from its report.
   const category = pictureTypeFor(id, name) ? "imaging" : "lab";
@@ -1797,6 +1798,8 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     const o = stage.investigations?.[id];
     if (o) result = { rows: o.rows ?? result.rows, report: o.report ?? result.report, media: o.media ?? result.media };
   }
+  // Whoever wrote these numbers, they must agree with each other.
+  if (result.rows) result = { ...result, rows: consistentLabs(result.rows) };
   // The film as it was taken: an AP portable chest film can't judge the heart's size; a supine abdomen can't show fluid levels.
   if (id === "cxr" && study.view?.startsWith("AP")) {
     const spec = result.media?.spec;
@@ -2004,7 +2007,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // prescription's frequency and duration — is asked about, not guessed.
   // A child's usual dose is by weight.
   const child = def.patient.age < 13 ? { weightKg: parseFloat(hidden.vitals.weight.value) || 0 } : undefined;
-  const p = intent.payload?.usual === true ? usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined) : intent.payload ?? {};
+  // A methylprednisolone pulse is a gram over an hour, not the 125 mg stat dose used for asthma or anaphylaxis.
+  const pulse: Record<string, string | number> = drug.id === "methylprednisolone" && def.patient.age >= 16 && /\bpulse\b/i.test(`${intent.phrase} ${ctx.record.raw}`) ? { amount: 1000, unit: "mg", dose: "1000 mg", overMin: 60 } : {};
+  const p = intent.payload?.usual === true ? { ...usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined), ...pulse } : intent.payload ?? {};
   // A route this drug doesn't come in ("tab ceftriaxone", "IV metformin"): the nurse says so and asks again.
   const routes = routesFor(drug);
   const asked = typeof p.route === "string" ? (p.route as DrugRoute) : undefined;

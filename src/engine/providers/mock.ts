@@ -114,7 +114,10 @@ export const mockProvider: ClinicalProvider = {
       const nurse = ctx.def.track === "emergency";
       return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { ...(nurse ? { speaker: "nurse" } : {}), settled: true } }], generated: { "0": nurse ? "Okay, doctor. What next?" : "Okay, doctor." } };
     }
-    const intents = resolveIntents(text, rctx);
+    // "800 mg" with nothing waiting on an answer: the last drug again at this dose, not a remark to the patient.
+    const newDose = !waiting ? /^(?:(?:increase|raise|reduce|decrease|lower|change|make|up)\s+(?:it\s+|the\s+dose\s+|dose\s+)?(?:to\s+)?)?(\d+(?:\.\d+)?\s*(?:mg|mcg|µg|g|ml|iu|units?))(?:\s+dose)?\s*\.?$/i.exec(text.trim())?.[1] : undefined;
+    const lastDrug = newDose ? ctx.hidden.drugs.filter((d) => d.volumeMl === undefined).at(-1) : undefined;
+    const intents = resolveIntents(lastDrug ? [lastDrug.generic, newDose, lastDrug.route, lastDrug.frequency, lastDrug.duration && lastDrug.duration !== "as advised" ? `for ${lastDrug.duration}` : ""].filter(Boolean).join(" ") : text, rctx);
     // A reply the rules wrote themselves (the nurse, to a question about a medicine): said as written.
     const written = intents.findIndex((i) => typeof i.payload?.reply === "string");
     if (written >= 0) return { intents, generated: { [String(written)]: String(intents[written]!.payload!.reply) } };
