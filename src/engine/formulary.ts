@@ -10,6 +10,8 @@ import type { ParsedDose } from "./case-definition";
 import type { DrugRoute } from "./types";
 
 export type DrugClass =
+  | "alpha-blocker"
+  | "fibrinolytic"
   | "analgesic" | "antipyretic" | "nsaid" | "cox2" | "opioid" | "salicylate"
   | "ppi" | "h2-blocker" | "antiemetic" | "antispasmodic" | "antidiarrhoeal" | "laxative" | "ors"
   | "antibiotic" | "penicillin" | "beta-lactam" | "cephalosporin" | "macrolide" | "tetracycline"
@@ -268,6 +270,12 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "levosalbutamol-ipratropium", generic: "Levosalbutamol + ipratropium", brands: ["Duolin"], aliases: ["duolin neb", "ipratropium", "duoline"], classes: ["bronchodilator", "anticholinergic"], route: "NEB", dose: "1 respule", frequency: "stat" },
   { id: "budesonide", generic: "Budesonide", brands: ["Budecort"], aliases: ["budesonide neb"], classes: ["inhaled-steroid"], route: "NEB", dose: "0.5 mg", frequency: "BD" },
   { id: "budesonide-formoterol", generic: "Budesonide + formoterol", brands: ["Foracort"], aliases: ["formoterol"], classes: ["inhaled-steroid", "bronchodilator"], route: "INH", dose: "200/6 µg", frequency: "BD" },
+  { id: "tamsulosin", generic: "Tamsulosin", brands: ["Urimax", "Veltam"], aliases: ["tamsulosin mr"], classes: ["alpha-blocker"], route: "PO", dose: "0.4 mg", frequency: "OD at night" },
+  { id: "clarithromycin", generic: "Clarithromycin", brands: ["Claribid"], classes: ["antibiotic", "macrolide"], route: "PO", dose: "500 mg", frequency: "BD" },
+  { id: "tenecteplase", generic: "Tenecteplase", brands: ["Tenectase", "Elaxim"], aliases: ["tnk"], classes: ["fibrinolytic"], route: "IV", dose: "40 mg", frequency: "stat" },
+  { id: "streptokinase", generic: "Streptokinase", brands: ["Cardiostrep", "STPase"], aliases: ["sk"], classes: ["fibrinolytic"], route: "IV", dose: "1.5 million units", frequency: "over 60 min" },
+  { id: "moxifloxacin-eye", generic: "Moxifloxacin 0.5% eye drops", brands: ["Moxicip", "Vigamox"], aliases: ["moxifloxacin eye drops", "antibiotic eye drops", "moxi eye drops"], classes: ["antibiotic", "fluoroquinolone", "topical-antimicrobial"], route: "TOP", dose: "1 drop", frequency: "QID" },
+  { id: "artificial-tears", generic: "Lubricating eye drops", brands: ["Refresh Tears", "Systane"], aliases: ["artificial tears", "lubricant eye drops", "eye lubricant", "carboxymethylcellulose"], classes: ["emollient"], route: "TOP", dose: "1 drop", frequency: "QID" },
   { id: "montelukast-levocetirizine", generic: "Montelukast + levocetirizine", brands: ["Montek LC", "Montair LC"], aliases: ["montek lc", "montair lc", "montelukast levocetirizine", "montelukast and levocetirizine combination"], classes: ["leukotriene", "antihistamine"], route: "PO", dose: "10 mg + 5 mg", frequency: "HS" },
   { id: "montelukast", generic: "Montelukast", brands: ["Montair"], classes: ["leukotriene"], route: "PO", dose: "10 mg", frequency: "HS" },
 

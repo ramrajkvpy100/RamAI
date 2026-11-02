@@ -74,6 +74,8 @@ const BY_CLASS: [DrugClass, Profile][] = [
     effects: { hr: 10, rr: { toward: 18, by: 0.25, above: 20 }, spo2: { toward: 96, by: 0.3, below: 95 } },
     feels: { when: "breathing", says: "Breathing is a little easier now." },
   }],
+  // Reperfusion shows over the hour after a lytic: the pain goes and the ST settles.
+  ["fibrinolytic", { kinetics: { default: { onset: 20, peak: 60, duration: 180 } }, effects: {} }],
   ["nitrate", { kinetics: { SL: { onset: 1, peak: 4, duration: 30 }, IV: { onset: 1, peak: 3, duration: 30 }, PO: { onset: 30, peak: 60, duration: 480 }, default: { onset: 2, peak: 5, duration: 30 } }, effects: { sbp: -18, dbp: -8, hr: 8, pain: -1 } }],
   ["loop-diuretic", { kinetics: { IV: { onset: 5, peak: 45, duration: 360 }, PO: { onset: 60, peak: 120, duration: 480 }, default: { onset: 30, peak: 90, duration: 480 } }, effects: { urine: 150, sbp: -5 }, feels: { when: "urine", says: "I need to pass urine, doctor." } }],
   ["thiazide", { kinetics: { default: { onset: 120, peak: 360, duration: 1440 } }, effects: { urine: 30, sbp: -4 } }],

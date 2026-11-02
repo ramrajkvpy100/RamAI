@@ -981,4 +981,392 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
     "(Smiles and reaches for the cup.)":
       "(Muskurata hai aur cup ki taraf haath badhata hai.)",
   },
+  "card-stemi-district-01": {
+    "Doctor, there's a heavy stone on my chest. It started an hour ago and it won't go.":
+      "Doctor, chhati par jaise bhaari patthar rakha hai. Ek ghante pehle shuru hua aur ja nahi raha.",
+    "It's in the middle of my chest, like a heavy stone pressing. It goes up to my jaw and down my left arm.":
+      "Chhati ke beech mein, jaise bhaari patthar daba raha ho. Jabde tak aur baayen haath mein jaata hai.",
+    "About an hour ago, at 6:40, when I was opening the shop shutter. It hasn't stopped for even a minute.":
+      "Karib ek ghanta pehle, 6:40 pe, jab dukaan ka shutter khol raha tha. Ek minute ke liye bhi nahi ruka.",
+    "I'm drenched in sweat and I vomited once. I'm a little short of breath. I didn't faint.":
+      "Paseene se bheeg gaya hoon aur ek baar ulti hui. Saans thodi phool rahi hai. Behosh nahi hua.",
+    "No stroke, no bleeding, no ulcers. No operation or injury. I don't take any blood thinners.":
+      "Na lakwa, na bleeding, na ulcer. Koi operation ya chot nahi. Khoon patla karne ki dawa nahi leta.",
+    "I've had sugar for eight years. BP too, for five. Never a heart problem before. No asthma.":
+      "Aath saal se sugar hai. BP bhi, paanch saal se. Dil ki dikkat pehle kabhi nahi hui. Asthma nahi hai.",
+    "Metformin and a BP tablet, but I miss them often. I took nothing for this pain.":
+      "Metformin aur BP ki goli, par aksar chhoot jaati hai. Is dard ke liye kuch nahi liya.",
+    "No allergies, doctor.":
+      "Koi allergy nahi, doctor.",
+    "I smoke fifteen bidis a day, for thirty years. Alcohol only at weddings.":
+      "Din mein pandrah beedi peeta hoon, tees saal se. Sharab sirf shaadi-byah mein.",
+    "My elder brother died of a heart attack at fifty-two.":
+      "Mere bade bhai ki bawan saal mein heart attack se maut hui thi.",
+    "It's worse, doctor. I can't breathe properly.":
+      "Aur badh gaya hai, doctor. Theek se saans nahi aa rahi.",
+    "The weight on my chest has lifted, doctor.":
+      "Chhati ka bojh utar gaya, doctor.",
+    "No pain since that injection, doctor. They've told me about the angiography.":
+      "Us injection ke baad dard nahi hua, doctor. Angiography ke baare mein bata diya hai.",
+    "The pain is less, doctor, but I still feel some heaviness.":
+      "Dard kam hai, doctor, par abhi bhi thoda bhaaripan hai.",
+    "I'm more breathless, doctor. I can't lie flat.":
+      "Saans aur phool rahi hai, doctor. Seedha let nahi paata.",
+    "The pain never went, doctor, and now I can't breathe.":
+      "Dard gaya hi nahi, doctor, aur ab saans nahi aa rahi.",
+  },
+  "neuro-bells-chc-01": {
+    "Doctor, my face has gone crooked. I woke up like this and I'm scared it's a stroke.":
+      "Doctor, mera chehra tedha ho gaya hai. Subah utha to aisa tha, aur darr lag raha hai ki lakwa to nahi.",
+    "The right side of my face won't move. Water dribbles from that corner of my mouth, and that eye won't shut.":
+      "Chehre ka daayan hissa hil nahi raha. Munh ke us kone se paani girta hai, aur woh aankh band nahi hoti.",
+    "It was there when I woke this morning. Last night I only had some ache behind my right ear.":
+      "Aaj subah uthte hi aisa tha. Kal raat sirf daayen kaan ke peeche thoda dard tha.",
+    "My arms and legs are fine and I walked in here myself. No double vision, no headache. My words are only a little slurred because of my lip.":
+      "Haath-pair theek hain, khud chal kar aaya hoon. Double nahi dikhta, sar dard nahi. Baat bas honth ki wajah se thodi saaf nahi nikalti.",
+    "Sounds seem too loud on the right, and my tea tasted strange. No rash or blisters in the ear that I've seen.":
+      "Daayen taraf awaaz zyada tez lagti hai, aur chai ka swaad ajeeb laga. Kaan mein daane ya chhale nahi dikhe.",
+    "No sugar, no BP, no stroke before. I've never had anything like this.":
+      "Na sugar, na BP, pehle lakwa bhi nahi. Aisa kabhi nahi hua.",
+    "I'm not taking anything, doctor.":
+      "Kuch nahi le raha, doctor.",
+    "No allergies.":
+      "Koi allergy nahi.",
+    "I don't smoke or drink.":
+      "Na cigarette, na sharab.",
+    "I had a cold last week. No injury, no fever now.":
+      "Pichhle hafte zukaam hua tha. Chot nahi lagi, ab bukhar nahi hai.",
+    "I'll tape the eye shut at night and put the drops in, doctor.":
+      "Raat ko aankh tape se band karunga aur drops daalunga, doctor.",
+    "Thank God it's not a stroke. I'll be patient, doctor.":
+      "Bhagwan ka shukar hai lakwa nahi hai. Sabr rakhunga, doctor.",
+    "The eye nearly closes now, doctor, and I can smile a little on that side.":
+      "Ab aankh lagbhag band ho jaati hai, doctor, aur us taraf thoda muskura leta hoon.",
+    "It's slowly getting better, doctor, but the eye still waters.":
+      "Dheere dheere theek ho raha hai, doctor, par aankh se abhi bhi paani aata hai.",
+    "No real change in my face, doctor.":
+      "Chehre mein koi khaas farak nahi, doctor.",
+    "My face is the same, doctor, and now the eye is red and painful.":
+      "Chehra waisa hi hai, doctor, aur ab aankh laal hai aur dukhti hai.",
+  },
+  "resp-asthma-district-01": {
+    "Can't… breathe… inhaler… not working.":
+      "Saans… nahi aa rahi… inhaler… kaam nahi kar raha.",
+    "Chest… very tight. Whistling. Dry cough… since evening.":
+      "Chhati… bahut jakdi hai. Seeti bajti hai. Sookhi khaansi… shaam se.",
+    "Since six. Cold… for two days. Then cleaning… dusty room.":
+      "Chhe baje se. Zukaam… do din se. Phir safai… dhool wala kamra.",
+    "Asthma… since childhood. No sugar, no BP.":
+      "Asthma… bachpan se. Sugar nahi, BP nahi.",
+    "Admitted once… two years back. Never on a ventilator.":
+      "Ek baar bharti hui… do saal pehle. Ventilator par kabhi nahi.",
+    "Blue inhaler… ten puffs tonight. Stopped the daily one… months ago.":
+      "Neela inhaler… aaj raat das puff. Roz wala band kar diya… mahino pehle.",
+    "Dust. No… medicine allergy.":
+      "Dhool se. Dawa se… allergy nahi.",
+    "Not pregnant. Period… last week.":
+      "Pregnant nahi hoon. Period… pichhle hafte.",
+    "No smoking. No alcohol.":
+      "Na cigarette. Na sharab.",
+    "No fever. No sharp pain. No blood.":
+      "Bukhar nahi. Tez dard nahi. Khoon nahi.",
+    "It's easier now, doctor.":
+      "Ab aasaan lag raha hai, doctor.",
+    "I can breathe and talk now, doctor. I'll restart the daily inhaler.":
+      "Ab saans le paa rahi hoon aur baat kar paa rahi hoon, doctor. Roz wala inhaler phir shuru karungi.",
+    "It's better, doctor, but my chest is still a little tight.":
+      "Behtar hai, doctor, par chhati abhi bhi thodi jakdi hai.",
+    "It's getting harder to breathe, doctor.":
+      "Saans lena aur mushkil ho raha hai, doctor.",
+  },
+  "gi-ulcer-district-01": {
+    "Doctor, my stomach burns here, and at night it wakes me up. It's been going on for a month.":
+      "Doctor, pet mein yahan jalan hoti hai, aur raat ko isse neend khul jaati hai. Ek mahine se aisa hai.",
+    "It burns just here, above the navel. It doesn't go to the back or the chest.":
+      "Bas yahan jalta hai, naabhi ke upar. Peeth ya chhati mein nahi jaata.",
+    "It comes when I'm hungry and at about 2 at night, for a month now. Food or an antacid settles it for a while.":
+      "Bhookh lagne par aur raat ko karib do baje hota hai, ek mahine se. Khane se ya antacid se thodi der theek ho jaata hai.",
+    "No vomiting, no blood. My stools are normal colour. My weight is the same and I can swallow fine.":
+      "Ulti nahi, khoon nahi. Latrine ka rang normal hai. Wazan utna hi hai aur nigalne mein dikkat nahi.",
+    "I take a Combiflam most days for back pain from driving. And antacid syrup.":
+      "Driving se kamar dard ke liye aksar roz ek Combiflam leta hoon. Aur antacid syrup.",
+    "I smoke about ten cigarettes a day. Alcohol sometimes, a few times a month. Lots of tea on the road.":
+      "Din mein karib das cigarette peeta hoon. Sharab kabhi kabhi, mahine mein kuch baar. Raaste mein chai bahut.",
+    "No sugar, BP or asthma. No operations. I've never been tested for this.":
+      "Na sugar, na BP, na asthma. Koi operation nahi. Iski jaanch kabhi nahi hui.",
+    "No allergy to any medicine that I know of.":
+      "Mujhe pata hai utni kisi dawa se allergy nahi.",
+    "My father had ulcers too. Nobody has had cancer.":
+      "Mere pitaji ko bhi ulcer tha. Cancer kisi ko nahi hua.",
+    "All right, doctor, no more Combiflam. What can I take for my back?":
+      "Theek hai doctor, ab Combiflam nahi. Kamar ke liye kya loon?",
+    "I'll try, doctor. It's hard on the road, but I'll cut down.":
+      "Koshish karunga, doctor. Raaste mein mushkil hai, par kam kar dunga.",
+    "So I test again after the course. I'll come back, doctor.":
+      "To course ke baad phir test karana hai. Aa jaunga, doctor.",
+    "The burning has gone, doctor. I sleep through the night, and I stopped the Combiflam.":
+      "Jalan chali gayi, doctor. Raat bhar sota hoon, aur Combiflam band kar di.",
+    "It's much better on the tablets, doctor, but I worry it will come back.":
+      "Goliyon se bahut aaram hai, doctor, par darr hai ki wapas na aa jaye.",
+    "It's worse, doctor, and my stools have turned black.":
+      "Aur badh gaya hai, doctor, aur latrine kaali ho gayi hai.",
+    "The burning hasn't gone, doctor. It still wakes me at night.":
+      "Jalan gayi nahi, doctor. Raat ko abhi bhi neend khul jaati hai.",
+  },
+  "neph-nephrotic-district-01": {
+    "Doctor, my face and legs have swollen up. My shoes don't fit any more.":
+      "Doctor, chehra aur pair sooj gaye hain. Joote ab fit nahi aate.",
+    "For three weeks. My face is puffy in the morning, and by evening it's my feet. I've put on about 6 kilos.":
+      "Teen hafte se. Subah chehra phoola rehta hai, aur shaam tak pair. Karib 6 kilo wazan badh gaya.",
+    "My urine is very frothy, like soap. The colour is normal, never red. I pass a little less than before.":
+      "Peshab mein bahut jhaag hai, sabun jaisa. Rang normal hai, kabhi laal nahi. Pehle se thoda kam aata hai.",
+    "No breathlessness, I lie flat fine. No chest pain or jaundice. I don't drink alcohol.":
+      "Saans nahi phoolti, seedha let leta hoon. Chhati mein dard ya peeliya nahi. Sharab nahi peeta.",
+    "No fever, rash or joint pain. I've taken no painkillers or herbal medicines. Nothing regular at all.":
+      "Na bukhar, na daane, na jodon mein dard. Koi painkiller ya jadi-booti nahi li. Roz ki koi dawa nahi.",
+    "No sugar, BP or kidney trouble before. This is the first time I've been really unwell.":
+      "Pehle na sugar, na BP, na kidney ki dikkat. Pehli baar itna bimaar hua hoon.",
+    "No allergies.":
+      "Koi allergy nahi.",
+    "Nobody at home has kidney problems.":
+      "Ghar mein kisi ko kidney ki dikkat nahi.",
+    "I don't smoke. I do like salty food and pickles.":
+      "Cigarette nahi peeta. Namkeen aur achaar pasand hai.",
+    "No more pickles then, doctor. I'll weigh myself every morning.":
+      "To ab achaar band, doctor. Roz subah wazan dekhunga.",
+    "If one leg swells, I get chest pain or a fever, I'll come straight back.":
+      "Agar ek pair soojha, chhati mein dard hua ya bukhar aaya, to seedha aa jaunga.",
+    "The swelling has gone down and I've lost 4 kilos, doctor. The biopsy is done.":
+      "Sujan kam ho gayi aur 4 kilo wazan ghat gaya, doctor. Biopsy ho gayi hai.",
+    "The swelling is a little less, doctor, but my urine is still frothy.":
+      "Sujan thodi kam hai, doctor, par peshab mein abhi bhi jhaag hai.",
+    "I'm more swollen, doctor, and I'm passing less urine.":
+      "Sujan aur badh gayi, doctor, aur peshab kam aa raha hai.",
+    "The swelling is worse, doctor. Now my stomach is swollen too.":
+      "Sujan badh gayi hai, doctor. Ab pet bhi phool gaya hai.",
+  },
+  "endo-hypothyroid-district-01": {
+    "Doctor, I'm tired all the time. I've put on weight even though I hardly eat.":
+      "Doctor, hamesha thakaan rehti hai. Khati kuch nahi, phir bhi wazan badh gaya.",
+    "For about eight months. I'm exhausted by noon, and I've gained 7 kilos without eating more.":
+      "Karib aath mahine se. Dopahar tak thak jaati hoon, aur zyada khaye bina 7 kilo badh gaya.",
+    "I feel cold when others don't. I'm constipated, my skin is dry, my hair falls out, and my voice has gone hoarse. I forget things at work too.":
+      "Sabko theek lagta hai aur mujhe thand lagti hai. Kabz rehti hai, skin rookhi hai, baal jhadte hain, aur awaaz bhaari ho gayi. Kaam par bhool bhi jaati hoon.",
+    "My periods have become heavier and longer. The last one was two weeks ago. I've had my tubes tied, after two children.":
+      "Periods zyada aur lambe ho gaye hain. Pichhla do hafte pehle tha. Do bachchon ke baad nasbandi ho chuki hai.",
+    "I feel low and slow, but I still enjoy my children. I sleep a lot. I've had no thoughts of harming myself.":
+      "Mann thoda bhaari aur sust rehta hai, par bachchon ke saath achha lagta hai. Neend bahut aati hai. Khud ko nuksan pahunchane ka khayal nahi aaya.",
+    "My collar feels tight. It doesn't hurt, and I can swallow fine. I've had no neck surgery or radiation.":
+      "Collar tang lagta hai. Dard nahi, nigalne mein dikkat nahi. Gale ka operation ya radiation nahi hua.",
+    "Only iron tablets my neighbour suggested. Nothing else.":
+      "Sirf iron ki goli, padosan ne batayi thi. Aur kuch nahi.",
+    "No sugar or known BP. No chest pain or heart trouble.":
+      "Sugar nahi, BP ka pata nahi. Chhati mein dard ya dil ki dikkat nahi.",
+    "My mother takes a thyroid tablet.":
+      "Meri maa thyroid ki goli leti hain.",
+    "No allergies.":
+      "Koi allergy nahi.",
+    "I don't smoke or drink.":
+      "Na cigarette, na sharab.",
+    "One tablet on an empty stomach each morning, with the iron four hours later. I understand, doctor.":
+      "Har subah khali pet ek goli, aur iron chaar ghante baad. Samajh gayi, doctor.",
+    "So this may be for life, and a blood test after two months. All right, doctor.":
+      "To shayad zindagi bhar, aur do mahine baad blood test. Theek hai, doctor.",
+    "I have more energy, doctor. My periods are lighter and I've lost 3 kilos.":
+      "Ab taakat zyada hai, doctor. Periods halke hain aur 3 kilo wazan kam hua.",
+    "A little better, doctor, though I'm still tired by evening.":
+      "Thoda behtar hai, doctor, par shaam tak abhi bhi thak jaati hoon.",
+    "I'm even slower and colder than before, doctor.":
+      "Pehle se bhi zyada sust hoon aur thand lagti hai, doctor.",
+    "Nothing has changed, doctor. I can barely get through work.":
+      "Kuch nahi badla, doctor. Kaam mushkil se ho paata hai.",
+  },
+  "psy-depression-district-01": {
+    "Doctor, I don't know why I came. I just feel empty. Nothing feels worth doing.":
+      "Doctor, pata nahi kyun aayi hoon. Bas khaali khaali lagta hai. Kuch karne ka mann nahi karta.",
+    "For about two months, nearly every day. It's worst in the mornings. I cry without reason.":
+      "Karib do mahine se, lagbhag roz. Subah sabse bura lagta hai. Bina wajah rona aa jaata hai.",
+    "I used to love singing; now I don't care. I can't concentrate at work. I feel I've let everyone down.":
+      "Mujhe gaana bahut pasand tha; ab farak nahi padta. Kaam par dhyan nahi lagta. Lagta hai sabko nirash kar diya.",
+    "I wake at 4 and can't sleep again. I've no appetite, and I've lost about 4 kilos.":
+      "Subah 4 baje neend khul jaati hai, phir nahi aati. Bhookh nahi lagti, karib 4 kilo wazan kam ho gaya.",
+    "Sometimes I think everyone would be better off without me. I haven't made a plan, and I've never tried anything. I wouldn't do that to my mother.":
+      "Kabhi kabhi lagta hai mere bina sab behtar honge. Koi plan nahi banaya, kabhi kuch kiya bhi nahi. Maa ke saath aisa nahi kar sakti.",
+    "No, never a time like that, full of energy with no need to sleep. I had a low patch in college that passed by itself. No other illness.":
+      "Nahi, aisa kabhi nahi hua ki bahut josh ho aur neend ki zaroorat na ho. College mein ek baar mann udaas raha tha, apne aap theek ho gaya. Aur koi bimari nahi.",
+    "No, I don't hear or see anything strange.":
+      "Nahi, kuch ajeeb sunai ya dikhai nahi deta.",
+    "My engagement broke off in the summer, and work has been hard. I live with my mother. She's kind, but she doesn't understand this. I feel safe at home.":
+      "Garmiyon mein meri sagai toot gayi, aur kaam bhi mushkil raha. Maa ke saath rehti hoon. Woh achhi hain, par yeh samajh nahi paati. Ghar par surakshit hoon.",
+    "No alcohol or drugs, no smoking.":
+      "Na sharab, na drugs, na cigarette.",
+    "Periods are regular, the last one ended a week ago. I'm not pregnant. I don't feel cold or constipated.":
+      "Periods regular hain, pichhla ek hafte pehle khatam hua. Pregnant nahi hoon. Thand ya kabz nahi.",
+    "Nothing, doctor.":
+      "Kuch nahi, doctor.",
+    "No allergies.":
+      "Koi allergy nahi.",
+    "My father used to get very low. Nobody spoke about it.":
+      "Mere pitaji bahut udaas rehte the. Is par koi baat nahi karta tha.",
+    "Talking to someone might help. I've never told anyone how bad it is.":
+      "Kisi se baat karne se shayad madad mile. Maine kisi ko nahi bataya ki kitna bura lagta hai.",
+    "If the thoughts get stronger, I'll tell my mother and call you or the helpline. I promise.":
+      "Agar khayal zyada aaye, to maa ko bataungi aur aapko ya helpline ko phone karungi. Wada karti hoon.",
+    "So it takes a few weeks to work, and I shouldn't stop suddenly. All right, doctor.":
+      "To asar mein kuch hafte lagenge, aur achanak band nahi karni. Theek hai, doctor.",
+    "I'm sleeping a little better, doctor, and I sang with my mother yesterday. The bad thoughts come less often.":
+      "Neend thodi behtar hai, doctor, aur kal maa ke saath gaaya bhi. Bure khayal ab kam aate hain.",
+    "I feel a little lighter, doctor, but the mornings are still hard.":
+      "Thoda halka lagta hai, doctor, par subah abhi bhi mushkil hai.",
+    "I feel foggy and more hopeless, doctor.":
+      "Dimaag dhundhla sa hai aur aur bhi nirash lagta hai, doctor.",
+    "It's the same or worse, doctor. The thoughts come more often now.":
+      "Waisa hi ya zyada bura hai, doctor. Khayal ab zyada aate hain.",
+  },
+  "ent-aom-phc-01": {
+    "Doctor, he has been crying with ear pain since last night, and he has fever.":
+      "Doctor, kal raat se kaan ke dard se ro raha hai, aur bukhar bhi hai.",
+    "It's the right ear, since last night. He couldn't sleep. He says it's beating inside.":
+      "Daayan kaan hai, kal raat se. So nahi paya. Kehta hai andar dhak-dhak ho raha hai.",
+    "He had a cold for three days first. The fever started yesterday; it was 101 on our thermometer.":
+      "Pehle teen din zukaam tha. Bukhar kal shuru hua; thermometer mein 101 tha.",
+    "No discharge from the ear. He says that side sounds muffled. We don't use earbuds, and he hasn't been swimming.":
+      "Kaan se kuch nahi behta. Kehta hai us taraf awaaz dabi si aati hai. Earbuds nahi use karte, aur tairne nahi gaya.",
+    "No swelling behind the ear. No vomiting, drowsiness or fits. He is eating a bit less but drinks well.":
+      "Kaan ke peeche sujan nahi. Ulti, susti ya jhatke nahi. Khana thoda kam hai par paani theek peeta hai.",
+    "One ear infection two years ago. He is otherwise healthy, no asthma or sugar.":
+      "Do saal pehle ek baar kaan mein infection hua tha. Baaki theek hai, na asthma na sugar.",
+    "No allergies. He's had amoxicillin syrup before with no problem.":
+      "Allergy nahi. Pehle amoxicillin syrup liya hai, koi dikkat nahi hui.",
+    "I gave him paracetamol syrup at night. I put warm oil in the ear as my mother told me.":
+      "Raat ko paracetamol syrup diya. Maa ke kehne par kaan mein garam tel daala.",
+    "All his vaccines are up to date, as per the card.":
+      "Saare teeke lage hain, card ke hisaab se.",
+    "His father smokes, but outside. He goes to school.":
+      "Iske papa cigarette peete hain, par bahar. School jaata hai.",
+    "No more oil in his ear then, doctor. I'll tell his grandmother too.":
+      "To ab kaan mein tel nahi, doctor. Inki daadi ko bhi bata dungi.",
+    "If he isn't better in two days, or there's swelling behind the ear, or he's drowsy, I'll bring him back.":
+      "Agar do din mein theek na hua, ya kaan ke peeche sujan aayi, ya sust laga, to le aaungi.",
+    "The pain stopped on the second day, doctor, and the fever too. He's back at school.":
+      "Doosre din dard band ho gaya, doctor, aur bukhar bhi. Ab school ja raha hai.",
+    "He's better, doctor, though the syrup gave him loose stools.":
+      "Behtar hai, doctor, par syrup se latrine patli ho gayi.",
+    "The pain is still there, doctor, and he's still warm.":
+      "Dard abhi bhi hai, doctor, aur badan garam hai.",
+    "He's still crying with pain, doctor, and now pus is coming from the ear.":
+      "Abhi bhi dard se ro raha hai, doctor, aur ab kaan se peep aa rahi hai.",
+  },
+  "eye-conjunctivitis-phc-01": {
+    "Doctor, my eyes are red and sticky. This morning I could hardly open them.":
+      "Doctor, aankhen laal hain aur chipak rahi hain. Aaj subah mushkil se khuli.",
+    "It began in the right eye two days ago, and the left since yesterday. Yellow sticky stuff glues them shut in the morning.":
+      "Do din pehle daayin aankh se shuru hua, aur kal se baayin. Subah peela chipchipa aakar aankh band kar deta hai.",
+    "I can see fine once I wipe it away. It feels gritty, not painful. Light doesn't bother me. No headache or vomiting.":
+      "Ponchh loon to saaf dikhta hai. Kirkiri lagti hai, dard nahi. Roshni se dikkat nahi. Sar dard ya ulti nahi.",
+    "No contact lenses. Nothing went in my eye, and I didn't hit it. I don't do any welding.":
+      "Contact lens nahi. Aankh mein kuch nahi gaya, chot bhi nahi lagi. Welding nahi karta.",
+    "A boy at my shop had the same last week. No cold or fever. It isn't really itchy.":
+      "Pichhle hafte dukaan ke ek ladke ko yahi hua tha. Zukaam ya bukhar nahi. Khujli khaas nahi.",
+    "No, doctor, nothing like that.":
+      "Nahi doctor, aisa kuch nahi.",
+    "No sugar or BP. No glasses, no eye operations.":
+      "Na sugar, na BP. Chashma nahi, aankh ka operation nahi.",
+    "I washed them with rose water. I didn't take any drops from the chemist.":
+      "Gulab jal se dhoya tha. Chemist se koi drops nahi liye.",
+    "No allergies.":
+      "Koi allergy nahi.",
+    "I don't smoke. At the shop I share one towel with the others.":
+      "Cigarette nahi peeta. Dukaan mein sab ek hi towel use karte hain.",
+    "I'll use my own towel and wash my hands, doctor. I'll stay away from the shop for a couple of days.":
+      "Apna towel use karunga aur haath dhounga, doctor. Do din dukaan se door rahunga.",
+    "If there's pain, blurring, or it isn't better in three days, I'll come back.":
+      "Dard hua, dhundhla dikha, ya teen din mein theek nahi hua, to aa jaunga.",
+    "Clean cotton and boiled water then, doctor. No more rose water.":
+      "To saaf rui aur ubla paani, doctor. Ab gulab jal nahi.",
+    "It cleared in three days, doctor. Nothing sticky in the morning any more.":
+      "Teen din mein theek ho gaya, doctor. Subah ab chipakta nahi.",
+    "It's less sticky, doctor, but still a little red.":
+      "Chipchipa kam hai, doctor, par abhi thodi laal hai.",
+    "Now it's painful, doctor, and light hurts my eyes.":
+      "Ab dard ho raha hai, doctor, aur roshni chubhti hai.",
+    "It's about the same, doctor, and my friend has caught it too.":
+      "Waisa hi hai, doctor, aur mere dost ko bhi ho gaya.",
+  },
+  "ortho-colles-district-01": {
+    "Doctor, I slipped in the bathroom and landed on my hand. My wrist looks bent and it hurts badly.":
+      "Doctor, bathroom mein phisal gayi aur haath ke bal giri. Kalai tedhi lag rahi hai aur bahut dard hai.",
+    "Two hours ago. The bathroom floor was wet and I fell forward onto my left hand, palm down. It swelled up at once.":
+      "Do ghante pehle. Bathroom ka farsh geela tha aur main baayen haath ke bal aage giri, hatheli neeche. Turant sooj gaya.",
+    "My fingers move, but it hurts. There's no numbness, and they feel warm.":
+      "Ungliyan hilti hain, par dard hota hai. Sunn nahi hain, aur garam hain.",
+    "I slipped; I didn't faint or feel dizzy. I didn't hit my head. My hip and elbow are fine.":
+      "Main phisli thi; chakkar ya behoshi nahi. Sar nahi takraya. Kulha aur kohni theek hain.",
+    "I'm right-handed. I'm retired, and I live with my son's family.":
+      "Main daayen haath se kaam karti hoon. Retire ho chuki hoon, bete ke parivar ke saath rehti hoon.",
+    "My periods stopped at 46. I've never had a bone test. I broke no bones before this, and I've never had steroid tablets.":
+      "Mere periods 46 mein band ho gaye. Haddi ki jaanch kabhi nahi hui. Pehle koi haddi nahi tooti, aur steroid ki goli kabhi nahi li.",
+    "BP for six years, on one tablet. No sugar, asthma, ulcers or kidney trouble.":
+      "Chhe saal se BP, ek goli par. Na sugar, na asthma, na ulcer, na kidney ki dikkat.",
+    "Only amlodipine for BP. No blood thinners.":
+      "BP ke liye sirf amlodipine. Khoon patla karne ki dawa nahi.",
+    "No allergies that I know of.":
+      "Mujhe pata hai utni koi allergy nahi.",
+    "I had tea and biscuits about four hours ago.":
+      "Karib chaar ghante pehle chai aur biscuit liye the.",
+    "No smoking or alcohol.":
+      "Na cigarette, na sharab.",
+    "I'll keep it raised and move my fingers. If they swell, go numb or turn blue, I'll come back at once.":
+      "Upar utha ke rakhungi aur ungliyan hilaungi. Agar soojen, sunn hon ya neeli padein, to turant aa jaungi.",
+    "So this fall may mean weak bones. I'll get the bone test, doctor, and we'll fix the bathroom floor.":
+      "To is girne ka matlab kamzor haddiyan ho sakta hai. Haddi ki jaanch karaungi, doctor, aur bathroom ka farsh theek karayenge.",
+    "The pain is much less, doctor, and my fingers move well. No numbness.":
+      "Dard bahut kam hai, doctor, aur ungliyan achhi hilti hain. Sunn nahi hain.",
+    "It's better, doctor, though my fingers are a bit stiff.":
+      "Behtar hai, doctor, par ungliyan thodi akdi hain.",
+    "My hand still looks bent, doctor, and it's stiff and painful.":
+      "Haath abhi bhi tedha lagta hai, doctor, aur akda hua aur dukhta hai.",
+    "The wrist is still bent and swollen, doctor. My fingers tingle at night.":
+      "Kalai abhi bhi tedhi aur soojhi hai, doctor. Raat ko ungliyon mein jhunjhuni hoti hai.",
+  },
+  "uro-colic-district-01": {
+    "The pain has eased a lot, doctor. I can sit still now.":
+      "Dard bahut kam ho gaya, doctor. Ab shaant baith sakta hoon.",
+    "Doctor, please do something! This pain in my side is unbearable. It comes in waves.":
+      "Doctor, kuch kijiye! Is bagal ka dard saha nahi jaata. Lehron mein aata hai.",
+    "It starts in my left side at the back and shoots down to my groin. It comes in waves, and I can't find a position that helps.":
+      "Baayen taraf peeche se shuru hokar jaangh ke jod tak jaata hai. Lehron mein aata hai, aur kisi tarah aaram nahi milta.",
+    "It started suddenly three hours ago at the site. I've never had anything like it.":
+      "Teen ghante pehle site par achanak shuru hua. Aisa kabhi nahi hua.",
+    "My urine looked a bit pink. It burns slightly at the end, and I keep wanting to go. I've passed no stone.":
+      "Peshab thoda gulabi laga. Aakhir mein halki jalan hoti hai, aur baar baar jaane ka mann karta hai. Koi pathri nahi nikli.",
+    "No fever or shivering.":
+      "Na bukhar, na kapkapi.",
+    "I vomited twice from the pain. My bowels are normal.":
+      "Dard se do baar ulti hui. Latrine normal hai.",
+    "No pain or swelling in the testicle itself, doctor.":
+      "Andkosh mein dard ya sujan nahi, doctor.",
+    "I work on site in the sun all day and drink perhaps a litre of water. I don't smoke; a beer on some weekends.":
+      "Din bhar dhoop mein site par kaam karta hoon aur shayad ek litre paani peeta hoon. Cigarette nahi; kuch weekend par ek beer.",
+    "No sugar, BP, kidney disease, gout or ulcers. I have both kidneys, as far as I know.":
+      "Na sugar, na BP, na kidney ki bimari, na gout, na ulcer. Jahan tak pata hai dono kidney hain.",
+    "My father had a kidney stone removed.":
+      "Mere pitaji ki kidney ki pathri nikali gayi thi.",
+    "I took one Combiflam on site; it didn't help.":
+      "Site par ek Combiflam li; fayda nahi hua.",
+    "No allergies.":
+      "Koi allergy nahi.",
+    "I'll carry a big bottle on site, doctor, and strain my urine to catch the stone.":
+      "Site par badi bottle rakhunga, doctor, aur pathri pakadne ke liye peshab chhaan lunga.",
+    "Fever, shivering, vomiting or pain the tablets won't hold: I come straight back. Understood, doctor.":
+      "Bukhar, kapkapi, ulti ya goli se na rukne wala dard: seedha aa jaunga. Samajh gaya, doctor.",
+    "I passed a small stone on the fourth day, doctor, and the pain has gone. I've brought it with me.":
+      "Chauthe din chhoti pathri nikal gayi, doctor, aur dard chala gaya. Saath laaya hoon.",
+    "The pain is less, doctor. I've had two smaller attacks.":
+      "Dard kam hai, doctor. Do chhote daure aaye.",
+    "The pain keeps coming back, doctor. I can't work.":
+      "Dard baar baar wapas aata hai, doctor. Kaam nahi kar paata.",
+    "The pain is still bad, doctor, and I feel feverish.":
+      "Dard abhi bhi bahut hai, doctor, aur bukhar sa lag raha hai.",
+  },
 };

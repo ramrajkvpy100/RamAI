@@ -29,11 +29,30 @@ let writingHere = false;
 
 /** Takes the one background-writing lock, atomically, across every server: true if this caller holds it now. */
 export async function takeWritingLock(holder: string, now = Date.now()): Promise<boolean> {
+  return takeSlot(1, holder, LOCK_MS, now);
+}
+
+async function takeSlot(slot: number, holder: string, ms: number, now: number): Promise<boolean> {
   const taken = await db.run(
-    "INSERT INTO generation_lock (slot, expires_at, holder) VALUES (1, ?, ?) ON CONFLICT(slot) DO UPDATE SET expires_at = excluded.expires_at, holder = excluded.holder WHERE generation_lock.expires_at <= ?",
-    now + LOCK_MS, holder, now,
+    "INSERT INTO generation_lock (slot, expires_at, holder) VALUES (?, ?, ?) ON CONFLICT(slot) DO UPDATE SET expires_at = excluded.expires_at, holder = excluded.holder WHERE generation_lock.expires_at <= ?",
+    slot, now + ms, holder, now,
   );
   return taken.changes === 1;
+}
+
+/** How many patients may be invented while a doctor waits, across every server. Beyond this, the next doctor is given a case at once. */
+export const LIVE_SLOTS = 3;
+/** A doctor's case takes up to about 3 minutes to write; a dead server's slot frees itself after that. */
+const LIVE_MS = 180_000;
+const FIRST_LIVE_SLOT = 11;
+
+/** One of the places to invent a patient live, atomically: a release function, or null when they're all taken. */
+export async function takeLiveSlot(holder: string, now = Date.now()): Promise<(() => Promise<void>) | null> {
+  for (let i = 0; i < LIVE_SLOTS; i++) {
+    const slot = FIRST_LIVE_SLOT + i;
+    if (await takeSlot(slot, holder, LIVE_MS, now)) return async () => void (await db.run("DELETE FROM generation_lock WHERE slot = ? AND holder = ?", slot, holder));
+  }
+  return null;
 }
 
 /** Lets it go, if it's still ours. */

@@ -20,7 +20,8 @@ import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProble
 import { BIG_STEPS, givesReason } from "./behaviour";
 import { liveClash, QT } from "./interactions";
 import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
-import { compensated, creatinineClearance, followLabs, LAB_PENDING, type LabContext } from "./lab-model";
+import { statedReviewDays } from "./intent";
+import { alignedPanel, compensated, creatinineClearance, followLabs, LAB_PENDING, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
@@ -306,7 +307,7 @@ const WATCH_MIN: Partial<Record<VitalKey, number>> = { hr: 4, bp: 6, rr: 2, spo2
 const EFFECT_VITAL: Record<EffectKey, VitalKey> = { hr: "hr", sbp: "bp", dbp: "bp", rr: "rr", spo2: "spo2", temp: "temp", rbs: "rbs", gcs: "gcs", pain: "pain", urine: "urine" };
 
 /** Given and done: they don't move the vitals in the minutes that follow. (Not an antidote or anything whose effect is the point.) */
-const QUIET_DRUGS: string[] = ["ppi", "h2-blocker", "antiemetic", "antibiotic", "antifungal", "antiviral", "antimalarial", "anthelminthic", "vitamin"];
+const QUIET_DRUGS: string[] = ["ppi", "h2-blocker", "antiemetic", "antibiotic", "antifungal", "antiviral", "antimalarial", "anthelminthic", "vitamin", "p2y12", "anticoagulant", "statin"];
 
 const profileOf = (drugId: string) => {
   const drug = formularyDrug(drugId);
@@ -1799,6 +1800,9 @@ function settleStudy(def: ClinicalCaseDefinition, idIn: string, phrase: string, 
   return study;
 }
 
+/** Panels every lab reports in full: rows the case didn't write are worked out, not asked of a model. */
+const ROUTINE_PANELS = new Set(["cbc", "rft", "electrolytes", "lft", "abg"]);
+
 /** The study of a part: the case's own, the catalogue's, or one of that part. */
 function studyOf(def: ClinicalCaseDefinition, kind: ImagingKind, region: string, contrast?: "plain" | "contrast"): string {
   const own = def.investigations.find((i) => imagingKind(i.id, i.name ?? "") === kind && parseImaging(`${i.name ?? ""} ${(i.match ?? []).join(" ")}`).region === region);
@@ -1856,8 +1860,8 @@ export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, idIn: s
   if (prior && !REPEAT_RE.test(phrase) && (!prior.delivered || hidden.clock - prior.resultAt < RECENT_MIN)) return null;
   const normal = catalogueResult(def, hidden, id);
   const name = studyName(study, override?.name ?? cat?.name ?? id);
-  // The case wrote this test: its rows are the result, at once. A model is asked only for a test the case has nothing on.
-  if (override?.rows?.length) return null;
+  // The case wrote this test (or listed a routine panel): the result is known at once. A model is asked only for a test the case has nothing on.
+  if (override?.rows?.length || (override && ROUTINE_PANELS.has(id))) return null;
   const written = new Set((override?.rows ?? []).map((r) => analyteKey(r.analyte)));
   const known = knownValues(def, hidden);
   const analytes = override?.report || override?.media ? [] : (normal.rows ?? []).filter((r) => !written.has(analyteKey(r.analyte)) && !known.has(`${specimenOf(id)}:${analyteKey(r.analyte)}`));
@@ -2023,8 +2027,11 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   }
   if (!override && generated?.report) result = { ...result, report: generated.report };
   if (override && (override.rows || override.report || override.media)) {
-    // The case's own rows lead; an analyte it left out follows only with a real value for this patient, never a made-up normal.
-    const extra = (result.rows ?? []).filter((r) => !authored.has(analyteKey(r.analyte)) && (known.has(`${specimenOf(id)}:${analyteKey(r.analyte)}`) || generated?.rows?.some((g) => analyteKey(g.analyte) === analyteKey(r.analyte))));
+    // The case's own rows lead. A routine panel is complete, its other rows worked out from them and the diagnosis; elsewhere an analyte
+    // the case left out follows only with a real value for this patient, never a made-up normal.
+    const extra = ROUTINE_PANELS.has(id)
+      ? alignedPanel(result.rows ?? [], override.rows ?? [], def.truth.diagnosis).filter((r) => !authored.has(analyteKey(r.analyte)))
+      : (result.rows ?? []).filter((r) => !authored.has(analyteKey(r.analyte)) && (known.has(`${specimenOf(id)}:${analyteKey(r.analyte)}`) || generated?.rows?.some((g) => analyteKey(g.analyte) === analyteKey(r.analyte))));
     result = { rows: override.rows ? [...override.rows, ...(override.report || override.media ? [] : extra)] : result.rows, report: override.report ?? result.report, media: override.media ?? result.media };
   }
   if (override?.noMedia) result = { ...result, media: undefined };
@@ -2405,7 +2412,8 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   }
   // A serious clash with something they're on: the nurse or pharmacist stops it.
   // (Not on the phone: a relative at home can't know this.)
-  const clash = def.track === "phone" ? null : liveClash(drug.id, [...hidden.drugs.filter((d) => d.stoppedAt === undefined && (d.mode === "prescribed" || hidden.clock - d.at <= 1440)).map((d) => d.drugId), ...(def.profile?.currentDrugs ?? [])]);
+  // (Not what this illness's standard treatment combines on purpose: aspirin with enoxaparin in an infarct.)
+  const clash = def.track === "phone" || findDrugRule(def, drug)?.appropriateness === "ideal" ? null : liveClash(drug.id, [...hidden.drugs.filter((d) => d.stoppedAt === undefined && (d.mode === "prescribed" || hidden.clock - d.at <= 1440)).map((d) => d.drugId), ...(def.profile?.currentDrugs ?? [])]);
   if (clash) return `${def.patient.sex === "Female" ? "She's" : def.patient.sex === "Male" ? "He's" : "They're"} on ${formularyDrug(clash.other)?.generic.toLowerCase() ?? clash.other} — ${clash.effect.charAt(0).toLowerCase()}${clash.effect.slice(1)}`;
   // A drug that can harm a baby, for a woman who could be pregnant: asked in any emergency (so it gives nothing away), and
   // wherever she truly is. In a clinic with nothing to suggest it, forgetting the test is left to the marks.
@@ -2744,7 +2752,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       at: startedAt, checks, keys: [...acts, ...authored, ...lungs],
     });
     // No waiting on it: the case moves on to its full effect, or to the end of the time the doctor asked for, and it's reported now.
-    const until = startedAt + peak;
+    // (The illness's own treatment: long enough for its response, counted from when it went in, to be seen in this reply.)
+    const treats = !drug.fluid && !!rule && !!def.rubric.definitiveTreatment?.ids.includes(rule.id) && !def.guided;
+    const until = (treats ? Math.max(startedAt, given.at) : startedAt) + peak;
     if (statedFor > 0 && !def.guided) {
       // Its time passes below.
     } else if (until > hidden.clock && def.track !== "phone" && !def.guided) {
@@ -3074,6 +3084,13 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
   const { hidden } = ctx;
   const m = catalogMeasure(measureId);
   if (!m) return [];
+  // "Monitor your response", "monitor progress": watching how they do, not a machine.
+  if (m.id === "monitor" && /\bmonitor(?:ing)?\s+(?:(?:your|his|her|their|the|for)\s+)?(?:\w+\s+)?(?:response|progress|symptoms|improvement|side effects|recovery)\b/i.test(intent.phrase)) return [];
+  // "Monitor temperature, urine output": that chart. (However it was read: the model can call it monitoring too.)
+  if (m.id === "monitor" && /\b(?:temp|temperature|fever|urine|input|output|fluid balance|i\/o)\b/i.test(intent.phrase) && !/\b(?:cardiac|ecg|multipara|telemetry|continuous|attach|put on)\b/i.test(intent.phrase)) {
+    const keys: VitalKey[] = [...(/\b(?:temp|temperature|fever)\b/i.test(intent.phrase) ? ["temp" as const] : []), ...(/\b(?:urine|input|output|fluid balance|i\/o)\b/i.test(intent.phrase) ? ["urine" as const] : [])];
+    return handleVitals(ctx, keys);
+  }
   if (m.id === "oxygen" && intent.targetId === "measure:oxygen") {
     const asked = askOxygen(ctx, intent, "measure:oxygen");
     if (asked) return asked;
@@ -3755,7 +3772,8 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
         fx.push(...handleAction(ctx, intent));
         break;
       case "followup":
-        fx.push(...handleFollowUp(ctx, typeof intent.payload?.days === "number" ? intent.payload.days : 7));
+        // (The time the doctor wrote wins, whoever read the rest of the sentence.)
+        fx.push(...handleFollowUp(ctx, statedReviewDays(record.raw) ?? (typeof intent.payload?.days === "number" ? intent.payload.days : 7)));
         break;
       case "wait":
         fx.push(...handleWait(ctx, intent));
@@ -3863,7 +3881,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     } else if (!stopped) {
       // Harm from the course is told first; then what the course has done; then the case's own follow-up, in its own words.
       const says0 = (a: ArmedHazard) => !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays;
-      const working = hidden.hazards.find((a) => !a.superseded && !a.id.startsWith(EXPECTED_COURSE) && says0(a)) ?? hidden.hazards.find((a) => a.id.startsWith(EXPECTED_COURSE) && says0(a));
+      const working = hidden.hazards.find((a) => !a.superseded && a.rescuedAt === undefined && !a.id.startsWith(EXPECTED_COURSE) && says0(a)) ?? hidden.hazards.find((a) => a.id.startsWith(EXPECTED_COURSE) && says0(a));
       const says = working ? hazardLibrary(def).get(working.id)!.stages[working.stageIdx]!.patientSays! : undefined;
       const quality = treatmentQuality(def, hidden);
       const scenario = def.followUp.find((f) => f.when === quality) ?? def.followUp.find((f) => f.when === "any");
@@ -3935,6 +3953,19 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   if (def.patient.age < 2) for (const e of fx) if (e.type === "message" && /^Water (?:given )?by mouth\.?$/i.test(e.text)) e.text = "Small, frequent feeds offered.";
   const stage = ctx.stages[ctx.stages.length - 1];
   if (stage) fx.push({ type: "stage", stage });
+  // Several questions in one breath get one answer: the same person's replies run together.
+  if (record.intents.filter((i) => i.kind === "history").length > 1) {
+    let speaker: Extract<TurnEffect, { type: "message" }> | undefined;
+    for (let i = 0; i < fx.length; i++) {
+      const e = fx[i]!;
+      if (e.type !== "message") continue;
+      const speaks = (e.role === "patient" || e.role === "attendant") && e.kind === "speech" && !e.media;
+      if (speaks && speaker?.role === e.role) {
+        if (!speaker.text.includes(e.text)) speaker.text = `${speaker.text} ${e.text}`;
+        fx.splice(i--, 1);
+      } else speaker = speaks ? e : undefined;
+    }
+  }
   // The same words twice in one turn say nothing new.
   const heard = new Set<string>();
   return fx.filter((e) => {

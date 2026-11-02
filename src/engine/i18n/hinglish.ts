@@ -107,7 +107,24 @@ function generic(text: string, speaker: Speaker, p: PatientIdentity): string | u
 }
 
 export function toHinglish(text: string, caseId: string, speaker: Speaker, patient: PatientIdentity): string {
-  return CASE_LINES[caseId]?.[text] ?? GLOBAL[text] ?? generic(text, speaker, patient) ?? text;
+  const whole = CASE_LINES[caseId]?.[text] ?? GLOBAL[text] ?? generic(text, speaker, patient);
+  if (whole) return whole;
+  // Several answers run together: each known line in turn, the longest that fits, whatever else is left as it is.
+  const parts = text.split(/(?<=[.!?…])\s+/);
+  const out: string[] = [];
+  for (let i = 0; i < parts.length; ) {
+    let j = parts.length;
+    let found: string | undefined;
+    for (; j > i && !found; j--) {
+      const piece = parts.slice(i, j).join(" ");
+      found = CASE_LINES[caseId]?.[piece] ?? GLOBAL[piece] ?? generic(piece, speaker, patient);
+    }
+    if (found) {
+      out.push(found);
+      i = j + 1;
+    } else out.push(parts[i++]!);
+  }
+  return out.join(" ");
 }
 
 const spoken = (role: string, kind: string): role is Speaker => kind === "speech" && (role === "patient" || role === "attendant");

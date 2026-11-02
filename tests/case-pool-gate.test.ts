@@ -7,7 +7,7 @@ vi.mock("@/server/case-check", () => ({ checkCase: async () => ({ status: "passe
 
 import { filterCases } from "@/engine/cases";
 import { createProfile, type User } from "@/server/auth";
-import { dropWritingLock, prepareNext, takeWritingLock } from "@/server/case-pool";
+import { dropWritingLock, LIVE_SLOTS, prepareNext, takeLiveSlot, takeWritingLock } from "@/server/case-pool";
 import { db } from "@/server/db";
 
 process.env.RAMAI_DB_PATH = ":memory:";
@@ -51,5 +51,17 @@ describe("the next patient is invented only when needed", () => {
     // If its holder dies, it's free again after 90 seconds.
     expect(await takeWritingLock("later", Date.now() + 91_000)).toBe(true);
     await dropWritingLock("later");
+  });
+
+  it("only so many patients are invented live at once, across every server, and a slot frees itself", async () => {
+    const got = await Promise.all(Array.from({ length: 20 }, (_, i) => takeLiveSlot(`doctor-${i}`)));
+    const held = got.filter(Boolean);
+    expect(held).toHaveLength(LIVE_SLOTS);
+    expect(await takeLiveSlot("one-more")).toBeNull();
+    await held[0]!();
+    const next = await takeLiveSlot("next-in");
+    expect(next).not.toBeNull();
+    // A dead server's slots are free after three minutes.
+    expect(await takeLiveSlot("later", Date.now() + 181_000)).not.toBeNull();
   });
 });

@@ -209,9 +209,10 @@ describe("response to treatment", () => {
 describe("live monitor", () => {
   const series = (state: ReturnType<typeof play>["state"], k: "hr" | "rr" | "spo2" | "bp") => [...state.vitals[k]!.history, state.vitals[k]!.current];
 
-  it("treatment takes time to act: the monitor shows it once the drug has had time to work", () => {
+  it("treatment takes time to act: the reply moves on to its full effect, and the monitor shows it", () => {
     const now = play(emAdhf, ["Attach monitor", "Give furosemide 40 mg IV"]);
-    expect(now.state.patientStatus).not.toBe("improving");
+    expect(now.hidden.clock).toBeGreaterThanOrEqual(45);
+    expect(now.state.patientStatus).toBe("improving");
     const { state, turns } = play(emAdhf, ["Attach monitor", "Give furosemide 40 mg IV", "Wait 30 minutes"]);
     expect(state.patientStatus).toBe("improving");
     expect(state.vitals.rr!.current.numeric!).toBeLessThanOrEqual(24);

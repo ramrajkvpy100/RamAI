@@ -9,6 +9,17 @@ import type { Country } from "../countries";
 import { dailyNumber } from "@/lib/daily";
 import { prngFrom } from "@/lib/prng";
 import type { CareLevel, CaseTrack, Specialty } from "../types";
+import { cardStemi } from "./card-stemi";
+import { neuroBells } from "./neuro-bells";
+import { respAsthma } from "./resp-asthma";
+import { giUlcer } from "./gi-ulcer";
+import { nephNephrotic } from "./neph-nephrotic";
+import { endoHypothyroid } from "./endo-hypothyroid";
+import { psyDepression } from "./psy-depression";
+import { entAom } from "./ent-aom";
+import { eyeConjunctivitis } from "./eye-conjunctivitis";
+import { orthoColles } from "./ortho-colles";
+import { uroColic } from "./uro-colic";
 import { dermAcne } from "./derm-acne";
 import { dermMelasma } from "./derm-melasma";
 import { dermPsoriasis } from "./derm-psoriasis";
@@ -29,6 +40,7 @@ import { tutHypoglycaemia } from "./tut-hypoglycaemia";
 export const CASE_LIBRARY: readonly ClinicalCaseDefinition[] = [
   dermAcne, dermMelasma, dermTinea, dermPsoriasis, medPad, idDengue, surgAppendicitis, emAdhf,
   emViperPhc, medSleApex, grAip, obgPphChc, gpUtiPhc, pedDiarrhoeaPhc,
+  cardStemi, neuroBells, respAsthma, giUlcer, nephNephrotic, endoHypothyroid, psyDepression, entAom, eyeConjunctivitis, orthoColles, uroColic,
 ];
 
 /** Retired cases (phone consults): never offered, but sessions already started with them still replay. */

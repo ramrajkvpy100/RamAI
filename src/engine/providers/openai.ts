@@ -41,7 +41,7 @@ import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Spe
 import { CARE_LEVELS, PLAYABLE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
 import { pickCondition } from "./conditions";
-import { resolveIntents, type IntentContext } from "../intent";
+import { resolveIntents, statedReviewDays, type IntentContext } from "../intent";
 import { mockProvider, NoCaseError } from "./mock";
 import { z } from "zod";
 
@@ -1513,6 +1513,9 @@ export function createOpenAIProvider(): ClinicalProvider {
       // When the rules placed the order, its results are written while the patient's words are (the voice keeps the rules' intents).
       const [read, early] = await Promise.all([reading, unresolved ? null : completeLabs(ctx, ruled)]);
       const labs = early ?? (await completeLabs(ctx, read.intents));
+      // A review with its time said is booked, even if the model read the sentence as advice.
+      const reviewDays = /\?\s*$/.test(text.trim()) || read.intents.some((i) => i.kind === "followup") ? null : statedReviewDays(text);
+      if (reviewDays !== null) read.intents.push({ kind: "followup", phrase: text, matched: true, payload: { days: reviewDays } });
       return Object.keys(labs).length ? { ...read, generated: { ...read.generated, ...labs } } : read;
     },
 

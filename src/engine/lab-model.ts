@@ -141,6 +141,35 @@ function childLabs(rows: readonly LabRow[], age: number): LabRow[] {
   });
 }
 
+/**
+ * A routine panel's other rows, from what the case wrote and the diagnosis: red-cell indices that fit the anaemia, a haematocrit that
+ * fits the haemoglobin, and a chloride that fits the sodium and bicarbonate (followLabs then moves them for what's been given).
+ */
+export function alignedPanel(baseline: readonly LabRow[], written: readonly LabRow[], diagnosis: string): LabRow[] {
+  const value = (name: RegExp) => {
+    const v = parseFloat(written.find((r) => name.test(r.analyte))?.value.replace(/,/g, "") ?? "");
+    return Number.isFinite(v) ? v : undefined;
+  };
+  const hb = value(/^(?:haemoglobin|hemoglobin|hb)\b/i);
+  const na = value(/^(?:sodium|na)\b/i);
+  const hco3 = value(/^(?:bicarbonate|hco3|hco₃|tco2)/i);
+  const small = /iron|thalass|chronic (?:blood|gi) loss|menorrhagia|haemorrhoid|ulcer/i.test(diagnosis);
+  const big = /b12|folate|megaloblast|alcohol|hypothyroid|pernicious/i.test(diagnosis);
+  const anaemic = hb !== undefined && hb < 11.5;
+  const mcv = anaemic && small ? 70 : anaemic && big ? 106 : undefined;
+  return baseline.map((r) => {
+    const set = (n: number, digits = 0) => {
+      const out = { ...r, value: n.toFixed(digits) };
+      return { ...out, flag: flagFor(out, n) };
+    };
+    if (/^mcv\b/i.test(r.analyte) && mcv !== undefined) return set(mcv);
+    if (/^mch\b/i.test(r.analyte) && mcv !== undefined) return set(mcv / 3.3, 1);
+    if (/^(?:haematocrit|hematocrit|pcv)\b/i.test(r.analyte) && hb !== undefined) return set(hb * 3);
+    if (/^(?:chloride|cl)\b/i.test(r.analyte) && na !== undefined) return set(hco3 !== undefined ? na - hco3 - 12 : na - 38);
+    return r;
+  });
+}
+
 export function followLabs(written: readonly LabRow[], ctx: LabContext): LabRow[] {
   return withEgfr(moved(childLabs(written, ctx.age), ctx), ctx);
 }

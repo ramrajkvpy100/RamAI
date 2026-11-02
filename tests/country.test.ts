@@ -62,7 +62,7 @@ describe("countries — case content", () => {
     expect(ids("US")).not.toContain("em-viper-phc-01");
     expect(ids("UK")).not.toContain("em-viper-phc-01");
     const count = (a: ReturnType<typeof libraryAvailability>) => Object.values(a.tracks).reduce((x, y) => x + (y ?? 0), 0);
-    expect(count(libraryAvailability("IN")) - count(libraryAvailability("UK"))).toBe(4); // the viper bite, the CHC PPH, the PHC cystitis and the PHC diarrhoea
+    expect(count(libraryAvailability("IN")) - count(libraryAvailability("UK"))).toBe(15); // the viper bite, the CHC PPH, the PHC cystitis and diarrhoea, and the 11 written for India (Indian drugs, levels and phone numbers)
   });
 });
 

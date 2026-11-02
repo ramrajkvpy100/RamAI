@@ -126,6 +126,23 @@ function precededBy(tk: string[], index: number, phrases: readonly string[], win
   return hasAny(slice, phrases);
 }
 
+const REVIEW_WORD = "(?:review|re-?view|follow(?:ing)?[ -]?up|come back|return (?=in\\b|after\\b)|see (?:you|him|her|them)|revisit|next visit)";
+const REVIEW_SPAN = "(?:about |around |approximately |approx\\.? |roughly |~\\s*)?(?:(\\d+)\\s*(?:-|–|to)\\s*)?(\\d+(?:\\.\\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|twelve)\\s*(day|days|week|weeks|wk|wks|month|months)\\b";
+/** Right after the word ("review 2 weeks", "see him again in 3 days"), or a few words on, after in/after ("review response and side effects in 4–6 weeks"). */
+const REVIEW_IN = new RegExp(`\\b${REVIEW_WORD}\\b(?:\\s+(?:him|her|them|you|me|again|here|back|please|then|the patient))*\\s+(?:(?:[a-z'’-]+\\s+){0,6}?(?:in|after|within)\\s+|(?:at|around|about)\\s+)?${REVIEW_SPAN}`);
+
+/**
+ * How many days off a review the doctor asked for, wherever in a long message it's said: "we'll review in about 8 weeks, sooner
+ * if…", "follow up after 6 weeks", "come back in 2 months". Never the "6–8 weeks" a treatment takes, earlier in the same breath.
+ */
+export function statedReviewDays(text: string): number | null {
+  const m = text.toLowerCase().match(REVIEW_IN);
+  if (!m) return null;
+  const n = wordToNumber(m[2]!) ?? 0;
+  const unit = m[3]!;
+  return !n ? null : Math.round(n * (unit.startsWith("d") ? 1 : unit.startsWith("w") ? 7 : 30));
+}
+
 function parseSpanMinutes(norm: string): number | null {
   const m = norm.match(new RegExp(`\\b${NUMBER_TOKEN}\\s*(second|seconds|sec|secs|minute|minutes|min|hour|hours|h|day|days|week|weeks|month|months)\\b`));
   if (!m?.[1] || !m[2]) return null;
@@ -550,13 +567,19 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     norm = normalise(rawClause);
   }
 
-  const done = (list: ResolvedIntent[]) => {
+  const done = (listIn: ResolvedIntent[]) => {
+    // "Monitor temperature", "monitor urine output": that chart, not the cardiac monitor.
+    const charted = listIn.some((i) => i.kind === "vitals" && /\b(?:temp|urine)\b/.test(i.targetId ?? "")) && !/\b(?:cardiac|ecg|multipara|telemetry|continuous|attach|put on)\b/.test(rawClause.toLowerCase());
+    const list = charted ? listIn.filter((i) => i.targetId !== "measure:monitor") : listIn;
     const all = [...intents, ...list];
     if (closing) all.push({ kind: "close", phrase: "case close", matched: true });
     return all;
   };
 
   if (!rawClause) return done([]);
+  // A review with its time said, however long the sentence around it.
+  const reviewIn = /\?\s*$/.test(rawClause) ? null : statedReviewDays(rawClause);
+  if (reviewIn !== null) return done([{ kind: "followup", phrase: rawClause, matched: true, payload: { days: reviewIn } }]);
 
   // Differential before diagnosis ("differential diagnosis: …").
   const ddx = rawClause.match(DIFFERENTIAL_RE);

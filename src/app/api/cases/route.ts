@@ -1,4 +1,6 @@
 
+import { randomUUID } from "node:crypto";
+
 import { after } from "next/server";
 import { checkCase } from "@/server/case-check";
 import type { CaseSource } from "@/engine/providers/types";
@@ -11,7 +13,7 @@ import { requireUser } from "@/server/auth";
 import { TRIAL, useCredit } from "@/server/credits";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { requestDuel } from "@/server/nearby";
-import { bankCase, takeFromBank, takeReady, type PoolChoice, prepareNext, unbankCase, waitForWriting } from "@/server/case-pool";
+import { bankCase, takeFromBank, takeLiveSlot, takeReady, type PoolChoice, prepareNext, unbankCase, waitForWriting } from "@/server/case-pool";
 import { dailyBoard, recordCaseStart, startFacts } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
@@ -119,8 +121,13 @@ export async function POST(req: Request) {
     const stopgap = anyOther?.kind === "library" && !exclude.includes(anyOther.id) ? anyOther : null;
     const awaited = fresh || host || shared || pooled || banked || written || stopgap ? null : await waitForWriting(user.id, choice, 50_000).catch(() => null);
     timing.lookup = Date.now() - began;
-    const ready = shared ?? pooled ?? banked ?? written ?? stopgap ?? awaited;
+    // Nothing ready, so one must be invented while they wait: only a few at once, across every server. Past that, the nearest case now.
+    const toWrite = !(shared ?? pooled ?? banked ?? written ?? stopgap ?? awaited) && !tutorial && !daily;
+    const release = toWrite ? await takeLiveSlot(randomUUID()).catch(() => async () => undefined) : null;
+    const busy = toWrite && !release ? await mockProvider.createCase({ easy, allowedLevels: plan.levels, exclude, country: user.country } as never).catch(() => null) : null;
+    const ready = shared ?? pooled ?? banked ?? written ?? stopgap ?? awaited ?? busy;
     const usage: UsageScope = { kind: "case-start", timing };
+    if (toWrite && !release && !busy) return apiError(503, "BUSY", "Lots of doctors are starting cases just now. Try again in a minute.");
     const session = await withUsage(usage, async () => simulateCase({
       ready,
       userId: user.id,
@@ -141,10 +148,10 @@ export async function POST(req: Request) {
       disease: body.disease,
       place,
       duel: duelId,
-    }));
+    })).finally(() => release?.().catch(() => undefined));
     usage.sessionId = session.state.sessionId;
     // A patient invented just now is kept for other doctors.
-    if (!shared && !banked && !written && !stopgap && !tutorial && !daily && !place) {
+    if (!shared && !banked && !written && !stopgap && !busy && !tutorial && !daily && !place) {
       // Banked at once: it passed its reviews while being written, and a slow second opinion mustn't lose it. Taken out only if that finds it wrong.
       const invented = sessionInfo(session.token).src;
       after(async () => {
@@ -157,7 +164,7 @@ export async function POST(req: Request) {
       });
     }
     // A written case now means a new patient ready for next time.
-    if (written || stopgap) {
+    if (written || stopgap || busy) {
       after(() => withUsage({ kind: "case-start" }, () => prepareNext(user.id, choice, { allowedLevels: plan.levels, exclude, lang: user.patientLang } as never)).then(() => undefined).catch((err) => console.warn("[ramai] the next patient wasn't written:", err instanceof Error ? err.message : err)));
     }
     console.info(timingLine("/api/cases", timing, ["auth", "facts", "lookup", "rules", "llm_primary", "llm_fallback"], Date.now() - began));
@@ -180,6 +187,7 @@ export async function POST(req: Request) {
       );
     }
     // Said on screen, so a doctor who asked for one specialty knows why this is another.
+    if (busy) return ok({ ...session, notice: "Lots of doctors are starting cases, so here's one ready now. Ask again in a minute for what you wanted." });
     return ok(stopgap && specialty ? { ...session, notice: `No ${specialty} patient is ready just now, so here's another. Yours is being written for your next case.` } : session);
   } catch (err) {
     return handleError(err);
