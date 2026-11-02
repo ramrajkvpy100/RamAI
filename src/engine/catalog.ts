@@ -41,7 +41,7 @@ export const VITALS: VitalDefinition[] = [
   { key: "bmi", label: "BMI", unit: "kg/m²", durationMin: 1, match: ["bmi", "body mass index"] },
   { key: "gcs", label: "GCS", unit: "/15", durationMin: 1, match: ["gcs", "glasgow", "glasgow coma scale"] },
   { key: "pain", label: "Pain", unit: "/10", durationMin: 0, match: ["pain score", "pain scale", "rate the pain", "rate your pain", "vas score"] },
-  { key: "urine", label: "Urine output", unit: "mL/h", durationMin: 1, match: ["urine output", "uo", "input output", "intake output", "io chart"] },
+  { key: "urine", label: "Urine output", unit: "mL/h", durationMin: 1, match: ["urine output", "uo", "uop", "uop chart", "input output", "input output chart", "intake output", "io chart"] },
 ];
 
 /** Phrases meaning "the routine set of vitals". */
@@ -268,6 +268,8 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
         row("Sodium", "139", "mEq/L", "135–145"),
         row("Potassium", "4.2", "mEq/L", "3.5–5.1"),
         row("Chloride", "102", "mEq/L", "98–107"),
+        row("Bicarbonate", "24", "mEq/L", "22–29"),
+        row("Glucose", "98", "mg/dL", "70–140"),
         row("eGFR", "> 90", "mL/min/1.73m²", "> 90"),
       ],
     }),
@@ -281,6 +283,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
         row("Sodium", "139", "mEq/L", "135–145"),
         row("Potassium", "4.2", "mEq/L", "3.5–5.1"),
         row("Chloride", "102", "mEq/L", "98–107"),
+        row("Bicarbonate", "24", "mEq/L", "22–29"),
       ],
     }),
   },
@@ -404,6 +407,7 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
         row("HCO₃⁻", "24", "mEq/L", "22–26"),
         row("Base excess", "0", "mEq/L", "−2 to +2"),
         row("Lactate", "1.1", "mmol/L", "< 2.0"),
+        row("SaO₂", "97", "%", "94–100"),
       ],
       report: "Sample drawn on room air.",
     }),

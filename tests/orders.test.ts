@@ -70,11 +70,17 @@ describe("a drug is credited only with what it did", () => {
 });
 
 describe("an order missing what's needed is asked about, and the answer completes it", () => {
-  it("a drug with no dose or route", async () => {
-    const { hidden, turns } = await converse(surgAppendicitis, ["Give paracetamol", "1 g IV"]);
-    expect(said(turns[0]!)).toMatch(/nurse: Paracetamol — what dose, and oral, IV or rectal, doctor\?/);
+  it("a titratable drug with no dose is asked about", async () => {
+    const { hidden, turns } = await converse(surgAppendicitis, ["Give morphine", "3 mg IV"]);
+    expect(said(turns[0]!)).toMatch(/Morphine — what dose/);
     expect(hidden.drugs).toHaveLength(1);
-    expect(hidden.drugs[0]).toMatchObject({ drugId: "paracetamol", route: "IV", dose: "1 g" });
+    expect(hidden.drugs[0]).toMatchObject({ drugId: "morphine", route: "IV", dose: "3 mg" });
+  });
+
+  it("a routine drug goes straight in, with its usual dose, route and frequency", async () => {
+    const { hidden, turns } = await converse(surgAppendicitis, ["Give paracetamol"]);
+    expect(said(turns[0]!)).not.toMatch(/what dose|how often/);
+    expect(hidden.drugs[0]).toMatchObject({ drugId: "paracetamol", dose: "650 mg" });
   });
 
   it("'the usual dose' is the formulary's", async () => {
@@ -83,13 +89,13 @@ describe("an order missing what's needed is asked about, and the answer complete
   });
 
   it("'ok' isn't an answer — the question is asked again, and the order waits", async () => {
-    const { hidden, turns } = await converse(surgAppendicitis, ["Give paracetamol", "ok", "1 g IV"]);
-    expect(said(turns[1]!)).toMatch(/nurse: (?:.*: )?Paracetamol — what dose/);
-    expect(hidden.drugs[0]).toMatchObject({ drugId: "paracetamol", dose: "1 g" });
+    const { hidden, turns } = await converse(surgAppendicitis, ["Give morphine", "ok", "3 mg IV"]);
+    expect(said(turns[1]!)).toMatch(/(?:.*: )?Morphine — what dose/);
+    expect(hidden.drugs[0]).toMatchObject({ drugId: "morphine", dose: "3 mg" });
   });
 
   it("something else instead: the order isn't given", async () => {
-    const { hidden } = await converse(surgAppendicitis, ["Give paracetamol", "Check BP"]);
+    const { hidden } = await converse(surgAppendicitis, ["Give morphine", "Check BP"]);
     expect(hidden.drugs).toHaveLength(0);
   });
 
@@ -99,10 +105,11 @@ describe("an order missing what's needed is asked about, and the answer complete
     expect(hidden.drugs[0]).toMatchObject({ drugId: "ns", volumeMl: 1000, overMin: 480 });
   });
 
-  it("a prescription with no frequency or duration", async () => {
-    const { hidden, turns } = await converse(dermAcne, ["Prescribe doxycycline 100 mg", "BD for 6 weeks"]);
-    expect(said(turns[0]!)).toMatch(/system: Doxycycline 100 mg — how often, and for how long\?/);
-    expect(hidden.drugs[0]).toMatchObject({ drugId: "doxycycline", mode: "prescribed", frequency: "BD", duration: "6 weeks" });
+  it("a prescription with no frequency or duration takes the usual one, and nobody stops to ask", async () => {
+    const { hidden, turns } = await converse(dermAcne, ["Prescribe doxycycline 100 mg"]);
+    expect(said(turns[0]!)).not.toMatch(/how often|how long/);
+    expect(hidden.drugs[0]).toMatchObject({ drugId: "doxycycline", mode: "prescribed", dose: "100 mg" });
+    expect(hidden.drugs[0]!.frequency).toBeTruthy();
   });
 
   it("a slow-infusion drug with no rate", async () => {
@@ -562,9 +569,9 @@ describe("Focus audit, round two", () => {
     expect(said(play(emAdhf, ["tab ceftriaxone 1 g"]).turns)).toMatch(/comes only as an injection/);
   });
   it("'no' to an order's question drops the order", async () => {
-    const { turns, hidden } = await converse(emAdhf, ["pcm 1 g", "no"]);
+    const { turns, hidden } = await converse(emAdhf, ["morphine", "no"]);
     expect(said(turns)).toMatch(/I'll leave that order/);
-    expect(hidden.drugs.some((d) => d.drugId === "paracetamol")).toBe(false);
+    expect(hidden.drugs.some((d) => d.drugId === "morphine")).toBe(false);
   });
   it("periods asked of a man get a plain answer, whatever the case's own history matches", () => {
     expect(play(surgAppendicitis, ["lmp?"]).turns[0]!.record.intents[0]?.targetId).toBe("answer:no-periods");

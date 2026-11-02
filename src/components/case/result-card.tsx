@@ -121,6 +121,7 @@ export function ResultCard({
                       {row.value}
                       {row.unit && <span className="ml-1 text-[11px] font-normal text-fg-3">{row.unit}</span>}
                       <FlagGlyph flag={row.flag} />
+                      {row.was !== undefined && <span className="ml-1 text-[11px] font-normal text-fg-3">(was {row.was} {row.trend === "up" ? "↑" : "↓"})</span>}
                     </td>
                     <td className="w-[34%] py-2 pr-4 text-right text-[11.5px] whitespace-nowrap text-fg-3 tabular">{row.reference ?? ""}</td>
                   </tr>

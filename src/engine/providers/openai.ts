@@ -48,7 +48,7 @@ import { z } from "zod";
 import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
 import { normalise } from "../text";
-import { aboutThem, fullLab, labGap, nextSeniorStep, SENIOR_WHY_KEY, systemFinding, vitalsNow } from "../simulator";
+import { aboutThem, bundleOf, fullLab, labGap, nextSeniorStep, SENIOR_WHY_KEY, systemFinding, vitalsNow } from "../simulator";
 import { noteUsage } from "./usage";
 import type { CaseSource, ClinicalProvider, CoachFeedback, FeedbackInput, GuideStep, InterpretContext, Interpretation, StartOptions } from "./types";
 
@@ -1472,7 +1472,7 @@ export function createOpenAIProvider(): ClinicalProvider {
       // In a cardiac arrest the orders are read by rules alone: no waiting on a model.
       if (ctx.hidden.code?.active) return rules;
       // The senior's button and "Full history" are carried out exactly by the simulator — nothing to read.
-      if (text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim())) return rules;
+      if (text.trim() === ctx.hidden.seniorStep?.text || bundleOf(text) || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim())) return rules;
       // Asking the senior: the rules pick the step; the model writes why it matters for this patient (4 s at most).
       if (rules.intents.length === 1 && rules.intents[0]!.kind === "hint" && this.explainStep) {
         const why = await this.explainStep(nextSeniorStep(ctx.def, ctx.hidden), ctx);

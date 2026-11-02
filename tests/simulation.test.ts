@@ -239,7 +239,7 @@ describe("tests are sent once, and every value is this patient's", () => {
 
 describe("questions come with ready answers, and bare words are asked about", () => {
   it("a drug without a dose is asked about, with buttons for the usual dose and the rest", () => {
-    const last = play(surgAppendicitis, ["Paracetamol"]).state.messages.at(-1);
+    const last = play(surgAppendicitis, ["Morphine"]).state.messages.at(-1);
     expect(last?.replies?.[0]).toEqual({ text: "Usual dose", send: true });
   });
   it("'Advise' alone is asked about, not taken as advice given", () => {

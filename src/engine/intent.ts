@@ -569,7 +569,7 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
 
   const done = (listIn: ResolvedIntent[]) => {
     // "Monitor temperature", "monitor urine output": that chart, not the cardiac monitor.
-    const charted = listIn.some((i) => i.kind === "vitals" && /\b(?:temp|urine)\b/.test(i.targetId ?? "")) && !/\b(?:cardiac|ecg|multipara|telemetry|continuous|attach|put on)\b/.test(rawClause.toLowerCase());
+    const charted = listIn.some((i) => i.kind === "vitals" && /\b(?:temp|urine|spo2)\b/.test(i.targetId ?? "")) && !/\b(?:cardiac|ecg|multipara|telemetry|continuous|attach|put on)\b/.test(rawClause.toLowerCase());
     const list = charted ? listIn.filter((i) => i.targetId !== "measure:monitor") : listIn;
     const all = [...intents, ...list];
     if (closing) all.push({ kind: "close", phrase: "case close", matched: true });
@@ -826,7 +826,7 @@ export function resolveIntents(input: string, ctx: IntentContext): ResolvedInten
       if (chosen[0]) {
         const { amount: _a, unit: _u, dose: _d, ...rest } = chosen[0].payload ?? {};
         void _a; void _u; void _d;
-        return [{ ...chosen[0], phrase: raw, payload: rest }];
+        return [{ ...chosen[0], phrase: raw, payload: { ...rest, askDose: true } }];
       }
     }
   }

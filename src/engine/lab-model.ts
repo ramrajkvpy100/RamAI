@@ -19,6 +19,8 @@ export interface FluidGiven {
 }
 
 export interface LabContext {
+  /** Hours since the patient began answering treatment. */
+  recoveryHours?: number;
   weightKg: number;
   fluids: readonly FluidGiven[];
   /** Units of red cells that have gone in. */
@@ -165,8 +167,43 @@ export function alignedPanel(baseline: readonly LabRow[], written: readonly LabR
     if (/^mcv\b/i.test(r.analyte) && mcv !== undefined) return set(mcv);
     if (/^mch\b/i.test(r.analyte) && mcv !== undefined) return set(mcv / 3.3, 1);
     if (/^(?:haematocrit|hematocrit|pcv)\b/i.test(r.analyte) && hb !== undefined) return set(hb * 3);
+    if (/^base excess\b/i.test(r.analyte) && hco3 !== undefined) {
+      const be = hco3 - 24;
+      return { ...r, value: String(be), flag: be < -2 ? ("low" as const) : be > 2 ? ("high" as const) : ("normal" as const) };
+    }
     if (/^(?:chloride|cl)\b/i.test(r.analyte) && na !== undefined) return set(hco3 !== undefined ? na - hco3 - 12 : na - 38);
     return r;
+  });
+}
+
+/** Glucose and oxygen saturation on a panel are the patient's own numbers, unless the case wrote them. */
+export function fromVitals(rows: readonly LabRow[], written: ReadonlyMap<string, unknown>, glucose?: string, spo2?: string): LabRow[] {
+  return rows.map((r) => {
+    const n = /^glucose$/i.test(r.analyte) ? parseFloat(glucose ?? "") : /^sao₂$/i.test(r.analyte) ? parseFloat(spo2 ?? "") : NaN;
+    if (!Number.isFinite(n) || written.has(r.analyte.toLowerCase())) return r;
+    const out = { ...r, value: String(Math.round(n)) };
+    return { ...out, flag: flagFor(out, n) };
+  });
+}
+
+const CRITICAL: [RegExp, number, number][] = [[/^potassium\b/i, 2.5, 6.5], [/^sodium\b/i, 120, 160], [/^ph\b/i, 7.2, 7.6], [/^(?:haemoglobin|hemoglobin)\b/i, 7, 22], [/^lactate\b/i, 0, 4], [/^glucose\b/i, 50, 400], [/^platelets?\b/i, 0.2, 10]];
+
+/** A value that can kill today is marked as critical, not just high or low. */
+export function criticalFlags(rows: readonly LabRow[]): LabRow[] {
+  return rows.map((r) => {
+    const limit = CRITICAL.find(([name]) => name.test(r.analyte));
+    const n = parseFloat(r.value.replace(/,/g, ""));
+    return limit && Number.isFinite(n) && (n < limit[1] || n >= limit[2]) ? { ...r, flag: "critical" as const } : r;
+  });
+}
+
+/** On a repeat, each value that moved says what it was. */
+export function withTrend(rows: readonly LabRow[], earlier?: readonly LabRow[]): LabRow[] {
+  if (!earlier?.length) return [...rows];
+  return rows.map((r) => {
+    const was = earlier.find((e) => e.analyte === r.analyte)?.value;
+    const a = parseFloat(String(was ?? "").replace(/,/g, "")), b = parseFloat(r.value.replace(/,/g, ""));
+    return was !== undefined && Number.isFinite(a) && Number.isFinite(b) && a !== b ? { ...r, was, trend: b > a ? ("up" as const) : ("down" as const) } : r;
   });
 }
 
@@ -183,7 +220,8 @@ function moved(rows: readonly LabRow[], ctx: LabContext): LabRow[] {
   const fio2 = ctx.fio2 ?? 21;
   const quiet = crystalloid < 250 && ctx.redCellUnits === 0 && ctx.co2Retained < 1 && shockHours === 0 && !ctx.potassiumShift;
   const oxygenMoved = (ctx.spo2Base && ctx.spo2Now && Math.abs(ctx.spo2Now - ctx.spo2Base) >= 1) || fio2 > 21;
-  if (quiet && !oxygenMoved) return [...rows];
+  const recovering = (ctx.recoveryHours ?? 0) >= 0.25;
+  if (quiet && !oxygenMoved && !recovering) return [...rows];
 
   // Dilution: the same red cells and albumin in more plasma water.
   const bloodMl = 70 * weight;
@@ -258,12 +296,24 @@ function moved(rows: readonly LabRow[], ctx: LabContext): LabRow[] {
   if (po2 && po2Now !== undefined && !/kpa/i.test(po2.unit ?? "")) {
     const [base, now] = [ctx.spo2Base, ctx.spo2Now];
     let target: number | undefined;
-    if (base && now && now > 0 && Math.abs(now - base) >= 1 && now < 97) target = pao2ForSaturation(Math.max(30, severinghaus(po2Now) + now - base), shownPh);
+    if (base && now && now > 0 && Math.abs(now - base) >= 1 && now < 99) target = pao2ForSaturation(Math.max(30, severinghaus(po2Now) + now - base), shownPh);
     else if (fio2 > 21) {
       const gap = Math.max(5, alveolarPO2(21, pco2Now ?? 40) - po2Now) * (1 + (fio2 - 21) / 50);
       target = Math.max(po2Now, alveolarPO2(fio2, pco2After ?? 40) - gap);
     }
     if (target !== undefined) set(out, po2, target, 0);
+  }
+  // A patient answering treatment clears what the illness had upset: lactate, then the acid-base numbers (pH follows from them).
+  // At most part of the way in these hours, so a chronically raised CO₂ isn't made normal.
+  if (recovering) {
+    const part = Math.min(0.6, 1 - 0.6 ** ctx.recoveryHours!);
+    const toward = (row: LabRow | undefined, lo: number, hi: number, normal: number, digits: number) => {
+      const v = plain(row ? out.get(row) ?? row : undefined);
+      if (row && v !== undefined && (v < lo || v > hi)) set(out, row, v + (normal - v) * part, digits);
+    };
+    toward(lactate, 0, 2, 1.2, 1);
+    if (!kpa) toward(pco2, 35, 45, 40, 0);
+    toward(hco3, 22, 26, 24, 1);
   }
   return rows.map((r) => out.get(r) ?? r);
 }

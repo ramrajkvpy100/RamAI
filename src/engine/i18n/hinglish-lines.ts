@@ -1369,4 +1369,162 @@ export const CASE_LINES: Record<string, Record<string, string>> = {
     "The pain is still bad, doctor, and I feel feverish.":
       "Dard abhi bhi bahut hai, doctor, aur bukhar sa lag raha hai.",
   },
+  "gp-hypertension-phc-01": {
+    "Doctor, they checked my BP at the camp and said it's high. I feel fine. Do I really need tablets?":
+      "Doctor, camp mein BP check kiya tha, bole high hai. Main toh theek hoon. Kya sach mein tablet chahiye?",
+    "It was found last week at the camp. I sometimes get a morning headache, but nothing that stops me working.":
+      "Pichhle hafte camp mein pata chala. Kabhi kabhi subah sir dard hota hai, par kaam nahi rukta.",
+    "No chest pain or breathlessness. No weakness, blurred vision or trouble speaking. My urine is normal and my legs aren't swollen.":
+      "Seene mein dard nahi, saans nahi phoolti. Kamzori, dhundhla dikhna ya bolne mein dikkat nahi. Peshab normal hai aur pair nahi soje.",
+    "I've never had sugar, kidney or heart trouble, or a stroke. No asthma or gout.":
+      "Sugar, kidney, dil ki dikkat ya lakwa kabhi nahi hua. Asthma ya gout bhi nahi.",
+    "Only a painkiller now and then for my knees, maybe once a week.":
+      "Bas ghutno ke liye kabhi kabhi painkiller, hafte mein ek baar shayad.",
+    "No allergies I know of.":
+      "Meri jaankari mein koi allergy nahi hai.",
+    "I chew tobacco and have two pegs most nights. I like salty food and pickles. On the bus all day, no exercise. My wife says I snore.":
+      "Tambaku khata hoon aur zyada tar raat ko do peg leta hoon. Namkeen aur achaar pasand hai. Din bhar bus mein, exercise nahi. Biwi kehti hai kharrate leta hoon.",
+    "My father had BP and died of a stroke at sixty-one.":
+      "Pitaji ko BP tha, aur iksath saal mein lakwe se guzar gaye.",
+    "I'll try less salt and a morning walk, doctor. The tobacco will be hard, but I'll try.":
+      "Namak kam aur subah walk try karunga, doctor. Tambaku mushkil hoga, par koshish karunga.",
+    "So I take it every day, even when I feel well. Because of what happened to my father. I understand.":
+      "Matlab roz leni hai, theek lagun tab bhi. Pitaji ke saath jo hua uski wajah se. Samajh gaya.",
+    "I've taken the tablet every day, doctor. The morning headache has gone.":
+      "Tablet roz li hai, doctor. Subah ka sir dard chala gaya.",
+    "I take it most days, doctor. I feel the same.":
+      "Zyada tar din leta hoon, doctor. Waisa hi lagta hai.",
+    "I've felt dizzy and tired on those tablets, doctor.":
+      "Un tablets se chakkar aur thakaan lagti hai, doctor.",
+    "I didn't take anything, doctor. The headaches are more frequent now.":
+      "Maine kuch nahi liya, doctor. Ab sir dard zyada baar hota hai.",
+  },
+  "id-malaria-chc-01": {
+    "No allergies I know of.":
+      "Meri jaankari mein koi allergy nahi hai.",
+    "Doctor, I've had fever with shivering for three days. It comes, I sweat, then it comes again.":
+      "Doctor, teen din se kapkapi ke saath bukhar hai. Aata hai, paseena aata hai, phir aa jaata hai.",
+    "Three days. It starts with shaking, then high fever and headache, then I sweat and feel weak.":
+      "Teen din. Pehle kapkapi, phir tez bukhar aur sir dard, phir paseena aur kamzori.",
+    "I work near the forest and we've no bed net. Two men in my village had malaria last month.":
+      "Jungle ke paas kaam karta hoon aur machhardani nahi hai. Pichhle mahine gaon mein do aadmiyon ko malaria hua.",
+    "No confusion or fits. I can eat and keep water down. My urine is normal, not dark. No bleeding or yellow eyes. No breathlessness.":
+      "Na bhram, na daure. Kha sakta hoon, paani ruk jaata hai. Peshab normal hai, kaala nahi. Khoon nahi aaya, aankhen peeli nahi. Saans nahi phoolti.",
+    "No cough, burning urine, loose stools or rash. My body aches all over.":
+      "Khansi, peshab mein jalan, dast ya daane nahi. Poora badan dukhta hai.",
+    "I had malaria two years ago, treated here. Nothing else.":
+      "Do saal pehle malaria hua tha, yahin ilaaj hua. Aur kuch nahi.",
+    "A local doctor gave a paracetamol and an injection, I don't know of what. It didn't last.":
+      "Gaon ke doctor ne paracetamol aur ek injection diya, pata nahi kiska. Asar nahi tika.",
+    "I smoke bidis. Sometimes local liquor.":
+      "Beedi peeta hoon. Kabhi kabhi desi sharab.",
+    "With food or milk, twice a day for three days, and I'll finish all of it.":
+      "Khane ya doodh ke saath, din mein do baar, teen din, aur poori khatam karunga.",
+    "If I vomit the tablets, get confused or pass dark urine, I come back. And we'll get a net.":
+      "Tablet ulti ho jaye, bhram ho ya peshab kaala ho, toh wapas aaunga. Aur machhardani le lenge.",
+    "The fever went by the second day, doctor. I finished all the tablets, and I'm eating well.":
+      "Doosre din tak bukhar chala gaya, doctor. Saari tablets khatam ki, aur achha kha raha hoon.",
+    "The fever's coming down, doctor, but I'm still weak.":
+      "Bukhar kam ho raha hai, doctor, par kamzori abhi hai.",
+    "The fever is back and worse, doctor. I feel confused and my urine has gone dark.":
+      "Bukhar wapas aa gaya, aur zyada hai, doctor. Bhram sa ho raha hai aur peshab kaala ho gaya.",
+    "It's getting worse, doctor. I can't keep anything down.":
+      "Tabiyat bigad rahi hai, doctor. Kuch bhi ruk nahi raha.",
+  },
+  "obg-preeclampsia-district-01": {
+    "Doctor, my head is splitting since morning, and I'm seeing spots of light.":
+      "Doctor, subah se sir phat raha hai, aur roshni ke dhabbe dikh rahe hain.",
+    "Since this morning. Tablets didn't help, and now there are spots of light in front of my eyes.":
+      "Aaj subah se. Tablet se fark nahi pada, aur ab aankhon ke saamne roshni ke dhabbe hain.",
+    "There's a pain high up in my stomach since afternoon, and I vomited once. My face and hands have swollen in the last few days. My breathing is fine.":
+      "Dopahar se pet ke upar dard hai, aur ek baar ulti hui. Kuch dinon se chehra aur haath soj gaye. Saans theek hai.",
+    "The baby is moving, but a little less today. No bleeding or leaking. No labour pains yet.":
+      "Baccha hil raha hai, par aaj thoda kam. Khoon ya paani nahi aaya. Dard abhi shuru nahi hue.",
+    "It's my first baby, 36 weeks. My last check-up was six weeks ago, and they said the BP was a little high.":
+      "Pehla baccha hai, 36 hafte. Aakhri check-up chhe hafte pehle tha, bole the BP thoda high hai.",
+    "No BP before this pregnancy, no sugar, fits, kidney or heart trouble. No asthma.":
+      "Is pregnancy se pehle BP nahi tha, sugar, daure, kidney ya dil ki dikkat nahi. Asthma bhi nahi.",
+    "Only iron and calcium tablets, and a paracetamol this morning.":
+      "Bas iron aur calcium ki tablet, aur aaj subah ek paracetamol.",
+    "No allergies, doctor.":
+      "Koi allergy nahi hai, doctor.",
+    "My mother had fits in her pregnancy, they told me.":
+      "Mummy ko pregnancy mein daure pade the, aisa bataya tha.",
+    "(Unresponsive after the fit.)":
+      "(Daure ke baad koi jawab nahi.)",
+    "What happened, doctor? My head hurts.":
+      "Kya hua, doctor? Sir dukh raha hai.",
+    "I had my baby, doctor. She cried at once. My headache has gone.":
+      "Baccha ho gaya, doctor. Beti turant royi. Sir dard chala gaya.",
+    "My head is better, doctor, but they say my BP still needs watching.":
+      "Sir theek hai, doctor, par kehte hain BP abhi dekhna padega.",
+    "The headache is worse, doctor. The baby has hardly moved.":
+      "Sir dard badh gaya, doctor. Baccha mushkil se hila hai.",
+    "The headache is easing a little, doctor. The spots have gone.":
+      "Sir dard thoda kam ho raha hai, doctor. Dhabbe chale gaye.",
+  },
+  "ped-pneumonia-phc-01": {
+    "Doctor, she has had cough and fever for three days, and since last night she's breathing fast.":
+      "Doctor, isko teen din se khansi aur bukhar hai, aur kal raat se tez saans le rahi hai.",
+    "Cough and fever for three days. Since last night her breathing is fast, and it's worse when the fever is high.":
+      "Teen din se khansi aur bukhar. Kal raat se saans tez hai, aur bukhar badhne par zyada.",
+    "She's drinking, less than usual. No vomiting everything, no fits. She's tired but wakes easily and plays a little.":
+      "Pee rahi hai, roz se kam. Sab kuch ulti nahi karti, daure nahi. Thaki hai par aaram se uth jaati hai aur thoda khelti hai.",
+    "No whistling or choking. No rash, ear pain or loose stools.":
+      "Seeti ki awaaz ya kuch atakna nahi. Daane, kaan dard ya dast nahi.",
+    "She was born on time and has never been admitted. Nobody at home has TB.":
+      "Time par paida hui thi, kabhi bharti nahi hui. Ghar mein kisi ko TB nahi.",
+    "All her vaccines are done, as on the card. She eats what we eat.":
+      "Saare teeke lage hain, card mein hai. Jo hum khate hain wahi khati hai.",
+    "I gave paracetamol syrup, and a cough syrup from the chemist.":
+      "Paracetamol syrup diya, aur chemist se khansi ka syrup.",
+    "No allergies, doctor. She's had amoxicillin before.":
+      "Koi allergy nahi, doctor. Pehle amoxicillin le chuki hai.",
+    "We cook on a wood stove inside the house. Her brother has a cold.":
+      "Ghar ke andar lakdi ke chulhe par khana banate hain. Iske bhai ko zukaam hai.",
+    "I'll keep feeding her small amounts, stop the cough syrup, and keep her away from the stove smoke.":
+      "Thoda thoda khilati rahungi, khansi ka syrup band karungi, aur chulhe ke dhuen se door rakhungi.",
+    "If she can't drink, gets drowsy, or her chest pulls in, I'll bring her at once. I'll come in two days anyway.":
+      "Agar pee na paye, sust ho jaye, ya chhati andar khinche, toh turant laungi. Do din mein waise bhi aaungi.",
+    "The fever went on the second day, doctor. She's eating and playing again.":
+      "Doosre din bukhar chala gaya, doctor. Phir se kha rahi hai, khel rahi hai.",
+    "She's a bit better, doctor, still coughing.":
+      "Thodi behtar hai, doctor, khansi abhi hai.",
+    "She's worse, doctor. Her chest is pulling in.":
+      "Tabiyat zyada kharab hai, doctor. Chhati andar khinch rahi hai.",
+    "She's not drinking now, doctor, and her chest pulls in with each breath.":
+      "Ab pee nahi rahi, doctor, aur har saans mein chhati andar khinchti hai.",
+  },
+  "surg-cholecystitis-district-01": {
+    "Doctor, I've a terrible pain here under my right ribs since last night, and I keep vomiting.":
+      "Doctor, kal raat se yahan daayin pasli ke neeche bahut dard hai, aur ulti ho rahi hai.",
+    "It began after a heavy biryani last night, under the right ribs, and it's now constant. It goes to my right shoulder blade. Breathing in hurts.":
+      "Kal raat bhaari biryani ke baad shuru hua, daayin pasli ke neeche, ab lagataar hai. Daayin kandhe ki haddi tak jaata hai. Saans lene par dukhta hai.",
+    "I've vomited four times, just food and bile. I've felt hot since evening, with no shaking chills.":
+      "Chaar baar ulti hui, khana aur kadwa paani. Shaam se garam lag raha hai, kapkapi nahi.",
+    "No yellow eyes. My urine is normal, and so are my stools.":
+      "Aankhen peeli nahi. Peshab normal hai, latrine bhi.",
+    "I've had shorter pains after oily food for a year; they settled by themselves. No sugar, BP or asthma. Two caesareans, nothing else.":
+      "Ek saal se tel wala khane ke baad chhota dard hota tha, apne aap theek ho jaata tha. Sugar, BP ya asthma nahi. Do operation se bacche, aur kuch nahi.",
+    "My period came two weeks ago, on time. My tubes are tied.":
+      "Mahina do hafte pehle time par aaya tha. Nasbandi ho chuki hai.",
+    "Only an antacid. It didn't help.":
+      "Bas antacid. Fark nahi pada.",
+    "I've no allergies that I know of.":
+      "Mujhe koi allergy nahi jahan tak pata hai.",
+    "No smoking or alcohol. I've eaten nothing since morning.":
+      "Na smoking, na sharab. Subah se kuch nahi khaya.",
+    "The pain is much worse, doctor. I'm shivering.":
+      "Dard bahut badh gaya, doctor. Kapkapi ho rahi hai.",
+    "The pain is easier now, doctor.":
+      "Ab dard kam hai, doctor.",
+    "They took out my gall bladder through small holes, doctor. I'm eating and walking.":
+      "Chhote chhed se pitt ki thaili nikaal di, doctor. Kha rahi hoon, chal rahi hoon.",
+    "The pain settled, doctor, but they've called me back for the operation.":
+      "Dard theek ho gaya, doctor, par operation ke liye wapas bulaya hai.",
+    "It's far worse at home, doctor, and I'm burning with fever.":
+      "Ghar par bahut zyada kharab ho gaya, doctor, aur tez bukhar hai.",
+    "The pain never went, doctor, and now I'm shivering.":
+      "Dard gaya hi nahi, doctor, aur ab kapkapi ho rahi hai.",
+  },
 };

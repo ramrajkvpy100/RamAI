@@ -199,6 +199,17 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
     elapsedMin: hidden.closedAt ?? hidden.clock,
     ...(hints && !def.guided ? { assisted: hints } : {}),
     spend: hidden.investigations.reduce((s, i) => s + i.cost, 0),
+    ...(def.track === "emergency" && def.rubric.definitiveTreatment
+      ? (() => {
+          const d = def.rubric.definitiveTreatment!;
+          const times = d.ids.flatMap((id) => hidden.actions[id] ?? []);
+          return { timeToTreatment: { label: d.label, minutes: times.length ? Math.round(Math.min(...times)) : null, target: d.byMinute } };
+        })()
+      : {}),
+    ...(() => {
+      const needless = [...new Map(hidden.investigations.filter((i) => i.priority === "unnecessary").map((i) => [i.defId, i])).values()];
+      return needless.length ? { unneededTests: { names: needless.map((i) => i.name), cost: needless.reduce((s, i) => s + i.cost, 0) } } : {};
+    })(),
     orderedInvestigationIds: [...ordered],
     score,
     reasoning: def.truth.reasoning,

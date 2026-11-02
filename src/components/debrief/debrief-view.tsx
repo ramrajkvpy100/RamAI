@@ -360,6 +360,17 @@ export function DebriefView({
             <span className="text-fg-3">·</span>
             <span className="tabular">{money(d.spend, d.country)} on investigations</span>
           </p>
+          {d.timeToTreatment && (
+            <p className="mt-2 text-[13px] leading-5 text-fg-2">
+              <strong className="font-semibold">Time to treatment:</strong>{" "}
+              {d.timeToTreatment.minutes === null ? `${d.timeToTreatment.label} was never given (due by ${d.timeToTreatment.target} min).` : `${d.timeToTreatment.label} at ${d.timeToTreatment.minutes} min (due by ${d.timeToTreatment.target} min).`}
+            </p>
+          )}
+          {d.unneededTests && (
+            <p className="mt-1 text-[13px] leading-5 text-fg-2">
+              <strong className="font-semibold">Tests that changed nothing:</strong> {d.unneededTests.names.join(", ")} ({money(d.unneededTests.cost, d.country)}).
+            </p>
+          )}
         </div>
 
         {/* The debrief, in four tabs ----------------------------------------- */}

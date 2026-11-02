@@ -159,6 +159,8 @@ export function usualDose(drug: FormularyDrug, weightKg = 60): { base: string; v
  * How many usual doses an order is: 1 for the usual dose, 10 for ten times it.
  * Fluids by volume (500 mL a usual bag). Unknown amounts count as one dose.
  */
+const RATE_USUAL: Record<string, { unit: string; value: number }> = { gtn: { unit: "mcg/min", value: 50 }, labetalol: { unit: "mg/min", value: 2 } };
+
 export function doseMultiple(drug: FormularyDrug, order: { amount?: number; unit?: string; volumeMl?: number }, weightKg = 60): number {
   if (drug.fluid) {
     const usual = usualDose(drug, weightKg);
@@ -166,6 +168,9 @@ export function doseMultiple(drug: FormularyDrug, order: { amount?: number; unit
     return order.volumeMl ? order.volumeMl / per : 1;
   }
   if (order.amount === undefined || !order.unit) return 1;
+  // A running rate is judged against the usual rate.
+  const rate = RATE_USUAL[drug.id];
+  if (rate && order.unit === rate.unit) return order.amount / rate.value;
   const usual = usualDose(drug, weightKg);
   const given = inBase(order.amount, order.unit);
   if (!usual || !given || usual.base !== given.base || usual.value <= 0) {

@@ -208,6 +208,9 @@ export interface LabRow {
   /** Reference interval, shown verbatim. */
   reference?: string;
   flag: Flag;
+  /** On a repeat: the value last time, and which way it has moved. */
+  was?: string;
+  trend?: "up" | "down";
 }
 
 /* -- Procedural media -------------------------------------------------------
@@ -871,6 +874,10 @@ export interface CaseDebrief {
   learning?: boolean;
   /** Total spent on investigations, INR. */
   spend: number;
+  /** In an emergency: how long the illness's own treatment took, against when it was due. */
+  timeToTreatment?: { label: string; minutes: number | null; target: number };
+  /** Tests that changed nothing, and what they cost. */
+  unneededTests?: { names: string[]; cost: number };
   /** Investigations the player ordered, by catalogue/case id. */
   orderedInvestigationIds: string[];
   /** ICD-ish / clinical qualifier, e.g. "moderate, inflammatory". */

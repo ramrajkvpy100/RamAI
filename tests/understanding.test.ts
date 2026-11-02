@@ -68,11 +68,12 @@ describe("Understanding the doctor (OpenAI mocked)", () => {
       expect(hidden.drugs).toHaveLength(0);
     });
 
-    it("'paracetamol 650 mg po' is an order: the nurse only asks how often and how long", async () => {
+    it("'paracetamol 650 mg po' is an order, and goes straight in", async () => {
       fakeOpenAI((s) => (isVoice(s) ? voiced(s) : { intents: [] }));
       const { read, state } = await turn(dengue, [], "paracetamol 650 mg po");
       expect(read.intents.map((i) => [i.kind, i.targetId])).toEqual([["drug", "paracetamol"]]);
-      expect(state.messages.at(-1)?.text).toMatch(/how often/);
+      expect(state.messages.map((m) => m.text).join(" ")).toMatch(/Paracetamol/);
+      expect(state.messages.map((m) => m.text).join(" ")).not.toMatch(/how often/);
     });
 
     it("a question the rules read as an order is checked by the model — and its reading (a question) stands", async () => {
@@ -131,7 +132,7 @@ describe("Understanding the doctor (OpenAI mocked)", () => {
 
     it("a bare number is never cut short ('paracetamol 650' is 650 mg, not 65)", async () => {
       const { turns } = play(dengue, ["paracetamol 650 po"]);
-      expect(messagesOf(turns[0]!.effects).join(" ")).toMatch(/Paracetamol 650 mg oral/);
+      expect(messagesOf(turns[0]!.effects).join(" ")).toMatch(/Paracetamol[^]*650 mg/);
     });
   });
 

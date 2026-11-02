@@ -22,7 +22,7 @@ import { liveClash, QT } from "./interactions";
 import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
 import { statedReviewDays } from "./intent";
 import { reworded } from "./reword";
-import { alignedPanel, compensated, creatinineClearance, followLabs, LAB_PENDING, type LabContext } from "./lab-model";
+import { alignedPanel, compensated, creatinineClearance, criticalFlags, followLabs, fromVitals, LAB_PENDING, withTrend, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
@@ -146,6 +146,8 @@ export interface HiddenState {
   oxygenFio2?: number;
   /** What the oxygen added to the saturation, and the reading it left: taking it off gives that back unless the illness has moved it since. */
   oxygenGain?: { by: number; left: number };
+  /** The doctor has been told the case can be closed. */
+  closureCued?: boolean;
   /** Every reply so far and how often: nothing is said in the same words twice. */
   said?: Record<string, number>;
   /** What the patient last said of a course, and when. */
@@ -748,9 +750,12 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
           if (troubled || STATUS_RANK[hidden.status] <= STATUS_RANK.stable) return [];
           hidden.responded = { at: hidden.clock, order: drug ? orderKey(drug.drugId, drug.at) : undefined };
           hidden.status = "improving";
+          // Getting better never takes away oxygen saturation already gained (on oxygen, say).
+          const sats = hidden.vitals.spo2;
           settleVitals(hidden, def.patient.age);
           const response = def.onResponse;
           applyVitals(hidden, response?.vitals);
+          if (sats && parseFloat(hidden.vitals.spo2.value) < parseFloat(sats.value)) hidden.vitals.spo2 = sats;
           for (const [examId, finding] of Object.entries(response?.examFindings ?? {})) if (finding) hidden.examOverrides[examId] = finding;
           if (response?.patientSays) hidden.patientSays = response.patientSays;
           return [
@@ -773,7 +778,10 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
         if (hidden.status === "deceased") return [];
         // A reversal wearing off: not if it's been given again since, or is running.
         if (s.wearsOff && hidden.drugs.some((d) => d.drugId === s.wearsOff && d.at > s.at - 75)) return [];
+        const sats = hidden.vitals.spo2;
         applyVitals(hidden, s.patches);
+        // A treatment working doesn't take back what the oxygen already gave.
+        if (!s.wearsOff && s.status !== "deteriorating" && (hidden.oxygenFio2 ?? 21) > 21 && parseFloat(hidden.vitals.spo2.value) < parseFloat(sats.value)) hidden.vitals.spo2 = sats;
         const said: TurnEffect[] = s.wearsOff ? [{ type: "message", role: "nurse", kind: "speech", text: "Doctor, they've gone drowsy again, and the breathing is slowing: the naloxone has worn off." }] : [];
         if (!s.status || s.status === hidden.status) return said;
         hidden.status = s.status;
@@ -1335,6 +1343,8 @@ function handleHistory(ctx: TurnContext, intent: ResolvedIntent, index: number):
 
 function handleVitals(ctx: TurnContext, keysIn: VitalKey[], announce = true): TurnEffect[] {
   const { hidden, def } = ctx;
+  // Checking the numbers again after treating is reassessing.
+  if (hidden.firstTreatmentAt !== undefined && hidden.clock > hidden.firstTreatmentAt) hidden.reassessments.push(hidden.clock);
   let keys = keysIn;
   const fx0: TurnEffect[] = [];
   if (def.track === "phone") {
@@ -1383,6 +1393,7 @@ function namedPart(phrase: string): string | null {
 function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
+  if (intent.targetId === "bundle:abcde" && def.track !== "phone") return primarySurvey(ctx);
   // A vaginal examination asked for in a man: there's none to do.
   if (def.track !== "phone" && def.patient.sex === "Male" && /\b(p\s*\/?\s*v|per vagin\w*|vaginal)\b/i.test(intent.phrase)) {
     return [{ type: "message", role: "nurse", kind: "speech", text: `Doctor, he's a ${def.patient.age < 15 ? "boy" : "man"} — there's no vaginal examination to do. Do you mean the genital or rectal examination?` }];
@@ -2039,7 +2050,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     const extra = ROUTINE_PANELS.has(id)
       ? alignedPanel(result.rows ?? [], override.rows ?? [], def.truth.diagnosis).filter((r) => !authored.has(analyteKey(r.analyte)))
       : (result.rows ?? []).filter((r) => !authored.has(analyteKey(r.analyte)) && (known.has(`${specimenOf(id)}:${analyteKey(r.analyte)}`) || generated?.rows?.some((g) => analyteKey(g.analyte) === analyteKey(r.analyte))));
-    result = { rows: override.rows ? [...override.rows, ...(override.report || override.media ? [] : extra)] : result.rows, report: override.report ?? result.report, media: override.media ?? result.media };
+    result = { rows: override.rows ? [...override.rows, ...((override.report || override.media) && !ROUTINE_PANELS.has(id) ? [] : extra)] : result.rows, report: override.report ?? result.report, media: override.media ?? result.media };
   }
   if (override?.noMedia) result = { ...result, media: undefined };
   // One row per analyte (the first — the case's own — wins): no "ALT" and "ALT (SGPT)" side by side.
@@ -2064,6 +2075,12 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   if (restored) result = { rows: undefined, report: restored, media: result.media && { ...result.media, spec: { kind: "ecg", rate: parseFloat(hidden.vitals.hr.value) || 80, rhythm: "sinus" } } };
   // Whoever wrote these numbers, they must agree with each other.
   if (result.rows) result = { ...result, rows: oxygenCeiling(consistentLabs(compensated(followLabs(result.rows, labContext(def, hidden)), def.truth.diagnosis)), hidden.oxygenFio2 ?? 21) };
+  // Glucose and SaO₂ on a panel are this patient's; a dangerous value is flagged as one; a repeat shows what it was.
+  if (result.rows) {
+    const earlier = [...hidden.investigations].reverse().find((i) => i.defId === id && i.delivered);
+    const now = vitalsNow(hidden);
+    result = { ...result, rows: withTrend(criticalFlags(fromVitals(result.rows, authored, now.rbs?.value, now.spo2?.value)), earlier?.result.rows) };
+  }
   // A gas drawn on oxygen says so.
   if (id === "abg" && hidden.oxygenOn && result.report) result = { ...result, report: result.report.replace(/room air/i, hidden.oxygenOn) };
   // The ECG as the patient's potassium, calcium and QT drugs now have it.
@@ -2143,6 +2160,7 @@ function labContext(def: ClinicalCaseDefinition, hidden: HiddenState): LabContex
   const retained = hidden.hazards.find((a) => a.id === CO2_NARCOSIS && a.armedAt !== undefined);
   const co2Retained = retained ? Math.max(0, Math.min(45, 0.35 * ((retained.rescuedAt ?? hidden.clock) - retained.armedAt)) - (retained.rescuedAt !== undefined ? 0.2 * (hidden.clock - retained.rescuedAt) : 0)) : 0;
   return {
+    ...(hidden.responded ? { recoveryHours: (hidden.clock - hidden.responded.at) / 60 } : {}),
     weightKg: parseFloat(hidden.vitals.weight?.value ?? "") || 60,
     age: def.patient.age,
     sex: def.patient.sex,
@@ -2520,7 +2538,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const child = def.patient.age < 13 ? { weightKg: parseFloat(hidden.vitals.weight.value) || 0 } : undefined;
   // A methylprednisolone pulse is a gram over an hour, not the 125 mg stat dose used for asthma or anaphylaxis.
   const pulse: Record<string, string | number> = drug.id === "methylprednisolone" && def.patient.age >= 16 && /\bpulse\b/i.test(`${intent.phrase} ${ctx.record.raw}`) ? { amount: 500, unit: "mg", dose: "500 mg", overMin: 60 } : {};
-  const p = intent.payload?.usual === true ? { ...usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined), ...pulse } : intent.payload ?? {};
+  let p = intent.payload?.usual === true ? { ...usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined), ...pulse } : intent.payload ?? {};
   // A route this drug doesn't come in ("tab ceftriaxone", "IV metformin"): the nurse says so and asks again.
   const routes = routesFor(drug);
   const asked = typeof p.route === "string" ? (p.route as DrugRoute) : undefined;
@@ -2537,7 +2555,14 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // Something for seconds, minutes or hours is a single going: no "how often?", and it's given now.
   const briefly = !drug.fluid && courseMinutes(p.duration as string | undefined) > 0 && courseMinutes(p.duration as string | undefined) < 1440;
   if (briefly) mode = "given";
-  const needs = drugNeeds(drug, p, mode).filter((n) => !briefly || (n !== "frequency" && n !== "duration"));
+  // A routine order goes straight in: the usual dose, route, frequency and length stand in for what wasn't said. The nurse stops only
+  // for a drug whose dose must be chosen (below), never for a detail. (The relative on the phone and the guided demo still ask.)
+  const quick = def.track !== "phone" && !def.guided && !drug.fluid;
+  if (quick && def.track === "emergency" && mode === "prescribed" && p.frequency === undefined && p.duration === undefined && routesFor(drug).some((r) => r !== "TOP")) mode = "given";
+  const asked2 = drugNeeds(drug, p, mode).filter((n) => !briefly || (n !== "frequency" && n !== "duration"));
+  const mustChoose = p.askDose === true || drug.classes.some((c) => CHOOSE_THE_DOSE.includes(c));
+  const needs = quick ? asked2.filter((n) => n === "rate" || (n === "dose" && mustChoose)) : asked2;
+  if (quick && asked2.includes("dose") && !needs.includes("dose")) p = usualOrder(drug, p, mode, child && child.weightKg > 0 ? child : undefined);
   // A dose far too big is queried first: "how often?" can wait until the doctor has heard what it would do.
   const tooBig = needs.length > 0 && needs.every((n) => n === "frequency" || n === "duration") && p.confirmed !== true && !ctx.challenged.includes(drug.id) && !SURE_RE.test(ctx.record.raw)
     && typeof p.amount === "number" && typeof p.unit === "string" && doseMultiple(drug, { amount: p.amount, unit: p.unit }, parseFloat(hidden.vitals.weight?.value ?? "") || 60) >= 3;
@@ -2811,6 +2836,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   ctx.stages.push("treatment");
   return fx;
 }
+
+/** Titratable or dangerous drugs: there's no "usual dose" to assume. */
+const CHOOSE_THE_DOSE: string[] = ["vasopressor", "inotrope", "insulin", "opioid", "anticoagulant", "heparin", "doac", "antiarrhythmic", "digoxin", "benzodiazepine", "antiepileptic", "barbiturate", "fibrinolytic", "uterotonic", "antimetabolite", "immunosuppressant", "retinoid-systemic", "teratogen", "steroid-systemic", "beta-blocker", "beta-blocker-nonselective", "antihypertensive", "hypoglycaemic", "sulfonylurea", "antivenom", "antipsychotic", "mood-stabiliser", "tca", "ssri", "thyroid", "antithyroid", "electrolyte"];
 
 /** A drug that only eases symptoms, never the illness itself. */
 const symptomatic = (drug: FormularyDrug) =>
@@ -3094,8 +3122,8 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
   // "Monitor your response", "monitor progress": watching how they do, not a machine.
   if (m.id === "monitor" && /\bmonitor(?:ing)?\s+(?:(?:your|his|her|their|the|for)\s+)?(?:\w+\s+)?(?:response|progress|symptoms|improvement|side effects|recovery)\b/i.test(intent.phrase)) return [];
   // "Monitor temperature, urine output": that chart. (However it was read: the model can call it monitoring too.)
-  if (m.id === "monitor" && /\b(?:temp|temperature|fever|urine|input|output|fluid balance|i\/o)\b/i.test(intent.phrase) && !/\b(?:cardiac|ecg|multipara|telemetry|continuous|attach|put on)\b/i.test(intent.phrase)) {
-    const keys: VitalKey[] = [...(/\b(?:temp|temperature|fever)\b/i.test(intent.phrase) ? ["temp" as const] : []), ...(/\b(?:urine|input|output|fluid balance|i\/o)\b/i.test(intent.phrase) ? ["urine" as const] : [])];
+  if (m.id === "monitor" && /\b(?:temp|temperature|fever|urine|uop|input|output|fluid balance|i\/o|spo2|sats?|saturation|pulse ox\w*)\b/i.test(intent.phrase) && !/\b(?:cardiac|ecg|multipara|telemetry|continuous|attach|put on)\b/i.test(intent.phrase)) {
+    const keys: VitalKey[] = [...(/\b(?:temp|temperature|fever)\b/i.test(intent.phrase) ? ["temp" as const] : []), ...(/\b(?:urine|uop|input|output|fluid balance|i\/o)\b/i.test(intent.phrase) ? ["urine" as const] : []), ...(/\b(?:spo2|sats?|saturation|pulse ox\w*)\b/i.test(intent.phrase) ? ["spo2" as const] : [])];
     return handleVitals(ctx, keys);
   }
   if (m.id === "oxygen" && intent.targetId === "measure:oxygen") {
@@ -3695,6 +3723,45 @@ function bareDiagnosis(def: ClinicalCaseDefinition, raw: string): string | null 
   return terms.some((x) => probe.includes(x) || (t.length >= 5 && x.includes(t))) ? raw.trim().replace(/[.!]+$/, "") : null;
 }
 
+/** The short orders that do several things at once. */
+export function bundleOf(raw: string): "hpi" | "pmh" | "abcde" | "exam" | null {
+  const t = raw.trim().toLowerCase().replace(/[.!]+$/, "");
+  if (/^(?:take\s+)?(?:a\s+|the\s+)?(?:hpi|brief history|presenting complaint|history of presenting (?:illness|complaint))$/.test(t)) return "hpi";
+  if (/^(?:pmh(?: and (?:meds|medications|drugs))?|sample history|past history and (?:meds|medications|drugs))$/.test(t)) return "pmh";
+  if (/^(?:do\s+(?:an?\s+|the\s+)?)?(?:abcde?|primary survey)$/.test(t)) return "abcde";
+  if (/^(?:do\s+(?:a\s+|the\s+)?)?(?:general and systemic exam(?:ination)?|full exam(?:ination)?|complete exam(?:ination)?|head to toe(?: exam(?:ination)?)?)$/.test(t)) return "exam";
+  return null;
+}
+
+/** The primary survey, in one look: airway, breathing, circulation, disability, exposure. */
+function primarySurvey(ctx: TurnContext): TurnEffect[] {
+  const { def, hidden } = ctx;
+  const fx = handleVitals(ctx, ["hr", "bp", "rr", "spo2", "temp", "gcs", "rbs"].filter((k) => hidden.vitals[k as VitalKey]) as VitalKey[], false);
+  const v = vitalsNow(hidden);
+  const val = (k: VitalKey) => v[k]?.value ?? "not recorded";
+  const seen = (id: string) => {
+    if (def.exam.some((e) => e.id === id) || catalogExam(id)) {
+      hidden.exams[id] ??= hidden.clock;
+      return systemFinding(def, hidden, id);
+    }
+    return "";
+  };
+  const gcs = parseFloat(val("gcs"));
+  const line = (label: string, parts: string[]) => `${label}: ${parts.filter(Boolean).join(" ")}`;
+  const text = [
+    "Primary survey",
+    line("A", [gcs >= 13 ? "Airway patent; talking." : gcs >= 9 ? "Airway at risk: drowsy." : "Airway not protected."]),
+    line("B", [`RR ${val("rr")}, SpO₂ ${val("spo2")}%.`, seen("rs")]),
+    line("C", [`Pulse ${val("hr")}, BP ${val("bp")}.`, seen("cvs"), def.exam.some((e) => e.id === "jvp") ? seen("jvp") : ""]),
+    line("D", [`GCS ${val("gcs")}, glucose ${val("rbs")} mg/dL.`, def.exam.some((e) => e.id === "cns") ? seen("cns") : ""]),
+    line("E", [`Temp ${val("temp")} °F.`, seen("general")]),
+  ].join("\n");
+  fx.push({ type: "message", role: "system", kind: "finding", text });
+  fx.push({ type: "timeline", label: "Primary survey", category: "exam" });
+  ctx.stages.push("examination");
+  return fx;
+}
+
 export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record: ActionRecord): TurnEffect[] {
   const fx: TurnEffect[] = [];
   // "Full history": every important question at once — fewer turns to the end of the case — answered in one message.
@@ -3705,6 +3772,18 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       fullHistory = todo.map((h) => h.label);
       record = { ...record, intents: todo.map((h) => ({ kind: "history" as const, targetId: h.id, phrase: h.match[0] ?? h.label, matched: true })) };
     }
+  }
+  // A bedside bundle: one short order, several things done, for a doctor between patients.
+  const bundle = bundleOf(record.raw);
+  if (bundle === "hpi" || bundle === "pmh") {
+    const groups = bundle === "hpi" ? ["complaint", "hpi"] : ["past", "medication", "allergy", "social", "family", "obstetric"];
+    const asked = def.history.filter((h) => groups.includes(h.group));
+    if (asked.length) record = { ...record, intents: asked.map((h) => ({ kind: "history" as const, targetId: h.id, phrase: h.match[0] ?? h.label, matched: true })) };
+  } else if (bundle === "abcde") {
+    record = { ...record, intents: [{ kind: "exam", targetId: "bundle:abcde", phrase: record.raw, matched: true }] };
+  } else if (bundle === "exam") {
+    const exams = def.exam.filter((e) => !["genital", "breast", "pr"].includes(e.id));
+    if (exams.length) record = { ...record, intents: exams.map((e) => ({ kind: "exam" as const, targetId: e.id, phrase: e.label, matched: true })) };
   }
   // The senior's button: exactly the step suggested.
   if (hidden.seniorStep && record.raw.trim() === hidden.seniorStep.text) {
@@ -3966,14 +4045,31 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   if (def.patient.age < 2) for (const e of fx) if (e.type === "message" && /^Water (?:given )?by mouth\.?$/i.test(e.text)) e.text = "Small, frequent feeds offered.";
   const stage = ctx.stages[ctx.stages.length - 1];
   if (stage) fx.push({ type: "stage", stage });
+  // The work is done: say so once, so a fast doctor can close without guessing whether more is expected.
+  if (!tick && !hidden.closed && !hidden.closureCued && !def.guided && def.track !== "phone" && !hidden.code?.active) {
+    const better = hidden.status === "improving" || hidden.status === "recovered";
+    const treated = !!def.rubric.definitiveTreatment?.ids.some((id) => hidden.actions[id]?.length);
+    const waiting = hidden.investigations.some((i) => !i.delivered) || (hidden.pendingOrders?.length ?? 0) > 0;
+    const unsafe = hidden.hazards.some((a) => a.manifestedAt !== undefined && !a.died && !a.superseded && a.rescuedAt === undefined);
+    const severe = Object.entries(hidden.vitals).some(([key, v]) => v && flagVital(key as VitalKey, v.value).flag === "critical");
+    const [systolic = 0, diastolic = 0] = (hidden.vitals.bp?.value ?? "").split("/").map(Number);
+    if (better && treated && !waiting && !unsafe && !severe && systolic < 160 && diastolic < 110) {
+      hidden.closureCued = true;
+      fx.push({ type: "message", role: "system", kind: "status", text: "The patient is responding to treatment. Give your final diagnosis and disposition whenever you're ready, or carry on with further work-up." });
+    }
+  }
   // Several questions in one breath get one answer: the same person's replies run together.
+  const partsSaid: string[] = [];
   if (record.intents.filter((i) => i.kind === "history").length > 1) {
+    const parts: TurnEffect[] = [];
     let speaker: Extract<TurnEffect, { type: "message" }> | undefined;
     for (let i = 0; i < fx.length; i++) {
       const e = fx[i]!;
       if (e.type !== "message") continue;
       const speaks = (e.role === "patient" || e.role === "attendant") && e.kind === "speech" && !e.media;
       if (speaks && speaker?.role === e.role) {
+        if (!parts.includes(speaker)) { partsSaid.push(speaker.text); parts.push(speaker); }
+        partsSaid.push(e.text);
         if (!speaker.text.includes(e.text)) speaker.text = `${speaker.text} ${e.text}`;
         fx.splice(i--, 1);
       } else speaker = speaks ? e : undefined;
@@ -3992,7 +4088,8 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   // And no reply in the whole chat is word for word an earlier one: said again, it's said differently.
   hidden.said ??= Object.fromEntries(def.opening.map((o) => [o.text, 1]));
   for (const e of kept) {
-    if (e.type !== "message" || e.role === "doctor") continue;
+    // (A picture's caption is the picture's, however many are shown.)
+    if (e.type !== "message" || e.role === "doctor" || e.media) continue;
     const times = hidden.said[e.text] ?? 0;
     hidden.said[e.text] = times + 1;
     if (times > 0) {
@@ -4000,6 +4097,8 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       hidden.said[e.text] = (hidden.said[e.text] ?? 0) + 1;
     }
   }
+  // What was said inside a joined answer has been said too.
+  for (const part of partsSaid) hidden.said[part] = (hidden.said[part] ?? 0) + 1;
   return kept;
 }
 

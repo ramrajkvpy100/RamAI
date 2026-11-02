@@ -189,6 +189,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "valacyclovir", generic: "Valaciclovir", brands: ["Valcivir"], aliases: ["valacyclovir", "valaciclovir"], classes: ["antiviral"], route: "PO", dose: "1 g", frequency: "TDS" },
   { id: "oseltamivir", generic: "Oseltamivir", brands: ["Fluvir", "Antiflu"], aliases: ["tamiflu"], classes: ["antiviral"], route: "PO", dose: "75 mg", frequency: "BD" },
   { id: "artesunate", generic: "Artesunate", brands: ["Falcigo"], classes: ["antimalarial"], route: "IV", dose: "2.4 mg/kg", frequency: "0, 12, 24 h then daily" },
+  { id: "artesunate-sp", generic: "Artesunate + sulfadoxine–pyrimethamine", brands: [], aliases: ["act-sp", "act sp", "artesunate sp", "artesunate plus sp", "as+sp", "as sp", "artesunate sulfadoxine pyrimethamine"], classes: ["antimalarial", "sulfonamide"], route: "PO", dose: "200 mg", frequency: "OD" },
   { id: "artemether-lumefantrine", generic: "Artemether–lumefantrine", brands: ["Lumerax", "Coartem"], aliases: ["act", "artemether"], classes: ["antimalarial"], route: "PO", dose: "80/480 mg", frequency: "BD" },
   { id: "chloroquine", generic: "Chloroquine", brands: ["Lariago"], classes: ["antimalarial"], route: "PO", dose: "600 mg base", frequency: "stat" },
 
@@ -413,12 +414,13 @@ const ROUTE_PATTERNS: [RegExp, DrugRoute][] = [
 
 const FREQUENCY_PATTERNS: [RegExp, string][] = [
   [/\b(once (?:a |per )?week(?:ly)?|weekly|every week|1 day a week|once in a week)\b/, "once weekly"],
+  // Before "daily" on its own: "twice daily" is not once daily.
+  [/\b(bd|bid|twice (?:daily|a day|per day|in a day)|(?:two|2) times (?:daily|a day|per day|in a day)|1[ -]0[ -]1|12 ?hourly|q ?12 ?h|every 12 ?h(?:ours?|rs?)?)\b/, "BD"],
+  [/\b(tds|tid|thrice (?:daily|a day|per day|in a day)|(?:three|3) times (?:daily|a day|per day|in a day)|1[ -]1[ -]1|8 ?hourly|q ?8 ?h|every 8 ?h(?:ours?|rs?)?)\b/, "TDS"],
+  [/\b(qid|qds|(?:four|4) times (?:daily|a day|per day|in a day)|6 ?hourly|q ?6 ?h|every 6 ?h(?:ours?|rs?)?)\b/, "QID"],
   [/\b(stat|immediately|right now|now)\b/, "stat"],
   [/\b(sos|prn|as needed|when required|if needed)\b/, "SOS"],
-  [/\b(od|once daily|once a day|daily|every day|qd|1 0 0|0 0 1|every 24 ?h(?:ours?|rs?)?|24 hourly|q24h)\b/, "OD"],
-  [/\b(bd|bid|twice daily|twice a day|two times a day|1 0 1|12 hourly|q12h)\b/, "BD"],
-  [/\b(tds|tid|thrice daily|three times a day|1 1 1|8 hourly|q8h)\b/, "TDS"],
-  [/\b(qid|qds|four times a day|6 hourly|q6h)\b/, "QID"],
+  [/\b(od|once daily|once a day|daily|every day|qd|1[ -]0[ -]0|0[ -]0[ -]1|every 24 ?h(?:ours?|rs?)?|24 hourly|q24h)\b/, "OD"],
   [/\b(hs|at night|at bedtime|bedtime|night time|nightly|every night|every evening)\b/, "HS"],
   [/\b(every morning|in the morning|each morning|mornings)\b/, "OD (morning)"],
   [/\b(alternate days?|every other day)\b/, "alternate days"],
@@ -473,6 +475,13 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
     out.amount = nice;
     out.unit = unit;
     out.text = `${nice} ${unit} (${per} ${unit}/kg)`;
+  }
+  // A running rate ("GTN 10 mcg/min", "labetalol 2 mg/min"): that's the order, not a one-off dose of that size.
+  const running = out.amount !== undefined ? null : t.match(/(\d+(?:[.,]\d+)?)\s*(mg|mcg|µg|ug)\s*(?:\/|per)\s*(min|minute)\b/);
+  if (running?.[1] && running[2]) {
+    out.amount = parseFloat(running[1].replace(",", ""));
+    out.unit = `${running[2].replace(/^(ug|µg)$/, "mcg")}/min`;
+    out.text = `${running[1].replace(",", "")} ${out.unit}`;
   }
   const dose = out.amount !== undefined ? null :
     t.match(/(\d+(?:[.,]\d+)?)\s*(mg|mcg|µg|ug|g|gm|grams?|iu|units?|u|meq|mmol|vials?)(?![a-z/])/) ??

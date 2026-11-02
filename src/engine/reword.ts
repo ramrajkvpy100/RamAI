@@ -15,12 +15,14 @@ const OTHER_WAYS: Record<string, string[]> = {
 const OPENERS: Record<"speech" | "nurse" | "finding" | "other", string[]> = {
   speech: ["As I told you, doctor: ", "Like I said: ", "I'll say it again, doctor: ", "Same answer, doctor: ", "Yes, as before: "],
   nurse: ["As I said, doctor: ", "Once more, doctor: ", "Repeating that, doctor: ", "Still the same, doctor: ", "Again, doctor: "],
-  finding: ["Looked again, no different: ", "Rechecked, unchanged: ", "Once more: ", "On another look: ", "Still: "],
+  finding: ["Looked again: ", "Rechecked: ", "Once more: ", "On another look: ", "Again: "],
   other: ["Again: ", "Once more: ", "Still: ", "As before: ", "Repeated: "],
 };
 
 /** The same message said for the nth time (1 = the first repeat), in different words. */
 export function reworded(text: string, role: string, kind: string | undefined, n: number): string {
+  // A repeat test is a new result, never "the same again".
+  if (/ — result available\.$/.test(text)) return `${text.replace(/ — result available\.$/, "")}, repeat ${n} — result available.`;
   const others = OTHER_WAYS[text];
   if (others?.[n - 1]) return others[n - 1]!;
   const set = role === "patient" || role === "attendant" ? OPENERS.speech : role === "nurse" ? OPENERS.nurse : kind === "finding" ? OPENERS.finding : OPENERS.other;
