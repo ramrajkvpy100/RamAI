@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 import { ALL_CASES } from "@/engine/cases";
 import { generateDebrief } from "@/engine/debrief";
 import { parseOrderDetails } from "@/engine/formulary";
-import { bundleOf } from "@/engine/simulator";
+import { bundleOf, createHiddenState, runTurn } from "@/engine/simulator";
 import { withoutSounds } from "@/engine/auscultation";
 import { diagnosisIn } from "@/engine/intent";
 import { followLabs, fromVitals, withTrend } from "@/engine/lab-model";
@@ -175,6 +175,16 @@ describe("combined bundles and the last audit bugs", () => {
     const held = { ...def, rubric: { ...def.rubric, definitiveTreatment: { ...def.rubric.definitiveTreatment!, byMinute: 1 } } };
     const { state, hidden } = await converse(held, ["hpi", "pmh and meds", "abcde", "furosemide 80 mg iv"]);
     expect(generateDebrief(held, hidden, state).score.penalties.some((p) => p.label === "Delayed treatment")).toBe(true);
+  });
+});
+
+describe("a fluid rate said out loud", () => {
+  it("stays the rate, even when the model reads 'no bolus' as a bolus", () => {
+    const def = C("surg-cholecystitis");
+    const hidden = createHiddenState(def);
+    const raw = "Continue 0.9% saline at 100 mL/hour; avoid another bolus";
+    const fx = runTurn(def, hidden, { id: "a1", at: 0, raw, intents: [{ kind: "drug", targetId: "ns", phrase: raw, matched: true, payload: { mode: "given", rapid: true, overMin: 5, volumeMl: 500 } }] });
+    expect(fx.map((e) => (e.type === "message" ? e.text : "")).join(" ")).toContain("at 100 mL/h");
   });
 });
 

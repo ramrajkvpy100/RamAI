@@ -2552,6 +2552,9 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // A methylprednisolone pulse is a gram over an hour, not the 125 mg stat dose used for asthma or anaphylaxis.
   const pulse: Record<string, string | number> = drug.id === "methylprednisolone" && def.patient.age >= 16 && /\bpulse\b/i.test(`${intent.phrase} ${ctx.record.raw}`) ? { amount: 500, unit: "mg", dose: "500 mg", overMin: 60 } : {};
   let p = intent.payload?.usual === true ? { ...usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined), ...pulse } : intent.payload ?? {};
+  // A rate said out loud is the order, even in a sentence that also says "no bolus".
+  const statedRate = drug?.fluid ? (typeof p.rateMlH === "number" ? p.rateMlH : parseFloat(ctx.record.raw.match(/(\d+(?:\.\d+)?)\s*ml\s*(?:\/|per\s+)\s*h(?:ou)?r?\b/i)?.[1] ?? "")) : NaN;
+  if (Number.isFinite(statedRate)) p = { ...p, rateMlH: statedRate, rapid: false, overMin: undefined };
   // A route this drug doesn't come in ("tab ceftriaxone", "IV metformin"): the nurse says so and asks again.
   const routes = routesFor(drug);
   const asked = typeof p.route === "string" ? (p.route as DrugRoute) : undefined;
