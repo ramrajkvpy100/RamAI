@@ -21,6 +21,7 @@ button{margin-top:22px;height:44px;padding:0 24px;border:0;border-radius:999px;c
 <h1>You're offline</h1><p>This page needs a connection — open it once online and it'll work offline after. Your planner, focus timer and revision deck work offline. Your progress is safe — this page reloads by itself when you're back online.</p><button onclick="location.reload()">Try again</button></main>
 <script>addEventListener("online",function(){location.reload()})</script></body></html>`;
 
+const SCAN_ORIGIN = "https://pub-6c5f80bbadbf438781a45ec27a6ac07b.r2.dev";
 const STATIC = "ramai-static-v1";
 // Bump to empty the kept pages after a change to how they're kept.
 const MEDIA = "ramai-media-v1";
@@ -79,7 +80,7 @@ self.addEventListener("message", (event) => {
 });
 let lastReady = 0;
 
-const keepable = (res) => res && res.ok && (res.type === "basic" || res.type === "default") && !res.redirected;
+const keepable = (res) => res && res.ok && (res.type === "basic" || res.type === "default" || res.type === "cors") && !res.redirected;
 
 async function trim(name, max) {
   const c = await caches.open(name);
@@ -168,8 +169,10 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  // Radiology scans come from storage, and never change for a path: kept on the phone, so they open at once and offline.
+  if (url.origin === SCAN_ORIGIN) return event.respondWith(fromPhone(req, SCANS, 20000));
   if (url.origin !== self.location.origin) return;
-  // Skills Lab pictures and radiology scans never change for a path: kept on the phone, so they open at once and offline.
+  // Skills Lab pictures never change for a path either.
   if (url.pathname.startsWith("/api/practice/image/") || (url.pathname.startsWith("/radiology/") && !url.search)) return event.respondWith(fromPhone(req, SCANS, 20000));
   if (url.pathname.startsWith("/api/")) return;
   if (req.mode === "navigate") return event.respondWith(page(event, url));

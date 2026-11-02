@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { scanUrl } from "@/lib/scans";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
@@ -101,7 +102,7 @@ export function StackViewer({ id, slices, label, windows, zRatio }: { id: string
     setLoaded(0);
     pos.current = keep ?? { axial: Math.floor(slices / 2), sagittal: 0, coronal: 0 };
     (async () => {
-      const urls = Array.from({ length: slices }, (_, n) => `/radiology/${id}/${folder ? `${folder}/` : ""}${String(n).padStart(3, "0")}.jpg`);
+      const urls = Array.from({ length: slices }, (_, n) => scanUrl(`${id}/${folder ? `${folder}/` : ""}${String(n).padStart(3, "0")}.jpg`));
       // The middle slice first, shown at once while the rest arrive (it's the one the study opens on).
       if (!keep) {
         const mid = Math.floor(slices / 2);

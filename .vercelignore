@@ -3,3 +3,5 @@ video
 marketing
 tests
 scripts
+# Served from Cloudflare R2 (src/lib/scans.ts); the originals stay in the repository.
+public/radiology

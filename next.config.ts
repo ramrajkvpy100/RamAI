@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { SCAN_BASE } from "./src/lib/scans";
+
 /** Sent with every response. The Content-Security-Policy for pages is set per request in src/proxy.ts. */
 const SECURITY_HEADERS = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -14,6 +16,10 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // The scans moved to Cloudflare R2: an app still holding an old address finds them there.
+  async redirects() {
+    return [{ source: "/radiology/:path+", destination: `${SCAN_BASE}/:path+`, permanent: false }];
+  },
   reactStrictMode: true,
   // Stamped into the page, so an open tab can tell when the site has moved on (see VersionCheck).
   env: { NEXT_PUBLIC_RAMAI_BUILD: process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "dev" },
@@ -31,8 +37,6 @@ const nextConfig: NextConfig = {
       // Focus scenes, drinks, animations and level pictures: kept by the phone for a week (they rarely change).
       // Media files only (the /focus and /radiology pages themselves must never be cached like this).
       { source: "/:dir(focus|anim|levels)/:file([^/]+\\.(?:webp|png|jpg|jpeg|mp4|webm|mp3|m4a|ogg))", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }] },
-      // Scans are sometimes redrawn under the same name: a day, then checked again.
-      { source: "/radiology/:file(.+\\.(?:jpg|png|webp))", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
       // Account data must never be cached by a browser or CDN. (Share cards and practice pictures are public — they set their own.)
       { source: "/api/:path((?!share/|practice/image/).*)", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
     ];

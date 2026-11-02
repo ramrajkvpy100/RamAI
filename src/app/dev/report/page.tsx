@@ -1,5 +1,6 @@
 "use client";
 
+import { scanUrl } from "@/lib/scans";
 import { ReportProblem } from "@/components/case/report-problem";
 import { EcgTrace } from "@/components/media/ecg";
 import { MODALITIES } from "@/lib/practice";
@@ -18,7 +19,7 @@ export default function ReportPreview() {
         </div>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/radiology/singles/pneumoperitoneum/1.jpg" alt="X-ray" className="w-64 rounded-xl" />
+      <img src={scanUrl("singles/pneumoperitoneum/1.jpg")} alt="X-ray" className="w-64 rounded-xl" />
       <div className="w-[520px] max-w-full rounded-xl bg-white"><EcgTrace spec={ecg} /></div>
       <ReportProblem />
     </div>

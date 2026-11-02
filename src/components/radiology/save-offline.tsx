@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SCAN_BASE, scanUrl } from "@/lib/scans";
 
 import SINGLES from "@/lib/radiology-singles.json";
 import STACKS from "@/lib/radiology-stacks.json";
@@ -11,7 +12,7 @@ const KEY = "ramai.scans.saved";
 /** Every file a study needs: a stack's slices (in each of its windows), or a single image. */
 export function stackUrls(s: { id: string; slices: number; windows?: string[] }, onlyFirst = false): string[] {
   const folders = s.windows?.length ? (onlyFirst ? [s.windows[0]!] : s.windows) : [""];
-  return folders.flatMap((f) => Array.from({ length: s.slices }, (_, n) => `/radiology/${s.id}/${f ? `${f}/` : ""}${String(n).padStart(3, "0")}.jpg`));
+  return folders.flatMap((f) => Array.from({ length: s.slices }, (_, n) => scanUrl(`${s.id}/${f ? `${f}/` : ""}${String(n).padStart(3, "0")}.jpg`)));
 }
 
 /** Fetches quietly, a few at a time (the app keeps what it fetches on the phone). */
@@ -48,9 +49,9 @@ export function SaveOffline() {
     for (const m of ["xray", "ct", "usg"]) {
       const r = await fetch("/api/radiology/round", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modality: m }) }).catch(() => null);
       const items = r?.ok ? ((await r.json()) as { items: { image: string | null }[] }).items : [];
-      for (const it of items) if (it.image && !it.image.startsWith("/radiology/")) bank.push(it.image);
+      for (const it of items) if (it.image && !it.image.startsWith(SCAN_BASE)) bank.push(it.image);
     }
-    const urls = [...STACKS.flatMap((s) => stackUrls(s as { id: string; slices: number; windows?: string[] })), ...SINGLES.map((s) => s.src), ...bank];
+    const urls = [...STACKS.flatMap((s) => stackUrls(s as { id: string; slices: number; windows?: string[] })), ...SINGLES.map((s) => scanUrl(s.src)), ...bank];
     setTotal(urls.length);
     let n = 0;
     await warm(urls, () => setDone(++n), () => stopped.current, 8);

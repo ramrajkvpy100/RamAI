@@ -140,3 +140,11 @@ describe("orders typed ahead", () => {
     expect(sent.at(-1)).toBe("ecg");
   });
 });
+
+describe("where the scans live", () => {
+  it("every library path becomes one address on storage", async () => {
+    const { scanUrl, SCAN_BASE } = await import("@/lib/scans");
+    expect(scanUrl("/radiology/singles/nof/2.jpg")).toBe(`${SCAN_BASE}/singles/nof/2.jpg`);
+    expect(scanUrl("lung-ca-ct-4/soft/000.jpg")).toBe(`${SCAN_BASE}/lung-ca-ct-4/soft/000.jpg`);
+  });
+});
