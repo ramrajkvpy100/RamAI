@@ -21,6 +21,7 @@ import { BIG_STEPS, givesReason } from "./behaviour";
 import { liveClash, QT } from "./interactions";
 import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
 import { statedReviewDays } from "./intent";
+import { reworded } from "./reword";
 import { alignedPanel, compensated, creatinineClearance, followLabs, LAB_PENDING, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
@@ -145,6 +146,8 @@ export interface HiddenState {
   oxygenFio2?: number;
   /** What the oxygen added to the saturation, and the reading it left: taking it off gives that back unless the illness has moved it since. */
   oxygenGain?: { by: number; left: number };
+  /** Every reply so far and how often: nothing is said in the same words twice. */
+  said?: Record<string, number>;
   /** What the patient last said of a course, and when. */
   lastCourseWord?: { at: number; says: string };
   /** A cream used far more often than it can be: the skin pays for it. */
@@ -1498,6 +1501,8 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   fx.push({ type: "fact", group, label, value: factValue, abnormal });
   fx.push({ type: "timeline", label: `${label} examined`, category: "exam" });
   ctx.stages.push("examination");
+  // "Examine general appearance and vital signs": the numbers come with it.
+  if (/\bvital(?:s| signs?)\b/i.test(intent.phrase) && !ctx.record.intents.some((i) => i.kind === "vitals")) fx.push(...handleVitals(ctx, [...ROUTINE_VITALS]));
   return fx;
 }
 
@@ -1940,7 +1945,9 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   // An imaging order: which part, which view, contrast or not — asked when not said.
   const urgent = def.track === "emergency" || hidden.setting === "ICU" || STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating || /\b(?:stat|portable|bedside)\b/i.test(intent.phrase);
   const study = settleStudy(def, requested, intent.phrase, payload, urgent);
-  if (study.needs.length > 0 && !payload.reshow && def.track !== "phone") {
+  // Nobody asks which view of a film this hospital can't take: it says so, below.
+  const cannotDoIt = !payload.private && !def.unlimited && !!investigationEntry(study.id) && !canPerform(def.level, study.id, { inCatalog: true, minLevel: def.investigations.find((i) => i.id === study.id)?.minLevel });
+  if (study.needs.length > 0 && !payload.reshow && def.track !== "phone" && !cannotDoIt) {
     return askAbout(ctx, { kind: "investigation", targetId: requested, payload: { ...payload, ...(study.region ? { region: study.region } : {}) }, phrase: intent.phrase, needs: study.needs }, imagingQuestion(study.kind!, study.needs, { ...payload, ...(study.region ? { region: study.region } : {}) }, askerRole(ctx, "test") !== "system"), "test");
   }
   const id = study.id;
@@ -3867,6 +3874,12 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     const vitalsBefore = vitalsNow(hidden);
     const advance = advanceClock(def, hidden, hidden.clock + minutes, true);
     const passed = hidden.clock - clockBefore;
+    // Days have gone by: nobody is still on the casualty's oxygen.
+    if (passed >= 1440 && hidden.oxygenOn) {
+      hidden.oxygenOn = undefined;
+      hidden.oxygenFio2 = undefined;
+      hidden.oxygenGain = undefined;
+    }
     const stopped = advance.interrupted || (hidden.status as string) === "deceased" || passed < minutes - 0.5;
     // Only what truly passed is claimed: a complication can stop the course early.
     fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[Clock stopped early at +${describeSpan(Math.max(1, passed))} of the ${describeSpan(minutes)} ${names.join(" and ")} course: the patient acutely deteriorated]` : minutes < 1440 ? `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")}]` : `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
@@ -3968,7 +3981,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   }
   // The same words twice in one turn say nothing new.
   const heard = new Set<string>();
-  return fx.filter((e) => {
+  const kept = fx.filter((e) => {
     if (e.type !== "message" || e.role === "doctor") return true;
     if (!e.text.trim()) return false;
     const key = `${e.role}|${e.text}`;
@@ -3976,6 +3989,18 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     heard.add(key);
     return true;
   });
+  // And no reply in the whole chat is word for word an earlier one: said again, it's said differently.
+  hidden.said ??= Object.fromEntries(def.opening.map((o) => [o.text, 1]));
+  for (const e of kept) {
+    if (e.type !== "message" || e.role === "doctor") continue;
+    const times = hidden.said[e.text] ?? 0;
+    hidden.said[e.text] = times + 1;
+    if (times > 0) {
+      e.text = reworded(e.text, e.role, e.kind, times);
+      hidden.said[e.text] = (hidden.said[e.text] ?? 0) + 1;
+    }
+  }
+  return kept;
 }
 
 /** After waiting (or anything that drew no other answer): how the patient is now, from the nurse or the patient. */

@@ -83,6 +83,9 @@ export function LostMarks({ score }: { score: CaseScore }) {
       <h2 id="lost-heading" className="text-[15px] font-semibold">
         {gap === 0 ? "Full marks — nothing lost" : `Where your ${gap} mark${gap === 1 ? "" : "s"} went`}
       </h2>
+      {gap > 0 && score.lines.some((l) => l.category === "outcome" && l.earned >= l.max) && (
+        <p className="mt-1 text-[13px] leading-5 text-fg-2">Your patient did well, and that earned full marks for outcome. The rest of the score is for how you got there.</p>
+      )}
       {lost.length > 0 && (
         <ul className="mt-2 flex flex-col divide-y divide-line-2">
           {lost.map((l) => (

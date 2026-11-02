@@ -7,6 +7,7 @@ import "server-only";
 
 import { capitalise } from "../text";
 import type { CaseState, PatientIdentity, PatientLang, TurnEffect } from "../types";
+import { OPENER_HINGLISH, REWORD_HINGLISH } from "../reword";
 import { CASE_LINES } from "./hinglish-lines";
 
 type Speaker = "patient" | "attendant";
@@ -107,8 +108,11 @@ function generic(text: string, speaker: Speaker, p: PatientIdentity): string | u
 }
 
 export function toHinglish(text: string, caseId: string, speaker: Speaker, patient: PatientIdentity): string {
-  const whole = CASE_LINES[caseId]?.[text] ?? GLOBAL[text] ?? generic(text, speaker, patient);
+  const whole = CASE_LINES[caseId]?.[text] ?? GLOBAL[text] ?? REWORD_HINGLISH[text] ?? generic(text, speaker, patient);
   if (whole) return whole;
+  // Said before: the same answer behind a few words saying so.
+  const opener = Object.keys(OPENER_HINGLISH).find((o) => text.startsWith(o));
+  if (opener) return `${OPENER_HINGLISH[opener]}${toHinglish(text.slice(opener.length), caseId, speaker, patient)}`;
   // Several answers run together: each known line in turn, the longest that fits, whatever else is left as it is.
   const parts = text.split(/(?<=[.!?…])\s+/);
   const out: string[] = [];

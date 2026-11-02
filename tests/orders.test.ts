@@ -84,7 +84,7 @@ describe("an order missing what's needed is asked about, and the answer complete
 
   it("'ok' isn't an answer — the question is asked again, and the order waits", async () => {
     const { hidden, turns } = await converse(surgAppendicitis, ["Give paracetamol", "ok", "1 g IV"]);
-    expect(said(turns[1]!)).toMatch(/nurse: Paracetamol — what dose/);
+    expect(said(turns[1]!)).toMatch(/nurse: (?:.*: )?Paracetamol — what dose/);
     expect(hidden.drugs[0]).toMatchObject({ drugId: "paracetamol", dose: "1 g" });
   });
 

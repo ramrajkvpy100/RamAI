@@ -275,6 +275,9 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
         penalties.push({ label: "Delayed treatment", points: -Math.round(W.treatment * 0.25 * 10) / 10, reason: first === undefined ? `${definitive.label} was never done` : `${definitive.label} was delayed` });
       }
     }
+    // The illness's own treatment, given, with the patient better for it: the extras it lacked don't sink the mark.
+    const treated = !!definitive && definitive.ids.some(done) && (hidden.status === "improving" || hidden.status === "recovered");
+    if (treated && quality !== "harmful") frac = Math.max(frac, 0.65);
     if (quality === "harmful") frac = Math.min(frac, 0.5);
     notes.unshift(satisfied === groups.length ? "Complete, appropriate treatment" : `${satisfied} of ${groups.length} essential treatment elements given`);
     const lostTx: string[] = [];
@@ -388,8 +391,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
       frac = 0.15;
       notes.push("Harm set in motion after discharge");
     } else {
-      frac = quality === "ideal" ? 1 : quality === "acceptable" ? 0.7 : quality === "untreated" ? 0.3 : 0.1;
-      notes.push(quality === "ideal" ? "Expected full recovery" : quality === "acceptable" ? "Likely recovery, suboptimal plan" : quality === "untreated" ? "Condition left untreated" : "Treatment likely to cause harm");
+      // How the patient truly ended up, once a treatment worked: well is well, whatever else the plan lacked.
+      const well = quality === "acceptable" && (hidden.status === "improving" || hidden.status === "recovered");
+      frac = quality === "ideal" || well ? 1 : quality === "acceptable" ? 0.7 : quality === "untreated" ? 0.3 : 0.1;
+      notes.push(well ? "The patient got better" : quality === "ideal" ? "Expected full recovery" : quality === "acceptable" ? "Likely recovery, suboptimal plan" : quality === "untreated" ? "Condition left untreated" : "Treatment likely to cause harm");
     }
     line("outcome", frac, notes, notes.map((n) => `${n}.`));
   }
