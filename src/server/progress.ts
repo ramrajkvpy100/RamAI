@@ -2,6 +2,7 @@
 import "server-only";
 
 import { withDerived } from "@/engine/progression";
+import { GUIDED_CASES } from "@/engine/rating";
 import type { CareLevel, CaseTrack, CompletedCaseSummary, DiagnosisVerdict, PlayerProgress, Specialty } from "@/engine/types";
 
 import { db } from "./db";
@@ -18,6 +19,13 @@ interface ResultRow {
   score: number;
   xp: number;
   created_at: number;
+  case_rating: number | null;
+  failed: number | null;
+  clean: number | null;
+  tutorial: number | null;
+  daily_key: string | null;
+  duel_id: string | null;
+  rating_bonus: number | null;
 }
 
 const toSummary = (r: ResultRow): CompletedCaseSummary => ({
@@ -32,10 +40,16 @@ const toSummary = (r: ResultRow): CompletedCaseSummary => ({
   score: r.score,
   xp: r.xp,
   completedISO: new Date(r.created_at).toISOString(),
+  ...(r.case_rating ? { caseRating: r.case_rating } : {}),
+  ...(r.failed ? { failed: true } : {}),
+  ...(r.clean ? { clean: true } : {}),
+  ...(r.tutorial || GUIDED_CASES.has(r.case_ref) ? { tutorial: true } : {}),
+  ...(r.daily_key ? { daily: true } : {}),
+  ...(r.duel_id ? { duelId: r.duel_id, ratingBonus: r.rating_bonus } : {}),
 });
 
 /** Only what progress needs — never the big detail/summary JSON (it made every page slower with every case). */
-export const SUMMARY_COLUMNS = "case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at";
+export const SUMMARY_COLUMNS = "case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, case_rating, failed, clean, tutorial, daily_key, duel_id, rating_bonus";
 
 export const summaryFromRow = (row: Record<string, unknown>): CompletedCaseSummary => toSummary(row as unknown as ResultRow);
 

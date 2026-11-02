@@ -25,7 +25,7 @@ export function AvatarMaker({ onClose }: { onClose: () => void }) {
   const [a, setA] = useState<AvatarStyle>(me?.avatar ?? DEFAULT_AVATAR);
   const [tab, setTab] = useState<Tab>("Outfit");
   // Outfits unlock with rank: one for each rank reached.
-  const tier = me ? rankFor(me.progress.percent).tier : 1;
+  const tier = me ? rankFor(me.progress.rating).tier : 1;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<AvatarStyle>) => setA((x) => ({ ...x, ...patch }));

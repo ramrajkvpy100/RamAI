@@ -32,7 +32,7 @@ export function UserMenu({ me }: { me: Me }) {
   const [pref, setPref] = useThemePref();
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const rank = rankFor(me.progress.percent);
+  const rank = rankFor(me.progress.rating);
   const { launch, starting } = useLauncher();
 
   useEffect(() => {

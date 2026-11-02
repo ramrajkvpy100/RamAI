@@ -1,5 +1,6 @@
 "use client";
 
+import { RatingCard } from "./rating-card";
 import { SpecialtyBars } from "./specialty-bars";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -234,6 +235,8 @@ export function ProgressView({ detail, report }: { detail: ProgressDetail; repor
           <Icon name="share-ios" size={15} /> Share my progress
         </button>
       </section>
+
+      <RatingCard />
 
       <SpecialtyBars />
 

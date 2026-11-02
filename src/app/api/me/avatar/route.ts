@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const parsed = parseAvatar(body.style)!;
     // An outfit is only worn once its rank is reached.
     const progress = await progressFor(user.id);
-    const tier = rankFor(progress.percent).tier;
+    const tier = rankFor(progress.rating).tier;
     // And an item from the doctor's bag only once it's collected.
     const style = { ...parsed, outfit: parsed.outfit !== undefined && parsed.outfit > tier - 1 ? -1 : parsed.outfit, extra: itemUnlocked(parsed.extra, progress) ? parsed.extra : "stethoscope" as const };
     await db.run("INSERT INTO user_avatars (user_id, style, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET style = excluded.style, updated_at = excluded.updated_at", user.id, JSON.stringify(style), Date.now());

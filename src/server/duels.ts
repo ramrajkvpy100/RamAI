@@ -9,7 +9,10 @@ import { createHash, randomUUID } from "node:crypto";
 
 import type { CaseSource } from "@/engine/providers/types";
 
+import { duelDeltas } from "@/engine/rating";
+
 import { db } from "./db";
+import { progressFor } from "./progress";
 
 export type DuelMode = "invite" | "find" | "computer";
 
@@ -59,9 +62,32 @@ export async function findOpenDuel(guest: { id: string; name: string }): Promise
   return null;
 }
 
-export async function recordDuelScore(id: string, userId: string, score: number): Promise<void> {
+export async function recordDuelScore(id: string, userId: string, score: number): Promise<number | undefined> {
   await db.run("UPDATE duels SET host_score = ? WHERE id = ? AND host_id = ? AND host_score IS NULL", score, id, userId);
   await db.run("UPDATE duels SET guest_score = ? WHERE id = ? AND guest_id = ? AND guest_score IS NULL", score, id, userId);
+  return settleDuel(id, userId);
+}
+
+/** A friend or a stranger, not the computer: the two doctors' ratings are at stake against each other. */
+export async function isHeadToHead(id: string): Promise<boolean> {
+  return (await db.get<{ mode: string }>("SELECT mode FROM duels WHERE id = ?", id))?.mode !== "computer";
+}
+
+/** Once both have played: the higher score wins (the quicker on a tie), and the ratings exchange. What this doctor gained or lost, once settled. */
+async function settleDuel(id: string, userId: string): Promise<number | undefined> {
+  const row = await db.get<Row & { settled: number | null }>("SELECT * FROM duels WHERE id = ?", id);
+  if (!row || row.mode === "computer" || !row.guest_id || row.host_score === null || row.guest_score === null || row.settled) return undefined;
+  const took = await db.run("UPDATE duels SET settled = 1 WHERE id = ? AND settled IS NULL", id);
+  if (!took.changes) return undefined;
+  const times = await db.all<{ user_id: string; elapsed_min: number | null }>("SELECT user_id, elapsed_min FROM results WHERE duel_id = ?", id);
+  const minutes = (who: string) => times.find((t) => t.user_id === who)?.elapsed_min ?? Infinity;
+  const hostTime = minutes(row.host_id), guestTime = minutes(row.guest_id);
+  const result: 0 | 0.5 | 1 = row.host_score !== row.guest_score ? (row.host_score > row.guest_score ? 1 : 0) : hostTime === guestTime ? 0.5 : hostTime < guestTime ? 1 : 0;
+  const [host, guest] = await Promise.all([progressFor(row.host_id), progressFor(row.guest_id)]);
+  const [hostDelta, guestDelta] = duelDeltas(host.rating, guest.rating, result, host.ratedCases ?? 0, guest.ratedCases ?? 0);
+  await db.run("UPDATE results SET rating_bonus = ? WHERE duel_id = ? AND user_id = ?", hostDelta, id, row.host_id);
+  await db.run("UPDATE results SET rating_bonus = ? WHERE duel_id = ? AND user_id = ?", guestDelta, id, row.guest_id);
+  return userId === row.host_id ? hostDelta : guestDelta;
 }
 
 /** The computer's score for a case: an expert's, steady but not perfect (68–92). */

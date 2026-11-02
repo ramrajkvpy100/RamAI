@@ -87,7 +87,7 @@ export async function resultCard(resultId: number): Promise<ResultCard | null> {
   if (!r) return null;
   const country: Country = isCountry(r.country) ? r.country : "IN";
   const progress = await progressFor(r.user_id);
-  const rank = rankFor(progress.percent);
+  const rank = rankFor(progress.rating);
   return {
     kind: "result",
     caseNumber: r.case_number,
@@ -112,7 +112,7 @@ export async function progressCard(userId: string): Promise<ProgressCard | null>
   const u = await db.get<{ name: string; is_guest: number }>("SELECT name, is_guest FROM users WHERE id = ?", userId);
   if (!u) return null;
   const p = await progressFor(userId);
-  const rank = rankFor(p.percent);
+  const rank = rankFor(p.rating);
   const recent = p.history.slice(-20);
   return {
     kind: "progress",
@@ -163,7 +163,7 @@ export async function achievementCard(value: string): Promise<AchievementCard | 
   const u = await db.get<{ name: string; is_guest: number }>("SELECT name, is_guest FROM users WHERE id = ?", userId);
   if (!u) return null;
   const p = await progressFor(userId);
-  const rank = rankFor(p.percent);
+  const rank = rankFor(p.rating);
   let prize: AchievementCard["prize"];
   if (key === "rank") prize = { kind: "rank", label: rank.label, description: "Promoted on the average of recent cases." };
   else {

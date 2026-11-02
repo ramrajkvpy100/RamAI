@@ -68,7 +68,7 @@ interface ReplyRow {
 async function authors(userIds: string[]): Promise<Map<string, { rankTier: number; rankLabel: string }>> {
   const progress = await progressForMany(userIds);
   return new Map([...progress].map(([id, p]) => {
-    const rank = rankFor(p.percent);
+    const rank = rankFor(p.rating);
     return [id, { rankTier: rank.tier, rankLabel: rank.label }];
   }));
 }

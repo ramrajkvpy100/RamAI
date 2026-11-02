@@ -14,7 +14,7 @@ import { toast } from "@/lib/toast";
 export function DoctorsBag({ me }: { me: Me }) {
   const p = me.progress;
   const avatar = me.avatar ?? DEFAULT_AVATAR;
-  const tier = rankFor(p.percent).tier;
+  const tier = rankFor(p.rating).tier;
   const [saving, setSaving] = useState<Extra | null>(null);
   const got = ITEMS.filter((i) => itemUnlocked(i.id, p));
   const next = ITEMS.find((i) => !itemUnlocked(i.id, p));

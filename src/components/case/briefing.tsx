@@ -8,6 +8,7 @@ import { LogoTile } from "@/components/brand/wordmark";
 import { FamilyFigure, PatientFigure } from "@/components/game/caricature";
 import { Icon } from "@/components/ui/icon";
 import { levelMeta, trackLabel } from "@/engine/levels";
+import { UNRATED_LABEL } from "@/engine/rating";
 import type { CaseState } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { caseLabel, clockAt } from "@/lib/format";
@@ -107,6 +108,9 @@ export function Briefing({ state, onBegin }: { state: CaseState; onBegin: () => 
         </Link>
         <div className="flex min-w-0 items-center gap-2 truncate text-[12.5px] text-fg-2">
           <span className="font-semibold text-fg tabular">{caseLabel(state.caseNumber)}</span>
+          {state.caseRating && !state.guided && (
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11.5px] font-semibold text-fg tabular">Case Rating: {state.caseRating} · {state.unrated ? UNRATED_LABEL[state.unrated] : state.duel ? "Rated duel" : "Rated"}</span>
+          )}
           <span>·</span>
           <span>{trackLabel(state.track, state.country)}</span>
           <span className="hidden sm:inline">· {levelMeta(state.level, state.country).label}</span>

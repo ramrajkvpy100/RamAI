@@ -106,5 +106,5 @@ export async function widgetData(token: string, day?: string): Promise<WidgetDat
     next: next.slice(0, 80), done: doneCount, total,
   };
   return {
-    plan, streak: p.streakDays, xpToday: p.dailyXp, goal: p.dailyGoal, rating: Math.round(p.rating ?? 1200), casesToday: today, level: rankFor(p.percent).label };
+    plan, streak: p.streakDays, xpToday: p.dailyXp, goal: p.dailyGoal, rating: Math.round(p.rating ?? 1200), casesToday: today, level: rankFor(p.rating).label };
 }

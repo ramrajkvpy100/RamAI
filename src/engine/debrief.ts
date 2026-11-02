@@ -6,6 +6,7 @@
  * rescue episodes, and the score.
  */
 
+import { caseRatingFor } from "./rating";
 import { EXPECTED_COURSE } from "./drug-safety";
 import { heardIn, LISTEN_SOURCE, listen, type ListenPart } from "./auscultation";
 import { formularyDrug } from "./formulary";
@@ -187,6 +188,8 @@ export function generateDebrief(def: ClinicalCaseDefinition, hidden: HiddenState
 
   return {
     caseRef: def.id,
+    caseRating: caseRatingFor(def.level, def.difficulty),
+    ...(def.guided ? { guided: true } : {}),
     specialty: def.specialty,
     track: def.track,
     level: def.level,

@@ -16,6 +16,7 @@ import { ShareSheet } from "@/components/share/share-sheet";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { ProgressBar, EmptyState } from "@/components/ui/primitives";
 import { levelMeta, trackLabel } from "@/engine/levels";
+import { RatingCard } from "@/components/progress/rating-card";
 import { BADGE_LIST, nextRank, RANKS, rankFor, rankProgress } from "@/engine/progression";
 import { NotInAndroidApp } from "@/components/app/android-app";
 import { cn } from "@/lib/cn";
@@ -55,8 +56,8 @@ const joined = (ms: number) => new Intl.DateTimeFormat("en-IN", { month: "long",
 export function Profile({ initial }: { initial: Me }) {
   const me = useMe(initial) ?? initial;
   const p = me.progress;
-  const rank = rankFor(p.percent);
-  const next = nextRank(p.percent);
+  const rank = rankFor(p.rating);
+  const next = nextRank(p.rating);
   const plan = planFor(me.user);
   const earned = new Set(p.badges.map((b) => b.id));
   const mastery = p.mastery.filter((m) => m.cases > 0).sort((a, b) => b.cases - a.cases);
@@ -109,14 +110,17 @@ export function Profile({ initial }: { initial: Me }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold">{rank.label}</div>
-            <ProgressBar value={rankProgress(p.percent)} className="mt-2 h-1.5" label="Progress to next rank" />
+            <ProgressBar value={rankProgress(p.rating)} className="mt-2 h-1.5" label="Progress to next rank" />
             <div className="mt-1.5 text-[12px] text-fg-2 tabular">
-              Rank score {p.percent.toFixed(1)}
-              {next ? ` · ${next.label} at ${next.minPercent}` : " · highest rank"}
+              Rating {p.rating}
+              {next ? ` · ${next.minRating - p.rating} to ${next.label}` : " · highest rank"}
+              {` · Recent form ${p.percent.toFixed(0)}%`}
             </div>
           </div>
         </div>
       </section>
+
+      <RatingCard />
 
       <div className="-mt-1 flex justify-end">
         <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold ring-1 ring-line transition-colors hover:bg-surface-3">

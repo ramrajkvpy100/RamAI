@@ -361,6 +361,14 @@ CREATE TABLE IF NOT EXISTS access_users (
   at INTEGER NOT NULL
 );
 
+-- Each doctor's current clinical rating, kept for the percentile (the rating itself is replayed from results).
+CREATE TABLE IF NOT EXISTS ratings (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ratings_value ON ratings(rating);
+
 -- Two doctors, one patient: the case is shared, the scores compared.
 CREATE TABLE IF NOT EXISTS duels (
   id TEXT PRIMARY KEY,
@@ -774,6 +782,15 @@ async function migrate(b: Backend) {
   if (!resultColumns.includes("summary")) add.push("ALTER TABLE results ADD COLUMN summary TEXT");
   // Finished with the senior's help: practice — kept for the doctor's history, left out of progress, rating and boards.
   if (!resultColumns.includes("assisted")) add.push("ALTER TABLE results ADD COLUMN assisted INTEGER NOT NULL DEFAULT 0");
+  // The clinical rating replays these: the case's rating, how it ended, and what a duel settled.
+  if (!resultColumns.includes("case_rating")) add.push("ALTER TABLE results ADD COLUMN case_rating INTEGER");
+  if (!resultColumns.includes("failed")) add.push("ALTER TABLE results ADD COLUMN failed INTEGER");
+  if (!resultColumns.includes("clean")) add.push("ALTER TABLE results ADD COLUMN clean INTEGER");
+  if (!resultColumns.includes("tutorial")) add.push("ALTER TABLE results ADD COLUMN tutorial INTEGER");
+  if (!resultColumns.includes("duel_id")) add.push("ALTER TABLE results ADD COLUMN duel_id TEXT");
+  if (!resultColumns.includes("rating_bonus")) add.push("ALTER TABLE results ADD COLUMN rating_bonus INTEGER");
+  const duelColumns = (await b.all<{ name: string }>("PRAGMA table_info(duels)")).map((c) => c.name);
+  if (duelColumns.length && !duelColumns.includes("settled")) add.push("ALTER TABLE duels ADD COLUMN settled INTEGER");
   // Sign-in moved to Supabase Auth: profiles link to their Supabase user.
   if (!columns.includes("auth_id")) add.push("ALTER TABLE users ADD COLUMN auth_id TEXT");
   // The doctor's own specialty, asked once: NULL = not asked yet, 'mixed' = every specialty.

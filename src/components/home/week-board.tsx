@@ -11,6 +11,7 @@ import { xp } from "@/lib/format";
 import { league } from "@/lib/leagues";
 
 export interface LeaderRow {
+  rating?: number;
   position: number;
   userId: string;
   name: string;

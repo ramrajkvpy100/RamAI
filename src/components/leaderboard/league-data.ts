@@ -5,6 +5,7 @@ import { startTransition, useCallback, useEffect, useRef, useState } from "react
 import { league, TOP_TIER, type LeagueOutcome } from "@/lib/leagues";
 
 export interface LeagueRow {
+  rating?: number;
   position: number;
   userId: string;
   name: string;

@@ -64,9 +64,9 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
 
   const p = me.progress;
   const plan = planFor(me.user);
-  const rank = rankFor(p.percent);
-  const next = nextRank(p.percent);
-  const toNext = rankProgress(p.percent);
+  const rank = rankFor(p.rating);
+  const next = nextRank(p.rating);
+  const toNext = rankProgress(p.rating);
   const limit = me.usage.dailyLimit;
   const left = limit === null ? null : Math.max(0, limit - me.usage.casesToday);
   const active = snap.hydrated && snap.session && !snap.session.debrief ? snap.session : null;

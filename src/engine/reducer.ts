@@ -5,6 +5,7 @@
  * updates, and the server uses it to rebuild state during replay.
  */
 
+import type { UnratedReason } from "./rating";
 import { flagVital, VITALS } from "./catalog";
 import { formatClock } from "./text";
 import type { CareLevel, CareSetting, CaseState, CaseTrack, PatientIdentity, Specialty, TurnEffect, VitalKey, VitalReading } from "./types";
@@ -23,6 +24,8 @@ export function createInitialState(init: {
   unlimited?: boolean;
   duel?: string;
   learning?: boolean;
+  caseRating?: number;
+  unrated?: UnratedReason;
 }): CaseState {
   return {
     sessionId: init.sessionId,
@@ -53,6 +56,8 @@ export function createInitialState(init: {
     ...(init.unlimited ? { unlimited: true } : {}),
     ...(init.duel ? { duel: init.duel } : {}),
     ...(init.learning ? { learning: true } : {}),
+    ...(init.caseRating ? { caseRating: init.caseRating } : {}),
+    ...(init.unrated ? { unrated: init.unrated } : {}),
     seq: 0,
   };
 }

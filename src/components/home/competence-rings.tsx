@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 
-import { ratingTier, RATING_TIERS } from "@/engine/progression";
+import { nextRank, rankFor, rankProgress } from "@/engine/progression";
+import { RatingLine } from "@/components/progress/rating-card";
 import { cn } from "@/lib/cn";
 import type { Me } from "@/lib/me-store";
 
@@ -13,10 +14,9 @@ import type { Me } from "@/lib/me-store";
 export function CompetenceRings({ me }: { me: Me }) {
   const p = me.progress;
   const rating = p.rating ?? 1200;
-  const tier = ratingTier(rating);
-  const next = RATING_TIERS.find((t) => t.from > rating);
-  const prevFrom = tier.from;
-  const toNext = next ? (rating - prevFrom) / (next.from - prevFrom) : 1;
+  const tier = rankFor(rating);
+  const next = nextRank(rating);
+  const toNext = rankProgress(rating);
   const change = p.ratingChange ?? 0;
   const today = Math.min(3, me.rings?.cases ?? 0);
   return (
@@ -33,7 +33,8 @@ export function CompetenceRings({ me }: { me: Me }) {
         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
           <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-400 transition-[width] duration-700" style={{ width: `${Math.max(4, toNext * 100)}%` }} />
         </div>
-        <p className="mt-1 text-[12px] text-fg-2">{next ? `${next.from - rating} to ${next.label}` : "Top tier"}</p>
+        <p className="mt-1 text-[12px] text-fg-2">{p.provisional ? `Provisional · ${p.ratedCases ?? 0} of 5 placement cases` : next ? `${next.minRating - rating} to ${next.label}` : "The highest rank"}</p>
+        {(p.ratingPoints?.length ?? 0) > 2 && <RatingLine points={p.ratingPoints!} className="mt-1.5 h-6 w-full" />}
         <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-fg-2">
           Today
           {[0, 1, 2].map((i) => <span key={i} className={cn("h-2.5 w-2.5 rounded-full transition-colors", i < today ? "bg-success" : "bg-surface-3")} />)}

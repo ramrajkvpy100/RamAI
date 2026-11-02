@@ -1,3 +1,4 @@
+import type { UnratedReason } from "./rating";
 import type { Country } from "./countries";
 
 /**
@@ -558,6 +559,9 @@ export interface CaseState {
   duel?: string;
   /** Learning mode: four choices at every step, with why and why not (not ranked). */
   learning?: boolean;
+  /** The case's rating, and why this run won't count, if it won't. */
+  caseRating?: number;
+  unrated?: UnratedReason;
   /** Where the case is set: units, money and names on screen follow it. */
   country?: Country;
   /** The daily case's day (IST) — the same patient for everyone that day. */
@@ -870,6 +874,8 @@ export interface CaseDebrief {
   elapsedMin: number;
   /** How many times the senior was asked: a case finished with help is practice — it never counts towards progress. */
   assisted?: number;
+  caseRating?: number;
+  guided?: boolean;
   /** Played in learning mode (not ranked). */
   learning?: boolean;
   /** Total spent on investigations, INR. */
@@ -933,8 +939,8 @@ export interface Rank {
   label: string;
   /** 1 (lowest) – 10 (highest); drives the insignia. */
   tier: number;
-  minPercent: number;
-  maxPercent: number;
+  /** The rating this rank starts at; the next rank starts where it ends. */
+  minRating: number;
 }
 
 export interface SpecialtyMastery {
@@ -945,16 +951,22 @@ export interface SpecialtyMastery {
 
 export interface PlayerProgress {
   xp: number;
-  /** Rolling mean score across completed cases, 0–100. */
+  /** Recent form: mean score across the last cases, 0–100. */
   percent: number;
   casesCompleted: number;
   streakDays: number;
   /** Streak freezes left this month (missed days forgiven automatically). */
   freezesLeft?: number;
-  /** Clinical rating: 1200 at the start, moved by each case's score against its difficulty. */
-  rating?: number;
+  /** Clinical rating: Elo, 1200 at the start, moved by each case's score against the case's own rating. */
+  rating: number;
   /** How the last case moved it. */
   ratingChange?: number;
+  peakRating?: number;
+  ratedCases?: number;
+  /** Still being placed (the first few rated cases). */
+  provisional?: boolean;
+  /** The rating after each of the last rated cases, oldest first. */
+  ratingPoints?: number[];
   bestStreak: number;
   /** XP earned today (IST) and the daily goal. */
   dailyXp: number;
@@ -978,6 +990,18 @@ export interface CompletedCaseSummary {
   score: number;
   xp: number;
   completedISO: string;
+  /** The case's rating when played (older records: worked out from the level). */
+  caseRating?: number;
+  /** The patient died, or a wrong diagnosis came with harm. */
+  failed?: boolean;
+  /** Solved within par turns. */
+  clean?: boolean;
+  tutorial?: boolean;
+  /** The ranked attempt at a daily case. */
+  daily?: boolean;
+  /** Played head to head; rated by the duel's outcome. */
+  duelId?: string;
+  ratingBonus?: number | null;
 }
 
 export interface Badge {
@@ -1001,6 +1025,8 @@ export interface CaseRewards {
   weeklyPositionBefore?: number;
   leagueTier?: number;
   newBadges: Badge[];
+  /** How the clinical rating moved. */
+  rating?: { before: number; after: number; delta: number; caseRating: number; expected: number; score: number; unrated?: UnratedReason; dailyBonus?: boolean; provisional?: boolean };
   /** The daily case: your place today (ranked = your first attempt of the day). */
   daily?: { position: number; total: number; ranked: boolean };
 }

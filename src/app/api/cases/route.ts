@@ -14,6 +14,7 @@ import { TRIAL, useCredit } from "@/server/credits";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { requestDuel } from "@/server/nearby";
 import { bankCase, takeFromBank, takeLiveSlot, takeReady, type PoolChoice, prepareNext, unbankCase, waitForWriting } from "@/server/case-pool";
+import { db } from "@/server/db";
 import { dailyBoard, recordCaseStart, startFacts } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
@@ -172,6 +173,11 @@ export async function POST(req: Request) {
     // "Near me": the doctors chosen are asked to play the same patient.
     if (host === "invite" && duelId && body.invite?.length && !user.isGuest) await requestDuel(user, duelId, body.invite).catch(() => 0);
     await recordCaseStart(user.id, session.state.sessionId, tutorial, daily);
+    // The same written patient again within the week won't count: said before it starts.
+    const started = sessionInfo(session.token).src;
+    if (started.kind !== "generated" && !session.state.unrated && (await db.get("SELECT 1 FROM results WHERE user_id = ? AND case_ref = ? AND created_at > ? LIMIT 1", user.id, started.id, Date.now() - 7 * 86_400_000).catch(() => null))) {
+      session.state = { ...session.state, unrated: "repeat" };
+    }
     // An invented patient: its debrief teaching, pearls and exam questions are written now, in the background, ready for when the case ends.
     if (sessionInfo(session.token).generated) {
       after(() =>

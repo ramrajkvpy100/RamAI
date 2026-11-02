@@ -14,6 +14,7 @@
  * Presentation never imports this module; the browser talks to it through
  * /api/cases/* (see src/lib/engine-client.ts).
  */
+import { caseRatingFor } from "./rating";
 import "server-only";
 
 import { randomUUID } from "node:crypto";
@@ -99,6 +100,8 @@ function rebuild(payload: SessionPayload, provider: ClinicalProvider): Rebuilt {
     ...(def.unlimited ? { unlimited: true } : {}),
     ...(payload.du ? { duel: payload.du } : {}),
     ...(payload.lm ? { learning: true } : {}),
+    caseRating: caseRatingFor(def.level, def.difficulty),
+    ...(def.guided ? { unrated: "tutorial" as const } : payload.lm ? { unrated: "learning" as const } : payload.du ? {} : {}),
   });
   state = applyEffects(state, openingEffects(def, hidden));
   for (const record of payload.a) state = applyEffects(state, runTurn(def, hidden, record));

@@ -67,9 +67,9 @@ export function Hub({ initial }: { initial: Me }) {
   }, []);
 
   const p = me.progress;
-  const rank = rankFor(p.percent);
-  const next = nextRank(p.percent);
-  const toNext = rankProgress(p.percent);
+  const rank = rankFor(p.rating);
+  const next = nextRank(p.rating);
+  const toNext = rankProgress(p.rating);
   const active = snap.hydrated && snap.session && !snap.session.debrief ? snap.session : null;
   const limit = me.usage.dailyLimit;
   const left = limit === null ? null : Math.max(0, limit - me.usage.casesToday);

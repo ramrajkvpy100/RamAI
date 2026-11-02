@@ -157,6 +157,7 @@ export interface LeagueRow {
   movement: number | null;
   rankTier: number;
   rankLabel: string;
+  rating: number;
   streak: number;
   /** A fictional demo doctor (demo mode only). */
   demo: boolean;
@@ -194,11 +195,11 @@ export async function leagueView(user: User, now = Date.now()): Promise<LeagueVi
   const was = new Map(yesterday.map((r, i) => [r.userId, i + 1]));
   const progressOf = await progressForMany(table.map((r) => r.userId));
   const rows = table.map((r, i): LeagueRow => {
-    const progress = progressOf.get(r.userId) ?? { percent: 0, streakDays: 0 };
-    const rank = rankFor(progress.percent);
+    const progress = progressOf.get(r.userId) ?? { percent: 0, streakDays: 0, rating: 1200 };
+    const rank = rankFor(progress.rating);
     const before = was.get(r.userId);
     const streak = r.demo ? prngFrom(seedOf(`${r.userId}:streak:${week}`))() * 15 : progress.streakDays;
-    return { position: i + 1, userId: r.userId, name: r.name, username: r.username, xp: r.xp, cases: r.cases, movement: before === undefined ? null : before - (i + 1), rankTier: rank.tier, rankLabel: rank.label, streak: Math.floor(streak), demo: r.demo };
+    return { position: i + 1, userId: r.userId, name: r.name, username: r.username, xp: r.xp, cases: r.cases, rating: progress.rating, movement: before === undefined ? null : before - (i + 1), rankTier: rank.tier, rankLabel: rank.label, streak: Math.floor(streak), demo: r.demo };
   });
   return { ...base, status: "joined", tier: member.tier, rows, ...zones(table.length, member.tier), lastWeek };
 }

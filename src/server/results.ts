@@ -5,6 +5,7 @@
 import "server-only";
 
 import { istDayKey, istWeekStart, rankFor } from "@/engine/progression";
+import { DAILY_BONUS, expectedPerformance, replayRating, START_RATING } from "@/engine/rating";
 import type { CaseDebrief, CaseRewards, CaseState } from "@/engine/types";
 
 import type { User } from "./auth";
@@ -125,6 +126,7 @@ export interface LeaderRow {
   cases: number;
   rankTier: number;
   rankLabel: string;
+  rating: number;
   demo: boolean;
 }
 
@@ -132,7 +134,7 @@ export interface LeaderRow {
 /** "Near me" (same city) or "My college": doctors who chose to say where they are. */
 export type Scope = { by: "city" | "college"; value: string } | { by: "near"; lat: number; lon: number } | null;
 
-async function standings(board: BoardId, period: Period, scope: Scope = null): Promise<Omit<LeaderRow, "rankTier" | "rankLabel">[]> {
+async function standings(board: BoardId, period: Period, scope: Scope = null): Promise<Omit<LeaderRow, "rankTier" | "rankLabel" | "rating">[]> {
   const since = period === "week" ? istWeekStart() : 0;
   // Near: within about 50 km (a box of ±0.45° latitude, widened for longitude).
   const near = scope?.by === "near" ? { dLat: 0.45, dLon: 0.45 / Math.max(0.2, Math.cos((scope.lat * Math.PI) / 180)) } : null;
@@ -154,9 +156,10 @@ export async function leaderboard(board: BoardId, period: Period, viewerId?: str
   const top = all.slice(0, limit);
   const meRow = viewerId ? all.find((r) => r.userId === viewerId) : undefined;
   const progress = await progressForMany([...top, ...(meRow ? [meRow] : [])].map((r) => r.userId));
-  const withRank = (r: Omit<LeaderRow, "rankTier" | "rankLabel">): LeaderRow => {
-    const rank = rankFor(progress.get(r.userId)?.percent ?? 0);
-    return { ...r, rankTier: rank.tier, rankLabel: rank.label };
+  const withRank = (r: Omit<LeaderRow, "rankTier" | "rankLabel" | "rating">): LeaderRow => {
+    const rating = progress.get(r.userId)?.rating;
+    const rank = rankFor(rating);
+    return { ...r, rankTier: rank.tier, rankLabel: rank.label, rating: rating ?? START_RATING };
   };
   return { rows: top.map(withRank), me: meRow ? withRank(meRow) : undefined, total: all.length };
 }
@@ -185,31 +188,64 @@ export function caseDetail(debrief: CaseDebrief): CaseDetail {
   };
 }
 
+/** Keeps a doctor's current rating where the percentile can see it. */
+export async function keepRating(userId: string, rating: number) {
+  await db.run("INSERT INTO ratings (user_id, rating, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET rating = excluded.rating, updated_at = excluded.updated_at", userId, rating, Date.now());
+}
+
+/** Where a rating stands among all rated doctors: the top what percent. */
+export async function ratingPercentile(rating: number): Promise<{ top: number; doctors: number }> {
+  const row = await db.get<{ total: number; above: number | null }>("SELECT COUNT(*) AS total, SUM(CASE WHEN rating > ? THEN 1 ELSE 0 END) AS above FROM ratings", rating);
+  const doctors = row?.total ?? 0;
+  return { doctors, top: doctors ? Math.round((((row?.above ?? 0) + 1) / doctors) * 1000) / 10 : 100 };
+}
+
 /**
  * Records a debrief exactly once per session and returns what it earned.
  * Idempotent: re-closing or replaying the same session never double-counts.
  */
-export async function recordCase(user: User, sessionId: string, debrief: CaseDebrief, opts: { daily?: string; state?: CaseState } = {}): Promise<CaseRewards> {
+export async function recordCase(user: User, sessionId: string, debrief: CaseDebrief, opts: { daily?: string; state?: CaseState; duel?: string } = {}): Promise<CaseRewards> {
   const [before, positionBefore] = await Promise.all([progressFor(user.id), leaguePosition(user).then((l) => l?.position)]);
   const rescued = debrief.rescue.episodes.some((e) => e.rescued === "full" || e.rescued === "partial");
   const ranked = opts.daily && !user.isGuest && (await firstDailySession(user.id, opts.daily)) === sessionId ? opts.daily : null;
+  const xp = debrief.score.xp + (ranked && !debrief.assisted ? DAILY_BONUS : 0);
+  // A death, or a wrong diagnosis with the patient left harmed, scores nothing for the rating.
+  const harmed = debrief.rescue.episodes.some((e) => e.rescued !== "full") || debrief.finalStatus === "critical" || debrief.finalStatus === "deteriorating";
+  const failed = debrief.finalStatus === "deceased" || (debrief.verdict === "incorrect" && harmed);
   await db.run(
-    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid, detail, summary, assisted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    user.id, sessionId, debrief.caseRef, debrief.caseNumber, debrief.specialty, debrief.track, debrief.level, debrief.diagnosis, debrief.verdict, rescued ? 1 : 0, debrief.score.total, debrief.assisted ? 0 : debrief.score.xp, Date.now(),
+    `INSERT OR IGNORE INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, verdict, rescued, score, xp, created_at, daily_key, elapsed_min, grid, detail, summary, assisted, case_rating, failed, clean, tutorial, duel_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    user.id, sessionId, debrief.caseRef, debrief.caseNumber, debrief.specialty, debrief.track, debrief.level, debrief.diagnosis, debrief.verdict, rescued ? 1 : 0, debrief.score.total, debrief.assisted ? 0 : xp, Date.now(),
     ranked, Math.round(debrief.elapsedMin), ranked ? squares(debrief.score) : null, JSON.stringify(caseDetail(debrief)), opts.state ? JSON.stringify(caseSummary(opts.state, debrief)) : null, debrief.assisted ? 1 : 0,
+    debrief.caseRating ?? null, failed ? 1 : 0, debrief.score.bonuses.some((b) => b.label === "Efficient diagnosis") ? 1 : 0, debrief.guided ? 1 : 0, opts.duel ?? null,
   );
   const after = await progressFor(user.id);
+  if (!user.isGuest) await keepRating(user.id, after.rating).catch(() => undefined);
   await ensureMembership(user);
   const league = await leaguePosition(user);
+  const step = replayRating(after.history).steps.at(-1);
+  const unrated = debrief.learning ? ("learning" as const) : debrief.assisted ? ("hints" as const) : step?.unrated;
   return {
-    xp: debrief.score.xp,
+    xp,
+    ...(step || unrated
+      ? { rating: {
+          before: unrated && !step ? before.rating : (debrief.assisted ? before.rating : step!.before),
+          after: after.rating,
+          delta: debrief.assisted ? 0 : step!.delta,
+          caseRating: debrief.caseRating ?? step?.caseRating ?? 1500,
+          expected: debrief.assisted ? expectedPerformance(before.rating, debrief.caseRating ?? 1500) : step!.expected,
+          score: debrief.score.total,
+          ...(unrated ? { unrated } : {}),
+          ...(step?.dailyBonus && !debrief.assisted ? { dailyBonus: true } : {}),
+          ...(after.provisional ? { provisional: true } : {}),
+        } }
+      : {}),
     streakDays: after.streakDays,
     streakExtended: after.streakDays > before.streakDays,
     dailyXp: after.dailyXp,
     dailyGoal: after.dailyGoal,
-    rankBefore: rankFor(before.percent).label,
-    rankAfter: rankFor(after.percent).label,
+    rankBefore: rankFor(before.rating).label,
+    rankAfter: rankFor(after.rating).label,
     weeklyPosition: league?.position,
     weeklyPositionBefore: positionBefore,
     leagueTier: league?.tier,

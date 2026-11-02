@@ -36,7 +36,7 @@ describe("the community", () => {
 
     const { id } = await createPost(meera, { topic: "neet-pg", title: "Best way to revise ECGs?", body: "I keep mixing up the bundle branch blocks. How do you revise them?" });
     const reply = await createReply(arjun, id, "Draw V1 and V6 for each — RBBB is M in V1, LBBB is M in V6.");
-    expect(reply.author).toMatchObject({ name: "Arjun Rao", rankLabel: "Medical Student" });
+    expect(reply.author).toMatchObject({ name: "Arjun Rao", rankLabel: "Intern" });
 
     const liked = await toggleLike(guest, `p:${id}`);
     expect(liked).toEqual({ liked: true, likes: 1 });

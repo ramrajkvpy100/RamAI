@@ -301,6 +301,8 @@ function LeagueRowItem({ r, me, zone, index }: { r: LRow; me: boolean; zone: "up
           <div className="flex items-center gap-1.5 text-[12px] text-fg-2">
             <span className="truncate">{r.rankLabel}</span>
             <span className="text-fg-3">·</span>
+            <span className="tabular">{r.rating ?? 1200}</span>
+            <span className="text-fg-3">·</span>
             <span className="tabular">
               {r.cases} case{r.cases === 1 ? "" : "s"}
             </span>
@@ -407,6 +409,8 @@ function GlobalRow({ r, me, index }: { r: LeaderRow; me: boolean; index: number 
         </div>
         <div className="flex items-center gap-1.5 text-[12px] text-fg-2">
           <span className="truncate">{r.rankLabel}</span>
+          <span className="text-fg-3">·</span>
+          <span className="tabular">{r.rating ?? 1200}</span>
           <span className="text-fg-3">·</span>
           <span className="tabular">
             {r.cases} case{r.cases === 1 ? "" : "s"}

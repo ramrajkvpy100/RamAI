@@ -10,7 +10,8 @@ import { AchievementReveal, type Prize } from "@/components/game/achievement-rev
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
 import { Icon } from "@/components/ui/icon";
-import { RANKS } from "@/engine/progression";
+import { nextRank, rankFor, rankProgress, RANKS } from "@/engine/progression";
+import { DAILY_BONUS, UNRATED_LABEL } from "@/engine/rating";
 import type { CaseRewards, PlayerProgress } from "@/engine/types";
 import { league } from "@/lib/leagues";
 import { useCountUp } from "@/lib/use-count-up";
@@ -22,6 +23,39 @@ function Tile({ children, delay }: { children: React.ReactNode; delay: number })
   return (
     <div className="panel flex animate-pop flex-col items-start gap-3 p-4 sm:p-5" style={{ animationDelay: `${delay}ms` }}>
       {children}
+    </div>
+  );
+}
+
+/** The rating's move this case, like a contest result, and why. */
+function RatingChange({ rating: r }: { rating: NonNullable<CaseRewards["rating"]> }) {
+  const next = nextRank(r.after);
+  const rank = rankFor(r.after);
+  const expected = Math.round(r.expected * 100);
+  return (
+    <div className="panel mb-3 animate-pop p-4 sm:p-5">
+      {r.unrated ? (
+        <>
+          <div className="text-[16px] font-semibold tabular">Rating: {r.after}</div>
+          <p className="mt-1 text-[12.5px] text-fg-2">{UNRATED_LABEL[r.unrated]}: this case didn&apos;t change your rating.</p>
+        </>
+      ) : (
+        <>
+          <div className="text-[18px] font-semibold tabular">
+            Rating: {r.before} → {r.after} <span className={r.delta >= 0 ? "text-success" : "text-warning"}>({r.delta >= 0 ? "+" : "−"}{Math.abs(r.delta)} {r.delta >= 0 ? "↑" : "↓"})</span>
+          </div>
+          <p className="mt-1.5 inline-block rounded-full bg-surface-2 px-3 py-1 text-[12px] text-fg-2 tabular">
+            Case {r.caseRating} vs you {r.before} · Score {r.score}/100, expected about {expected}% performance{r.dailyBonus ? ` · Daily +${DAILY_BONUS}` : ""}
+          </p>
+        </>
+      )}
+      <div className="mt-3 flex items-baseline justify-between text-[12.5px]">
+        <span className="font-semibold">{rank.label}{r.provisional ? " · Provisional" : ""}</span>
+        <span className="text-fg-2 tabular">{next ? `${next.minRating - r.after} pts to ${next.label} (${next.minRating})` : "The highest rank"}</span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+        <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-400" style={{ width: `${Math.max(3, rankProgress(r.after) * 100)}%` }} />
+      </div>
     </div>
   );
 }
@@ -65,6 +99,7 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
       {celebrate && <Confetti seed={seed} />}
       {boxKey && prizes.length > 0 && <AchievementReveal prizes={prizes} storageKey={boxKey} />}
 
+      {rewards?.rating && <RatingChange rating={rewards.rating} />}
       {promoted && rewards && (
         <div className="ink mb-3 flex animate-pop items-center gap-4 rounded-2xl px-5 py-4">
           <span className="relative shrink-0">

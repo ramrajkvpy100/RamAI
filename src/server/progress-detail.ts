@@ -60,7 +60,7 @@ export async function progressDetail(userId: string): Promise<ProgressDetail> {
     t.correct += a.correct;
     topics.set(a.topic, t);
   }
-  const rank = rankFor(p.percent);
+  const rank = rankFor(p.rating);
   return {
     cases: rows.length,
     trend: rows.slice(-30).map((r) => ({ score: r.score, at: r.created_at, specialty: r.specialty })),

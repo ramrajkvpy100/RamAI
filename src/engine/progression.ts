@@ -5,20 +5,21 @@
  * the client only renders it. Days roll over at midnight IST.
  */
 import type { Badge, CareLevel, CompletedCaseSummary, PlayerProgress, Rank, Specialty, SpecialtyMastery } from "./types";
+import { RATING_FLOOR, replayRating, START_RATING } from "./rating";
 import { CARE_LEVELS } from "./types";
 
 /** The academic ladder of an Indian teaching hospital. */
 export const RANKS: Rank[] = [
-  { id: "student", label: "Medical Student", tier: 1, minPercent: 0, maxPercent: 19.99 },
-  { id: "intern", label: "Intern", tier: 2, minPercent: 20, maxPercent: 29.99 },
-  { id: "junior-resident", label: "Junior Resident", tier: 3, minPercent: 30, maxPercent: 39.99 },
-  { id: "senior-resident", label: "Senior Resident", tier: 4, minPercent: 40, maxPercent: 49.99 },
-  { id: "assistant-professor", label: "Assistant Professor", tier: 5, minPercent: 50, maxPercent: 59.99 },
-  { id: "associate-professor", label: "Associate Professor", tier: 6, minPercent: 60, maxPercent: 69.99 },
-  { id: "professor", label: "Professor", tier: 7, minPercent: 70, maxPercent: 79.99 },
-  { id: "hod", label: "Head of Department", tier: 8, minPercent: 80, maxPercent: 89.99 },
-  { id: "dean", label: "Dean", tier: 9, minPercent: 90, maxPercent: 94.99 },
-  { id: "master", label: "Master Clinician", tier: 10, minPercent: 95, maxPercent: 100 },
+  { id: "student", label: "Medical Student", tier: 1, minRating: 0 },
+  { id: "intern", label: "Intern", tier: 2, minRating: 1150 },
+  { id: "junior-resident", label: "Junior Resident", tier: 3, minRating: 1300 },
+  { id: "senior-resident", label: "Senior Resident", tier: 4, minRating: 1450 },
+  { id: "assistant-professor", label: "Assistant Professor", tier: 5, minRating: 1600 },
+  { id: "associate-professor", label: "Associate Professor", tier: 6, minRating: 1750 },
+  { id: "professor", label: "Professor", tier: 7, minRating: 1900 },
+  { id: "hod", label: "Head of Department", tier: 8, minRating: 2000 },
+  { id: "dean", label: "Dean", tier: 9, minRating: 2100 },
+  { id: "master", label: "Master Clinician", tier: 10, minRating: 2250 },
 ];
 
 export const CORE_SPECIALTIES: Specialty[] = ["Dermatology", "Medicine", "Emergency", "Surgery"];
@@ -37,22 +38,24 @@ const MASTERY_CONFIDENCE_CASES = 4;
 const WINDOW = 20;
 const IST_OFFSET_MS = 330 * 60_000;
 
-export function rankFor(percent: number): Rank {
-  const p = Math.max(0, Math.min(100, percent));
-  return RANKS.find((r) => p >= r.minPercent && p <= r.maxPercent) ?? RANKS[0]!;
+/** The rank a clinical rating has reached. */
+export function rankFor(rating: number = START_RATING): Rank {
+  return [...RANKS].reverse().find((r) => rating >= r.minRating) ?? RANKS[0]!;
 }
 
-export function nextRank(percent: number): Rank | undefined {
-  const idx = RANKS.findIndex((r) => r.id === rankFor(percent).id);
+export function nextRank(rating: number = START_RATING): Rank | undefined {
+  const idx = RANKS.findIndex((r) => r.id === rankFor(rating).id);
   return RANKS[idx + 1];
 }
 
-/** Progress (0–1) from the current rank's floor to the next rank's floor. */
-export function rankProgress(percent: number): number {
-  const current = rankFor(percent);
-  const next = nextRank(percent);
+/** Progress (0–1) from the current rank's floor to the next rank's. */
+export function rankProgress(rating: number = START_RATING): number {
+  const current = rankFor(rating);
+  const next = nextRank(rating);
   if (!next) return 1;
-  return Math.max(0, Math.min(1, (percent - current.minPercent) / (next.minPercent - current.minPercent)));
+  // The first rank has no real floor: it counts from where the rating can't go below.
+  const floor = current.minRating || RATING_FLOOR;
+  return Math.max(0, Math.min(1, (rating - floor) / (next.minRating - floor)));
 }
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
@@ -131,32 +134,7 @@ export function computeStreak(history: CompletedCaseSummary[], now = new Date())
   return streakWithFreezes(history, now).days;
 }
 
-/**
- * Clinical rating (like a chess rating): starts at 1200; each case moves it by how the score compared with what's
- * expected at that case's difficulty — a good score on a hard case lifts it most, a poor one on an easy case costs most.
- */
-/** Rating bands, like chess titles — what the number means. */
-export const RATING_TIERS = [
-  { from: 0, label: "Intern" },
-  { from: 1100, label: "Resident" },
-  { from: 1250, label: "Senior resident" },
-  { from: 1400, label: "Registrar" },
-  { from: 1550, label: "Consultant" },
-  { from: 1700, label: "Professor" },
-] as const;
-export const ratingTier = (r: number) => [...RATING_TIERS].reverse().find((t) => r >= t.from)!;
-
-export function computeRating(history: CompletedCaseSummary[]): number {
-  const LEVEL_RATING: Record<string, number> = { phc: 950, chc: 1050, district: 1150, college: 1300, apex: 1450, grandrounds: 1650 };
-  let r = 1200;
-  for (const h of history) {
-    const opp = LEVEL_RATING[h.level] ?? 1150;
-    const expected = 1 / (1 + 10 ** ((opp - r) / 400));
-    const result = Math.max(0, Math.min(1, (h.score - 40) / 50));
-    r += 32 * (result - expected);
-  }
-  return Math.round(r);
-}
+export const computeRating = (history: CompletedCaseSummary[]) => replayRating(history).rating;
 
 export function computeBestStreak(history: CompletedCaseSummary[]): number {
   const days = dayList(history);
@@ -200,14 +178,19 @@ export function computeBadges(history: CompletedCaseSummary[], bestStreak = comp
 export function withDerived(history: CompletedCaseSummary[], now = new Date()): PlayerProgress {
   const today = istDayKey(now);
   const bestStreak = computeBestStreak(history);
+  const record = replayRating(history);
   return {
     xp: history.reduce((s, h) => s + h.xp, 0),
     percent: computePercent(history),
     casesCompleted: history.length,
     streakDays: computeStreak(history, now),
     freezesLeft: Math.max(0, STREAK_FREEZES_PER_MONTH - streakWithFreezes(history, now).frozen.filter((d) => d.slice(0, 7) === today.slice(0, 7)).length),
-    rating: computeRating(history),
-    ratingChange: history.length ? computeRating(history) - computeRating(history.slice(0, -1)) : 0,
+    rating: record.rating,
+    ratingChange: record.steps.at(-1)?.delta ?? 0,
+    peakRating: record.peak,
+    ratedCases: record.ratedCases,
+    provisional: record.provisional,
+    ratingPoints: record.points.slice(-30),
     bestStreak,
     dailyXp: history.filter((h) => istDayKey(new Date(h.completedISO)) === today).reduce((s, h) => s + h.xp, 0),
     dailyGoal: DAILY_GOAL_XP,

@@ -51,7 +51,7 @@ export async function nearbyDoctors(user: User): Promise<{ doctors: NearbyDoctor
   return {
     place,
     doctors: rows.map((r) => {
-      const rank = rankFor(progress.get(r.id)?.percent ?? 0);
+      const rank = rankFor(progress.get(r.id)?.rating);
       return { id: r.id, name: r.name || "Doctor", rankTier: rank.tier, rankLabel: rank.label, activeAt: r.activeAt ?? null, place: r.city };
     }),
   };

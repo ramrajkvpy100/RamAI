@@ -18,7 +18,7 @@ export function Achievements({ initial }: { initial: Me }) {
   const me = useMe(initial) ?? initial;
   const p = me.progress;
   const earned = new Set(p.badges.map((b) => b.id));
-  const rank = rankFor(p.percent);
+  const rank = rankFor(p.rating);
   const [open, setOpen] = useState<Prize | null>(null);
   const [sharing, setSharing] = useState<Prize | null>(null);
   const unlocked = BADGE_LIST.filter((b) => earned.has(b.id));
