@@ -12,13 +12,18 @@ import { DuelRequests } from "@/components/duel/duel-requests";
 /** Signed-in chrome: header, page, footer. Seeds the client store with server data. */
 export function AppShell({ me, children, wide = false }: { me: Me; children: ReactNode; wide?: boolean }) {
   useEffect(() => primeMe(me), [me]);
-  // Signed in: the app gets its offline pages ready in the background (at most once an hour).
+  // Signed in: the app gets its offline pages ready once the phone has settled (at most once an hour), never on a slow or metered connection.
   useEffect(() => {
-    try {
-      if (Date.now() - Number(localStorage.getItem("ramai.offline.at") ?? 0) < 3_600_000) return;
-      localStorage.setItem("ramai.offline.at", String(Date.now()));
-      void navigator.serviceWorker?.ready.then((r) => r.active?.postMessage("ramai:ready"));
-    } catch {}
+    const later = window.setTimeout(() => {
+      try {
+        const net = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+        if (net?.saveData || /2g/.test(net?.effectiveType ?? "")) return;
+        if (Date.now() - Number(localStorage.getItem("ramai.offline.at") ?? 0) < 3_600_000) return;
+        localStorage.setItem("ramai.offline.at", String(Date.now()));
+        void navigator.serviceWorker?.ready.then((r) => r.active?.postMessage("ramai:ready"));
+      } catch {}
+    }, 20_000);
+    return () => window.clearTimeout(later);
   }, []);
   return (
     <div className="relative flex min-h-dvh flex-col">

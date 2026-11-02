@@ -144,6 +144,8 @@ export interface HiddenState {
   oxygenFio2?: number;
   /** What the oxygen added to the saturation, and the reading it left: taking it off gives that back unless the illness has moved it since. */
   oxygenGain?: { by: number; left: number };
+  /** What the patient last said of a course, and when. */
+  lastCourseWord?: { at: number; says: string };
   /** A cream used far more often than it can be: the skin pays for it. */
   overused?: { drugId: string; told?: boolean };
   /** Minutes spent in shock so far; when it last ended; breaths added by the acidosis. */
@@ -303,6 +305,14 @@ const WATCH_MIN: Partial<Record<VitalKey, number>> = { hr: 4, bp: 6, rr: 2, spo2
 
 const EFFECT_VITAL: Record<EffectKey, VitalKey> = { hr: "hr", sbp: "bp", dbp: "bp", rr: "rr", spo2: "spo2", temp: "temp", rbs: "rbs", gcs: "gcs", pain: "pain", urine: "urine" };
 
+/** Given and done: they don't move the vitals in the minutes that follow. (Not an antidote or anything whose effect is the point.) */
+const QUIET_DRUGS: string[] = ["ppi", "h2-blocker", "antiemetic", "antibiotic", "antifungal", "antiviral", "antimalarial", "anthelminthic", "vitamin"];
+
+const profileOf = (drugId: string) => {
+  const drug = formularyDrug(drugId);
+  return drug && profileFor(drug);
+};
+
 function moved(key: VitalKey, from: string | undefined, to: string): boolean {
   if (from === undefined || from === to) return false;
   const a = from.split("/").map(parseFloat);
@@ -375,6 +385,11 @@ function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEff
     const contradicted = better && changed.some(gotWorse);
     const moving = (better && !contradicted) || worse;
     if (!own.length && !feel && !(moving && mineCourse) && !last) continue;
+    // A drug that isn't meant to move the vitals (a PPI, an antibiotic, a vitamin): nothing to report is no news.
+    if (!own.length && !feel && !other.length && !moving && !w.eased && !w.authored && w.drugId && formularyDrug(w.drugId)?.classes.some((c) => QUIET_DRUGS.includes(c)) && Object.keys(profileOf(w.drugId)?.effects ?? {}).length === 0) {
+      w.told = true;
+      continue;
+    }
     // Already told: the last look adds only what's new.
     if (last && w.told && !own.length && !feel && !moving && !other.length) continue;
     const span = describeSpan(Math.max(1, hidden.clock - w.at));
@@ -1728,6 +1743,8 @@ interface Study {
   side?: string;
   view?: string;
   contrast?: "plain" | "contrast";
+  /** No part said, in an emergency: the bedside scan. */
+  pocus?: boolean;
 }
 
 const str = (x: unknown) => (typeof x === "string" ? x : "");
@@ -1752,17 +1769,30 @@ function studyWindow(phrase: string, kind: ImagingKind): string {
 }
 
 /** Which study an order is — and what it still needs said: the part, the view, contrast or not. */
-function settleStudy(def: ClinicalCaseDefinition, idIn: string, phrase: string, payload: Record<string, unknown>): Study {
+function settleStudy(def: ClinicalCaseDefinition, idIn: string, phrase: string, payloadIn: Record<string, unknown>, urgent = false): Study {
   const override = def.investigations.find((i) => i.id === idIn);
+  let payload = payloadIn;
   const generic = GENERIC_STUDY.has(idIn);
   const kind = generic ? (idIn as ImagingKind) : imagingKind(idIn, override?.name ?? investigationEntry(idIn)?.name ?? "");
   if (!kind) return { id: idIn, kind: null, needs: [] };
   // "X-ray chest, USG abdomen, CT abdomen": each study takes the part named with it, not the first part in the sentence.
   phrase = studyWindow(phrase, kind);
+  // Nobody waits to choose in an emergency: a portable AP chest, a plain CT head, a bedside scan.
+  let pocus = false;
+  if (urgent) {
+    const first = parseImaging(`${phrase} ${str(payload.region)} ${str(payload.view)} ${str(payload.contrast)}`);
+    const part = str(payload.region) || first.region || (CATALOG_PARTS[idIn]?.length === 1 ? CATALOG_PARTS[idIn]![0] : undefined);
+    if (kind === "xray" && part === "chest" && !first.view) payload = { ...payload, view: "AP" };
+    if (kind === "ct" && part === "head" && !first.contrast) payload = { ...payload, contrast: "plain" };
+    if (kind === "usg" && !part) {
+      payload = { ...payload, region: "abdomen" };
+      pocus = true;
+    }
+  }
   const said = parseImaging(`${phrase} ${str(payload.region)} ${str(payload.side)} ${str(payload.view)} ${str(payload.contrast)}`);
   const region = str(payload.region) || said.region || (CATALOG_PARTS[idIn]?.length === 1 ? CATALOG_PARTS[idIn]![0] : undefined);
   const needs = imagingNeeds(kind, idIn, override?.name ?? "", phrase, { ...(payload as Record<string, string>), ...(region ? { region } : {}) });
-  const study: Study = { id: idIn, kind, needs, region, side: said.side, view: said.view, contrast: said.contrast };
+  const study: Study = { id: idIn, kind, needs, region, side: said.side, view: said.view, contrast: said.contrast, pocus };
   if (needs.length > 0 || !region) return study;
   if (generic || (CATALOG_PARTS[idIn] && !CATALOG_PARTS[idIn]!.includes(region))) study.id = studyOf(def, kind, region, said.contrast);
   else if (idIn === "hrct" && said.contrast === "contrast") study.id = "ct-chest";
@@ -1781,6 +1811,7 @@ function studyOf(def: ClinicalCaseDefinition, kind: ImagingKind, region: string,
 function studyName(study: Study, base: string): string {
   const { kind, region, view, contrast, side, id } = study;
   if (!kind) return base;
+  if (study.pocus) return "POCUS / eFAST";
   if (id === "cxr") return `Chest X-ray ${view ?? "PA"}${view === "AP" ? " (portable)" : ""}`;
   if (id === "xray-abdomen") return `X-ray abdomen ${view ?? "erect"}`;
   if (id === "ct-head") return contrast === "contrast" ? "CECT head" : "NCCT head";
@@ -1825,6 +1856,8 @@ export function labGap(def: ClinicalCaseDefinition, hidden: HiddenState, idIn: s
   if (prior && !REPEAT_RE.test(phrase) && (!prior.delivered || hidden.clock - prior.resultAt < RECENT_MIN)) return null;
   const normal = catalogueResult(def, hidden, id);
   const name = studyName(study, override?.name ?? cat?.name ?? id);
+  // The case wrote this test: its rows are the result, at once. A model is asked only for a test the case has nothing on.
+  if (override?.rows?.length) return null;
   const written = new Set((override?.rows ?? []).map((r) => analyteKey(r.analyte)));
   const known = knownValues(def, hidden);
   const analytes = override?.report || override?.media ? [] : (normal.rows ?? []).filter((r) => !written.has(analyteKey(r.analyte)) && !known.has(`${specimenOf(id)}:${analyteKey(r.analyte)}`));
@@ -1901,7 +1934,8 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   // "All resources": a test the catalogue doesn't have is done as named.
   if (adhocTest(def, requested) && !def.investigations.some((i) => i.id === requested)) return orderAdhoc(ctx, requested);
   // An imaging order: which part, which view, contrast or not — asked when not said.
-  const study = settleStudy(def, requested, intent.phrase, payload);
+  const urgent = def.track === "emergency" || hidden.setting === "ICU" || STATUS_RANK[hidden.status] >= STATUS_RANK.deteriorating || /\b(?:stat|portable|bedside)\b/i.test(intent.phrase);
+  const study = settleStudy(def, requested, intent.phrase, payload, urgent);
   if (study.needs.length > 0 && !payload.reshow && def.track !== "phone") {
     return askAbout(ctx, { kind: "investigation", targetId: requested, payload: { ...payload, ...(study.region ? { region: study.region } : {}) }, phrase: intent.phrase, needs: study.needs }, imagingQuestion(study.kind!, study.needs, { ...payload, ...(study.region ? { region: study.region } : {}) }, askerRole(ctx, "test") !== "system"), "test");
   }
@@ -1989,8 +2023,8 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   }
   if (!override && generated?.report) result = { ...result, report: generated.report };
   if (override && (override.rows || override.report || override.media)) {
-    // The case's own rows lead; any analyte the panel reports that the case left out follows.
-    const extra = (result.rows ?? []).filter((r) => !authored.has(analyteKey(r.analyte)));
+    // The case's own rows lead; an analyte it left out follows only with a real value for this patient, never a made-up normal.
+    const extra = (result.rows ?? []).filter((r) => !authored.has(analyteKey(r.analyte)) && (known.has(`${specimenOf(id)}:${analyteKey(r.analyte)}`) || generated?.rows?.some((g) => analyteKey(g.analyte) === analyteKey(r.analyte))));
     result = { rows: override.rows ? [...override.rows, ...(override.report || override.media ? [] : extra)] : result.rows, report: override.report ?? result.report, media: override.media ?? result.media };
   }
   if (override?.noMedia) result = { ...result, media: undefined };
@@ -2503,7 +2537,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const amount = typeof p.amount === "number" ? p.amount : undefined;
   const unit = typeof p.unit === "string" ? p.unit : undefined;
   // (A cream's strength is in its name: "0.1%" isn't how much to put on.)
-  const stated = route === "TOP" && /^[\d.]+\s*%$/.test(String(p.dose ?? "")) ? undefined : (p.dose as string | undefined);
+  // (Nor is saline's "0.9%", or a gram meant for the next drug in the sentence, a dose of fluid.)
+  const stated = /^[\d.]+\s*%$/.test(String(p.dose ?? "")) || (drug.fluid && /\d\s*(?:mg|mcg|g)\b/i.test(String(p.dose ?? ""))) ? undefined : (p.dose as string | undefined);
   // (The "usual dose" by inhaler isn't the nebuliser's 2.5 mg.)
   let dose = byInhaler && drug.id === "salbutamol" && (!stated || stated === drug.dose) ? "100 mcg × 4 puffs via spacer" : stated ?? drug.dose;
   // A cream's label is for the part being treated: "whole face" only for a face.
@@ -2682,7 +2717,17 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     hidden.scheduled.push({ at: hidden.clock + peak, patches: rule.vitalsAfter ?? [], status: rule.statusAfter });
   }
   // Watched from when it went in: at its onset and its peak, what changed is said. (Not a cream: it acts slowly, on the skin.)
-  if (mode === "given" && route !== "TOP") {
+  // A drug that doesn't move the vitals and isn't what treats this illness, setting nothing off: given, and the case goes on.
+  const noRisk = !triggered.length && !hidden.hazards.some((a) => a.orders?.includes(order));
+  const quiet = mode === "given" && route !== "TOP" && !drug.fluid && !courseMinutes(duration) && !overMin && noRisk && !rule?.vitalsAfter?.length && !rule?.response?.length && !def.track.startsWith("phone") && !def.guided
+    && drug.classes.some((c) => QUIET_DRUGS.includes(c)) && Object.keys(profileFor(drug)?.effects ?? {}).length === 0
+    && !(def.rubric.definitiveTreatment?.ids ?? []).includes(`drug:${drug.id}`) && !(rule && core(def).has(rule.id));
+  if (quiet) {
+    const opening = [...fx].reverse().find((e) => e.type === "message" && e.role === "system" && e.text.startsWith(drug.generic));
+    if (opening?.type === "message") opening.text = `${drug.generic}${dose ? ` ${dose}` : ""} ${route} given.`;
+    const feels = profileFor(drug)?.feels;
+    if (feels && troublesOf(def, hidden).has(feels.when)) fx.push({ type: "message", role: patientRole(def), kind: "speech", text: patientRole(def) === "attendant" ? aboutThem(feels.says, def.patient.sex) : feels.says });
+  } else if (mode === "given" && route !== "TOP") {
     const k = kineticsFor(drug, route);
     // The time the doctor said is the time that passes: a drip's, or "for 30 seconds" (that's run at the end of the turn).
     const statedFor = !drug.fluid ? courseMinutes(duration) : 0;
@@ -2827,6 +2872,9 @@ function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: For
   const role = patientRole(def);
   if (role === "attendant") says = aboutThem(says, def.patient.sex);
   if (hidden.overused?.drugId === drug.id && !hidden.overused.told) return [{ type: "message", role: "system", kind: "action", text: `${when} —` }, ...skinPaysFor(def, hidden)];
+  // The same words for a second cream in one order say nothing new (and a repeated reply isn't shown, leaving "After a few days of…" hanging).
+  if (hidden.lastCourseWord?.at === hidden.clock && hidden.lastCourseWord.says === says) return [];
+  hidden.lastCourseWord = { at: hidden.clock, says };
   // Better means the skin looks better too, unless something has already said how it looks.
   if (/much better/.test(says) && skinExam(def) && !hidden.examOverrides[skinExam(def)!.id]) skinNow(def, hidden, "Improving since treatment: fewer lesions, flatter and less red than at the first examination; no new ones.");
   return [

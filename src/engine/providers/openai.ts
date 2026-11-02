@@ -41,10 +41,11 @@ import type { CareLevel, CaseTrack, MediaAsset, PatientLang, ResolvedIntent, Spe
 import { CARE_LEVELS, PLAYABLE_TRACKS } from "../types";
 import { ALL_SPECIALTIES } from "../progression";
 import { pickCondition } from "./conditions";
+import { resolveIntents, type IntentContext } from "../intent";
 import { mockProvider, NoCaseError } from "./mock";
 import { z } from "zod";
 
-import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, VoiceSchema, type Concept, type GeneratedMedia } from "./openai-schema";
+import { ConceptSchema, DialogueSchema, FeedbackSchema, FindingsSchema, LearnSchema, ManagementSchema, PatientResponseSchema, TeachingSchema, type Concept, type GeneratedMedia } from "./openai-schema";
 import { applyDialogueReview, applyExaminerReview, applyFindingsReview, applyManagementReview, checkLabFlags, dialogueReviewPrompt, findingsReviewPrompt, flagFromRange, GUIDELINES, managementReviewPrompt } from "./openai-review";
 import { normalise } from "../text";
 import { aboutThem, fullLab, labGap, nextSeniorStep, SENIOR_WHY_KEY, systemFinding, vitalsNow } from "../simulator";
@@ -75,7 +76,6 @@ export function openAIConfig() {
     baseUrl: (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""),
     timeoutMs: Number(process.env.RAMAI_ENGINE_TIMEOUT_MS || 30000),
     /** "all": the model words every patient reply. "unscripted": only questions the script doesn't cover. */
-    voice: process.env.RAMAI_AI_VOICE === "unscripted" ? ("unscripted" as const) : ("all" as const),
   };
 }
 
@@ -335,45 +335,6 @@ Supportive measure ids (use as "measure:<id>"): ${measures}
 Formulary drug ids matching this message: ${drugs || "none"} (a drug named that isn't here: kind "drug", targetId "unknown")
 
 ${lastSaid(ctx).length ? `Already said by the patient or relative (say it differently if asked again): ${lastSaid(ctx).join(" | ")}\n\n` : ""}The doctor said: """${clause}"""${plainEnglish(clause)}${guess ? `\n(A quick keyword reading took it as: ${guess}. Keep it if it is what the doctor meant; correct it if not — a question is never an order, history is not examination, and asking for results is not a new test.)` : ""}`,
-    },
-  ];
-}
-
-interface VoiceItem {
-  speaker: "patient" | "attendant";
-  facts: string;
-}
-
-/** Word the replies the engine has decided on: the facts are fixed; only the voice is the model's. */
-function voicePrompt(def: ClinicalCaseDefinition, items: VoiceItem[], said: string, ctx: InterpretContext): ChatMessage[] {
-  const p = def.patient;
-  const recent = ctx.transcript
-    .filter((m) => m.role === "doctor" || m.role === "patient" || m.role === "attendant")
-    .slice(-24)
-    .map((m) => `${m.role === "doctor" ? "Doctor" : m.role === "attendant" ? "Relative" : "Patient"}: ${m.text}`)
-    .join("\n");
-  return [
-    {
-      role: "system",
-      content: `You voice patients and their relatives in RamAI, an educational clinical simulation for doctors in ${WHERE[ctx.country ?? "IN"]}.
-Rules:
-- Speak as a lay person, briefly (one to three sentences per reply), warmly and naturally, in ${language(ctx.country, ctx.lang)}.
-- Convey the facts given for each reply — no new symptoms, numbers, findings or history, and nothing left out that matters — but say them the way this person would: answer the question actually asked first, in their own words, remembering what was said earlier (don't repeat yourself word for word), with the feelings that fit (worry, pain, relief, impatience).
-- Never name a diagnosis, never give medical advice, never hint at what the doctor should do.
-- The patient speaks in the first person; a relative speaks about the patient ("he", "she"). Call the doctor "doctor" now and then.
-- Match how unwell the patient is right now.
-- Output JSON only: {"replies":["…"]} — exactly one reply per question, in order.`,
-    },
-    {
-      role: "user",
-      content: `Patient: ${p.age}-year-old ${p.sex}${p.occupation ? `, ${p.occupation}` : ""}, ${p.city}.
-Scene: ${def.briefing}
-How the patient is now: ${ctx.hidden.status}${ctx.hidden.patientSays ? ` — "${ctx.hidden.patientSays}"` : ""}.${mindNote(ctx)}${def.persona ? `\nThe patient is ${def.persona} — let it show.` : ""}
-Treatment so far: ${ctx.hidden.drugs.filter((d) => d.mode === "given").slice(-6).map((d) => `${d.generic} (minute ${Math.round(d.at)})`).join(", ") || "none yet"}.
-${recent ? `Recent conversation:\n${recent}\n` : ""}
-The doctor said: """${said}"""
-
-${items.map((it, i) => `Reply ${i + 1} — spoken by ${it.speaker === "attendant" ? "the relative with the patient" : "the patient"}. Facts: ${it.facts}`).join("\n")}`,
     },
   ];
 }
@@ -711,6 +672,17 @@ const COURSE_VITALS = new Set(["hr", "bp", "rr", "spo2", "temp", "gcs", "pain", 
  * What the writer says this illness does, made safe to run: numbers checked one by one, only treatments the case has, no
  * death inside the first 45 minutes, and on a clock only in an emergency. Anything left out just means the case runs without it.
  */
+/** "Does it radiate anywhere", "or asthma": more of the same question, once the rules have found what it's about. */
+const SAME_QUESTION = /^\s*or\b|\b(?:radiat\w*|spread\w*|shoot\w*|mov\w+|severe|severity|how bad|scale|sharp|dull|character|kind of|type of|worse|better|relie\w*|aggravat\w*|start\w*|began|since when|how long|duration|onset|come and go|constant)\b/i;
+
+/** Whether each part of a message is something the rules recognise, so the model has nothing to add. */
+export function everyPartPlaced(text: string, ruled: readonly ResolvedIntent[], rctx: IntentContext): boolean {
+  const real = (i: ResolvedIntent) => i.kind !== "unknown" && !(i.kind === "history" && i.targetId?.startsWith("fallback:")) && !(i.kind === "drug" && (!i.targetId || i.targetId === "unknown"));
+  if (!ruled.length || !ruled.every(real)) return false;
+  const talking = ruled.some((i) => i.kind === "history");
+  return text.split(/[.?!;\n]+|\band\b|\balso\b|\bthen\b|,/i).map((c) => c.trim()).filter(Boolean).every((part) => (talking && SAME_QUESTION.test(part)) || (talking && part.split(/\s+/).length === 1) || resolveIntents(part, rctx).some(real));
+}
+
 /** No more than this long, ending where a sentence ends: never cut off at "and". */
 export function wholeSentences(text: string, most: number): string {
   if (text.length <= most) return text;
@@ -1312,38 +1284,6 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
   }
 }
 
-/** The rules placed it: have the model word the replies the case file gives. */
-async function voice(text: string, ctx: InterpretContext, ruled: ResolvedIntent[]): Promise<Interpretation> {
-  const items = ruled
-    .map((intent, index) => ({ index, entry: intent.kind === "history" ? ctx.def.history.find((h) => h.id === intent.targetId) : undefined }))
-    .filter((x): x is { index: number; entry: NonNullable<typeof x.entry> } => !!x.entry);
-  if (items.length === 0) return { intents: ruled };
-  try {
-    const raw = await chatJSON(
-      voicePrompt(ctx.def, items.map((x) => ({ speaker: x.entry.speaker === "attendant" ? "attendant" : "patient", facts: x.entry.reply })), text, ctx),
-      // (No reasoning: measured, a little thinking made each turn about a second slower for wording no better.)
-      700 + 250 * items.length,
-      false,
-      20_000,
-      true,
-      true,
-    );
-    const parsed = VoiceSchema.safeParse(raw);
-    if (!parsed.success || parsed.data.replies.length !== items.length) return { intents: ruled };
-    const generated: Record<string, string> = {};
-    const roomSoFar = `${items.map((x) => x.entry.reply).join(" ")} ${ctx.transcript.map((m) => m.text).join(" ")}`;
-    items.forEach((x, k) => {
-      const reply = parsed.data.replies[k]?.trim();
-      // (A reply naming the diagnosis is dropped: the scripted words are said instead.)
-      if (reply && !leaksDiagnosis(ctx.def, reply, roomSoFar)) generated[String(x.index)] = notRepeated(reply, lastSaid(ctx), ctx.transcript.length);
-    });
-    return { intents: ruled, generated };
-  } catch (err) {
-    console.error("[ramai] patient voice fell back to the script", err instanceof Error ? err.message : err);
-    return { intents: ruled };
-  }
-}
-
 export function createOpenAIProvider(): ClinicalProvider {
   return {
     id: "openai",
@@ -1556,19 +1496,18 @@ export function createOpenAIProvider(): ClinicalProvider {
       // The doctor answered an order's question: that's settled; the rest isn't worth a model call to reread.
       // Several requests in one message, or a long one the rules only partly placed: the model reads all of it, as ChatGPT would.
       const clauses = text.split(/[.?!;\n]+|\band\b|\balso\b|\bthen\b|,/i).filter((c) => c.trim().split(/\s+/).length >= 2).length;
-      const partly = text.trim().split(/\s+/).length > 6 && clauses > ruled.filter((i) => i.kind !== "unknown").length;
+      const rctx = { def: ctx.def, setting: ctx.hidden.setting, weightKg: parseFloat(ctx.hidden.vitals.weight.value) || 60 };
+      // Every part of it placed by the rules needs no second reading, however long the sentence.
+      const placed = everyPartPlaced(text, ruled, rctx);
+      const partly = text.trim().split(/\s+/).length > 6 && clauses > ruled.filter((i) => i.kind !== "unknown").length && !placed;
       // A question the rules turned into an order ("can we give aspirin?", "cbc normal?") is checked by the model too.
       const questionAsOrder = /\?\s*$/.test(text.trim()) && ruled.some((i) => ["drug", "investigation", "action"].includes(i.kind) && i.payload?.reshow !== true);
       // "Test for ana anca": more test names than the rules placed — the model reads the rest (an unlisted test too).
       const testWords = ruled.some((i) => i.kind === "investigation") ? text.toLowerCase().split(/[^a-z0-9-]+/).filter((w) => w.length >= 2 && !ORDER_FILLER.has(w)) : [];
-      const moreTests = testWords.length > ruled.filter((i) => i.kind === "investigation").length + 1 || (testWords.length === 2 && ruled.filter((i) => i.kind === "investigation").length === 1 && testWords.every((w) => w.length <= 6));
+      const moreTests = !(placed && /,/.test(text)) && (testWords.length > ruled.filter((i) => i.kind === "investigation").length + 1 || (testWords.length === 2 && ruled.filter((i) => i.kind === "investigation").length === 1 && testWords.every((w) => w.length <= 6)));
       const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || questionAsOrder || moreTests || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
-      // Speed: a button (the senior's step, "Full history", a ready-made reply) or a plain order needs no rewording — the
-      // rules' words go straight back. Otherwise the patient's voice gets 0.8 s; past that, the rules' answer is shown.
-      const button = text.trim() === ctx.hidden.seniorStep?.text || /^(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|important)\s+history\.?$/i.test(text.trim());
-      const talk = ruled.some((i) => i.kind === "history" || i.kind === "greeting");
-      const quick = (p: Promise<Interpretation>): Promise<Interpretation> => Promise.race([p, new Promise<Interpretation>((resolve) => setTimeout(() => resolve({ intents: ruled }), 800))]);
-      const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled, reference) : button || !talk || ctx.def.guided || openAIConfig().voice !== "all" ? Promise.resolve({ intents: ruled }) : quick(voice(text, ctx, ruled));
+      // What the rules placed goes straight back in the case's own words: instant, and nothing paid for.
+      const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled, reference) : Promise.resolve({ intents: ruled });
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;
       // When the rules placed the order, its results are written while the patient's words are (the voice keeps the rules' intents).

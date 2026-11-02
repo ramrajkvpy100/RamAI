@@ -21,6 +21,8 @@ export function ClientShell({ children, wide = false }: { children: ReactNode; w
       const raw = localStorage.getItem(KEY);
       if (raw && !live) setKept(JSON.parse(raw) as Me);
     } catch {}
+    // Already known from the page before (the server sent it, or it was just read): no second read on the way in.
+    if (live) return;
     let off = false;
     fetch("/api/me", { cache: "no-store" })
       .then(async (r) => {

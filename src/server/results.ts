@@ -33,6 +33,24 @@ export async function totalCasesStarted(userId: string): Promise<number> {
   return (await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM case_starts WHERE user_id = ?", userId))?.n ?? 0;
 }
 
+/** All a case start needs to know about a doctor, in one round trip to the database. */
+export async function startFacts(userId: string, recentLimit = 6): Promise<{ today: number; total: number; recent: string[]; stage?: string; poolRows: number }> {
+  const [today, total, recent, stage, pool] = await db.readMany([
+    { sql: "SELECT COUNT(*) AS n FROM case_starts WHERE user_id = ? AND created_at >= ? AND tutorial = 0 AND daily_key IS NULL", args: [userId, istDayStart()] },
+    { sql: "SELECT COUNT(*) AS n FROM case_starts WHERE user_id = ?", args: [userId] },
+    { sql: "SELECT case_ref FROM results WHERE user_id = ? ORDER BY created_at DESC LIMIT ?", args: [userId, recentLimit] },
+    { sql: "SELECT stage FROM user_prefs WHERE user_id = ?", args: [userId] },
+    { sql: "SELECT COUNT(*) AS n FROM case_pool WHERE user_id = ? AND src != ''", args: [userId] },
+  ]);
+  return {
+    today: Number(today?.[0]?.n ?? 0),
+    total: Number(total?.[0]?.n ?? 0),
+    recent: (recent ?? []).map((r) => String(r.case_ref)),
+    stage: stage?.[0]?.stage as string | undefined,
+    poolRows: Number(pool?.[0]?.n ?? 0),
+  };
+}
+
 export async function recordCaseStart(userId: string, sessionId: string, tutorial = false, dailyKey?: string) {
   await db.run("INSERT INTO case_starts (user_id, session_id, created_at, tutorial, daily_key) VALUES (?, ?, ?, ?, ?)", userId, sessionId, Date.now(), tutorial ? 1 : 0, dailyKey ?? null);
 }

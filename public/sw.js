@@ -39,8 +39,8 @@ const READY = ["/", "/plan", "/focus", "/revision", "/practice", "/achievements"
 
 async function keepReady() {
   const [pages, code] = await Promise.all([caches.open(PAGES), caches.open(STATIC)]);
-  await Promise.all(
-    READY.map(async (u) => {
+  // One page at a time, so it never competes with the doctor's own use of the connection.
+  for (const u of READY) {
       try {
         const res = await fetch(u, { credentials: "include" });
         if (!keepable(res) || res.status !== 200) return;
@@ -49,13 +49,12 @@ async function keepReady() {
         const chunks = [...new Set(html.match(/\/_next\/static\/[^"'\s)\\]+/g) || [])].slice(0, 80);
         await Promise.all(chunks.map((c) => code.match(c).then((hit) => hit || fetch(c).then((r) => (r.ok ? code.put(c, r) : undefined))).catch(() => undefined)));
       } catch {}
-    }),
-  );
+  }
 }
 
-self.addEventListener("install", (event) => {
+// First open: nothing but the worker itself (its offline page is built in). The offline pages come later, when the app is idle.
+self.addEventListener("install", () => {
   self.skipWaiting();
-  event.waitUntil(keepReady());
 });
 
 self.addEventListener("activate", (event) => {
@@ -72,7 +71,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   // Logging out: the kept pages are personal.
   if (event.data === "ramai:forget") event.waitUntil(caches.delete(PAGES));
-  // Signed in (or the app opened): get the offline pages ready, at most once an hour.
+  // The app has been open a while with nothing going on: get the offline pages ready, at most once an hour.
   if (event.data === "ramai:ready" && Date.now() - lastReady > 3_600_000) {
     lastReady = Date.now();
     event.waitUntil(keepReady());

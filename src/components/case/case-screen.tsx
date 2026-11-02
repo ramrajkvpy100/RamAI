@@ -16,7 +16,8 @@ import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
 import type { CaseState, PatientStatus, TurnEffect } from "@/engine/types";
-import { abandonCase, beginEncounter, dismissError, hydrate, retry, send, useCase } from "@/lib/case-store";
+import { abandonCase, beginEncounter, dismissError, dismissNotice, dropQueued, hydrate, retry, send, useCase } from "@/lib/case-store";
+import { waitLabel } from "@/lib/wait-label";
 import { useStartingMessage } from "@/lib/use-starting-message";
 import { cn } from "@/lib/cn";
 import { primeMe, useMe, type Me } from "@/lib/me-store";
@@ -247,7 +248,24 @@ function Workspace() {
                 <div className="px-3 pt-1 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6">
                   <div className="mx-auto flex max-w-[760px] flex-col gap-2">
                     {/* A reply that needs the model (or the lab) takes a moment: the bar fills meanwhile. */}
-                    <FillingBar active={!!snap.sending} expectedMs={3500} delayMs={500} label="Waiting for the reply" />
+                    <FillingBar active={!!snap.sending} expectedMs={3500} delayMs={500} label={waitLabel(snap.sending?.input)} />
+                    {!!snap.sending && <p role="status" className="text-center text-[12px] text-fg-2">{waitLabel(snap.sending.input)}</p>}
+                    {snap.queued.length > 0 && (
+                      <ul aria-label="Orders waiting their turn" className="flex flex-col gap-1">
+                        {snap.queued.map((text, i) => (
+                          <li key={`${i}-${text}`} className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-1.5 text-[13px]">
+                            <span className="min-w-0 flex-1 truncate">Next: {text}</span>
+                            <button type="button" onClick={() => dropQueued(i)} className="text-[12px] font-semibold text-accent-text">Cancel</button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {snap.notice && (
+                      <div role="status" className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5">
+                        <p className="flex-1 text-ui">{snap.notice}</p>
+                        <button type="button" onClick={dismissNotice} className="text-[12px] font-semibold text-accent-text">OK</button>
+                      </div>
+                    )}
                     {snap.error && (
                       <div role="alert" className="flex animate-enter items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-sm">
                         <Icon name="alert" size={15} className="shrink-0 text-warning" />

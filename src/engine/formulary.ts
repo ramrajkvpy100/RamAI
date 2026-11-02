@@ -66,12 +66,12 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "pentazocine", generic: "Pentazocine", brands: ["Fortwin"], classes: ["opioid", "analgesic"], route: "IM", dose: "30 mg", frequency: "stat" },
 
   // Gastrointestinal
-  { id: "pantoprazole", generic: "Pantoprazole", brands: ["Pantocid", "Pan 40", "Pantop"], aliases: ["protonix", "panto", "pan d", "pantoprazole iv"], classes: ["ppi"], route: "PO", dose: "40 mg", frequency: "OD before breakfast" },
+  { id: "pantoprazole", generic: "Pantoprazole", brands: ["Pantocid", "Pan 40", "Pantop"], aliases: ["protonix", "panto", "pan d", "pantoprazole iv", "pan iv", "pantocid iv", "pan"], classes: ["ppi"], route: "PO", dose: "40 mg", frequency: "OD before breakfast" },
   { id: "omeprazole", generic: "Omeprazole", brands: ["Omez"], aliases: ["prilosec", "losec"], classes: ["ppi"], route: "PO", dose: "20 mg", frequency: "OD" },
   { id: "rabeprazole", generic: "Rabeprazole", brands: ["Razo", "Rablet"], classes: ["ppi"], route: "PO", dose: "20 mg", frequency: "OD" },
   { id: "esomeprazole", generic: "Esomeprazole", brands: ["Nexpro", "Sompraz"], classes: ["ppi"], route: "PO", dose: "40 mg", frequency: "OD" },
   { id: "famotidine", generic: "Famotidine", brands: ["Famocid"], aliases: ["pepcid"], classes: ["h2-blocker"], route: "PO", dose: "20 mg", frequency: "BD" },
-  { id: "ondansetron", generic: "Ondansetron", brands: ["Emeset", "Ondem", "Vomikind"], aliases: ["zofran"], classes: ["antiemetic"], route: "IV", dose: "4 mg", frequency: "stat" },
+  { id: "ondansetron", generic: "Ondansetron", brands: ["Emeset", "Ondem", "Vomikind"], aliases: ["zofran", "emset", "emeset iv", "ondem iv", "ondansetrone"], classes: ["antiemetic"], route: "IV", dose: "4 mg", frequency: "stat" },
   { id: "domperidone", generic: "Domperidone", brands: ["Domstal"], classes: ["antiemetic"], route: "PO", dose: "10 mg", frequency: "TDS" },
   { id: "metoclopramide", generic: "Metoclopramide", brands: ["Perinorm"], classes: ["antiemetic"], route: "IV", dose: "10 mg", frequency: "stat" },
   { id: "loperamide", generic: "Loperamide", brands: ["Eldoper", "Imodium"], aliases: ["imodium", "eldoper", "lomotil"], classes: ["antidiarrhoeal"], route: "PO", dose: "2 mg", frequency: "after each loose stool (max 8 mg/day); never in young children" },
@@ -86,7 +86,7 @@ export const FORMULARY: FormularyDrug[] = [
 
   // Antibiotics
   { id: "amoxicillin", generic: "Amoxicillin", brands: ["Novamox", "Mox"], aliases: ["amoxycillin"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "500 mg", frequency: "TDS" },
-  { id: "amox-clav", generic: "Amoxicillin–clavulanate", brands: ["Augmentin", "Clavam", "Moxikind-CV"], aliases: ["amoxiclav", "amoxyclav", "co amoxiclav", "amoxicillin clavulanate", "amoxycillin clavulanate"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "625 mg", frequency: "BD" },
+  { id: "amox-clav", generic: "Amoxicillin–clavulanate", brands: ["Augmentin", "Clavam", "Moxikind-CV"], aliases: ["aug", "amoxiclav", "amoxyclav", "co amoxiclav", "amoxicillin clavulanate", "amoxycillin clavulanate"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "625 mg", frequency: "BD" },
   { id: "azithromycin", generic: "Azithromycin", brands: ["Azithral", "Azee"], aliases: ["zithromax", "z pak", "zpak", "azithro"], classes: ["antibiotic", "macrolide"], route: "PO", dose: "500 mg", frequency: "OD" },
   { id: "doxycycline", generic: "Doxycycline", brands: ["Doxy-1 L-DR Forte", "Doxt-SL"], aliases: ["doryx", "vibramycin", "doxy"], classes: ["antibiotic", "tetracycline"], route: "PO", dose: "100 mg", frequency: "BD" },
   { id: "minocycline", generic: "Minocycline", brands: ["Minoz"], classes: ["antibiotic", "tetracycline"], route: "PO", dose: "50 mg", frequency: "BD" },
@@ -173,12 +173,13 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "fexofenadine", generic: "Fexofenadine", brands: ["Allegra"], classes: ["antihistamine"], route: "PO", dose: "120 mg", frequency: "OD" },
   { id: "hydroxyzine", generic: "Hydroxyzine", brands: ["Atarax"], classes: ["antihistamine", "sedating-antihistamine"], route: "PO", dose: "25 mg", frequency: "HS" },
   { id: "bilastine", generic: "Bilastine", brands: ["Bilaxten"], classes: ["antihistamine"], route: "PO", dose: "20 mg", frequency: "OD" },
-  { id: "chlorpheniramine", generic: "Chlorphenamine", brands: ["Avil"], aliases: ["chlorpheniramine", "pheniramine", "avil"], classes: ["antihistamine", "sedating-antihistamine"], route: "IV", dose: "22.75 mg", frequency: "stat" },
+  { id: "chlorpheniramine", generic: "Chlorphenamine", brands: ["Piriton"], aliases: ["chlorpheniramine", "cpm"], classes: ["antihistamine", "sedating-antihistamine"], route: "IV", dose: "22.75 mg", frequency: "stat" },
+  { id: "pheniramine", generic: "Pheniramine", brands: ["Avil"], aliases: ["pheniramine", "avil", "avilin", "avil iv"], classes: ["antihistamine", "sedating-antihistamine"], route: "IV", dose: "22.75 mg", frequency: "stat" },
 
   // Corticosteroids (systemic)
   { id: "prednisolone", generic: "Prednisolone", brands: ["Wysolone", "Omnacortil"], aliases: ["prednisone", "pred"], classes: ["steroid-systemic"], route: "PO", dose: "40 mg", frequency: "OD" },
   { id: "dexamethasone", generic: "Dexamethasone", brands: ["Dexona", "Decdan"], aliases: ["dexa"], classes: ["steroid-systemic"], route: "IV", dose: "8 mg", frequency: "stat" },
-  { id: "hydrocortisone", generic: "Hydrocortisone", brands: ["Lycortin-S"], aliases: ["hydrocortisone iv", "hc"], classes: ["steroid-systemic"], route: "IV", dose: "100 mg", frequency: "stat" },
+  { id: "hydrocortisone", generic: "Hydrocortisone", brands: ["Lycortin-S"], aliases: ["hydrocortisone iv", "hc", "hydrocort"], classes: ["steroid-systemic"], route: "IV", dose: "100 mg", frequency: "stat" },
   { id: "methylprednisolone", generic: "Methylprednisolone", brands: ["Solu-Medrol", "Medrol"], aliases: ["solu medrone", "solumedrol", "solu medrol", "solumedrone", "methylpred"], classes: ["steroid-systemic"], route: "IV", dose: "125 mg", frequency: "stat" },
 
   // Antivirals, antimalarials
@@ -221,7 +222,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "chlorthalidone", generic: "Chlorthalidone", brands: ["CTD"], aliases: ["chlorthalidone", "chlortalidone"], classes: ["thiazide", "diuretic", "antihypertensive"], route: "PO", dose: "12.5 mg", frequency: "OD" },
   { id: "hydrochlorothiazide", generic: "Hydrochlorothiazide", brands: ["Aquazide"], aliases: ["hctz"], classes: ["thiazide", "diuretic", "antihypertensive"], route: "PO", dose: "12.5 mg", frequency: "OD" },
   { id: "indapamide", generic: "Indapamide", brands: ["Natrilix SR"], classes: ["thiazide", "diuretic", "antihypertensive"], route: "PO", dose: "1.5 mg", frequency: "OD" },
-  { id: "furosemide", generic: "Furosemide", brands: ["Lasix"], aliases: ["frusemide", "lasix iv"], classes: ["loop-diuretic", "diuretic"], route: "IV", dose: "40 mg", frequency: "stat" },
+  { id: "furosemide", generic: "Furosemide", brands: ["Lasix"], aliases: ["frusemide", "lasix iv", "furesemide"], classes: ["loop-diuretic", "diuretic"], route: "IV", dose: "40 mg", frequency: "stat" },
   { id: "torsemide", generic: "Torsemide", brands: ["Dytor"], aliases: ["torasemide"], classes: ["loop-diuretic", "diuretic"], route: "PO", dose: "10 mg", frequency: "OD" },
   { id: "spironolactone", generic: "Spironolactone", brands: ["Aldactone"], classes: ["mra", "diuretic"], route: "PO", dose: "25 mg", frequency: "OD" },
   { id: "sacubitril-valsartan", generic: "Sacubitril–valsartan", brands: ["Vymada"], aliases: ["sacubitril valsartan", "arni", "entresto"], classes: ["arni", "antihypertensive"], route: "PO", dose: "50 mg", frequency: "BD" },
@@ -230,7 +231,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "isosorbide-dinitrate", generic: "Isosorbide dinitrate", brands: ["Sorbitrate"], aliases: ["isordil", "isoket", "isosorbide dinitrate", "isdn"], classes: ["nitrate", "vasodilator"], route: "SL", dose: "5 mg", frequency: "SOS" },
   { id: "isosorbide-mononitrate", generic: "Isosorbide mononitrate", brands: ["Monotrate"], aliases: ["isosorbide mononitrate", "ismn"], classes: ["nitrate", "vasodilator"], route: "PO", dose: "20 mg", frequency: "BD" },
   { id: "nicorandil", generic: "Nicorandil", brands: ["Nikoran"], classes: ["vasodilator", "nitrate"], route: "PO", dose: "5 mg", frequency: "BD" },
-  { id: "atorvastatin", generic: "Atorvastatin", brands: ["Atorva", "Storvas", "Lipitor"], classes: ["statin"], route: "PO", dose: "40 mg", frequency: "OD at night" },
+  { id: "atorvastatin", generic: "Atorvastatin", brands: ["Atorva", "Storvas", "Lipitor"], aliases: ["atorva 40", "atorva 80"], classes: ["statin"], route: "PO", dose: "40 mg", frequency: "OD at night" },
   { id: "rosuvastatin", generic: "Rosuvastatin", brands: ["Rosuvas", "Crestor"], classes: ["statin"], route: "PO", dose: "20 mg", frequency: "OD at night" },
   { id: "clopidogrel", generic: "Clopidogrel", brands: ["Clopilet", "Deplatt", "Plavix"], classes: ["antiplatelet", "p2y12"], route: "PO", dose: "75 mg", frequency: "OD" },
   { id: "ticagrelor", generic: "Ticagrelor", brands: ["Brilinta", "Axcer"], classes: ["antiplatelet", "p2y12"], route: "PO", dose: "90 mg", frequency: "BD" },
@@ -264,7 +265,7 @@ export const FORMULARY: FormularyDrug[] = [
 
   // Respiratory
   { id: "salbutamol", generic: "Salbutamol", brands: ["Asthalin"], aliases: ["ventolin", "proair", "albuterol", "salbutamol neb", "salbutamol nebulisation"], classes: ["bronchodilator"], route: "NEB", dose: "2.5 mg", frequency: "stat" },
-  { id: "levosalbutamol-ipratropium", generic: "Levosalbutamol + ipratropium", brands: ["Duolin"], aliases: ["duolin neb", "ipratropium"], classes: ["bronchodilator", "anticholinergic"], route: "NEB", dose: "1 respule", frequency: "stat" },
+  { id: "levosalbutamol-ipratropium", generic: "Levosalbutamol + ipratropium", brands: ["Duolin"], aliases: ["duolin neb", "ipratropium", "duoline"], classes: ["bronchodilator", "anticholinergic"], route: "NEB", dose: "1 respule", frequency: "stat" },
   { id: "budesonide", generic: "Budesonide", brands: ["Budecort"], aliases: ["budesonide neb"], classes: ["inhaled-steroid"], route: "NEB", dose: "0.5 mg", frequency: "BD" },
   { id: "budesonide-formoterol", generic: "Budesonide + formoterol", brands: ["Foracort"], aliases: ["formoterol"], classes: ["inhaled-steroid", "bronchodilator"], route: "INH", dose: "200/6 µg", frequency: "BD" },
   { id: "montelukast-levocetirizine", generic: "Montelukast + levocetirizine", brands: ["Montek LC", "Montair LC"], aliases: ["montek lc", "montair lc", "montelukast levocetirizine", "montelukast and levocetirizine combination"], classes: ["leukotriene", "antihistamine"], route: "PO", dose: "10 mg + 5 mg", frequency: "HS" },
@@ -273,7 +274,7 @@ export const FORMULARY: FormularyDrug[] = [
   // Neuro & psychiatry
   { id: "carbamazepine", generic: "Carbamazepine", brands: ["Tegretol", "Mazetol"], aliases: ["cbz"], classes: ["antiepileptic", "porphyrinogenic"], route: "PO", dose: "200 mg", frequency: "BD" },
   { id: "phenobarbitone", generic: "Phenobarbitone", brands: ["Gardenal", "Luminal"], aliases: ["phenobarbital", "phenobarb", "barbiturate"], classes: ["antiepileptic", "barbiturate", "porphyrinogenic"], route: "IV", dose: "20 mg/kg", frequency: "loading" },
-  { id: "levetiracetam", generic: "Levetiracetam", brands: ["Levipil"], classes: ["antiepileptic"], route: "IV", dose: "1 g", frequency: "BD" },
+  { id: "levetiracetam", generic: "Levetiracetam", brands: ["Levipil"], aliases: ["levipil iv", "keppra", "levera"], classes: ["antiepileptic"], route: "IV", dose: "1 g", frequency: "BD" },
   { id: "phenytoin", generic: "Phenytoin", brands: ["Eptoin"], classes: ["antiepileptic", "porphyrinogenic"], route: "IV", dose: "20 mg/kg", frequency: "loading" },
   { id: "valproate", generic: "Sodium valproate", brands: ["Encorate", "Valparin"], aliases: ["valproate", "valproic acid"], classes: ["antiepileptic", "teratogen", "porphyrinogenic"], route: "PO", dose: "500 mg", frequency: "BD" },
   { id: "lorazepam", generic: "Lorazepam", brands: ["Ativan"], classes: ["benzodiazepine"], route: "IV", dose: "2 mg", frequency: "stat" },
@@ -291,7 +292,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "gabapentin", generic: "Gabapentin", brands: ["Gabapin"], classes: ["gabapentinoid"], route: "PO", dose: "300 mg", frequency: "HS" },
   { id: "methylcobalamin", generic: "Methylcobalamin", brands: ["Nurokind", "Mecobal"], aliases: ["mecobalamin", "vitamin b12 supplement"], classes: ["vitamin"], route: "PO", dose: "1500 µg", frequency: "OD" },
   { id: "vitamin-k", generic: "Vitamin K1 (phytomenadione)", brands: ["Kenadion", "K-Vit"], aliases: ["vit k", "vitamin k", "vit k1", "vitamin k1", "phytonadione", "phytomenadione", "kenadion"], classes: ["vitamin", "prothrombotic"], route: "IV", dose: "10 mg", frequency: "slowly over 15–30 min (newborn: 1 mg IM once)" },
-  { id: "thiamine", generic: "Thiamine", brands: ["Benfomet"], aliases: ["vitamin b1"], classes: ["vitamin"], route: "IV", dose: "100 mg", frequency: "TDS" },
+  { id: "thiamine", generic: "Thiamine", brands: ["Benfomet", "Optineuron"], aliases: ["vitamin b1", "b complex", "b-complex", "optineuron iv"], classes: ["vitamin"], route: "IV", dose: "100 mg", frequency: "TDS" },
 
   // Endocrine, haematinics, women's health
   { id: "levothyroxine", generic: "Levothyroxine", brands: ["Thyronorm", "Eltroxin"], aliases: ["thyroxine"], classes: ["thyroid"], route: "PO", dose: "50 µg", frequency: "OD empty stomach" },
@@ -406,7 +407,7 @@ const FREQUENCY_PATTERNS: [RegExp, string][] = [
   [/\b(once (?:a |per )?week(?:ly)?|weekly|every week|1 day a week|once in a week)\b/, "once weekly"],
   [/\b(stat|immediately|right now|now)\b/, "stat"],
   [/\b(sos|prn|as needed|when required|if needed)\b/, "SOS"],
-  [/\b(od|once daily|once a day|daily|every day|qd|1 0 0|0 0 1)\b/, "OD"],
+  [/\b(od|once daily|once a day|daily|every day|qd|1 0 0|0 0 1|every 24 ?h(?:ours?|rs?)?|24 hourly|q24h)\b/, "OD"],
   [/\b(bd|bid|twice daily|twice a day|two times a day|1 0 1|12 hourly|q12h)\b/, "BD"],
   [/\b(tds|tid|thrice daily|three times a day|1 1 1|8 hourly|q8h)\b/, "TDS"],
   [/\b(qid|qds|four times a day|6 hourly|q6h)\b/, "QID"],

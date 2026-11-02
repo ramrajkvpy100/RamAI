@@ -45,17 +45,18 @@ describe("OpenAI in the simulation — the model words it, the backend decides i
     delete process.env.RAMAI_AI_VOICE;
   });
 
-  it("voices the patient with gpt-6-luna only, keeps the feedback with the case, and never pays twice", async () => {
+  it("answers placed questions from the case, uses gpt-6-luna only, keeps the feedback with the case, and never pays twice", async () => {
     const calls = fakeOpenAI();
     const start = await simulateCase({ userId: "ai-1", caseNumber: 1, daily: DAY });
     // The patient comes from the case library: starting a case asks the model nothing.
     expect(calls).toHaveLength(0);
     const turn = await submitDoctorAction(start.token, "What brings you here today?", "ai-1");
     const spoken = turn.state.messages.filter((m) => m.role === "patient" || m.role === "attendant").at(-1);
-    expect(spoken?.text).toMatch(/^\[(voiced 1|generated)\]/);
-    expect(calls.length).toBeGreaterThan(0);
+    // A question the rules place is answered in the case's own words: nothing asked of the model.
+    expect(spoken?.text).toBeTruthy();
+    expect(calls).toHaveLength(0);
     // One model, one address — nothing else, ever.
-    expect(new Set(calls.map((c) => c.model))).toEqual(new Set(["gpt-6-luna"]));
+    expect(calls.every((c) => c.model === "gpt-6-luna")).toBe(true);
     expect(calls.every((c) => c.url === "https://api.openai.com/v1/chat/completions")).toBe(true);
 
     const closed = await submitDoctorAction(turn.token, "End case", "ai-1");
@@ -74,7 +75,7 @@ describe("OpenAI in the simulation — the model words it, the backend decides i
   it("when OpenAI fails, the turn uses the scripted reply — and never tries another model", async () => {
     const calls = fakeOpenAI({ fail: true });
     const start = await simulateCase({ userId: "ai-2", caseNumber: 1, daily: DAY });
-    const turn = await submitDoctorAction(start.token, "What brings you here today?", "ai-2");
+    const turn = await submitDoctorAction(start.token, "the elbow thing yesterday, was it a bird or what happened lol", "ai-2");
     const spoken = turn.state.messages.filter((m) => m.role === "patient" || m.role === "attendant").at(-1);
     expect(spoken?.text).toBeTruthy();
     expect(spoken?.text).not.toMatch(/^\[/);

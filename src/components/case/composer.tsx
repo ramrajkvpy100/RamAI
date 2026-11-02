@@ -97,7 +97,7 @@ export function Composer({
 
   const submit = async () => {
     const text = draft.trim();
-    if (!text || disabled || sending) return;
+    if (!text || disabled) return;
     if (speech.listening) speech.stop();
     setDraft("");
     setMenu(null);
@@ -236,7 +236,7 @@ export function Composer({
             <Icon name="mic" size={17} />
           </IconButton>
         )}
-        <IconButton label="Send" variant="primary" size="sm" onClick={() => void submit()} disabled={!draft.trim() || disabled || sending} className="mb-1 rounded-full">
+        <IconButton label="Send" variant="primary" size="sm" onClick={() => void submit()} disabled={!draft.trim() || disabled} className="mb-1 rounded-full">
           <Icon name="arrow-up" size={16} strokeWidth={2.2} />
         </IconButton>
       </div>

@@ -231,9 +231,9 @@ describe("tests are sent once, and every value is this patient's", () => {
     expect(state.investigations.map((i) => i.name)).toEqual(["Lipase", "Amylase"]);
     expect(state.investigations[0]!.rows?.[0]).toMatchObject({ analyte: "Lipase", value: "1240" });
     expect(state.investigations[1]!.rows?.[0]?.analyte).toBe("Amylase");
-    // The panel ordered by name brings both, the case's lipase among them.
+    // The panel ordered by name brings what the case wrote, and no made-up normal beside it.
     const panel = play(def, ["Amylase and lipase"]).state.investigations[0]!;
-    expect(panel.rows?.map((r) => r.analyte).sort()).toEqual(["Amylase", "Lipase"]);
+    expect(panel.rows?.map((r) => r.analyte)).toEqual(["Lipase"]);
   });
 });
 

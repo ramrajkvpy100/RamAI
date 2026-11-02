@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { whenIdle } from "@/lib/when-idle";
+
 interface Data {
   due: { diagnosis: string; specialty: string; best: number; attempts: number }[];
   specialties: { specialty: string; cases: number; average: number }[];
@@ -13,12 +15,12 @@ interface Data {
  */
 export function ReviewCard({ onPractise, starting }: { onPractise: (disease: string) => void; starting: boolean }) {
   const [data, setData] = useState<Data | null>(null);
-  useEffect(() => {
+  useEffect(() => whenIdle(() => {
     fetch("/api/review", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d: Data | null) => setData(d))
       .catch(() => undefined);
-  }, []);
+  }), []);
   if (!data) return null;
   const weak = data.specialties.filter((s) => s.cases >= 2)[0];
   if (!data.due.length && !weak) return null;

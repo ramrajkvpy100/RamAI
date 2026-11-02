@@ -22,6 +22,24 @@ const KEEP_MS = 6 * 3_600_000;
 const WRITING_MS = 3 * 60_000;
 /** Fewer unmet cases than this, and it's time to invent another. */
 const ENOUGH_UNMET = 2;
+/** The lock on background writing lasts this long if whoever holds it dies without letting go. */
+const LOCK_MS = 90_000;
+/** This server's own writer, so its requests don't even ask the database. */
+let writingHere = false;
+
+/** Takes the one background-writing lock, atomically, across every server: true if this caller holds it now. */
+export async function takeWritingLock(holder: string, now = Date.now()): Promise<boolean> {
+  const taken = await db.run(
+    "INSERT INTO generation_lock (slot, expires_at, holder) VALUES (1, ?, ?) ON CONFLICT(slot) DO UPDATE SET expires_at = excluded.expires_at, holder = excluded.holder WHERE generation_lock.expires_at <= ?",
+    now + LOCK_MS, holder, now,
+  );
+  return taken.changes === 1;
+}
+
+/** Lets it go, if it's still ours. */
+export async function dropWritingLock(holder: string): Promise<void> {
+  await db.run("DELETE FROM generation_lock WHERE slot = 1 AND holder = ?", holder);
+}
 
 export interface PoolChoice {
   specialty?: Specialty;
@@ -91,10 +109,24 @@ export async function prepareNext(userId: string, choice: PoolChoice, opts: Omit
   await db.run("DELETE FROM case_pool WHERE user_id = ? AND (created_at <= ? OR (src = '' AND created_at <= ?))", userId, now - KEEP_MS, now - WRITING_MS);
   const there = await db.get<{ src: string }>("SELECT src FROM case_pool WHERE user_id = ? AND pool_key = ? LIMIT 1", userId, key);
   if (there) return there.src ? "ready" : "writing";
-  // One at a time, across all doctors: a burst of starts can't burn the credit. A doctor who finds none ready still gets one written live.
-  if (await db.get("SELECT 1 AS ok FROM case_pool WHERE src = '' AND created_at > ? LIMIT 1", now - WRITING_MS)) return "writing";
-  // Marked as being written, so a second request doesn't write another.
+  // One at a time, across all doctors and servers: a burst of starts can't burn the credit. A doctor who finds none ready still gets a case at once.
+  if (writingHere) return "writing";
+  writingHere = true;
   const id = randomUUID();
+  try {
+    if (!(await takeWritingLock(id, now))) return "writing";
+    try {
+      return await writeInto(id, userId, choice, opts, key, now, provider);
+    } finally {
+      await dropWritingLock(id).catch(() => undefined);
+    }
+  } finally {
+    writingHere = false;
+  }
+}
+
+async function writeInto(id: string, userId: string, choice: PoolChoice, opts: Omit<StartOptions, "specialty" | "track" | "level" | "easy" | "country">, key: string, now: number, provider: Awaited<ReturnType<typeof getProvider>>): Promise<"written" | "skipped"> {
+  // Marked as being written, so a second request doesn't write another.
   await db.run("INSERT INTO case_pool (id, user_id, pool_key, src, created_at) VALUES (?, ?, ?, '', ?)", id, userId, key, now);
   try {
     const src = await provider.createCase({ ...opts, specialty: choice.specialty, track: choice.track, level: choice.level, easy: choice.easy, country: choice.country });

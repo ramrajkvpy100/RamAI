@@ -913,6 +913,8 @@ export interface CaseSession {
   token: string;
   state: CaseState;
   debrief?: CaseDebrief;
+  /** Something to tell the doctor about this start. */
+  notice?: string;
 }
 
 /* -------------------------------------------------------------------------- */

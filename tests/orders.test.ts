@@ -119,10 +119,23 @@ describe("an order missing what's needed is asked about, and the answer complete
     expect(xray.report).toMatch(/No fracture/);
   });
 
-  it("a chest X-ray: PA, or AP portable", async () => {
-    const { state, turns } = await converse(emAdhf, ["Get a chest X-ray", "AP portable"]);
-    expect(said(turns[0]!)).toMatch(/Chest X-ray — PA, or AP portable, doctor\?/);
+  it("a chest X-ray in clinic: PA, or AP portable", async () => {
+    const { state, turns } = await converse(dermAcne, ["Get a chest X-ray", "AP portable"]);
+    expect(said(turns[0]!)).toMatch(/Chest X-ray — PA, or AP portable/);
     expect(state.investigations.at(-1)!.name).toBe("Chest X-ray AP (portable)");
+  });
+
+  it("in an emergency, or said stat, nobody stops to choose: portable AP chest, plain CT head, bedside scan", async () => {
+    const er = await converse(emAdhf, ["Get a chest X-ray"]);
+    expect(er.state.investigations.at(-1)!.name).toBe("Chest X-ray AP (portable)");
+    const stat = await converse(dermAcne, ["cxr stat"]);
+    expect(stat.state.investigations.at(-1)!.name).toBe("Chest X-ray AP (portable)");
+    const asked = await converse(emAdhf, ["chest x-ray pa view"]);
+    expect(asked.state.investigations.at(-1)!.name).toBe("Chest X-ray PA");
+    const head = await converse(emAdhf, ["ct head"]);
+    expect(head.state.investigations.at(-1)!.name).toBe("NCCT head");
+    const scan = await converse(emAdhf, ["usg"]);
+    expect(scan.state.investigations.at(-1)!.name).toBe("POCUS / eFAST");
   });
 
   it("a CT: plain, or with contrast", async () => {

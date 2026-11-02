@@ -9,11 +9,10 @@ import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { mockProvider } from "@/engine/providers/mock";
 import { requireUser } from "@/server/auth";
 import { TRIAL, useCredit } from "@/server/credits";
-import { db } from "@/server/db";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { requestDuel } from "@/server/nearby";
 import { bankCase, takeFromBank, takeReady, type PoolChoice, prepareNext, unbankCase, waitForWriting } from "@/server/case-pool";
-import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
+import { dailyBoard, recordCaseStart, startFacts } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -40,13 +39,15 @@ export async function POST(req: Request) {
     const plan = planFor(user);
     const limit = dailyLimitFor(user);
     // Everything the start depends on, read at once rather than one round trip after another.
-    const [, played, today, total, exclude] = await Promise.all([
+    timing.auth = Date.now() - began;
+    const [, played, facts] = await Promise.all([
       ensureDemoPlayers(),
       daily ? dailyBoard(daily, user.id, 0) : null,
-      !tutorial && !daily && limit !== null ? casesStartedToday(user.id) : 0,
-      totalCasesStarted(user.id),
-      recentCaseRefs(user.id),
+      startFacts(user.id),
     ]);
+    timing.facts = Date.now() - began - timing.auth;
+    const { total, recent: exclude, stage, poolRows } = facts;
+    const today = !tutorial && !daily && limit !== null ? facts.today : 0;
     if (played?.me) {
       return apiError(409, "DAILY_DONE", "You've played today's case. A new one unlocks at midnight IST.");
     }
@@ -66,7 +67,6 @@ export async function POST(req: Request) {
     // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
     const picked = !!(body.specialty || body.track || body.level);
     // Students get classic presentations; everyone else after their first few cases gets the full range.
-    const stage = (await db.get<{ stage: string }>("SELECT stage FROM user_prefs WHERE user_id = ?", user.id).catch(() => undefined))?.stage;
     // The first three cases are always easy and winnable — even ones picked from the menu; students and interns keep classic cases.
     // The doctor's own choice of difficulty wins; without one, newcomers and students get easy cases.
     const difficulty = body.difficulty;
@@ -106,16 +106,20 @@ export async function POST(req: Request) {
     // (Only letters, spaces and simple punctuation reach the case writer.)
     const place = body.nearMe && !tutorial && !daily && !shared ? (body.city || user.city)?.replace(/[^\p{L}\p{M} ,.'-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60) || undefined : undefined;
     const fresh = tutorial || daily || body.disease || shared || hard || place;
-    const pooled = fresh ? null : await takeReady(user.id, choice).catch(() => null);
+    const pooled = fresh || poolRows === 0 ? null : await takeReady(user.id, choice).catch(() => null);
     const banked = fresh || pooled ? null : await takeFromBank(user.id, choice).catch(() => null);
     // Neither: a written case they haven't met starts at once, and a new patient is written for their next game.
     // (Asked for something fresh, or a duel: that waits. Nothing written fits: the one being written, if any, then a new one.)
     const pickedWritten = fresh || host || shared || pooled || banked ? null : await mockProvider.createCase({ easy, specialty, track: body.track as CaseTrack | undefined, level: body.level as CareLevel | undefined, allowedLevels: plan.levels, exclude, country: user.country } as never).catch(() => null);
     // (Only one they haven't met: the picker can still choose a recent one when little else fits.)
     const written = pickedWritten?.kind === "library" && !exclude.includes(pickedWritten.id) ? pickedWritten : null;
-    const awaited = fresh || host || shared || pooled || banked || written ? null : await waitForWriting(user.id, choice, 50_000).catch(() => null);
+    // Nothing for that specialty just now: another case they haven't met, at once, rather than a minute's wait. Theirs is written for next time.
+    // (Only when no particular kind of case was the point of asking: a disease, a place, a duel or a retry still waits.)
+    const anyOther = fresh || host || shared || pooled || banked || written || !specialty ? null : await mockProvider.createCase({ easy, track: body.track as CaseTrack | undefined, level: body.level as CareLevel | undefined, allowedLevels: plan.levels, exclude, country: user.country } as never).catch(() => null);
+    const stopgap = anyOther?.kind === "library" && !exclude.includes(anyOther.id) ? anyOther : null;
+    const awaited = fresh || host || shared || pooled || banked || written || stopgap ? null : await waitForWriting(user.id, choice, 50_000).catch(() => null);
     timing.lookup = Date.now() - began;
-    const ready = shared ?? pooled ?? banked ?? written ?? awaited;
+    const ready = shared ?? pooled ?? banked ?? written ?? stopgap ?? awaited;
     const usage: UsageScope = { kind: "case-start", timing };
     const session = await withUsage(usage, async () => simulateCase({
       ready,
@@ -140,7 +144,7 @@ export async function POST(req: Request) {
     }));
     usage.sessionId = session.state.sessionId;
     // A patient invented just now is kept for other doctors.
-    if (!shared && !banked && !written && !tutorial && !daily && !place) {
+    if (!shared && !banked && !written && !stopgap && !tutorial && !daily && !place) {
       // Banked at once: it passed its reviews while being written, and a slow second opinion mustn't lose it. Taken out only if that finds it wrong.
       const invented = sessionInfo(session.token).src;
       after(async () => {
@@ -153,10 +157,10 @@ export async function POST(req: Request) {
       });
     }
     // A written case now means a new patient ready for next time.
-    if (written) {
+    if (written || stopgap) {
       after(() => withUsage({ kind: "case-start" }, () => prepareNext(user.id, choice, { allowedLevels: plan.levels, exclude, lang: user.patientLang } as never)).then(() => undefined).catch((err) => console.warn("[ramai] the next patient wasn't written:", err instanceof Error ? err.message : err)));
     }
-    console.info(timingLine("/api/cases", timing, ["lookup", "rules", "llm_primary", "llm_fallback"], Date.now() - began));
+    console.info(timingLine("/api/cases", timing, ["auth", "facts", "lookup", "rules", "llm_primary", "llm_fallback"], Date.now() - began));
     if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);
     // "Near me": the doctors chosen are asked to play the same patient.
     if (host === "invite" && duelId && body.invite?.length && !user.isGuest) await requestDuel(user, duelId, body.invite).catch(() => 0);
@@ -175,7 +179,8 @@ export async function POST(req: Request) {
         ])),
       );
     }
-    return ok(session);
+    // Said on screen, so a doctor who asked for one specialty knows why this is another.
+    return ok(stopgap && specialty ? { ...session, notice: `No ${specialty} patient is ready just now, so here's another. Yours is being written for your next case.` } : session);
   } catch (err) {
     return handleError(err);
   }

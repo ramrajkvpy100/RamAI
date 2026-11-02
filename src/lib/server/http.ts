@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -89,7 +90,7 @@ function failedPart(err: unknown): string {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Best-effort rate limiting (per instance). Use a shared store at scale.      */
+/* Best-effort rate limiting (per instance), per doctor before per address.    */
 /* -------------------------------------------------------------------------- */
 
 const buckets = new Map<string, { count: number; reset: number }>();
@@ -98,24 +99,44 @@ const buckets = new Map<string, { count: number; reset: number }>();
 export const clientIp = (req: Request) => req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "local";
 
 /**
- * Each endpoint — and each method on it — has its own budget per address:
+ * Each endpoint — and each method on it — has its own budget per doctor (per address when nobody's signed in):
  * playing a case never uses up sign-up attempts, and reading a list never
  * uses up sending to it.
  */
 
-export function rateLimited(req: Request, limit = 90, windowMs = 60_000): Response | null {
-  if (isScraper(req.headers.get("user-agent"))) return apiError(403, "FORBIDDEN", "Not available.");
-  const ip = clientIp(req);
-  const key = `${req.method} ${new URL(req.url).pathname} ${ip}`;
-  const now = Date.now();
+const overBudget = (key: string, limit: number, windowMs: number, now: number) => {
   const bucket = buckets.get(key);
   if (!bucket || bucket.reset < now) {
     buckets.set(key, { count: 1, reset: now + windowMs });
     if (buckets.size > 10_000) for (const [k, v] of buckets) if (v.reset < now) buckets.delete(k);
-    return null;
+    return false;
   }
   bucket.count += 1;
-  return bucket.count > limit ? apiError(429, "RATE_LIMITED", "Too many requests. Take a breath and try again.") : null;
+  return bucket.count > limit;
+};
+
+/** Whoever's signed in, as far as the cookies say (their session cookie, never stored as it is). */
+function signedInAs(req: Request): string | null {
+  const cookie = req.headers.get("cookie") ?? "";
+  const session = cookie.match(/(?:^|;\s*)(?:ramai_session|sb-[^=;]*-auth-token(?:\.0)?)=([^;]{16,})/)?.[1];
+  return session ? createHash("sha256").update(session).digest("base64url").slice(0, 22) : null;
+}
+
+/** Anyone with no session shares an address's allowance, and a hospital's wi-fi is one address. */
+const ANONYMOUS_ROOM = 5;
+/** The most any one address can do, whatever cookies it sends: a made-up cookie doesn't buy an endless budget. */
+const ADDRESS_ROOM = 50;
+
+export function rateLimited(req: Request, limit = 90, windowMs = 60_000): Response | null {
+  if (isScraper(req.headers.get("user-agent"))) return apiError(403, "FORBIDDEN", "Not available.");
+  const ip = clientIp(req);
+  const place = `${req.method} ${new URL(req.url).pathname}`;
+  const now = Date.now();
+  const who = signedInAs(req);
+  const over = who
+    ? overBudget(`${place} u:${who}`, limit, windowMs, now) || overBudget(`${place} ip:${ip}`, limit * ADDRESS_ROOM, windowMs, now)
+    : overBudget(`${place} ip:${ip}`, limit * ANONYMOUS_ROOM, windowMs, now);
+  return over ? apiError(429, "RATE_LIMITED", "Too many requests. Take a breath and try again.") : null;
 }
 
 /** Rejects cross-site state-changing requests (defence in depth on top of SameSite cookies). */

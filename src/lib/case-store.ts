@@ -38,6 +38,10 @@ export interface CaseSnapshot {
   session: ActiveSession | null;
   starting: boolean;
   sending: { input: string } | null;
+  /** Orders sent while one was still running: they go next, in order. */
+  queued: string[];
+  /** Why this case isn't quite the one asked for. */
+  notice: string | null;
   error: CaseError | null;
   lastEffects: TurnEffect[];
   turn: number;
@@ -45,7 +49,7 @@ export interface CaseSnapshot {
   undoable: { before: ActiveSession; label: string; until: number } | null;
 }
 
-let snapshot: CaseSnapshot = { hydrated: false, userId: null, session: null, starting: false, sending: null, error: null, lastEffects: [], turn: 0, undoable: null };
+let snapshot: CaseSnapshot = { hydrated: false, userId: null, session: null, starting: false, sending: null, queued: [], notice: null, error: null, lastEffects: [], turn: 0, undoable: null };
 /** How long an order can be undone. */
 export const UNDO_MS = 6000;
 const listeners = new Set<() => void>();
@@ -87,7 +91,8 @@ export async function startCase(choice: CaseChoice = {}): Promise<boolean> {
     // Learning or real life, as last chosen — for "Any case" and "Next case" too.
     const learning = choice.learning ?? (() => { try { return localStorage.getItem("ramai.learning") === "1"; } catch { return false; } })();
     const session = await simulateCase({ ...choice, ...(learning && !choice.tutorial && !choice.duel ? { learning: true } : {}) });
-    update({ session: { ...session, begun: false }, starting: false, sending: null, lastEffects: [], turn: 0 });
+    const { notice, ...started } = session;
+    update({ session: { ...started, begun: false }, starting: false, sending: null, queued: [], notice: notice ?? null, lastEffects: [], turn: 0 });
     void refreshMe();
     // While this patient is seen, the next one is written, so "Next case" starts at once (after a moment, so this case's own start comes first).
     if (!choice.daily) window.setTimeout(() => void prepareCase().catch(() => undefined), 8000);
@@ -105,7 +110,12 @@ export function beginEncounter() {
 export async function send(input: string): Promise<boolean> {
   const session = snapshot.session;
   const text = input.trim();
-  if (!session || !text || snapshot.sending || session.debrief) return false;
+  if (!session || !text || session.debrief) return false;
+  // One is still running: this one waits its turn.
+  if (snapshot.sending) {
+    update({ queued: [...snapshot.queued, text] });
+    return true;
+  }
   update({ sending: { input: text }, error: null });
   try {
     const res = await submitDoctorAction(session.token, text);
@@ -119,6 +129,7 @@ export async function send(input: string): Promise<boolean> {
       undoable: ordered ? { before: session, label: text, until: Date.now() + UNDO_MS } : null,
     });
     if (res.debrief) void refreshMe();
+    sendNext(res);
     return true;
   } catch (err) {
     const error = toError(err, { kind: "send", input: text });
@@ -153,7 +164,7 @@ export async function tick(): Promise<void> {
 export function undo(): boolean {
   const u = snapshot.undoable;
   if (!u || Date.now() > u.until || snapshot.sending) return false;
-  update({ session: u.before, undoable: null, lastEffects: [], turn: snapshot.turn + 1 });
+  update({ session: u.before, undoable: null, queued: [], lastEffects: [], turn: snapshot.turn + 1 });
   return true;
 }
 
@@ -199,12 +210,40 @@ export async function setPracticeCountry(country: Country): Promise<boolean> {
   }
 }
 
+/**
+ * The next queued order, once the last has come back. Not if the ward has just asked the doctor something: an order
+ * typed before the question was seen must never be taken for the answer (a "yes" to a nurse's safety check).
+ */
+function sendNext(res: { debrief?: unknown; state: { messages: readonly { role: string; text: string; replies?: unknown }[] } }) {
+  if (res.debrief) return update({ queued: [] });
+  const [next, ...rest] = snapshot.queued;
+  if (!next) return;
+  const last = res.state.messages.at(-1);
+  if (last && last.role !== "doctor" && (/\?\s*$/.test(last.text) || (Array.isArray(last.replies) && last.replies.length > 0))) return;
+  update({ queued: rest });
+  void send(next);
+}
+
+/** Takes back an order still waiting its turn. */
+export function dropQueued(index: number) {
+  update({ queued: snapshot.queued.filter((_, i) => i !== index) });
+}
+
+/** For tests: a case already under way. */
+export function __testSession(session: ActiveSession) {
+  update({ session });
+}
+
+export function dismissNotice() {
+  update({ notice: null });
+}
+
 export function dismissError() {
   update({ error: null });
 }
 
 export function abandonCase() {
-  update({ session: null, sending: null, error: null, lastEffects: [], turn: 0 });
+  update({ session: null, sending: null, queued: [], notice: null, error: null, lastEffects: [], turn: 0 });
 }
 
 /** The current snapshot, outside React (e.g. right after an awaited action). */

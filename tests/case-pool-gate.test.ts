@@ -7,7 +7,7 @@ vi.mock("@/server/case-check", () => ({ checkCase: async () => ({ status: "passe
 
 import { filterCases } from "@/engine/cases";
 import { createProfile, type User } from "@/server/auth";
-import { prepareNext } from "@/server/case-pool";
+import { dropWritingLock, prepareNext, takeWritingLock } from "@/server/case-pool";
 import { db } from "@/server/db";
 
 process.env.RAMAI_DB_PATH = ":memory:";
@@ -30,11 +30,26 @@ describe("the next patient is invented only when needed", () => {
     for (const c of filterCases(choice)) {
       await db.run("INSERT INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, score, xp, created_at) VALUES (?, ?, ?, 1, 'Medicine', 'phone', 'phc', 'x', 1, 1, ?)", asha.id, `g-${c.id}`, c.id, Date.now());
     }
-    await db.run("INSERT INTO case_pool (id, user_id, pool_key, src, created_at) VALUES ('w1', ?, 'someone-else', '', ?)", asha.id, Date.now());
+    // Another server holds the lock.
+    expect(await takeWritingLock("another-server")).toBe(true);
     expect(await prepareNext(asha.id, choice, {} as never)).toBe("writing");
     expect(createCase).not.toHaveBeenCalled();
-    await db.run("DELETE FROM case_pool WHERE id = 'w1'");
+    await dropWritingLock("another-server");
     await prepareNext(asha.id, choice, {} as never);
     expect(createCase).toHaveBeenCalledTimes(1);
+  });
+
+  it("20 doctors at once, on any number of servers: one patient is written, and the lock frees itself", async () => {
+    createCase.mockClear();
+    const doctors = await Promise.all(Array.from({ length: 20 }, (_, i) => createProfile({ email: `race${i}@example.com`, username: `race${i}`, name: "Dr. Race" })));
+    const none = { specialty: "None" as never, country: "IN" as const, lang: "en" as const };
+    await Promise.all(doctors.map((d) => prepareNext(d.id, none, {} as never)));
+    expect(createCase).toHaveBeenCalledTimes(1);
+    // The lock itself is atomic: with no help from this server's own flag, 20 takers get one winner.
+    const taken = await Promise.all(Array.from({ length: 20 }, (_, i) => takeWritingLock(`taker-${i}`)));
+    expect(taken.filter(Boolean)).toHaveLength(1);
+    // If its holder dies, it's free again after 90 seconds.
+    expect(await takeWritingLock("later", Date.now() + 91_000)).toBe(true);
+    await dropWritingLock("later");
   });
 });

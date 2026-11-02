@@ -257,6 +257,13 @@ CREATE TABLE IF NOT EXISTS progress_reports (
   created_at INTEGER NOT NULL
 );
 
+-- Who may invent a patient in the background right now: one row, held for a short while, shared by every server.
+CREATE TABLE IF NOT EXISTS generation_lock (
+  slot INTEGER PRIMARY KEY,
+  expires_at INTEGER NOT NULL,
+  holder TEXT NOT NULL
+);
+
 -- Patients invented ahead of time, so the next case starts at once.
 CREATE TABLE IF NOT EXISTS case_pool (
   id TEXT PRIMARY KEY,

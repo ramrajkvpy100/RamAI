@@ -145,8 +145,21 @@ describe("signing up and in", () => {
     const from = (path: string) => new Request(`http://localhost:3218${path}`, { headers: { "x-forwarded-for": "203.0.113.7" } });
     for (let i = 0; i < 20; i++) rateLimited(from("/api/cases/turn"), 90);
     expect(rateLimited(from("/api/auth/signup"), 10)).toBeNull();
-    for (let i = 0; i < 5; i++) expect(rateLimited(from("/api/auth/forgot"), 5)).toBeNull();
+    // Nobody signed in shares an address's budget, with room for a hospital's wi-fi.
+    for (let i = 0; i < 25; i++) expect(rateLimited(from("/api/auth/forgot"), 5)).toBeNull();
     expect(rateLimited(from("/api/auth/forgot"), 5)?.status).toBe(429);
+  });
+
+  it("doctors on the same wi-fi don't use up each other's budget, but one doctor can't exceed their own", () => {
+    const as = (cookie: string) => new Request("http://localhost:3218/api/cases", { headers: { "x-forwarded-for": "203.0.113.50", cookie: `ramai_session=${cookie}` } });
+    for (let doctor = 0; doctor < 50; doctor++) {
+      for (let i = 0; i < 6; i++) expect(rateLimited(as(`doctor-session-token-${doctor}`), 6)).toBeNull();
+    }
+    expect(rateLimited(as("doctor-session-token-0"), 6)?.status).toBe(429);
+    // Made-up cookies don't buy an endless budget: the address still has a ceiling.
+    let refused = 0;
+    for (let i = 0; i < 400; i++) if (rateLimited(as(`made-up-session-token-${i}`), 6)) refused += 1;
+    expect(refused).toBeGreaterThan(0);
   });
 
   it("finds a profile by id after linking", async () => {

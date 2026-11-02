@@ -43,7 +43,6 @@ export type PatientResponse = z.infer<typeof PatientResponseSchema>;
 /* -------------------------------------------------------------------------- */
 
 /** One reply per question asked, in order. */
-export const VoiceSchema = z.object({ replies: z.array(z.string().max(700)).max(8) });
 
 /* -------------------------------------------------------------------------- */
 /* Debrief feedback                                                            */

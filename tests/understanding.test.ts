@@ -165,28 +165,12 @@ describe("Understanding the doctor (OpenAI mocked)", () => {
       expect(leaksDiagnosis(adhf, "So it is heart failure?", "Doctor: I think this is heart failure.")).toBe(false);
     });
 
-    it("a voiced reply naming the diagnosis is dropped; the scripted words are said", async () => {
-      fakeOpenAI((s) => (isVoice(s) ? { replies: (s.user.match(/Reply \d+/g) ?? ["Reply 1"]).map(() => "It's acute decompensated heart failure, doctor.") } : { intents: [] }));
-      const { state } = await turn(adhf, [], "what happened?");
-      const said = state.messages.filter((m) => m.role === "patient" || m.role === "attendant").map((m) => m.text).join(" ");
-      expect(said).not.toMatch(/heart failure/i);
-      expect(said.length).toBeGreaterThan(0);
-    });
-
     it("an understood reply naming the diagnosis is dropped too", async () => {
       fakeOpenAI((s) => (isVoice(s) ? voiced(s) : { type: "patient_response", message: "The doctor in the village said heart failure.", intents: [{ kind: "history", targetId: "generated", phrase: "" }] }));
       const { state } = await turn(adhf, [], "what did the last doc tell u about all this business");
       expect(state.messages.map((m) => m.text).join(" ")).not.toMatch(/heart failure/i);
     });
 
-    it("the voice prompt never contains the diagnosis, and asks for natural speech", async () => {
-      const sent = fakeOpenAI((s) => (isVoice(s) ? voiced(s) : { intents: [] }));
-      await turn(adhf, [], "what happened?");
-      const v = sent.find(isVoice)!;
-      expect(v).toBeTruthy();
-      expect(`${v.system}\n${v.user}`.toLowerCase()).not.toContain("decompensated heart failure");
-      expect(v.effort).not.toBe("medium");
-    });
   });
 
   describe("7. invalid model output and API failure", () => {
