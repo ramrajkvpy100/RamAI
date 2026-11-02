@@ -2,16 +2,17 @@
 import { after } from "next/server";
 import { checkCase } from "@/server/case-check";
 import type { CaseSource } from "@/engine/providers/types";
-import { withUsage, type UsageScope } from "@/engine/providers/usage";
+import { timingLine, withUsage, type UsageScope } from "@/engine/providers/usage";
 import { learnFor, sessionInfo, simulateCase, teachingFor } from "@/engine/engine";
 import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
+import { mockProvider } from "@/engine/providers/mock";
 import { requireUser } from "@/server/auth";
 import { TRIAL, useCredit } from "@/server/credits";
 import { db } from "@/server/db";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { requestDuel } from "@/server/nearby";
-import { bankCase, takeFromBank, takeReady, type PoolChoice } from "@/server/case-pool";
+import { bankCase, takeFromBank, takeReady, type PoolChoice, prepareNext, unbankCase, waitForWriting } from "@/server/case-pool";
 import { casesStartedToday, dailyBoard, recentCaseRefs, recordCaseStart, totalCasesStarted } from "@/server/results";
 import { dailyKeyFor } from "@/lib/daily";
 import { ensureDemoPlayers } from "@/server/seed";
@@ -22,7 +23,7 @@ import { dailyLimitFor, planFor } from "@/lib/plans";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 /** Inventing a new patient can take most of a minute. */
-export const maxDuration = 120;
+export const maxDuration = 240;
 
 /** POST /api/cases — start a case within the player's plan, or the free guided demo case. */
 export async function POST(req: Request) {
@@ -31,6 +32,8 @@ export async function POST(req: Request) {
   const body = await parseBody(req, StartSchema);
   if (body instanceof Response) return body;
   try {
+    const began = Date.now();
+    const timing: Record<string, number> = {};
     const user = await requireUser();
     const tutorial = body.tutorial === true;
     const daily = !tutorial && body.daily === true ? dailyKeyFor() : undefined;
@@ -105,8 +108,15 @@ export async function POST(req: Request) {
     const fresh = tutorial || daily || body.disease || shared || hard || place;
     const pooled = fresh ? null : await takeReady(user.id, choice).catch(() => null);
     const banked = fresh || pooled ? null : await takeFromBank(user.id, choice).catch(() => null);
-    const ready = shared ?? pooled ?? banked;
-    const usage: UsageScope = { kind: "case-start" };
+    // Neither: a written case they haven't met starts at once, and a new patient is written for their next game.
+    // (Asked for something fresh, or a duel: that waits. Nothing written fits: the one being written, if any, then a new one.)
+    const pickedWritten = fresh || host || shared || pooled || banked ? null : await mockProvider.createCase({ easy, specialty, track: body.track as CaseTrack | undefined, level: body.level as CareLevel | undefined, allowedLevels: plan.levels, exclude, country: user.country } as never).catch(() => null);
+    // (Only one they haven't met: the picker can still choose a recent one when little else fits.)
+    const written = pickedWritten?.kind === "library" && !exclude.includes(pickedWritten.id) ? pickedWritten : null;
+    const awaited = fresh || host || shared || pooled || banked || written ? null : await waitForWriting(user.id, choice, 50_000).catch(() => null);
+    timing.lookup = Date.now() - began;
+    const ready = shared ?? pooled ?? banked ?? written ?? awaited;
+    const usage: UsageScope = { kind: "case-start", timing };
     const session = await withUsage(usage, async () => simulateCase({
       ready,
       userId: user.id,
@@ -130,18 +140,23 @@ export async function POST(req: Request) {
     }));
     usage.sessionId = session.state.sessionId;
     // A patient invented just now is kept for other doctors.
-    if (!shared && !banked && !tutorial && !daily && !place) {
-      // Only after the doctor has their case: a second opinion from another model first, and nothing it rejects is kept.
+    if (!shared && !banked && !written && !tutorial && !daily && !place) {
+      // Banked at once: it passed its reviews while being written, and a slow second opinion mustn't lose it. Taken out only if that finds it wrong.
       const invented = sessionInfo(session.token).src;
       after(async () => {
+        const id = await bankCase(user.id, invented, { specialty: specialty, track: session.state.track, level: session.state.level, easy, country: user.country, lang: user.patientLang }).catch(() => undefined);
         const check = await checkCase(invented).catch(() => ({ status: "unchecked" as const, errors: [] }));
-        if (check.status === "rejected") {
-          console.warn("[ramai] an invented case wasn't banked; the second opinion rejected it:", check.errors.join(" | ").slice(0, 400));
-          return;
+        if (check.status === "rejected" && id) {
+          console.warn("[ramai] an invented case was taken out of the bank; the second opinion rejected it:", check.errors.join(" | ").slice(0, 400));
+          await unbankCase(id).catch(() => undefined);
         }
-        await bankCase(user.id, invented, { specialty: specialty, track: session.state.track, level: session.state.level, easy, country: user.country, lang: user.patientLang }).catch(() => undefined);
       });
     }
+    // A written case now means a new patient ready for next time.
+    if (written) {
+      after(() => withUsage({ kind: "case-start" }, () => prepareNext(user.id, choice, { allowedLevels: plan.levels, exclude, lang: user.patientLang } as never)).then(() => undefined).catch((err) => console.warn("[ramai] the next patient wasn't written:", err instanceof Error ? err.message : err)));
+    }
+    console.info(timingLine("/api/cases", timing, ["lookup", "rules", "llm_primary", "llm_fallback"], Date.now() - began));
     if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);
     // "Near me": the doctors chosen are asked to play the same patient.
     if (host === "invite" && duelId && body.invite?.length && !user.isGuest) await requestDuel(user, duelId, body.invite).catch(() => 0);

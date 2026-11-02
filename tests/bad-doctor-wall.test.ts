@@ -2,6 +2,8 @@
  * The bad-doctor wall: every written case played by the worst doctor we can imagine, with no AI. What it checks is what
  * must never happen, whichever case and whatever the order. A new real-world error becomes a new line here.
  */
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -18,7 +20,7 @@ import { lumbarPuncture, runProcedure, tubeProblem } from "@/engine/procedures";
 import { ckdEpi, compensated, creatinineClearance, followLabs, LAB_PENDING, pao2ForSaturation, severinghaus, wintersPaCO2 } from "@/engine/lab-model";
 import { expectedPH as hh } from "@/engine/abg-check";
 import { generateDebrief } from "@/engine/debrief";
-import { clauseFor, courseOf, onlyFindings, saidNotTo, stockedSpelling, withoutFindings } from "@/engine/providers/openai";
+import { clauseFor, courseOf, notRepeated, onlyFindings, saidNotTo, stockedSpelling, withoutFindings } from "@/engine/providers/openai";
 import { createHiddenState, runTurn } from "@/engine/simulator";
 import type { ActionRecord } from "@/engine/types";
 
@@ -1033,7 +1035,7 @@ describe("a timed order interrupted", () => {
   it("doesn't claim to have completed, and counts only what ran in", async () => {
     const def = C("em-adhf");
     const text = said((await converse(def, ["NS 5 litres over 5 hours", "yes"])).state);
-    expect(text).toMatch(/infusion still running: something has changed/);
+    expect(text).toMatch(/started, but the clock stopped early at \+.* because the patient acutely deteriorated:/);
     expect(text).not.toMatch(/infusion completed/);
   });
 });
@@ -1063,7 +1065,7 @@ describe("a course of any length, in any case", () => {
   it("if a complication stops it early, it doesn't claim the whole course", async () => {
     const { state } = await converse(pick("id-dengue"), ["Paracetamol 500 mg TDS for 8 weeks"]);
     const text = said(state);
-    expect(text).toMatch(/of the 8 weeks paracetamol course — something has happened/);
+    expect(text).toMatch(/Clock stopped early at \+.* of the 8 weeks paracetamol course: the patient acutely deteriorated/);
     expect(text).not.toMatch(/course completed/);
   });
 
@@ -1116,5 +1118,35 @@ describe("seconds and minutes too", () => {
     const { hidden, state } = await converse(adhf(), ["furosemide 40 mg iv"]);
     expect(hidden.clock).toBeGreaterThanOrEqual(45);
     expect(said(state)).toMatch(/peak effect/);
+  });
+});
+
+describe("clear replies", () => {
+  it("20 hours in heart failure: says it stopped and why; on a well patient: completed", async () => {
+    const hf = said((await converse(C("em-adhf"), ["check vitals", "give ns iv 500 ml in 20 hours"])).state);
+    expect(hf).toMatch(/over 20 h — started, but the clock stopped early at \+41 min because the patient acutely deteriorated:/);
+    expect(hf).not.toMatch(/Full effect by about 20 h/);
+    const well = said((await converse(ALL_CASES.find((c) => c.id.startsWith("derm-acne"))!, ["give ns iv 500 ml in 20 hours"])).state);
+    expect(well).toMatch(/over 20 h — completed\. Here's how things are after 20 h\./);
+    expect(well).toMatch(/\[\+20 h elapsed/);
+  });
+  it("the same words aren't said twice", () => {
+    expect(notRepeated("Breath... won't come... since night.", ["Breath won't come since night"], 4)).not.toMatch(/Breath/);
+    expect(notRepeated("My chest hurts.", ["Breath won't come"], 4)).toBe("My chest hurts.");
+  });
+});
+
+describe("from the live logs", () => {
+  it("oxygen by a device named in any words never fails", () => {
+    const def = ALL_CASES.find((c) => c.track === "emergency" && c.patient.age >= 18)!;
+    for (const device of ["non-rebreather", "non rebreather mask", "NRBM", "nasal cannula", "venturi mask", "something odd"]) {
+      const fx = runTurn(def, createHiddenState(def), { id: "a", at: 0, raw: "oxygen 10 L", intents: [{ kind: "action", targetId: "measure:oxygen", phrase: "oxygen 10 L", matched: true, payload: { device, flowL: 10 } }] });
+      expect(fx.flatMap((e) => (e.type === "message" ? [e.text] : [])).join(" ")).toMatch(/Oxygen started|which percentage|how many litres/i);
+    }
+  });
+  it("a new case is banked before its second opinion", () => {
+    const route = readFileSync("src/app/api/cases/route.ts", "utf8");
+    expect(route.indexOf("await bankCase(")).toBeGreaterThan(0);
+    expect(route.indexOf("await bankCase(")).toBeLessThan(route.indexOf("await checkCase("));
   });
 });

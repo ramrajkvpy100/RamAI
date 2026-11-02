@@ -30,6 +30,7 @@ import { seal, SessionError, unseal, type SessionPayload } from "./session";
 import { dailyCase, TUTORIAL_CASE } from "./cases";
 import { createHiddenState, examPicture, imagingPicture, isTick, nextSeniorStep, openingEffects, openingPicture, runTurn, type HiddenState } from "./simulator";
 import { NoCaseError } from "./providers/mock";
+import { noteTiming } from "./providers/usage";
 import type { ActionRecord, Auscultation, CareLevel, CaseDebrief, CaseSession, CaseState, CaseTrack, LearnPack, PatientLang, Specialty, TurnEffect, TurnResponse } from "./types";
 
 export const MAX_INPUT_LENGTH = 1000;
@@ -376,7 +377,9 @@ export async function submitDoctorAction(token: string, input: string, userId: s
     throw new EngineError("LIMIT", "This case has reached its action limit. Close the case to review it.");
   }
 
+  const rebuildAt = Date.now();
   const { def, hidden, state, country } = rebuild(payload, provider);
+  noteTiming("rebuild", Date.now() - rebuildAt);
   if (hidden.closed) throw new EngineError("CASE_CLOSED", "This case is already closed.");
 
   // Learning mode: the right choice is carried out exactly, at once — nothing to read.

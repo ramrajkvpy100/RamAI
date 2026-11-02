@@ -2688,7 +2688,12 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
       // A complication can stop the clock early: then it says so, and counts only what ran in.
       const stopped = hidden.clock < clockBefore + span - 0.5;
       const ran = Math.max(1, hidden.clock - startedAt);
-      fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[+${describeSpan(ran)} elapsed — ${name}${drug.fluid ? " infusion still running" : ""}: something has changed]` : drug.fluid && overMin ? `[+${describeSpan(peak)} elapsed — ${name} infusion completed]` : `[+${describeSpan(peak)} — peak effect of ${route} ${drug.generic.toLowerCase()}]` });
+      // The opening line says what truly happened, now that it's known.
+      const opening = [...fx].reverse().find((e) => e.type === "message" && e.role === "system" && e.text.startsWith(drug.generic));
+      const given = `${drug.generic}${dose ? ` ${dose}` : ""} ${route}${drug.fluid && overMin ? ` over ${describeSpan(overMin)}` : ""}`;
+      if (opening?.type === "message" && stopped) opening.text = `${given} — ${drug.fluid ? "started" : "given"}, but the clock stopped early at +${describeSpan(ran)} because the patient acutely deteriorated:`;
+      else if (opening?.type === "message" && drug.fluid && overMin) opening.text = `${given} — completed. Here's how things are after ${describeSpan(overMin)}.`;
+      if (!stopped) fx.push({ type: "message", role: "system", kind: "status", text: drug.fluid && overMin ? `[+${describeSpan(peak)} elapsed — ${name} infusion completed]` : `[+${describeSpan(peak)} — peak effect of ${route} ${drug.generic.toLowerCase()}]` });
       fx.push(...passed);
       fx.push(...afterTheWait(def, hidden, drug, route, stopped ? ran : peak, drug.fluid && volumeMl ? Math.round(volumeMl * Math.min(1, ran / Math.max(1, overMin ?? ran))) : volumeMl, amount, fluid?.tier ?? 0));
     } else if (until > hidden.clock && def.track !== "phone") {
@@ -2893,9 +2898,18 @@ function handleRule(ctx: TurnContext, rule: TherapeuticRule, intent?: ResolvedIn
 }
 
 /** Oxygen as ordered: the device and flow said (or asked for). */
+/** The device however it was named ("non-rebreather", "nasal cannula"); nothing if it can't be placed, so the words decide. */
+function oxygenDeviceFrom(named: string): ReturnType<typeof parseOxygen>["device"] | undefined {
+  if (/non.?re.?breath|nrb|reservoir/i.test(named)) return "nrbm";
+  if (/venturi/i.test(named)) return "venturi";
+  if (/nasal|prong|cannula/i.test(named)) return "nasal";
+  if (/mask/i.test(named)) return "mask";
+  return undefined;
+}
+
 function oxygenOrdered(intent: ResolvedIntent) {
   const p = intent.payload ?? {};
-  return { ...parseOxygen(intent.phrase), ...(typeof p.device === "string" ? { device: p.device as ReturnType<typeof parseOxygen>["device"] } : {}), ...(typeof p.flowL === "number" ? { flowL: p.flowL } : {}), ...(typeof p.fio2 === "number" ? { fio2: p.fio2 } : {}) };
+  return { ...parseOxygen(intent.phrase), ...(typeof p.device === "string" && oxygenDeviceFrom(p.device) ? { device: oxygenDeviceFrom(p.device)! } : {}), ...(typeof p.flowL === "number" ? { flowL: p.flowL } : {}), ...(typeof p.fio2 === "number" ? { fio2: p.fio2 } : {}) };
 }
 
 /** Oxygen without a device or flow: the nurse asks. Returns the question, or null when it can go on. */
@@ -3690,7 +3704,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     const passed = hidden.clock - clockBefore;
     const stopped = advance.interrupted || (hidden.status as string) === "deceased" || passed < minutes - 0.5;
     // Only what truly passed is claimed: a complication can stop the course early.
-    fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[+${describeSpan(Math.max(1, passed))} of the ${describeSpan(minutes)} ${names.join(" and ")} course — something has happened]` : minutes < 1440 ? `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")}]` : `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
+    fx.push({ type: "message", role: "system", kind: "status", text: stopped ? `[Clock stopped early at +${describeSpan(Math.max(1, passed))} of the ${describeSpan(minutes)} ${names.join(" and ")} course: the patient acutely deteriorated]` : minutes < 1440 ? `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")}]` : `[+${describeSpan(minutes)} elapsed — ${names.join(" and ")} course completed]` });
     fx.push(...advance.effects);
     // Under a day: only what has really changed by now, not how the whole illness went.
     if (!stopped && minutes < 1440) {

@@ -31,6 +31,7 @@ import { DEFAULT_MODEL, lightReasoning } from "@/lib/server/openai-check";
 
 import { stateOfMind } from "../behaviour";
 import { LAB_PENDING } from "../lab-model";
+import { noteTiming } from "./usage";
 import type { ClinicalCaseDefinition } from "../case-definition";
 import { EXAMS, INVESTIGATIONS, MEASURES } from "../catalog";
 import { COUNTRY, type Country } from "../countries";
@@ -83,6 +84,9 @@ export function openAIConfig() {
 /** How hard the model thinks: false = the lightest setting, true = low, "medium" = medium (measured: no more accurate than low for reading the doctor, and seconds slower). */
 type Effort = boolean | "medium";
 /** `fast`: OpenAI's priority tier — about twice as quick, for the replies the doctor waits on during a case. */
+/** How long a turn's call gets from the main model before the backup is asked as well. */
+const TURN_ATTEMPT_MS = Number(process.env.RAMAI_TURN_ATTEMPT_MS || 4500);
+
 export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful: Effort = false, timeout?: number, fast = false): Promise<unknown> {
   const limit = timeout ?? openAIConfig().timeoutMs;
   const started = Date.now();
@@ -98,6 +102,32 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
       throw err;
     });
   };
+  // A reply a doctor is waiting on: if the main model hasn't answered in time (or has failed), the other company's model is asked as
+  // well, and the first answer wins. The first isn't cut off: on a long order it may be the one about to answer.
+  if (fast && process.env.RAMAI_PRIMARY !== "gemini") {
+    return new Promise((resolve, reject) => {
+      let failed = 0;
+      let backupStarted = false;
+      const tries = geminiConfigured() ? 2 : 1;
+      const failure = (err: unknown) => {
+        failed += 1;
+        if (failed >= tries) reject(err);
+        else askBackup();
+      };
+      const askBackup = () => {
+        if (backupStarted || !geminiConfigured()) return;
+        backupStarted = true;
+        clearTimeout(hedge);
+        console.warn("[ramai] no answer from OpenAI yet; asking Gemini as well");
+        geminiJSON(messages, maxTokens, Math.min(5000, Math.max(1000, limit - (Date.now() - started)))).then(resolve, failure);
+      };
+      const hedge = setTimeout(askBackup, Math.min(TURN_ATTEMPT_MS, limit));
+      chatJSONOnce(messages, maxTokens, careful, limit, fast).then((v) => {
+        clearTimeout(hedge);
+        resolve(v);
+      }, failure);
+    });
+  }
   // Free Gemini first, if chosen: on a 429, a 5xx or no answer in time, OpenAI answers. A senior's review (careful) stays with OpenAI.
   if (process.env.RAMAI_PRIMARY === "gemini" && !careful && geminiConfigured()) {
     try {
@@ -134,7 +164,7 @@ async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful:
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, response_format: { type: "json_object" }, max_completion_tokens: maxTokens, ...effort, ...(fast && process.env.RAMAI_FAST_TIER !== "0" ? { service_tier: "priority" } : {}) }),
+      body: JSON.stringify({ model, messages, response_format: { type: "json_object" }, max_completion_tokens: maxTokens, ...effort }),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -150,6 +180,7 @@ async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful:
     return JSON.parse(content);
   } finally {
     clearTimeout(timer);
+    noteTiming("llm_primary", Date.now() - started);
   }
 }
 
@@ -303,7 +334,7 @@ Investigation ids: ${invs}
 Supportive measure ids (use as "measure:<id>"): ${measures}
 Formulary drug ids matching this message: ${drugs || "none"} (a drug named that isn't here: kind "drug", targetId "unknown")
 
-The doctor said: """${clause}"""${plainEnglish(clause)}${guess ? `\n(A quick keyword reading took it as: ${guess}. Keep it if it is what the doctor meant; correct it if not — a question is never an order, history is not examination, and asking for results is not a new test.)` : ""}`,
+${lastSaid(ctx).length ? `Already said by the patient or relative (say it differently if asked again): ${lastSaid(ctx).join(" | ")}\n\n` : ""}The doctor said: """${clause}"""${plainEnglish(clause)}${guess ? `\n(A quick keyword reading took it as: ${guess}. Keep it if it is what the doctor meant; correct it if not — a question is never an order, history is not examination, and asking for results is not a new test.)` : ""}`,
     },
   ];
 }
@@ -1030,6 +1061,17 @@ function monthsOld(def: ClinicalCaseDefinition): string | undefined {
   return text.match(/\b(\d{1,2})[- ]months?[- ]old\b/i)?.[1];
 }
 
+const ALREADY_SAID = ["As I said, doctor, it's no different.", "It's still the same, doctor.", "Nothing has changed since you asked, doctor."];
+
+/** The last things the patient or relative said. */
+const lastSaid = (ctx: InterpretContext) => ctx.transcript.filter((m) => m.role === "patient" || m.role === "attendant").slice(-2).map((m) => m.text);
+
+/** Never the same words twice: a person asked again doesn't repeat themselves exactly. */
+export function notRepeated(reply: string, said: readonly string[], turn: number): string {
+  const plain = (x: string) => x.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return said.some((s) => plain(s) === plain(reply)) ? ALREADY_SAID[turn % ALREADY_SAID.length]! : reply;
+}
+
 /** What a patient or relative says, without the sentences only the doctor or the lab could know. */
 export function withoutFindings(text: string): string {
   const kept = text.split(/(?<=[.!?])\s+/).filter((s) => !FINDINGS.test(s));
@@ -1104,7 +1146,7 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
     // The one reply goes to the first intent that needs words: a question the case file doesn't cover, or anything no id covers.
     const say = (index: number) => {
       if (!message || Object.keys(generated).length > 0) return false;
-      generated[String(index)] = speaker === "nurse" ? message : withoutFindings(message);
+      generated[String(index)] = speaker === "nurse" ? message : notRepeated(withoutFindings(message), lastSaid(ctx), ctx.transcript.length);
       return true;
     };
     // A question to the patient ("urine ok?") is never an order: a test the model read into it is dropped.
@@ -1166,7 +1208,7 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
           ? { kind: "unknown", phrase: text, matched: false, payload: { speaker } }
           : { kind: "history", targetId: "generated", phrase: text, matched: true, ...(speaker === "attendant" ? { payload: { speaker } } : {}) },
       );
-      generated["0"] = speaker === "nurse" ? message : withoutFindings(message);
+      generated["0"] = speaker === "nurse" ? message : notRepeated(withoutFindings(message), lastSaid(ctx), ctx.transcript.length);
     }
     return intents.length ? { intents, generated } : { intents: ruled };
   } catch (err) {
@@ -1283,7 +1325,7 @@ async function voice(text: string, ctx: InterpretContext, ruled: ResolvedIntent[
     items.forEach((x, k) => {
       const reply = parsed.data.replies[k]?.trim();
       // (A reply naming the diagnosis is dropped: the scripted words are said instead.)
-      if (reply && !leaksDiagnosis(ctx.def, reply, roomSoFar)) generated[String(x.index)] = reply;
+      if (reply && !leaksDiagnosis(ctx.def, reply, roomSoFar)) generated[String(x.index)] = notRepeated(reply, lastSaid(ctx), ctx.transcript.length);
     });
     return { intents: ruled, generated };
   } catch (err) {
@@ -1474,7 +1516,9 @@ export function createOpenAIProvider(): ClinicalProvider {
       // No order is this long; the rules and the model read what's reasonable.
       const text = written.slice(0, 2000);
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
+      const rulesAt = Date.now();
       const rules = await mockProvider.interpret(text, ctx);
+      noteTiming("rules", Date.now() - rulesAt);
       // In a cardiac arrest the orders are read by rules alone: no waiting on a model.
       if (ctx.hidden.code?.active) return rules;
       // The senior's button and "Full history" are carried out exactly by the simulator — nothing to read.

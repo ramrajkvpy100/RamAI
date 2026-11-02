@@ -32,21 +32,46 @@ export interface PoolChoice {
 /** Ready patients are matched on everything that shapes the case. */
 export const poolKey = (c: PoolChoice) => [c.specialty ?? "any", c.track ?? "any", c.level ?? "any", c.easy ? "easy" : "std", c.country, c.lang].join("|");
 
-/** A ready patient for this choice, taken out of the pool — or null. */
+/** A ready patient fitting this choice, taken out of the pool, or null. What the doctor left unset matches anything. */
 export async function takeReady(userId: string, choice: PoolChoice): Promise<CaseSource | null> {
-  const row = await db.get<{ id: string; src: string }>(
-    "SELECT id, src FROM case_pool WHERE user_id = ? AND pool_key = ? AND src != '' AND created_at > ? ORDER BY created_at ASC LIMIT 1",
-    userId, poolKey(choice), Date.now() - KEEP_MS,
+  const rows = await db.all<{ id: string; src: string; pool_key: string }>(
+    "SELECT id, src, pool_key FROM case_pool WHERE user_id = ? AND src != '' AND created_at > ? ORDER BY created_at ASC",
+    userId, Date.now() - KEEP_MS,
   );
-  if (!row) return null;
-  // Taken once: if two starts race, only the one that deletes it gets it.
-  const taken = await db.run("DELETE FROM case_pool WHERE id = ?", row.id);
-  if (taken.changes !== 1) return null;
+  for (const row of rows) {
+    const src = fits(row, choice);
+    if (!src) continue;
+    // Taken once: if two starts race, only the one that deletes it gets it.
+    const taken = await db.run("DELETE FROM case_pool WHERE id = ?", row.id);
+    if (taken.changes === 1) return src;
+  }
+  return null;
+}
+
+/** The case in this pool row, if it fits the choice: same difficulty, country and language; the rest only where asked for. */
+function fits(row: { src: string; pool_key: string }, c: PoolChoice): CaseSource | null {
+  const [, , , easy, country, lang] = row.pool_key.split("|");
+  if (easy !== (c.easy ? "easy" : "std") || country !== c.country || lang !== c.lang) return null;
   try {
-    return JSON.parse(row.src) as CaseSource;
+    const src = JSON.parse(row.src) as CaseSource;
+    if (src.kind !== "generated") return row.pool_key === poolKey(c) ? src : null;
+    const d = src.def;
+    return (!c.specialty || d.specialty === c.specialty) && (!c.track || d.track === c.track) && (!c.level || d.level === c.level) ? src : null;
   } catch {
     return null;
   }
+}
+
+/** If this doctor's next patient is being written right now, waits for it (up to `ms`) rather than writing a second one. */
+export async function waitForWriting(userId: string, choice: PoolChoice, ms: number): Promise<CaseSource | null> {
+  const key = `|${choice.easy ? "easy" : "std"}|${choice.country}|${choice.lang}`;
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    const writing = await db.get<{ id: string }>("SELECT id FROM case_pool WHERE user_id = ? AND src = '' AND created_at > ? AND pool_key LIKE ? LIMIT 1", userId, Date.now() - WRITING_MS, `%${key}`);
+    if (!writing) return takeReady(userId, choice);
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return null;
 }
 
 /**
@@ -72,14 +97,14 @@ export async function prepareNext(userId: string, choice: PoolChoice, opts: Omit
       await db.run("DELETE FROM case_pool WHERE id = ?", id);
       return "skipped";
     }
-    // A second opinion from another model: nothing it calls seriously wrong is kept.
+    // Kept first, so a slow second opinion can't lose it; whatever it calls seriously wrong is then taken out.
+    await db.run("UPDATE case_pool SET src = ?, created_at = ? WHERE id = ?", JSON.stringify(src), Date.now(), id);
     const check = await checkCase(src);
     if (check.status === "rejected") {
       console.warn("[ramai] a written case was rejected by the second opinion:", check.errors.join(" | ").slice(0, 400));
       await db.run("DELETE FROM case_pool WHERE id = ?", id);
       return "skipped";
     }
-    await db.run("UPDATE case_pool SET src = ?, created_at = ? WHERE id = ?", JSON.stringify(src), Date.now(), id);
     return "written";
   } catch (err) {
     await db.run("DELETE FROM case_pool WHERE id = ?", id).catch(() => undefined);
@@ -119,14 +144,20 @@ export async function takeFromBank(userId: string, choice: PoolChoice): Promise<
 }
 
 /** Keeps a newly invented patient for others — and marks it met by the doctor who had it first. */
-export async function bankCase(userId: string, src: CaseSource, fit: BankFit): Promise<void> {
-  if (src.kind !== "generated") return;
+export async function bankCase(userId: string, src: CaseSource, fit: BankFit): Promise<string | undefined> {
+  if (src.kind !== "generated") return undefined;
   const id = randomUUID();
   await db.run(
     "INSERT INTO case_bank (id, specialty, track, level, easy, country, lang, src, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     id, fit.specialty ?? null, fit.track, fit.level, fit.easy ? 1 : 0, fit.country, fit.lang, JSON.stringify(src), Date.now(),
   );
   await db.run("INSERT OR IGNORE INTO case_bank_seen (user_id, bank_id) VALUES (?, ?)", userId, id);
+  return id;
+}
+
+/** Takes back a banked case the second opinion found seriously wrong. */
+export async function unbankCase(id: string): Promise<void> {
+  await db.run("DELETE FROM case_bank WHERE id = ?", id);
 }
 
 /** Whether the bank already has a patient this doctor hasn't met for this choice (so none need be invented). */

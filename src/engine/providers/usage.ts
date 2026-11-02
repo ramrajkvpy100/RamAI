@@ -18,6 +18,8 @@ export interface Usage {
 export interface UsageScope {
   kind: string;
   sessionId?: string;
+  /** Milliseconds by stage, for the route's [TIMING] line. */
+  timing?: Record<string, number>;
 }
 
 const scope = new AsyncLocalStorage<UsageScope>();
@@ -61,4 +63,15 @@ export function noteUsage(usage: unknown, images = 0) {
   } catch {
     // Counting must never break a case.
   }
+}
+
+/** Adds to a stage's time in this request (parallel calls add up, so a stage can exceed the total). */
+export function noteTiming(stage: string, ms: number) {
+  const t = scope.getStore()?.timing;
+  if (t) t[stage] = (t[stage] ?? 0) + ms;
+}
+
+/** One line for the logs, so a slow request shows where its time went. */
+export function timingLine(route: string, timing: Record<string, number>, stages: readonly string[], total: number): string {
+  return `[TIMING] route=${route} ${stages.map((k) => `${k}=${Math.round(timing[k] ?? 0)}ms`).join(" ")} total=${Math.round(total)}ms`;
 }

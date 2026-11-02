@@ -2,7 +2,7 @@
  * Google Gemini, the backup for when OpenAI can't answer. Off until GOOGLE_GENERATIVE_AI_API_KEY is set.
  * The key stays on the server and is sent in a header, never in a URL.
  */
-import { noteUsage } from "./usage";
+import { noteTiming, noteUsage } from "./usage";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview";
 
@@ -20,6 +20,7 @@ export async function geminiJSON(messages: { role: string; content: unknown }[],
   const text = (m: { content: unknown }) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content));
   const system = messages.filter((m) => m.role === "system").map(text).join("\n\n");
   const contents = messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: text(m) }] }));
+  const began = Date.now();
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -31,6 +32,7 @@ export async function geminiJSON(messages: { role: string; content: unknown }[],
     }),
     signal: AbortSignal.timeout(timeoutMs),
   });
+  noteTiming("llm_fallback", Date.now() - began);
   if (!res.ok) throw new Error(`Gemini responded ${res.status}`);
   const data = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];

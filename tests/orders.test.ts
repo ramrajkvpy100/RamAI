@@ -592,7 +592,7 @@ describe("General Practice audit, 22 Oct (10 AI cases, a bad doctor)", () => {
   it("a long effect is shown when it comes, and says so", async () => {
     const { getCase } = await import("@/engine/cases");
     const { converse, messagesOf } = await import("./helpers");
-    const { turns } = await converse(getCase("em-adhf-01")!, ["hydrocortisone 100 mg iv"]);
+    const { turns } = await converse(getCase("derm-acne-moderate-01")!, ["hydrocortisone 100 mg iv"]);
     const said = messagesOf(turns[0]!.effects).join(" ");
     expect(said).toMatch(/Full effect by about 1 h — here's how things are then/);
   });
