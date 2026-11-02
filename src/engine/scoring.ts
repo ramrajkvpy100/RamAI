@@ -49,7 +49,9 @@ const listOf = (items: string[]) => (items.length <= 1 ? (items[0] ?? "") : `${i
 export function judgeDiagnosis(def: ClinicalCaseDefinition, text: string | undefined): DiagnosisVerdict {
   if (!text?.trim()) return "not-recorded";
   const tk = tokens(normalise(text));
-  if (def.rubric.diagnosisAccept.some((p) => findPhrase(tk, p))) return "correct";
+  // The side and the organism add detail without changing the disease: "acute right-sided E. coli pyelonephritis" is acute pyelonephritis.
+  const plain = tokens(normalise(text.replace(/\b(?:right|left)[- ]?sided\b|\b(?:bilateral|unilateral)\b|\be\.?\s?coli\b/gi, " ")));
+  if (def.rubric.diagnosisAccept.some((p) => findPhrase(tk, p) || findPhrase(plain, p))) return "correct";
   if (def.rubric.diagnosisWrong?.some((p) => findPhrase(tk, p))) return "incorrect";
   if (def.rubric.diagnosisPartial.some((p) => findPhrase(tk, p))) return "partial";
   return "incorrect";

@@ -6,6 +6,7 @@ vi.mock("server-only", () => ({}));
 import { ALL_CASES } from "@/engine/cases";
 import { generateDebrief } from "@/engine/debrief";
 import { parseOrderDetails } from "@/engine/formulary";
+import { judgeDiagnosis } from "@/engine/scoring";
 import { bundleOf, createHiddenState, runTurn } from "@/engine/simulator";
 import { withoutSounds } from "@/engine/auscultation";
 import { diagnosisIn } from "@/engine/intent";
@@ -240,6 +241,14 @@ describe("labs that follow treatment", () => {
     expect(v("Urea")).toBeLessThan(90);
     expect(v("Total leucocyte count")).toBeLessThan(18000);
     expect(v("CRP")).toBeLessThan(120);
+  });
+});
+
+describe("judging the diagnosis", () => {
+  it("the side and the organism don't make a right diagnosis wrong", () => {
+    const def = { rubric: { diagnosisAccept: ["acute pyelonephritis"], diagnosisPartial: [] } } as never;
+    expect(judgeDiagnosis(def, "Acute right-sided E. coli pyelonephritis, improving, without obstruction")).toBe("correct");
+    expect(judgeDiagnosis(def, "chronic pyelonephritis")).toBe("incorrect");
   });
 });
 
