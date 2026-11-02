@@ -20,7 +20,7 @@ import { contraindication, gestationFrom, pregnancyRisk, storyOf, strengthProble
 import { BIG_STEPS, givesReason } from "./behaviour";
 import { liveClash, QT } from "./interactions";
 import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
-import { statedReviewDays } from "./intent";
+import { diagnosisIn, statedReviewDays } from "./intent";
 import { reworded } from "./reword";
 import { alignedPanel, compensated, creatinineClearance, criticalFlags, followLabs, fromVitals, LAB_PENDING, withTrend, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
@@ -2079,7 +2079,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
   if (result.rows) {
     const earlier = [...hidden.investigations].reverse().find((i) => i.defId === id && i.delivered);
     const now = vitalsNow(hidden);
-    result = { ...result, rows: withTrend(criticalFlags(fromVitals(result.rows, authored, now.rbs?.value, now.spo2?.value)), earlier?.result.rows) };
+    result = { ...result, rows: withTrend(criticalFlags(fromVitals(result.rows, authored, now.rbs?.value, now.spo2?.value, def.baselineVitals.rbs?.value)), earlier?.result.rows) };
   }
   // A gas drawn on oxygen says so.
   if (id === "abg" && hidden.oxygenOn && result.report) result = { ...result, report: result.report.replace(/room air/i, hidden.oxygenOn) };
@@ -2151,6 +2151,8 @@ function pressureRise(excessMl: number, weightKg: number, overMin: number | unde
 }
 
 /** What has gone in so far, for the labs to follow. */
+const CRYSTALLOID_IDS = new Set(["ns", "rl", "normal-saline", "ringer-lactate", "dns"]);
+
 function labContext(def: ClinicalCaseDefinition, hidden: HiddenState): LabContext {
   const ran = hidden.drugs.filter((d) => d.mode === "given" && d.route === "IV" && d.volumeMl).map((d) => {
     const until = d.stoppedAt ?? hidden.clock;
@@ -2161,6 +2163,17 @@ function labContext(def: ClinicalCaseDefinition, hidden: HiddenState): LabContex
   const co2Retained = retained ? Math.max(0, Math.min(45, 0.35 * ((retained.rescuedAt ?? hidden.clock) - retained.armedAt)) - (retained.rescuedAt !== undefined ? 0.2 * (hidden.clock - retained.rescuedAt) : 0)) : 0;
   return {
     ...(hidden.responded ? { recoveryHours: (hidden.clock - hidden.responded.at) / 60 } : {}),
+    ...((() => {
+      const given = (d: HiddenState["drugs"][number]) => d.mode === "given" || d.mode === "prescribed";
+      const antibiotic = hidden.drugs.filter((d) => given(d) && d.classes.includes("antibiotic")).map((d) => d.at);
+      const fluid = ran.filter((f) => CRYSTALLOID_IDS.has(f.drugId));
+      const fluidStart = hidden.drugs.filter((d) => d.mode === "given" && CRYSTALLOID_IDS.has(d.drugId)).map((d) => d.at);
+      const [sys = 0, dia = 0] = (vitalsNow(hidden).bp?.value ?? "").split("/").map(Number);
+      return {
+        antibioticHours: antibiotic.length ? (hidden.clock - Math.min(...antibiotic)) / 60 : 0,
+        rehydratedHours: fluid.reduce((sum, f) => sum + f.ml, 0) >= 500 && fluidStart.length && (dia + (sys - dia) / 3) >= 65 && !/ckd|chronic kidney|nephr|glomerul/i.test(def.truth.diagnosis) ? (hidden.clock - Math.min(...fluidStart)) / 60 : 0,
+      };
+    })()),
     weightKg: parseFloat(hidden.vitals.weight?.value ?? "") || 60,
     age: def.patient.age,
     sex: def.patient.sex,
@@ -3724,14 +3737,39 @@ function bareDiagnosis(def: ClinicalCaseDefinition, raw: string): string | null 
 }
 
 /** The short orders that do several things at once. */
-export function bundleOf(raw: string): "hpi" | "pmh" | "abcde" | "exam" | null {
-  const t = raw.trim().toLowerCase().replace(/[.!]+$/, "");
-  if (/^(?:take\s+)?(?:a\s+|the\s+)?(?:hpi|brief history|presenting complaint|history of presenting (?:illness|complaint))$/.test(t)) return "hpi";
-  if (/^(?:pmh(?: and (?:meds|medications|drugs))?|sample history|past history and (?:meds|medications|drugs))$/.test(t)) return "pmh";
-  if (/^(?:do\s+(?:an?\s+|the\s+)?)?(?:abcde?|primary survey)$/.test(t)) return "abcde";
-  if (/^(?:do\s+(?:a\s+|the\s+)?)?(?:general and systemic exam(?:ination)?|full exam(?:ination)?|complete exam(?:ination)?|head to toe(?: exam(?:ination)?)?)$/.test(t)) return "exam";
-  return null;
+type Bundle = "hpi" | "pmh" | "full" | "abcde" | "exam";
+
+const BUNDLE_WORDS: [RegExp, Bundle][] = [
+  [/(?:take\s+)?(?:a\s+|the\s+)?(?:full|complete|whole|entire)\s+history/, "full"],
+  [/(?:take\s+)?(?:a\s+|the\s+)?history of presenting (?:illness|complaint)/, "hpi"],
+  [/(?:take\s+)?(?:a\s+|the\s+)?(?:hpi|brief history|presenting complaint)/, "hpi"],
+  [/(?:pmh|past history)(?: and (?:meds|medications|drugs))?/, "pmh"],
+  [/sample history/, "pmh"],
+  [/(?:do\s+(?:a\s+|the\s+)?)?(?:general and systemic|full|complete|head to toe)\s+exam(?:ination)?/, "exam"],
+  [/head to toe/, "exam"],
+  [/(?:do\s+(?:an?\s+|the\s+)?)?(?:abcde?|primary survey)/, "abcde"],
+];
+
+/** The bundles a message asks for, in order ("hpi and pmh and meds"); none if it says anything else as well. */
+export function bundlesOf(raw: string): Bundle[] {
+  let rest = raw.trim().toLowerCase().replace(/[.!]+$/, "");
+  const found: Bundle[] = [];
+  while (rest) {
+    const hit = BUNDLE_WORDS.map(([re, b]) => ({ m: rest.match(new RegExp(`^${re.source}(?=$|[\\s,;+&])`)), b })).find((x) => x.m);
+    if (!hit?.m) return [];
+    if (!found.includes(hit.b)) found.push(hit.b);
+    rest = rest.slice(hit.m[0].length).replace(/^(?:\s*(?:,|;|\+|&|\band\b|\bthen\b)\s*)+/, "").trim();
+  }
+  return found;
 }
+
+export const bundleOf = (raw: string): Bundle | null => bundlesOf(raw)[0] ?? null;
+
+const BUNDLE_GROUPS: Record<"hpi" | "pmh" | "full", readonly string[]> = {
+  hpi: ["complaint", "hpi", "systemic"],
+  pmh: ["past", "medication", "allergy", "social", "family", "obstetric", "diet"],
+  full: ["complaint", "hpi", "systemic", "past", "medication", "allergy", "social", "family", "obstetric", "diet", "sexual"],
+};
 
 /** The primary survey, in one look: airway, breathing, circulation, disability, exposure. */
 function primarySurvey(ctx: TurnContext): TurnEffect[] {
@@ -3752,9 +3790,9 @@ function primarySurvey(ctx: TurnContext): TurnEffect[] {
     "Primary survey",
     line("A", [gcs >= 13 ? "Airway patent; talking." : gcs >= 9 ? "Airway at risk: drowsy." : "Airway not protected."]),
     line("B", [`RR ${val("rr")}, SpO₂ ${val("spo2")}%.`, seen("rs")]),
-    line("C", [`Pulse ${val("hr")}, BP ${val("bp")}.`, seen("cvs"), def.exam.some((e) => e.id === "jvp") ? seen("jvp") : ""]),
+    line("C", [`Pulse ${val("hr")}, BP ${val("bp")}.`, seen("cvs"), ...["jvp", "crt"].map((id) => (def.exam.some((e) => e.id === id) ? seen(id) : ""))]),
     line("D", [`GCS ${val("gcs")}, glucose ${val("rbs")} mg/dL.`, def.exam.some((e) => e.id === "cns") ? seen("cns") : ""]),
-    line("E", [`Temp ${val("temp")} °F.`, seen("general")]),
+    line("E", [`Temp ${val("temp")} °F.`, seen("general"), ...def.exam.filter((e) => e.group === "general-exam" && !["general", "jvp", "crt"].includes(e.id)).map((e) => seen(e.id))]),
   ].join("\n");
   fx.push({ type: "message", role: "system", kind: "finding", text });
   fx.push({ type: "timeline", label: "Primary survey", category: "exam" });
@@ -3774,16 +3812,20 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
     }
   }
   // A bedside bundle: one short order, several things done, for a doctor between patients.
-  const bundle = bundleOf(record.raw);
-  if (bundle === "hpi" || bundle === "pmh") {
-    const groups = bundle === "hpi" ? ["complaint", "hpi"] : ["past", "medication", "allergy", "social", "family", "obstetric"];
-    const asked = def.history.filter((h) => groups.includes(h.group));
-    if (asked.length) record = { ...record, intents: asked.map((h) => ({ kind: "history" as const, targetId: h.id, phrase: h.match[0] ?? h.label, matched: true })) };
-  } else if (bundle === "abcde") {
-    record = { ...record, intents: [{ kind: "exam", targetId: "bundle:abcde", phrase: record.raw, matched: true }] };
-  } else if (bundle === "exam") {
-    const exams = def.exam.filter((e) => !["genital", "breast", "pr"].includes(e.id));
-    if (exams.length) record = { ...record, intents: exams.map((e) => ({ kind: "exam" as const, targetId: e.id, phrase: e.label, matched: true })) };
+  const bundles = bundlesOf(record.raw);
+  if (bundles.length) {
+    const intents = bundles.flatMap((bundle): typeof record.intents => {
+      if (bundle === "abcde") return [{ kind: "exam", targetId: "bundle:abcde", phrase: record.raw, matched: true }];
+      if (bundle === "exam") return def.exam.filter((e) => !["genital", "breast", "pr"].includes(e.id)).map((e) => ({ kind: "exam" as const, targetId: e.id, phrase: e.label, matched: true }));
+      return def.history.filter((h) => BUNDLE_GROUPS[bundle].includes(h.group)).map((h) => ({ kind: "history" as const, targetId: h.id, phrase: h.match[0] ?? h.label, matched: true }));
+    });
+    if (intents.length) record = { ...record, intents };
+  }
+  // A diagnosis said inside a long closing order is still the diagnosis.
+  const spoken = diagnosisIn(record.raw);
+  if (spoken && !hidden.closed) {
+    const has = record.intents.find((i) => i.kind === "diagnosis" && String(i.payload?.text ?? "").trim());
+    if (!has) record = { ...record, intents: [{ kind: "diagnosis" as const, phrase: record.raw, matched: true, payload: { text: spoken } }, ...record.intents.filter((i) => i.kind !== "diagnosis")] };
   }
   // The senior's button: exactly the step suggested.
   if (hidden.seniorStep && record.raw.trim() === hidden.seniorStep.text) {
@@ -3800,6 +3842,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   if (!tick) fx.push({ type: "message", role: "doctor", kind: conversational ? "speech" : "action", text: record.raw.trim() });
 
   if (hidden.closed) return fx;
+  const homeBefore = !!hidden.discharged;
   // A cardiac arrest: nothing else happens until it's over. Closing the case ends it.
   if (hidden.code?.active) {
     if (!record.intents.some((i) => i.kind === "close")) return [...fx, ...runCodeTurn(def, hidden, record)];
@@ -3824,8 +3867,10 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       return;
     }
     // Discharged: the patient has gone home — bedside orders can't be carried out (and an admission can't undo it).
+    // A new prescription needs them back: on the way out in the same message, or at a review.
+    const leftAlready = homeBefore && intent.kind === "drug" && intent.payload?.mode !== "given" && hidden.followUps.length === 0;
     const bedside = ["exam", "investigation", "vitals", "reassess", "history", "instruct"].includes(intent.kind) || (intent.kind === "drug" && intent.payload?.mode === "given") || (intent.kind === "action" && !/refer|discharge|follow|counsel|review/.test(intent.targetId ?? ""));
-    if (hidden.discharged && bedside && def.track !== "phone") {
+    if (hidden.discharged && (bedside || leftAlready) && def.track !== "phone") {
       if (!fx.some((e) => e.type === "message" && e.text.includes("gone home"))) {
         const them = def.patient.sex === "Female" ? "She" : def.patient.sex === "Male" ? "He" : "They";
         fx.push({ type: "message", role: "system", kind: "status", text: `${them} ${them === "They" ? "have" : "has"} gone home — discharged. Record your diagnosis and close the case.` });

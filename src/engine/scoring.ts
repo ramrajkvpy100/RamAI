@@ -270,7 +270,9 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     if (definitive) {
       const times = definitive.ids.flatMap((id) => hidden.actions[id] ?? []);
       const first = times.length ? Math.min(...times) : undefined;
-      if (first === undefined || first > definitive.byMinute) {
+      // History and the primary survey at the bedside aren't a delay, while the patient holds: late means past half as long again, or after they worsened.
+      const worsened = first !== undefined && hidden.hazards.some((h) => !h.superseded && h.manifestedAt !== undefined && h.manifestedAt < first);
+      if (first === undefined || (first > definitive.byMinute && (worsened || first > definitive.byMinute * 1.5))) {
         frac -= 0.25;
         penalties.push({ label: "Delayed treatment", points: -Math.round(W.treatment * 0.25 * 10) / 10, reason: first === undefined ? `${definitive.label} was never done` : `${definitive.label} was delayed` });
       }

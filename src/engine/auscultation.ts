@@ -52,7 +52,8 @@ export const LISTEN_LINE: Record<ListenPart, string> = {
 
 /** The system examination with what the stethoscope would pick up taken out — the player hears it instead. */
 export function withoutSounds(systemFinding: string, part: ListenPart): string {
-  const kept = pieces(systemFinding).filter((p) => !TERMS[part].test(p));
+  // ("Heart sounds normal; and regular": what's left of a sentence that lost its subject isn't a finding.)
+  const kept = pieces(systemFinding).filter((p) => !TERMS[part].test(p)).filter((p) => !/^(?:and|or|but|with|while)\b/i.test(p));
   return [...kept.map((p) => `${capitalise(p)}.`), LISTEN_LINE[part]].join(" ");
 }
 

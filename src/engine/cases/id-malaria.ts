@@ -44,6 +44,7 @@ export const idMalaria: ClinicalCaseDefinition = {
   ],
   therapeutics: [
     { id: "act", kind: "drug", drugIds: ["artemether-lumefantrine", "artesunate-sp"], label: "Artemisinin combination therapy", appropriateness: "ideal", praise: "Chose an artemisinin combination for falciparum." },
+    { id: "primaquine-rule", kind: "drug", drugIds: ["primaquine"], label: "Single-dose primaquine", appropriateness: "ideal", doseRange: { min: 30, max: 45, unit: "mg" }, praise: "Added single-dose primaquine to block transmission." },
     { id: "chloroquine-rule", kind: "drug", drugIds: ["chloroquine"], label: "Chloroquine", appropriateness: "harmful", critique: { what: "Treated falciparum with chloroquine.", why: "Falciparum is widely resistant; it will progress.", better: "An artemisinin combination.", severity: "major" } },
     { id: "iv-artesunate", kind: "drug", drugIds: ["artesunate"], label: "IV artesunate", appropriateness: "acceptable", critique: { what: "Used IV artesunate.", why: "It's for severe malaria or when he can't take tablets.", better: "Oral artemether-lumefantrine.", severity: "minor" } },
     { id: "paracetamol-rule", kind: "drug", drugIds: ["paracetamol"], label: "Paracetamol", appropriateness: "ideal", praise: "Treated the fever." },
@@ -75,7 +76,7 @@ export const idMalaria: ClinicalCaseDefinition = {
     diagnosisPartial: ["fever with splenomegaly", "pyrexia"],
     diagnosisWrong: ["severe malaria", "cerebral malaria", "vivax malaria", "dengue", "typhoid", "scrub typhus", "leptospirosis"],
     differentials: ["dengue", "typhoid", "scrub typhus", "leptospirosis", "viral fever", "sepsis"],
-    idealTreatment: [["act"], ["paracetamol-rule"], ["safety-net"]],
+    idealTreatment: [["act"], ["primaquine-rule"], ["paracetamol-rule"], ["safety-net"]],
     expertActionCount: 9,
     followUpDays: { min: 2, max: 7 },
     expectsReassessment: false,
@@ -84,6 +85,7 @@ export const idMalaria: ClinicalCaseDefinition = {
     misses: {
       severe: { what: "Didn't screen for severe malaria.", why: "Confusion, dark urine or repeated vomiting means IV artesunate and admission.", better: "Ask about each.", severity: "major" },
       malaria: { what: "No malaria test.", why: "It's the test that decides, in minutes.", better: "RDT or smear before treating.", severity: "major" },
+      "primaquine-rule": { what: "No single-dose primaquine.", why: "Artemisinin combinations don't clear every gametocyte: he can still infect mosquitoes.", better: "Primaquine 0.75 mg/kg once on day 2, by India's national guideline.", severity: "moderate" },
       act: { what: "No effective antimalarial.", why: "Untreated falciparum can turn severe in hours.", better: "An artemisinin combination for 3 days, by national policy.", severity: "major" },
     },
     strengths: { exposure: "Took an exposure history.", severe: "Screened for severity.", malaria: "Tested before treating.", act: "Chose an ACT.", "take-fat": "Explained how to take it." },
@@ -91,7 +93,7 @@ export const idMalaria: ClinicalCaseDefinition = {
   teaching: {
     patientBand: "uncomplicated",
     severityBands: [
-      { id: "uncomplicated", label: "Uncomplicated", recognition: ["Fever, alert, taking orally, parasitaemia low"], investigation: ["RDT or smear, CBC"], treatment: ["ACT by national and state policy (artesunate + SP, or artemether-lumefantrine in the North-East and where SP has failed); paracetamol"], followUp: ["Return if worse; smear on day 3 if available"] },
+      { id: "uncomplicated", label: "Uncomplicated", recognition: ["Fever, alert, taking orally, parasitaemia low"], investigation: ["RDT or smear, CBC"], treatment: ["ACT by national and state policy (artesunate + SP, or artemether-lumefantrine in the North-East and where SP has failed); single-dose primaquine 0.75 mg/kg on day 2 unless pregnant, an infant or G6PD deficient; paracetamol"], followUp: ["Return if worse; smear on day 3 if available"] },
       { id: "severe", label: "Severe", recognition: ["Impaired consciousness, seizures, jaundice, dark urine, severe anaemia, shock, hypoglycaemia, repeated vomiting"], investigation: ["Glucose, lactate, CBC, creatinine"], treatment: ["IV artesunate; refer; then a full ACT course"], followUp: ["Hospital"] },
     ],
     treatmentByBand: {},

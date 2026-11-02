@@ -21,6 +21,9 @@ export interface FluidGiven {
 export interface LabContext {
   /** Hours since the patient began answering treatment. */
   recoveryHours?: number;
+  /** Hours on an antibiotic; hours since fluids that restored the pressure (0 if neither). */
+  antibioticHours?: number;
+  rehydratedHours?: number;
   weightKg: number;
   fluids: readonly FluidGiven[];
   /** Units of red cells that have gone in. */
@@ -177,9 +180,18 @@ export function alignedPanel(baseline: readonly LabRow[], written: readonly LabR
 }
 
 /** Glucose and oxygen saturation on a panel are the patient's own numbers, unless the case wrote them. */
-export function fromVitals(rows: readonly LabRow[], written: ReadonlyMap<string, unknown>, glucose?: string, spo2?: string): LabRow[] {
+export function fromVitals(rows: readonly LabRow[], written: ReadonlyMap<string, unknown>, glucose?: string, spo2?: string, glucoseBase?: string): LabRow[] {
   return rows.map((r) => {
-    const n = /^glucose$/i.test(r.analyte) ? parseFloat(glucose ?? "") : /^sao₂$/i.test(r.analyte) ? parseFloat(spo2 ?? "") : NaN;
+    const isGlucose = /^(?:(?:random|blood|plasma|serum) )?glucose$/i.test(r.analyte);
+    const now = parseFloat(glucose ?? ""), base = parseFloat(glucoseBase ?? "");
+    // A written glucose moves as the sugar has since (insulin down, dextrose up).
+    if (isGlucose && written.has(r.analyte.toLowerCase())) {
+      const was = parseFloat(r.value.replace(/,/g, ""));
+      if (!Number.isFinite(was) || !Number.isFinite(now) || !Number.isFinite(base) || Math.abs(now - base) < 1) return r;
+      const out = { ...r, value: String(Math.max(20, Math.round(was + now - base))) };
+      return { ...out, flag: flagFor(out, parseFloat(out.value)) };
+    }
+    const n = isGlucose ? now : /^sao₂$/i.test(r.analyte) ? parseFloat(spo2 ?? "") : NaN;
     if (!Number.isFinite(n) || written.has(r.analyte.toLowerCase())) return r;
     const out = { ...r, value: String(Math.round(n)) };
     return { ...out, flag: flagFor(out, n) };
@@ -314,6 +326,30 @@ function moved(rows: readonly LabRow[], ctx: LabContext): LabRow[] {
     toward(lactate, 0, 2, 1.2, 1);
     if (!kpa) toward(pco2, 35, 45, 40, 0);
     toward(hco3, 22, 26, 24, 1);
+    // Pre-renal injury mends over 12–24 h once fluids have restored the pressure and urine.
+    if ((ctx.rehydratedHours ?? 0) >= 12) {
+      const mend = Math.min(0.7, 0.3 + (ctx.rehydratedHours! - 12) / 30);
+      const creatinine = analyte(rows, /^(?:serum )?creatinine\b/i);
+      const urea = analyte(rows, /^(?:serum |blood )?(?:urea|bun)\b/i);
+      const [c, u] = [plain(creatinine ? out.get(creatinine) ?? creatinine : undefined), plain(urea ? out.get(urea) ?? urea : undefined)];
+      if (creatinine && c !== undefined && c > 1.2) set(out, creatinine, c + (1 - c) * mend, 1);
+      if (urea && u !== undefined && u > 40) set(out, urea, u + (30 - u) * mend, 0);
+    }
+    // White cells and inflammatory markers fall from a day or two into an antibiotic that's working.
+    if ((ctx.antibioticHours ?? 0) >= 24) {
+      const fall = Math.min(0.7, 0.3 + (ctx.antibioticHours! - 24) / 96);
+      const wbc = analyte(rows, /^(?:wbc|tlc|total leu)/i);
+      const w = plain(wbc);
+      if (wbc && w !== undefined) {
+        const thousand = w > 200 ? 1000 : 1;
+        if (w > 11 * thousand) set(out, wbc, Math.round((w + (8 * thousand - w) * fall) / (thousand === 1 ? 0.1 : 100)) * (thousand === 1 ? 0.1 : 100), thousand === 1 ? 1 : 0);
+      }
+      for (const name of [/^(?:hs-?)?crp\b|^c-reactive/i, /^procalcitonin\b|^pct\b/i]) {
+        const row = analyte(rows, name);
+        const v = plain(row);
+        if (row && row.flag !== "normal" && v !== undefined) set(out, row, v * (1 - fall), 1);
+      }
+    }
   }
   return rows.map((r) => out.get(r) ?? r);
 }

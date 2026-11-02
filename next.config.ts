@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/radiology/:path+", destination: `${SCAN_BASE}/:path+`, permanent: false }];
   },
+  // Some tools still look for the manifest under its older name.
+  async rewrites() {
+    return [{ source: "/manifest.json", destination: "/manifest.webmanifest" }];
+  },
   reactStrictMode: true,
   // Stamped into the page, so an open tab can tell when the site has moved on (see VersionCheck).
   env: { NEXT_PUBLIC_RAMAI_BUILD: process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "dev" },

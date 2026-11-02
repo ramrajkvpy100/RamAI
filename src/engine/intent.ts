@@ -27,6 +27,18 @@ const CLOSE_RE = /\b(case close|close (?:the )?case|case closed|end (?:the )?cas
 const GREETING_RE = /^(hi|hello|hey|namaste|namaskar|good (?:morning|afternoon|evening)|greetings)\b[\s,!.]*/i;
 const DIAGNOSIS_RE = /^(?:my |the |our )?(?:final |provisional |working |clinical |most likely |likely )?(?:diagnosis|dx|impression)\b(?:\s*(?:is|would be|of|:|-|=))?\s*(.+)$/i;
 const OPINION_RE = /^(?:i think|i believe|i suspect|i am thinking|my guess is|this looks like|it looks like|looks like|most likely|probably|likely|consistent with|suggestive of)\b\s*(?:this is |it is |it s |its |a case of |an? )?(.+)$/i;
+/** The diagnosis said anywhere in a statement ("… Final diagnosis is X; admit …"), without what's ordered after it. Never a question. */
+export function diagnosisIn(raw: string): string | undefined {
+  if (raw.trim().endsWith("?") || /\b(?:what|which|whats|what's)\b[^.;]*\b(?:diagnosis|dx)\b/i.test(raw)) return undefined;
+  const m = raw.match(/(?:^|[.;]\s+|\b(?:final|provisional|working)\s+)(?:(?:final|provisional|working)\s+)?(?:diagnosis|dx)\b\s*(?:is|would be|of|:|-|=)?\s*(.+)$/i);
+  if (!m?.[1]) return undefined;
+  const text = m[1]
+    .split(/[;]|\.(?=\s+[A-Z]|\s*$)/)[0]!
+    .split(/,?\s+(?:and\s+)?(?:admit|discharge|start|give|keep|refer|close|end the case|differentials?|ddx)\b|,\s*(?:then\s+)?(?:iv|inj|tab)\b/i)[0]!
+    .trim();
+  return text.length >= 3 ? text : undefined;
+}
+
 const DIFFERENTIAL_RE = /^(?:ddx|d\/d|differentials?|differential diagnos[ie]s|my differentials?)\b(?:\s*(?:are|include|is|would be|:|-|=))?\s*(.+)$/i;
 
 /** Verbs that direct an action at the clinical environment, not the patient. */

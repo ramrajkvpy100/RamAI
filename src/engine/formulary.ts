@@ -87,6 +87,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "ors", generic: "Oral rehydration salts", brands: ["Electral"], aliases: ["pedialyte", "dioralyte", "ors", "oral rehydration", "oral rehydration solution"], classes: ["ors", "electrolyte"], route: "PO", dose: "1 sachet in 1 L water", frequency: "sips as tolerated" },
 
   // Antibiotics
+  { id: "ampicillin", generic: "Ampicillin", brands: ["Roscillin"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "IV", dose: "50 mg/kg", frequency: "QID" },
   { id: "amoxicillin", generic: "Amoxicillin", brands: ["Novamox", "Mox"], aliases: ["amoxycillin"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "500 mg", frequency: "TDS" },
   { id: "amox-clav", generic: "Amoxicillin–clavulanate", brands: ["Augmentin", "Clavam", "Moxikind-CV"], aliases: ["aug", "amoxiclav", "amoxyclav", "co amoxiclav", "amoxicillin clavulanate", "amoxycillin clavulanate"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "PO", dose: "625 mg", frequency: "BD" },
   { id: "azithromycin", generic: "Azithromycin", brands: ["Azithral", "Azee"], aliases: ["zithromax", "z pak", "zpak", "azithro"], classes: ["antibiotic", "macrolide"], route: "PO", dose: "500 mg", frequency: "OD" },
@@ -139,6 +140,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "benzathine-penicillin", generic: "Benzathine penicillin G", brands: ["Penidure LA", "Pencom"], aliases: ["benzathine", "benzathine penicillin", "bpg", "penidure", "long acting penicillin", "la penicillin"], classes: ["antibiotic", "penicillin", "beta-lactam"], route: "IM", dose: "1.2 million units", frequency: "single dose (every 3–4 weeks for rheumatic fever prophylaxis)" },
   { id: "albendazole", generic: "Albendazole", brands: ["Zentel", "Bandy"], aliases: ["albenza"], classes: ["anthelminthic"], route: "PO", dose: "400 mg", frequency: "single dose" },
   { id: "pralidoxime", generic: "Pralidoxime (PAM)", brands: ["Pam-A", "Lyphe"], aliases: ["pam", "2 pam", "2-pam", "oxime", "pralidoxim"], classes: ["antidote"], route: "IV", dose: "2 g", frequency: "over 30 min, then 8 mg/kg/h infusion" },
+  { id: "hydralazine", generic: "Hydralazine", brands: ["Apresoline"], classes: ["antihypertensive"], route: "IV", dose: "5 mg", frequency: "over 2 min, repeat every 20 min if needed" },
   { id: "labetalol", generic: "Labetalol", brands: ["Labebet", "Lobet"], aliases: ["trandate"], classes: ["beta-blocker", "beta-blocker-nonselective", "antihypertensive"], route: "IV", dose: "20 mg", frequency: "over 2 min, repeat 40–80 mg every 10 min (max 300 mg)" },
   { id: "timolol", generic: "Timolol 0.5% eye drops", brands: ["Iotim", "Glucomol"], aliases: ["timolol drops", "timolol eye drops"], classes: ["beta-blocker-nonselective"], route: "OD-eye", dose: "1 drop", frequency: "BD" },
   { id: "lithium", generic: "Lithium carbonate", brands: ["Licab", "Lithosun SR"], aliases: ["lithium carbonate", "lithium"], classes: ["mood-stabiliser"], route: "PO", dose: "450 mg", frequency: "BD (by serum level 0.6–1.0 mmol/L)" },
@@ -191,6 +193,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "artesunate", generic: "Artesunate", brands: ["Falcigo"], classes: ["antimalarial"], route: "IV", dose: "2.4 mg/kg", frequency: "0, 12, 24 h then daily" },
   { id: "artesunate-sp", generic: "Artesunate + sulfadoxine–pyrimethamine", brands: [], aliases: ["act-sp", "act sp", "artesunate sp", "artesunate plus sp", "as+sp", "as sp", "artesunate sulfadoxine pyrimethamine"], classes: ["antimalarial", "sulfonamide"], route: "PO", dose: "200 mg", frequency: "OD" },
   { id: "artemether-lumefantrine", generic: "Artemether–lumefantrine", brands: ["Lumerax", "Coartem"], aliases: ["act", "artemether"], classes: ["antimalarial"], route: "PO", dose: "80/480 mg", frequency: "BD" },
+  { id: "primaquine", generic: "Primaquine", brands: [], aliases: ["pq", "tab primaquine"], classes: ["antimalarial"], route: "PO", dose: "0.75 mg/kg", frequency: "stat" },
   { id: "chloroquine", generic: "Chloroquine", brands: ["Lariago"], classes: ["antimalarial"], route: "PO", dose: "600 mg base", frequency: "stat" },
 
   // Diabetes

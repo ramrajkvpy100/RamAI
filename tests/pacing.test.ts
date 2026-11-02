@@ -7,7 +7,9 @@ import { ALL_CASES } from "@/engine/cases";
 import { generateDebrief } from "@/engine/debrief";
 import { parseOrderDetails } from "@/engine/formulary";
 import { bundleOf } from "@/engine/simulator";
-import { withTrend } from "@/engine/lab-model";
+import { withoutSounds } from "@/engine/auscultation";
+import { diagnosisIn } from "@/engine/intent";
+import { followLabs, fromVitals, withTrend } from "@/engine/lab-model";
 
 import { converse } from "./helpers";
 
@@ -134,6 +136,100 @@ describe("how often, however it's written", () => {
     const { state } = await converse(C("gi-ulcer"), ["omeprazole 20 mg orally twice daily, amoxicillin 1 g orally twice daily, and clarithromycin 500 mg orally twice daily for 14 days"]);
     expect(said(state)).toContain("Amoxicillin · 1 g · oral · twice daily");
     expect(said(state)).toContain("Clarithromycin · 500 mg · oral · twice daily · 14 days");
+  });
+});
+
+describe("combined bundles and the last audit bugs", () => {
+  it.each(["hpi and pmh and meds", "brief history and sample history", "full history", "complete history", "hpi, pmh"])("%s takes the whole history in one turn", async (order) => {
+    const def = C("em-adhf");
+    const { hidden } = await converse(def, [order]);
+    expect(hidden.actionCount).toBe(1);
+    for (const h of def.history.filter((x) => x.importance === "essential")) expect(hidden.history[h.id], h.id).toBeDefined();
+  });
+
+  it("leaves a sentence that merely mentions a bundle alone", () => {
+    expect(bundleOf("hpi of the patient's mother please")).toBeNull();
+  });
+
+  it("records a diagnosis inside a long closing order, and no question as one", async () => {
+    const { hidden } = await converse(C("surg-cholecystitis"), ["Final diagnosis is acute cholecystitis with sepsis; admit to surgical ward, keep NPO, start IV fluids and ceftriaxone + metronidazole"]);
+    expect(hidden.diagnosis?.text).toBe("acute cholecystitis with sepsis");
+    expect(hidden.discharged).toBeFalsy();
+    expect(diagnosisIn("senior, what is the diagnosis")).toBeUndefined();
+    expect(diagnosisIn("Dx gastric ulcer with positive H. pylori stool antigen. Start eradication therapy.")).toBe("gastric ulcer with positive H. pylori stool antigen");
+  });
+
+  it("drops what's left of a sentence that lost its subject", () => {
+    expect(withoutSounds("Pulse 80. Heart sounds normal. And regular.", "heart")).not.toMatch(/And regular/);
+  });
+
+  it("no new prescription after they've gone home; on the way out, or at a review, is fine", async () => {
+    const after = await converse(C("id-malaria"), ["discharge", "paracetamol 650 mg sos"]);
+    expect(after.hidden.drugs.length).toBe(0);
+    const same = await converse(C("id-malaria"), ["paracetamol 650 mg sos, discharge"]);
+    expect(same.hidden.drugs.length).toBe(1);
+  });
+
+  it("the bedside history isn't a delay while the patient holds, but past the window it is", async () => {
+    const def = C("em-adhf");
+    const held = { ...def, rubric: { ...def.rubric, definitiveTreatment: { ...def.rubric.definitiveTreatment!, byMinute: 1 } } };
+    const { state, hidden } = await converse(held, ["hpi", "pmh and meds", "abcde", "furosemide 80 mg iv"]);
+    expect(generateDebrief(held, hidden, state).score.penalties.some((p) => p.label === "Delayed treatment")).toBe(true);
+  });
+});
+
+describe("the five new cases, against the guidelines", () => {
+  it("malaria: artesunate + SP, artemether-lumefantrine and primaquine all count", async () => {
+    for (const act of ["act sp 200 mg od for 3 days", "artemether lumefantrine 80/480 mg bd for 3 days"]) {
+      const { hidden } = await converse(C("id-malaria"), [act, "primaquine 45 mg stat"]);
+      expect(hidden.actions["act"]?.length).toBeGreaterThan(0);
+      expect(hidden.actions["primaquine-rule"]?.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("pre-eclampsia: both magnesium regimens and all three antihypertensives count; toxicity watch is recognised", async () => {
+    for (const mg of ["magnesium sulphate 4 g iv over 20 min", "magnesium sulphate 4 g iv over 20 min then 1 g/hr"]) {
+      const { hidden } = await converse(C("obg-preeclampsia"), [mg]);
+      expect(hidden.actions["magnesium"]?.length, mg).toBeGreaterThan(0);
+    }
+    for (const bp of ["labetalol 20 mg iv", "nifedipine 10 mg po", "hydralazine 5 mg iv"]) {
+      const { hidden } = await converse(C("obg-preeclampsia"), [bp]);
+      expect(hidden.actions["antihypertensive"]?.length, bp).toBeGreaterThan(0);
+    }
+    const { hidden } = await converse(C("obg-preeclampsia"), ["check reflexes and keep calcium gluconate ready"]);
+    expect(hidden.actions["mg-watch"]?.length).toBeGreaterThan(0);
+  });
+
+  it("hypertension: a CCB, ARB, ACE inhibitor or thiazide each count as first line", async () => {
+    for (const drug of ["amlodipine 5 mg od", "telmisartan 40 mg od", "enalapril 5 mg od", "chlorthalidone 12.5 mg od"]) {
+      const def = C("gp-hypertension");
+      const { hidden } = await converse(def, [drug]);
+      const first = hidden.drugs[0]!;
+      expect(first.appropriateness, drug).toBe("ideal");
+    }
+  });
+});
+
+describe("labs that follow treatment", () => {
+  it("a written glucose moves with the sugar", () => {
+    const row = { analyte: "Glucose", value: "400", reference: "70–140", flag: "high" as const };
+    const [out] = fromVitals([row], new Map([["glucose", 1]]), "300", undefined, "400");
+    expect(out!.value).toBe("300");
+  });
+
+  it("creatinine and urea mend after fluids; white cells and CRP fall on an antibiotic", () => {
+    const rows = [
+      { analyte: "Creatinine", value: "2.0", reference: "0.7–1.3", flag: "high" as const },
+      { analyte: "Urea", value: "90", reference: "15–40", flag: "high" as const },
+      { analyte: "Total leucocyte count", value: "18000", reference: "4000–11000", flag: "high" as const },
+      { analyte: "CRP", value: "120", reference: "< 6", flag: "high" as const },
+    ];
+    const out = followLabs(rows, { weightKg: 60, age: 40, sex: "Male", fluids: [], redCellUnits: 0, co2Retained: 0, recoveryHours: 24, rehydratedHours: 24, antibioticHours: 48 } as never);
+    const v = (n: string) => parseFloat(out.find((r) => r.analyte === n)!.value);
+    expect(v("Creatinine")).toBeLessThan(2);
+    expect(v("Urea")).toBeLessThan(90);
+    expect(v("Total leucocyte count")).toBeLessThan(18000);
+    expect(v("CRP")).toBeLessThan(120);
   });
 });
 

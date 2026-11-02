@@ -89,7 +89,7 @@ export const pedPneumonia: ClinicalCaseDefinition = {
     patientBand: "nonsevere",
     severityBands: [
       { id: "cold", label: "Cough or cold", recognition: ["No fast breathing"], investigation: ["None"], treatment: ["Home care"], followUp: ["5 days if not better"] },
-      { id: "nonsevere", label: "Pneumonia", recognition: ["Fast breathing: ≥ 50/min at 2–11 months, ≥ 40/min at 1–5 years", "Chest indrawing without danger signs is also treated as pneumonia in current WHO guidance"], investigation: ["None"], treatment: ["Oral amoxicillin 5 days"], followUp: ["48 hours"] },
+      { id: "nonsevere", label: "Pneumonia", recognition: ["Fast breathing: ≥ 60/min under 2 months (a sick young infant: refer), ≥ 50/min at 2–11 months, ≥ 40/min at 1–5 years", "Chest indrawing without danger signs is also treated as pneumonia in current WHO guidance"], investigation: ["None"], treatment: ["Oral amoxicillin 5 days"], followUp: ["48 hours"] },
       { id: "severe", label: "Severe pneumonia", recognition: ["Can't drink, vomits everything, convulsions, lethargy, central cyanosis, SpO₂ under 90%"], investigation: ["SpO₂, CXR"], treatment: ["First antibiotic dose; refer; oxygen; IV ampicillin and gentamicin"], followUp: ["Hospital"] },
     ],
     treatmentByBand: {},
