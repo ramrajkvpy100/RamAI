@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createProfile, type User } from "@/server/auth";
 import { poolKey, takeReady, type PoolChoice } from "@/server/case-pool";
+import { filterCases } from "@/engine/cases";
 import { db } from "@/server/db";
 
 process.env.RAMAI_DB_PATH = ":memory:";
@@ -9,6 +10,9 @@ process.env.RAMAI_DB_PATH = ":memory:";
 let asha: User;
 const usual: PoolChoice = { specialty: "Medicine", easy: false, country: "IN", lang: "en" };
 const ready = JSON.stringify({ kind: "library", id: "med-pad" });
+
+const playedBy = (userId: string, ref: string) =>
+  db.run("INSERT INTO results (user_id, session_id, case_ref, case_number, specialty, track, level, diagnosis, score, xp, created_at) VALUES (?, ?, ?, 1, 'Medicine', 'opd', 'phc', 'x', 1, 1, ?)", userId, `s-${ref}`, ref, Date.now());
 
 beforeAll(async () => {
   asha = await createProfile({ email: "asha@example.com", username: "asha", name: "Dr. Asha Verma" });
@@ -32,7 +36,7 @@ describe("patients written ahead of time", () => {
   });
 });
 
-import { bankCase, bankHas, takeFromBank } from "@/server/case-pool";
+import { bankCase, bankHas, takeFromBank, unmetCases } from "@/server/case-pool";
 describe("the case bank: invented once, met by many", () => {
   it("another doctor meets a banked patient once; its first doctor never meets it again", async () => {
     const ravi = await createProfile({ email: "ravi2@example.com", username: "ravi2", name: "Ravi" });
@@ -42,5 +46,20 @@ describe("the case bank: invented once, met by many", () => {
     expect(await bankHas(ravi.id, usual)).toBe(true);
     expect(await takeFromBank(ravi.id, usual)).toEqual(src);
     expect(await takeFromBank(ravi.id, usual)).toBeNull();
+  });
+});
+
+describe("only as many invented as are needed", () => {
+  it("plenty of written cases unmet means nothing is invented", async () => {
+    expect(await unmetCases(asha.id, { country: "IN", lang: "en" })).toBeGreaterThanOrEqual(2);
+  });
+
+  it("a case played no longer counts; below two, it's time to invent", async () => {
+    const usualChoice = { track: "emergency" as const, country: "IN" as const, lang: "en" as const };
+    const cases = filterCases(usualChoice);
+    const before = await unmetCases(asha.id, usualChoice);
+    expect(before).toBe(cases.length);
+    for (const c of cases.slice(0, cases.length - 1)) await playedBy(asha.id, c.id);
+    expect(await unmetCases(asha.id, usualChoice)).toBe(1);
   });
 });

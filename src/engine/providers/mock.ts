@@ -5,6 +5,7 @@
 import "server-only";
 
 import { getCase, libraryAvailability, pickCase } from "../cases";
+import { formularyDrug, parseOrderDetails } from "../formulary";
 import { resolveIntents, type IntentContext } from "../intent";
 import { completedIntent, completeOrder, DECLINE_RE, pendingQuestion } from "../orders";
 import { SessionError } from "../session";
@@ -70,6 +71,21 @@ function answerPending(text: string, ctx: InterpretContext, rctx: IntentContext)
   return answered ? out : null;
 }
 
+/** "For 5 days", "use it 7 times a day for 2 months": how long or how often, with no medicine named. It means the last one. */
+const ONLY_DETAILS = /\b(?:for|x|use|apply|take|give|continue|it|that|this|same|please|but|ok|okay|then|the|to|make|change|times?|a|per|day|days|week|weeks|wk|wks|month|months|year|years|daily|od|bd|tds|qid|hs|at|night|twice|thrice|once|five|six|seven|eight|nine|ten|one|two|three|four|\d+)\b/g;
+function carriedOn(text: string, ctx: InterpretContext): string {
+  const last = ctx.hidden.drugs.filter((d) => d.volumeMl === undefined).at(-1);
+  if (!last) return text;
+  const clauses = text.split(/\s+(?:and|,)\s+|,\s*/);
+  const first = clauses[0]!.toLowerCase();
+  if (first.replace(ONLY_DETAILS, "").replace(/[^a-z]/g, "") !== "" || !/\b(?:days?|weeks?|wks?|months?|years?|times)\b/.test(first)) return text;
+  const details = parseOrderDetails(first);
+  const drug = formularyDrug(last.drugId);
+  const often = details.frequency ?? (last.frequency && last.frequency !== "stat" ? last.frequency : drug?.frequency ?? "OD");
+  const named = [last.generic ?? drug?.generic, last.route === "TOP" ? "" : last.dose, last.route, often, details.duration ? `for ${details.duration}` : ""].filter(Boolean).join(" ");
+  return [named, ...clauses.slice(1)].join(" and ");
+}
+
 export const mockProvider: ClinicalProvider = {
   id: "mock",
 
@@ -117,7 +133,7 @@ export const mockProvider: ClinicalProvider = {
     // "800 mg" with nothing waiting on an answer: the last drug again at this dose, not a remark to the patient.
     const newDose = !waiting ? /^(?:(?:increase|raise|reduce|decrease|lower|change|make|up)\s+(?:it\s+|the\s+dose\s+|dose\s+)?(?:to\s+)?)?(\d+(?:\.\d+)?\s*(?:mg|mcg|µg|g|ml|iu|units?))(?:\s+dose)?\s*\.?$/i.exec(text.trim())?.[1] : undefined;
     const lastDrug = newDose ? ctx.hidden.drugs.filter((d) => d.volumeMl === undefined).at(-1) : undefined;
-    const intents = resolveIntents(lastDrug ? [lastDrug.generic, newDose, lastDrug.route, lastDrug.frequency, lastDrug.duration && lastDrug.duration !== "as advised" ? `for ${lastDrug.duration}` : ""].filter(Boolean).join(" ") : text, rctx);
+    const intents = resolveIntents(lastDrug ? [lastDrug.generic, newDose, lastDrug.route, lastDrug.frequency, lastDrug.duration && lastDrug.duration !== "as advised" ? `for ${lastDrug.duration}` : ""].filter(Boolean).join(" ") : !waiting ? carriedOn(text, ctx) : text, rctx);
     // A reply the rules wrote themselves (the nurse, to a question about a medicine): said as written.
     const written = intents.findIndex((i) => typeof i.payload?.reply === "string");
     if (written >= 0) return { intents, generated: { [String(written)]: String(intents[written]!.payload!.reply) } };

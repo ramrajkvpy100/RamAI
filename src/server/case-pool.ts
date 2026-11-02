@@ -8,6 +8,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import { filterCases } from "@/engine/cases";
 import type { Country } from "@/engine/countries";
 import { getProvider } from "@/engine/providers";
 import type { CaseSource, StartOptions } from "@/engine/providers/types";
@@ -19,6 +20,8 @@ import { db } from "./db";
 const KEEP_MS = 6 * 3_600_000;
 /** One being written is given this long before it's assumed lost. */
 const WRITING_MS = 3 * 60_000;
+/** Fewer unmet cases than this, and it's time to invent another. */
+const ENOUGH_UNMET = 2;
 
 export interface PoolChoice {
   specialty?: Specialty;
@@ -81,13 +84,15 @@ export async function waitForWriting(userId: string, choice: PoolChoice, ms: num
 export async function prepareNext(userId: string, choice: PoolChoice, opts: Omit<StartOptions, "specialty" | "track" | "level" | "easy" | "country">): Promise<"ready" | "writing" | "written" | "skipped"> {
   const provider = await getProvider();
   if (provider.id === "mock") return "skipped";
-  // A banked patient they haven't met will do: nothing to invent (or pay for).
-  if (await bankHas(userId, choice).catch(() => false)) return "skipped";
+  // Plenty they haven't met (written, banked or ready): nothing to invent, or pay for.
+  if ((await unmetCases(userId, choice, opts.allowedLevels).catch(() => ENOUGH_UNMET)) >= ENOUGH_UNMET) return "skipped";
   const key = poolKey(choice);
   const now = Date.now();
   await db.run("DELETE FROM case_pool WHERE user_id = ? AND (created_at <= ? OR (src = '' AND created_at <= ?))", userId, now - KEEP_MS, now - WRITING_MS);
   const there = await db.get<{ src: string }>("SELECT src FROM case_pool WHERE user_id = ? AND pool_key = ? LIMIT 1", userId, key);
   if (there) return there.src ? "ready" : "writing";
+  // One at a time, across all doctors: a burst of starts can't burn the credit. A doctor who finds none ready still gets one written live.
+  if (await db.get("SELECT 1 AS ok FROM case_pool WHERE src = '' AND created_at > ? LIMIT 1", now - WRITING_MS)) return "writing";
   // Marked as being written, so a second request doesn't write another.
   const id = randomUUID();
   await db.run("INSERT INTO case_pool (id, user_id, pool_key, src, created_at) VALUES (?, ?, ?, '', ?)", id, userId, key, now);
@@ -158,6 +163,21 @@ export async function bankCase(userId: string, src: CaseSource, fit: BankFit): P
 /** Takes back a banked case the second opinion found seriously wrong. */
 export async function unbankCase(id: string): Promise<void> {
   await db.run("DELETE FROM case_bank WHERE id = ?", id);
+}
+
+/** How many cases this doctor hasn't met could start now, counted only as far as is enough to decide. */
+export async function unmetCases(userId: string, choice: PoolChoice, allowedLevels?: readonly CareLevel[]): Promise<number> {
+  const met = new Set((await db.all<{ case_ref: string }>("SELECT DISTINCT case_ref FROM results WHERE user_id = ?", userId)).map((r) => r.case_ref));
+  const written = filterCases({ specialty: choice.specialty, track: choice.track, level: choice.level, easy: choice.easy, country: choice.country, allowedLevels }).filter((c) => !met.has(c.id)).length;
+  if (written >= ENOUGH_UNMET) return written;
+  const where = ["country = ?", "lang = ?", "easy = ?", "id NOT IN (SELECT bank_id FROM case_bank_seen WHERE user_id = ?)"];
+  const args: (string | number)[] = [choice.country, choice.lang, choice.easy ? 1 : 0, userId];
+  if (choice.specialty) (where.push("specialty = ?"), args.push(choice.specialty));
+  if (choice.track) (where.push("track = ?"), args.push(choice.track));
+  if (choice.level) (where.push("level = ?"), args.push(choice.level));
+  const banked = await db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM case_bank WHERE ${where.join(" AND ")} LIMIT ${ENOUGH_UNMET})`, ...args);
+  const ready = await db.all<{ src: string; pool_key: string }>("SELECT src, pool_key FROM case_pool WHERE user_id = ? AND src != '' AND created_at > ?", userId, Date.now() - KEEP_MS);
+  return written + (banked?.n ?? 0) + ready.filter((row) => fits(row, choice)).length;
 }
 
 /** Whether the bank already has a patient this doctor hasn't met for this choice (so none need be invented). */

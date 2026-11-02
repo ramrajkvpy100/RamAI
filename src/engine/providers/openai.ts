@@ -87,7 +87,7 @@ type Effort = boolean | "medium";
 /** How long a turn's call gets from the main model before the backup is asked as well. */
 const TURN_ATTEMPT_MS = Number(process.env.RAMAI_TURN_ATTEMPT_MS || 4500);
 
-export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful: Effort = false, timeout?: number, fast = false): Promise<unknown> {
+export async function chatJSON(messages: ChatMessage[], maxTokens: number, careful: Effort = false, timeout?: number, fast = false, priority = false): Promise<unknown> {
   const limit = timeout ?? openAIConfig().timeoutMs;
   const started = Date.now();
   const passingFault = (err: unknown) =>
@@ -119,10 +119,10 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
         backupStarted = true;
         clearTimeout(hedge);
         console.warn("[ramai] no answer from OpenAI yet; asking Gemini as well");
-        geminiJSON(messages, maxTokens, Math.min(5000, Math.max(1000, limit - (Date.now() - started)))).then(resolve, failure);
+        geminiJSON(messages, maxTokens, Math.min(5000, Math.max(1000, limit - (Date.now() - started))), undefined, true).then(resolve, failure);
       };
       const hedge = setTimeout(askBackup, Math.min(TURN_ATTEMPT_MS, limit));
-      chatJSONOnce(messages, maxTokens, careful, limit, fast).then((v) => {
+      chatJSONOnce(messages, maxTokens, careful, limit, priority).then((v) => {
         clearTimeout(hedge);
         resolve(v);
       }, failure);
@@ -151,7 +151,7 @@ export async function chatJSON(messages: ChatMessage[], maxTokens: number, caref
   }
 }
 
-async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful: Effort, timeout: number, fast = false): Promise<unknown> {
+async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful: Effort, timeout: number, priority = false): Promise<unknown> {
   const { key, model, baseUrl } = openAIConfig();
   const timeoutMs = timeout ?? openAIConfig().timeoutMs;
   const controller = new AbortController();
@@ -164,7 +164,7 @@ async function chatJSONOnce(messages: ChatMessage[], maxTokens: number, careful:
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, response_format: { type: "json_object" }, max_completion_tokens: maxTokens, ...effort }),
+      body: JSON.stringify({ model, messages, response_format: { type: "json_object" }, max_completion_tokens: maxTokens, ...effort, ...(priority && process.env.RAMAI_FAST_TIER !== "0" ? { service_tier: "priority" } : {}) }),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -293,7 +293,7 @@ function interpretPrompt(def: ClinicalCaseDefinition, clause: string, ctx: Inter
   const caseExams = def.exam.map((e) => `${e.id} | ${e.label}`).join("\n");
   const otherExams = EXAMS.filter((e) => ["general", "cvs", "rs", "abdomen", "cns", "neuro"].includes(e.id) || near(e.id, e.label)).filter((e) => !def.exam.some((x) => x.id === e.id)).map((e) => `${e.id} | ${e.label}`).join("; ");
   const invs = [...new Set([...def.investigations.map((i) => i.id), ...ctx.hidden.investigations.map((i) => i.defId), ...INVESTIGATIONS.filter((i) => near(i.id, i.name, ...i.match)).map((i) => i.id)])].join(", ");
-  const measures = MEASURES.filter((m) => ["oxygen", "monitor", "iv-access", "stop-drug", "stop-fluids", "refer", "admit", "discharge"].includes(m.id) || near(m.id, m.label, ...m.match)).map((m) => m.id).join(", ");
+  const measures = MEASURES.filter((m) => ["oxygen", "stop-oxygen", "monitor", "iv-access", "stop-drug", "stop-fluids", "refer", "admit", "discharge"].includes(m.id) || near(m.id, m.label, ...m.match)).map((m) => m.id).join(", ");
   const rules = def.therapeutics.map((r) => `${r.id} (${r.kind}: ${r.label.slice(0, 50)})`).join(", ");
   const drugs = FORMULARY.filter((d) => ctx.hidden.drugs.some((g) => g.drugId === d.id) || near(d.id, d.generic, ...drugMatchPhrases(d))).map((d) => d.id).join(", ");
   return [
@@ -711,6 +711,14 @@ const COURSE_VITALS = new Set(["hr", "bp", "rr", "spo2", "temp", "gcs", "pain", 
  * What the writer says this illness does, made safe to run: numbers checked one by one, only treatments the case has, no
  * death inside the first 45 minutes, and on a clock only in an emergency. Anything left out just means the case runs without it.
  */
+/** No more than this long, ending where a sentence ends: never cut off at "and". */
+export function wholeSentences(text: string, most: number): string {
+  if (text.length <= most) return text;
+  const cut = text.slice(0, most);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("; "));
+  return end > 0 ? cut.slice(0, end) : cut.slice(0, Math.max(0, cut.lastIndexOf(" ")));
+}
+
 export function courseOf(concept: Concept, m: z.infer<typeof ManagementSchema>, therapeutics: { id: string; kind: string; label?: string; appropriateness: string; drugIds: string[]; measureIds: string[] }[], track: string): Pick<ClinicalCaseDefinition, "hazards" | "onResponse"> & { definitiveTreatment?: NonNullable<ClinicalCaseDefinition["rubric"]["definitiveTreatment"]> } {
   const course = m.course;
   const found = (course?.definitive ?? []).map((id) => therapeutics.find((t) => t.id === id)).filter((t): t is (typeof therapeutics)[number] => !!t && (t.appropriateness === "ideal" || t.appropriateness === "acceptable"));
@@ -1125,7 +1133,7 @@ async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIn
   try {
     // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
     const guess = ruled.filter((i) => i.kind !== "unknown").map((i) => `${i.kind}${i.targetId ? `:${i.targetId}` : ""}${i.payload && Object.keys(i.payload).length ? ` ${JSON.stringify(i.payload)}` : ""}`).join("; ");
-    const raw = await chatJSON(withReference(interpretPrompt(ctx.def, text, ctx, guess), reference), 2400, true, 12_000, true);
+    const raw = await chatJSON(withReference(interpretPrompt(ctx.def, text, ctx, guess), reference), 2400, true, 12_000, true, true);
     const parsed = PatientResponseSchema.safeParse(raw);
     if (!parsed.success) return { intents: ruled };
     // "I'll give the saline" in an emergency is the nurse, whoever the model put it down to.
@@ -1264,6 +1272,7 @@ Return {"results":[{"test":"<id>","rows":[{"analyte","value","unit","reference",
       false,
       12_000,
       true,
+      true,
     )) as { results?: { test?: string; rows?: { analyte?: string; value?: unknown; unit?: string; reference?: string; flag?: string }[]; report?: string }[] };
     const out: Record<string, string> = {};
     for (const g of unique) {
@@ -1316,6 +1325,7 @@ async function voice(text: string, ctx: InterpretContext, ruled: ResolvedIntent[
       700 + 250 * items.length,
       false,
       20_000,
+      true,
       true,
     );
     const parsed = VoiceSchema.safeParse(raw);
@@ -1481,7 +1491,7 @@ export function createOpenAIProvider(): ClinicalProvider {
         const raw = (await chatJSON(stepPrompt(step, ctx, "why"), 300, false, 4_000, true)) as { why?: unknown };
         const why = typeof raw.why === "string" ? raw.why.trim() : "";
         if (!why || (step.stage !== "diagnosis" && step.stage !== "treatment" && leaksDiagnosis(ctx.def, why, ctx.transcript.map((m) => m.text).join(" ")))) return undefined;
-        return why.slice(0, 400);
+        return wholeSentences(why, 400);
       } catch {
         return undefined;
       }

@@ -5,6 +5,8 @@
 import { noteTiming, noteUsage } from "./usage";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview";
+/** Its free allowance is separate. For a live turn only, when the main one's has run out; never for writing or checking a case. */
+export const GEMINI_LITE_MODEL = "gemini-3.1-flash-lite";
 
 export const geminiConfig = () => ({
   key: process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() ?? "",
@@ -14,13 +16,14 @@ export const geminiConfig = () => ({
 export const geminiConfigured = () => geminiConfig().key.length > 0;
 
 /** One JSON reply, from the same messages OpenAI would have had. */
-export async function geminiJSON(messages: { role: string; content: unknown }[], maxTokens: number, timeoutMs: number, modelOverride?: string): Promise<unknown> {
+export async function geminiJSON(messages: { role: string; content: unknown }[], maxTokens: number, timeoutMs: number, modelOverride?: string, liveTurn = false): Promise<unknown> {
   const { key, model: configured } = geminiConfig();
   const model = modelOverride ?? configured;
   const text = (m: { content: unknown }) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content));
   const system = messages.filter((m) => m.role === "system").map(text).join("\n\n");
   const contents = messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: text(m) }] }));
   const began = Date.now();
+  const stopAt = began + timeoutMs;
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -33,6 +36,8 @@ export async function geminiJSON(messages: { role: string; content: unknown }[],
     signal: AbortSignal.timeout(timeoutMs),
   });
   noteTiming("llm_fallback", Date.now() - began);
+  // Out of its free allowance, with a doctor waiting: once more on the lite model, in the time left.
+  if (res.status === 429 && liveTurn && model !== GEMINI_LITE_MODEL && stopAt - Date.now() > 500) return geminiJSON(messages, maxTokens, stopAt - Date.now(), GEMINI_LITE_MODEL);
   if (!res.ok) throw new Error(`Gemini responded ${res.status}`);
   const data = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];

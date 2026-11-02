@@ -267,6 +267,7 @@ export const FORMULARY: FormularyDrug[] = [
   { id: "levosalbutamol-ipratropium", generic: "Levosalbutamol + ipratropium", brands: ["Duolin"], aliases: ["duolin neb", "ipratropium"], classes: ["bronchodilator", "anticholinergic"], route: "NEB", dose: "1 respule", frequency: "stat" },
   { id: "budesonide", generic: "Budesonide", brands: ["Budecort"], aliases: ["budesonide neb"], classes: ["inhaled-steroid"], route: "NEB", dose: "0.5 mg", frequency: "BD" },
   { id: "budesonide-formoterol", generic: "Budesonide + formoterol", brands: ["Foracort"], aliases: ["formoterol"], classes: ["inhaled-steroid", "bronchodilator"], route: "INH", dose: "200/6 µg", frequency: "BD" },
+  { id: "montelukast-levocetirizine", generic: "Montelukast + levocetirizine", brands: ["Montek LC", "Montair LC"], aliases: ["montek lc", "montair lc", "montelukast levocetirizine", "montelukast and levocetirizine combination"], classes: ["leukotriene", "antihistamine"], route: "PO", dose: "10 mg + 5 mg", frequency: "HS" },
   { id: "montelukast", generic: "Montelukast", brands: ["Montair"], classes: ["leukotriene"], route: "PO", dose: "10 mg", frequency: "HS" },
 
   // Neuro & psychiatry
@@ -396,7 +397,7 @@ const ROUTE_PATTERNS: [RegExp, DrugRoute][] = [
   [/\b(sl|sublingual(?:ly)?|under (?:the|his|her|your|their) tongue)\b/, "SL"],
   [/\b(pr|per rectal|rectal(?:ly)?|suppository)\b/, "PR"],
   [/\b(neb|nebuli[sz](?:e|er|ers|ation|ed)|nebs)\b/, "NEB"],
-  [/\b(inhaler|mdi|inhaled|puffs?)\b/, "INH"],
+  [/\b(inhaler|mdi|inhaled|puffs?|spacer)\b/, "INH"],
   [/\b(topical(?:ly)?|local(?:ly)?|apply|application|cream|gel|ointment|lotion)\b/, "TOP"],
   [/\b(po|oral(?:ly)?|per oral|by mouth|swallow|tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syrup|syp)\b/, "PO"],
 ];
@@ -494,6 +495,9 @@ export function parseOrderDetails(text: string, opts: { weightKg?: number } = {}
   for (const [re, freq] of FREQUENCY_PATTERNS) {
     if (re.test(t)) { out.frequency = freq; break; }
   }
+  // "7 times a day": as many as they said, sensible or not.
+  const many = t.match(/\b(five|six|seven|eight|nine|ten|[5-9]|[1-9]\d) times (?:a |per )?(?:day|daily)\b/)?.[1];
+  if (many) out.frequency = `${wordToNumber(many)} times a day`;
 
   // The rate: "in 1 min", "over 30 minutes", "within 2 sec"; a push or bolus goes in over about a minute.
   const over = t.match(/\b(?:in|over|within)\s*(\d+(?:\.\d+)?|one|two|three|four|five|six|ten|fifteen|twenty|thirty|a|an|half an?)\s*(seconds?|secs?|s|minutes?|mins?|hours?|hrs?|h)\b/);

@@ -20,12 +20,22 @@ const milligrams = (o: Pick<DrugOrderContext, "amount" | "unit">, tablet = 500) 
 /** A hazard whose id starts with this is a drug's expected course: reported, never counted as harm. */
 export const EXPECTED_COURSE = "course-";
 
+/** Doses a day, when it can be counted. */
+export function timesADay(frequency: string | undefined): number {
+  if (!frequency) return 0;
+  const n = frequency.match(/(\d+)\s*times/i)?.[1];
+  if (n) return parseInt(n, 10);
+  return { OD: 1, HS: 1, BD: 2, TDS: 3, QID: 4 }[frequency.trim().toUpperCase()] ?? 0;
+}
+
 const paracetamolOverdose: GlobalHazardTemplate = {
   id: "paracetamol-overdose",
   applies: () => true,
   triggers: (o, _p, snap) => {
     if (o.drug.id !== "paracetamol") return false;
-    const mg = milligrams(o);
+    const once = milligrams(o);
+    // Each dose may be fine and the day's total not: 1 g nine times a day is 9 g.
+    const mg = once === undefined ? undefined : once * Math.max(1, o.mode === "prescribed" ? timesADay(o.frequency) : 1);
     return mg !== undefined && (mg >= 7500 || (!!snap.weightKg && mg / snap.weightKg >= 150));
   },
   build: () => ({

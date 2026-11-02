@@ -167,6 +167,8 @@ export function doseMultiple(drug: FormularyDrug, order: { amount?: number; unit
   const usual = usualDose(drug, weightKg);
   const given = inBase(order.amount, order.unit);
   if (!usual || !given || usual.base !== given.base || usual.value <= 0) {
+    // A reliever's usual dose is about 4 puffs by spacer.
+    if (/^puffs?$/i.test(order.unit) && drug.classes.includes("bronchodilator")) return order.amount / 4;
     // "2 tablets", "3 respules": counted as that many usual doses.
     return /^(tab|tablet|cap|capsule|respule|puff|sachet|ampoule|amp)s?$/i.test(order.unit) ? order.amount : 1;
   }

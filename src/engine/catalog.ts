@@ -599,6 +599,12 @@ export const INVESTIGATIONS: CatalogInvestigation[] = [
     normal: () => ({ report: "No growth after 48 hours of incubation." }),
   },
   {
+    id: "sputum-cs", name: "Sputum Gram stain and culture", short: "Sputum C/S", category: "micro", menu: "Microbiology",
+    turnaroundMin: 240, cost: 0,
+    match: ["sputum analysis", "sputum examination", "sputum exam", "sputum test", "sputum routine", "sputum culture", "sputum gram stain", "sputum c s", "sputum cs", "sputum rm"],
+    normal: () => ({ report: "Mixed upper-respiratory flora; no predominant pathogen on Gram stain or culture." }),
+  },
+  {
     id: "sputum-afb", name: "Sputum smear for AFB (ZN / fluorescent)", short: "Sputum AFB", category: "micro", menu: "Microbiology",
     turnaroundMin: 240, cost: 0,
     match: ["sputum afb", "sputum for afb", "sputum smear", "afb smear", "sputum zn", "zn stain", "sputum microscopy", "sputum for tb", "sputum acid fast bacilli", "afb"],
@@ -1016,6 +1022,7 @@ export const MEASURES: CatalogMeasure[] = [
   { id: "admit", label: "Admit", kind: "disposition", durationMin: 5, match: ["admit", "admission", "admit the patient", "admit him", "admit her", "shift to ward", "shift to icu", "icu admission", "hospitalise", "hospitalize"], note: "Admitted." },
   { id: "discharge", label: "Discharge", kind: "disposition", durationMin: 2, match: ["discharge", "send home", "can go home", "discharge the patient", "send him home", "send her home"], note: "Discharged." },
   { id: "refer", label: "Referral", kind: "disposition", durationMin: 2, match: ["refer", "referral", "consult", "consultation", "opinion", "call surgeon", "call cardiology", "call medicine"], note: "Referral made." },
+  { id: "stop-oxygen", label: "Stop oxygen", kind: "supportive", durationMin: 0, match: ["stop oxygen", "remove oxygen", "oxygen off", "off oxygen", "stop the oxygen", "remove the oxygen", "take off oxygen", "take off the oxygen", "discontinue oxygen", "wean off oxygen", "remove o2", "stop o2", "off o2"], note: "Oxygen stopped." },
   { id: "stop-fluids", label: "Stop IV fluids", kind: "supportive", durationMin: 0, match: ["stop fluids", "stop iv fluids", "stop the fluids", "stop ns", "stop saline", "fluid restriction", "restrict fluids", "stop infusion", "stop the drip", "stop drip", "stop the iv", "remove the drip", "stop the infusion"], note: "IV fluids stopped." },
   { id: "stop-drug", label: "Stop medication", kind: "supportive", durationMin: 0, match: ["stop the drug", "stop medication", "stop the medicine", "discontinue", "withhold", "stop all medicines", "hold the", "stop nsaid", "stop nsaids", "stop painkiller", "stop painkillers", "stop the painkiller", "stop the tablets"], note: "Medication withheld." },
   { id: "central-line", label: "Central venous line", kind: "procedure", durationMin: 15, match: ["central line", "central venous", "cvc", "cv line", "ij line", "internal jugular line", "subclavian line", "femoral line"], note: "" },

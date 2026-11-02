@@ -64,7 +64,8 @@ export function drugNeeds(drug: FormularyDrug, p: Payload, mode: "given" | "pres
     if (mode === "prescribed" && !said(p, "frequency") && !said(p, "overMin")) needs.push("rate");
     return needs;
   }
-  const appliedAsIs = (drug.route === "TOP" && routes.length === 1) || drug.classes.some((c) => NO_DOSE.includes(c));
+  // (A fixed combination comes in the one strength: "Montek LC" needs no dose said.)
+  const appliedAsIs = (drug.route === "TOP" && routes.length === 1) || drug.classes.some((c) => NO_DOSE.includes(c)) || /\d\s*(?:mg|mcg)?\s*\+\s*\d/.test(drug.dose ?? "");
   if (!appliedAsIs && !said(p, "amount") && !said(p, "dose") && !said(p, "volumeMl")) needs.push("dose");
   if (!said(p, "route")) {
     // A take-home prescription is by mouth when the drug can be; otherwise the route has to be said.

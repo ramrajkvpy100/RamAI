@@ -9,7 +9,7 @@
  */
 
 import { type CodeBlue, codeStartEffects, codeTurn, outcome as codeOutcome, rhythmFrom } from "./code-blue";
-import { CO2_NARCOSIS, EXPECTED_COURSE, TENSION } from "./drug-safety";
+import { CO2_NARCOSIS, EXPECTED_COURSE, TENSION, timesADay } from "./drug-safety";
 import { consistentLabs, oxygenCeiling } from "./abg-check";
 import { LISTEN_SOURCE, listen, signsAbnormal, withoutSounds, type ListenPart } from "./auscultation";
 import { catalogExam, catalogInvestigation, catalogMeasure, defaultVitals, flagVital, ROUTINE_VITALS, saneBody, vitalDefinition, type CatalogInvestigation, readVitalKeys, normalVitals } from "./catalog";
@@ -142,6 +142,10 @@ export interface HiddenState {
   scenarioTold?: string;
   /** The oxygen now being breathed (%). */
   oxygenFio2?: number;
+  /** What the oxygen added to the saturation, and the reading it left: taking it off gives that back unless the illness has moved it since. */
+  oxygenGain?: { by: number; left: number };
+  /** A cream used far more often than it can be: the skin pays for it. */
+  overused?: { drugId: string; told?: boolean };
   /** Minutes spent in shock so far; when it last ended; breaths added by the acidosis. */
   shockMinutes?: number;
   shockEndedAt?: number;
@@ -288,6 +292,8 @@ export interface Watch {
   status: PatientStatus;
   /** Something it did has been told. */
   told?: boolean;
+  /** The chest was told as better: "no change" can't follow it. */
+  eased?: boolean;
 }
 
 const WATCH_NAMES: Partial<Record<VitalKey, string>> = { hr: "pulse", bp: "BP", rr: "breathing", spo2: "SpO₂", temp: "temperature", rbs: "sugar", gcs: "GCS", pain: "pain score", urine: "urine output" };
@@ -387,6 +393,8 @@ function watchReports(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEff
     ];
     const text = own.length || course || says
       ? `${capitalise(span)} after the ${w.label}:\n${lines.join("\n")}`
+      : w.eased
+      ? `${capitalise(span)} after the ${w.label}: the chest is better, as above; pulse, breathing and saturation about the same.${meanwhile ? `\n${meanwhile.trim()}` : ""}`
       : `${capitalise(span)} after the ${w.label}: no change from it so far.${meanwhile ? `\n${meanwhile.trim()}` : ""}`;
     if (changed.length) {
       for (const k of changed) if (!hidden.measured.includes(k)) hidden.measured.push(k);
@@ -1392,7 +1400,7 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     finding = hidden.examOverrides[id] ?? caseEntry.finding;
     abnormal = !!caseEntry.abnormal || hidden.examOverrides[id] !== undefined;
     group = caseEntry.group;
-    media = examMedia(id, caseEntry.media, caseEntry.label);
+    media = examMedia(id, caseEntry.media, caseEntry.label, hidden.examOverrides[id]);
   } else if (cat) {
     label = cat.label;
     group = cat.group;
@@ -1466,6 +1474,8 @@ function handleExam(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
 
   hidden.exams[id] ??= hidden.clock;
   fx.push({ type: "message", role: "system", kind: "finding", text: `${label} — ${finding}`, media, ...(stethoscope ? { stethoscope, sounds } : {}) });
+  // Asked to see it, with no photograph of this part (none is made of the breasts or genitals): said, not left unanswered.
+  if (!media && !stethoscope && /\b(?:show|image|images|picture|pictures|pic|pics|photo|photos|photograph)\b/i.test(ctx.record.raw)) fx.push({ type: "message", role: "system", kind: "status", text: "No photograph of this area — go by the description above." });
   if (caseEntry?.patientReaction && !hidden.examOverrides[id]) {
     fx.push({ type: "message", role: patientRole(def), kind: "speech", text: caseEntry.patientReaction });
   }
@@ -1521,10 +1531,13 @@ export function imagingPicture(def: ClinicalCaseDefinition, inv: OrderedInvestig
 }
 
 /** A written case's skin finding, photographed: drawn from the examination's own words. Never the genitals or breasts. */
-function examMedia(id: string, media: MediaAsset | undefined, label: string): MediaAsset | undefined {
+function examMedia(id: string, media: MediaAsset | undefined, label: string, now?: string): MediaAsset | undefined {
   if (!media || media.ai || media.spec?.kind !== "derm" || id === "genital" || id === "breast") return media;
-  return { ...media, ai: { ref: `e-${id}`, type: "photo", view: label } };
+  // Skin that has changed is a new photograph: the first one is kept with the case under its own name.
+  return { ...media, ai: { ref: `e-${id}${now ? `--${shortHash(now)}` : ""}`, type: "photo", view: label } };
 }
+
+const shortHash = (text: string) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(36);
 
 /** A written case's opening photograph (the nurse's picture at presentation): a real photograph, not a drawing. */
 function openingMedia(index: number, media: MediaAsset | undefined): MediaAsset | undefined {
@@ -1551,7 +1564,7 @@ const SKIN = ["very fair", "fair", "light brown", "brown", "dark brown", "deeply
 
 /** What the image model draws for a written case's skin photograph — once that examination has been done. */
 export function examPicture(def: ClinicalCaseDefinition, hidden: HiddenState, ref: string): { type: PictureType; view: string; describe: string; search?: string } | null {
-  const id = ref.slice(2);
+  const id = ref.slice(2).split("--")[0]!;
   const entry = def.exam.find((e) => e.id === id);
   if (!entry || hidden.exams[id] === undefined || !examMedia(id, entry.media, entry.label)?.ai) return null;
   const spec = entry.media!.spec as DermSpec;
@@ -2215,7 +2228,8 @@ function afterTheWait(def: ClinicalCaseDefinition, hidden: HiddenState, drug: Fo
       rr: parseFloat(v.rr?.value ?? "") || 16,
       urineMlPerH: parseFloat(hidden.vitals.urine?.value ?? "") || 50,
       inMl: drug.fluid ? volumeMl ?? 0 : 0,
-      diuresisMl: diuretic ? Math.min(1200, 500 + 7.5 * (amount ?? 40)) : 0,
+      // Nothing before its onset at about 5 min; the dose's whole diuresis takes about an hour.
+      diuresisMl: diuretic ? Math.min(1200, 500 + 7.5 * (amount ?? 40)) * Math.min(1, Math.max(0, (span - 5) / 55)) : 0,
     });
     fx.push({ type: "message", role: "system", kind: "finding", text: `Over ${describeSpan(span)}: ${drug.fluid ? `in ${out.inMl.toLocaleString("en-US")} mL, ` : ""}urine ${out.urineMl.toLocaleString("en-US")} mL, insensible ${out.insensibleMl.toLocaleString("en-US")} mL. Net ${out.netMl >= 0 ? "+" : "−"}${Math.abs(out.netMl).toLocaleString("en-US")} mL.` });
     // Slower than the losses, with nothing else going in: they run a little dry, but the lungs stay clear.
@@ -2223,13 +2237,16 @@ function afterTheWait(def: ClinicalCaseDefinition, hidden: HiddenState, drug: Fo
   }
   // The chest as it now is: congestion clears with a diuretic, wheeze eases with a bronchodilator.
   const rs = systemFinding(def, hidden, "rs");
-  if (diuretic && /crackle|crepitation/i.test(rs)) {
+  // (A wet chest takes time to clear: not in the first minutes, nor while the patient is still crashing.)
+  if (diuretic && span >= 20 && hidden.status !== "critical" && /crackle|crepitation/i.test(rs)) {
     hidden.examOverrides.rs = "Crackles much reduced, at the bases only.";
     fx.push({ type: "message", role: "system", kind: "finding", text: `Chest now: ${hidden.examOverrides.rs}` });
+    for (const w of hidden.watches) if (w.drugId === drug.id) w.eased = true;
   }
   if (drug.classes.includes("bronchodilator") && /wheez|rhonchi/i.test(rs)) {
     hidden.examOverrides.rs = "Wheeze much reduced, with better air entry.";
     fx.push({ type: "message", role: "system", kind: "finding", text: `Chest now: ${hidden.examOverrides.rs}` });
+    for (const w of hidden.watches) if (w.drugId === drug.id) w.eased = true;
   }
   // After hours, how they feel, in their own words.
   if (span >= 240 && !fx.some((e) => e.type === "message" && e.role === patientRole(def))) {
@@ -2241,7 +2258,7 @@ function afterTheWait(def: ClinicalCaseDefinition, hidden: HiddenState, drug: Fo
 
 /** Medicines that work over weeks: no one's "full effect" comes within hours. */
 const SLOW_RESPONSE: DrugClass[] = ["antibiotic", "antimalarial", "antiviral", "antifungal"];
-const SLOW_TO_WORK: DrugClass[] = ["retinoid-systemic", "ssri", "tca", "statin", "antithyroid", "thyroid", "mood-stabiliser"];
+const SLOW_TO_WORK: DrugClass[] = ["retinoid-systemic", "retinoid-topical", "ssri", "tca", "statin", "antithyroid", "thyroid", "mood-stabiliser"];
 
 /** Where a vein takes far less than the mouth: the formulary's usual dose is the tablet's (metoprolol 5 mg IV, per the label, against 25 mg by mouth). */
 const IV_USUAL_MG: Record<string, number> = { metoprolol: 5 };
@@ -2480,10 +2497,17 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     return askAbout(ctx, { kind: "drug", targetId: drug.id, payload: { ...p, mode }, phrase: intent.phrase, needs }, question, mode);
   }
   // A take-home prescription with no route said is by mouth when the drug comes as tablets (metronidazole, not "IV").
-  const route = (p.route as DrugRoute) ?? (mode === "prescribed" && drug.route !== "PO" && routesFor(drug).includes("PO") ? "PO" : drug.route);
+  // "Via spacer", "MDI", "puffs": the inhaler, however the step was written.
+  const byInhaler = (!p.route || p.route === "INH") && /\b(?:spacer|mdi|inhaler|puffs?)\b/i.test(intent.phrase) && routesFor(drug).includes("INH");
+  const route = byInhaler ? "INH" : (p.route as DrugRoute) ?? (mode === "prescribed" && drug.route !== "PO" && routesFor(drug).includes("PO") ? "PO" : drug.route);
   const amount = typeof p.amount === "number" ? p.amount : undefined;
   const unit = typeof p.unit === "string" ? p.unit : undefined;
-  let dose = (p.dose as string | undefined) ?? drug.dose;
+  // (A cream's strength is in its name: "0.1%" isn't how much to put on.)
+  const stated = route === "TOP" && /^[\d.]+\s*%$/.test(String(p.dose ?? "")) ? undefined : (p.dose as string | undefined);
+  // (The "usual dose" by inhaler isn't the nebuliser's 2.5 mg.)
+  let dose = byInhaler && drug.id === "salbutamol" && (!stated || stated === drug.dose) ? "100 mcg × 4 puffs via spacer" : stated ?? drug.dose;
+  // A cream's label is for the part being treated: "whole face" only for a face.
+  if (route === "TOP" && dose && /whole face/i.test(dose) && !/\b(?:face|facial|cheeks?|forehead|nose|chin)\b/i.test(skinText(def))) dose = "thin layer to the affected skin";
   const frequency = (p.frequency as string | undefined) ?? (mode === "prescribed" ? drug.frequency : "stat");
   const duration = p.duration as string | undefined;
   // "At 100 mL/h for 8 hours": the volume is the rate times the time.
@@ -2706,6 +2730,10 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   }
   // A course with its length said: the clinic visit moves on to the end of it, in this same reply (at the end of the turn, for all its orders).
   const courseMin = !def.guided && !drug.fluid ? courseMinutes(duration) : 0;
+  if (route === "TOP" && prescribed) {
+    if (overApplied(drug, frequency, def)) hidden.overused = { drugId: drug.id };
+    else if (hidden.overused?.drugId === drug.id) hidden.overused = undefined;
+  }
   if (courseMin > 0) ctx.courseJump = { minutes: Math.max(ctx.courseJump?.minutes ?? 0, courseMin), names: [...(ctx.courseJump?.names ?? []), drug.generic.toLowerCase()] };
   // A course prescribed: taken as if its time is up — and the patient says, in their own words, what it did.
   // A take-home course is reported as it went — in clinic. In an emergency it's simply on the discharge sheet.
@@ -2714,6 +2742,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // (Nor for a long course or a drug that takes weeks: months can't pass in one line and then be followed by a visit weeks later.)
   const reviewBooked = courseMin > 0 || SLOW_TO_WORK.some((c) => drug.classes.includes(c)) || ctx.record.intents.some((i) => i.kind === "followup") || hidden.drugs.filter((d) => d.drugId === drug.id && d.mode === "prescribed").length > 1;
   if (prescribed && !def.guided && def.track === "opd" && !reviewBooked && !triggered.some((hz) => !hz.startsWith(EXPECTED_COURSE))) fx.push(...afterCourse(def, hidden, drug, duration, statusBefore));
+  // Too often, with no length said: the skin shows it within days, whatever else the drug takes weeks to do.
+  else if (prescribed && !def.guided && courseMin === 0 && hidden.overused?.drugId === drug.id && !hidden.overused.told) fx.push({ type: "message", role: "system", kind: "action", text: `After a few days of ${drug.generic.toLowerCase()} —` }, ...skinPaysFor(def, hidden));
   noteResponse(hidden, `${label} ${mode}`);
   evaluateRescues(def, hidden);
   ctx.stages.push("treatment");
@@ -2727,6 +2757,50 @@ const symptomatic = (drug: FormularyDrug) =>
 
 /** The steps that treat the illness itself: the definitive treatment and the first ideal step. */
 const core = (def: ClinicalCaseDefinition) => new Set([...(def.rubric.definitiveTreatment?.ids ?? []), ...(def.rubric.idealTreatment[0] ?? [])]);
+
+/** The words the case has for the skin (to tell a face from a fold). */
+const skinText = (def: ClinicalCaseDefinition) => def.exam.filter((e) => e.media?.spec?.kind === "derm" || SKIN_WORDS.test(e.label)).map((e) => `${e.label} ${e.finding}`).join(" ");
+const SKIN_WORDS = /\b(?:skin|rash|lesions?|local)\b/i;
+
+/** The examination that shows the skin in a skin case, if this is one. */
+function skinExam(def: ClinicalCaseDefinition) {
+  return def.exam.find((e) => e.media?.spec?.kind === "derm") ?? def.exam.find((e) => SKIN_WORDS.test(e.label) && e.abnormal);
+}
+
+/** A treatment has changed the skin: from now on the examination and the photograph show this. */
+function skinNow(def: ClinicalCaseDefinition, hidden: HiddenState, finding: string) {
+  const entry = skinExam(def);
+  if (entry) hidden.examOverrides[entry.id] = finding;
+}
+
+/** A retinoid or benzoyl peroxide three or more times a day (or on raw, macerated skin), or any cream at five or more, burns the skin. */
+function overApplied(drug: FormularyDrug, frequency: string | undefined, def: ClinicalCaseDefinition): boolean {
+  const n = timesADay(frequency);
+  const harsh = drug.classes.includes("retinoid-topical") || /benzoyl/i.test(drug.generic);
+  if (harsh && /\b(?:macerat\w*|fissur\w*|erosions?|raw)\b/i.test(skinText(def))) return true;
+  return harsh ? n >= 3 : n >= 5;
+}
+
+/** What overuse did, once: in the patient's words, and on the skin. */
+function skinPaysFor(def: ClinicalCaseDefinition, hidden: HiddenState): TurnEffect[] {
+  if (!hidden.overused || hidden.overused.told) return [];
+  hidden.overused.told = true;
+  const finding = "Diffuse redness, dryness and fine peeling over all the treated skin, on top of the original lesions.";
+  skinNow(def, hidden, finding);
+  const says = "It's burning and peeling, doctor — the skin has gone red and sore since I started using it.";
+  return [
+    { type: "message", role: patientRole(def), kind: "speech", text: patientRole(def) === "attendant" ? aboutThem(says, def.patient.sex) : says },
+    { type: "message", role: "system", kind: "finding", text: finding },
+  ];
+}
+
+/** A follow-up's written finding is how the skin now looks. */
+function skinFromScenario(def: ClinicalCaseDefinition, hidden: HiddenState, scenario: { lines: { role: string; kind: string; text: string }[] }) {
+  const line = scenario.lines.find((l) => l.role === "system" && l.kind === "finding");
+  const entry = skinExam(def);
+  // (Not over what a working course has already said of the skin.)
+  if (line && entry && !hidden.examOverrides[entry.id]) skinNow(def, hidden, line.text);
+}
 
 /** After a prescribed course: what the patient noticed, if anything. */
 function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: FormularyDrug, duration: string | undefined, before: PatientStatus): TurnEffect[] {
@@ -2752,6 +2826,9 @@ function afterCourse(def: ClinicalCaseDefinition, hidden: HiddenState, drug: For
   // A child or someone who can't speak: the relative says it of them.
   const role = patientRole(def);
   if (role === "attendant") says = aboutThem(says, def.patient.sex);
+  if (hidden.overused?.drugId === drug.id && !hidden.overused.told) return [{ type: "message", role: "system", kind: "action", text: `${when} —` }, ...skinPaysFor(def, hidden)];
+  // Better means the skin looks better too, unless something has already said how it looks.
+  if (/much better/.test(says) && skinExam(def) && !hidden.examOverrides[skinExam(def)!.id]) skinNow(def, hidden, "Improving since treatment: fewer lesions, flatter and less red than at the first examination; no new ones.");
   return [
     { type: "message", role: "system", kind: "action", text: `${when} —` },
     { type: "message", role, kind: "speech", text: says },
@@ -2963,7 +3040,7 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       record(hidden, "measure:admit");
       return [{ type: "message", role: "attendant", kind: "speech", text: "Okay, doctor — we'll bring them to the hospital now." }];
     }
-    if (["oxygen", "niv", "intubation", "iv-access", "catheter", "dialysis", "ryles", "monitor", "defib", "stop-fluids"].includes(m.id)) {
+    if (["oxygen", "stop-oxygen", "niv", "intubation", "iv-access", "catheter", "dialysis", "ryles", "monitor", "defib", "stop-fluids"].includes(m.id)) {
       return [{ type: "message", role: "attendant", kind: "speech", text: "Doctor, we're at home — we can't do that here. Should we bring them to the hospital?" }];
     }
   }
@@ -3082,11 +3159,31 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
         else {
           const reach = 1 - Math.exp(-(o2!.fio2 - 21) / 15);
           const gain = (99 - spo2) * reach * (shunt ? 0.45 : 0.85);
-          applyVitals(hidden, [{ key: "spo2", value: String(Math.min(98, Math.round(spo2 + gain))) }]);
+          const left = Math.min(98, Math.round(spo2 + gain));
+          hidden.oxygenGain = { by: left - spo2 + (hidden.oxygenGain?.by ?? 0), left };
+          applyVitals(hidden, [{ key: "spo2", value: String(left) }]);
         }
       }
       fx.push({ type: "message", role: actor, kind: "action", text: m.id === "niv" ? "BiPAP started via full-face mask." : same ? `Oxygen continues — ${o2!.label}.` : `Oxygen started — ${o2!.label}.` });
       fx.push({ type: "timeline", label: m.id === "niv" ? m.label : `Oxygen — ${o2!.label}`, category: "treatment" });
+      break;
+    }
+    case "stop-oxygen": {
+      if (!hidden.oxygenOn) {
+        fx.push({ type: "message", role: actor, kind: "action", text: "The patient isn't on oxygen, doctor — already on room air." });
+        break;
+      }
+      const spo2 = parseFloat(hidden.vitals.spo2.value);
+      // What the oxygen was holding up falls away; what the illness has done since stays.
+      const by = hidden.oxygenGain && (hidden.oxygenGain.left === spo2 || spo2 < 94) ? hidden.oxygenGain.by : 0;
+      const after = Math.max(40, Math.round(spo2 - by));
+      hidden.oxygenOn = undefined;
+      hidden.oxygenFio2 = undefined;
+      hidden.oxygenGain = undefined;
+      if (after !== spo2) applyVitals(hidden, [{ key: "spo2", value: String(after) }]);
+      fx.push({ type: "message", role: actor, kind: "action", text: `Oxygen off — on room air. SpO₂ ${after === spo2 ? `holding at ${after}%` : `${spo2} → ${after}%`}.` });
+      fx.push({ type: "vitals", readings: [reading(hidden, "spo2")] });
+      fx.push({ type: "timeline", label: "Oxygen stopped", category: "treatment" });
       break;
     }
     case "admit": {
@@ -3260,7 +3357,9 @@ function handleFollowUp(ctx: TurnContext, days: number): TurnEffect[] {
   const harmTold = !!workingSays || hidden.hazards.some((a) => !a.superseded && a.rescuedAt === undefined && !a.id.startsWith(EXPECTED_COURSE) && !!hazardLibrary(def).get(a.id)?.stages[a.stageIdx]?.patientSays);
   if (scenario && (visitNo === 1 || (hidden.scenarioTold !== undefined && hidden.scenarioTold !== quality)) && hidden.scenarioTold !== quality) {
     hidden.scenarioTold = quality;
+    fx.push(...skinPaysFor(def, hidden));
     for (const line of scenario.lines) if (!harmTold || line.role !== patientRole(def)) fx.push({ type: "message", role: line.role, kind: line.kind, text: line.text, media: line.media });
+    skinFromScenario(def, hidden, scenario);
     applyVitals(hidden, scenario.vitals);
     for (const f of scenario.facts ?? []) fx.push({ type: "fact", group: f.group, label: f.label, value: f.value, abnormal: f.abnormal });
     const status = workingSays ? "improving" : scenario.status;
@@ -3720,12 +3819,14 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       const says = working ? hazardLibrary(def).get(working.id)!.stages[working.stageIdx]!.patientSays! : undefined;
       const quality = treatmentQuality(def, hidden);
       const scenario = def.followUp.find((f) => f.when === quality) ?? def.followUp.find((f) => f.when === "any");
-      if (says) {
+      if (hidden.overused && !hidden.overused.told) fx.push(...skinPaysFor(def, hidden));
+      else if (says) {
         fx.push({ type: "message", role: patientRole(def), kind: "speech", text: def.patient.age < 12 ? aboutThem(says, def.patient.sex) : says });
         for (const finding of Object.values(hazardLibrary(def).get(working!.id)!.stages[working!.stageIdx]!.examFindings ?? {})) if (finding) fx.push({ type: "message", role: "system", kind: "finding", text: `On review: ${finding}` });
       } else if (scenario && hidden.scenarioTold !== quality) {
         hidden.scenarioTold = quality;
         for (const line of scenario.lines) fx.push({ type: "message", role: line.role, kind: line.kind, text: line.text, media: line.media } as TurnEffect);
+        skinFromScenario(def, hidden, scenario);
         applyVitals(hidden, scenario.vitals);
         if (scenario.status !== hidden.status) {
           hidden.status = scenario.status;

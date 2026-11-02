@@ -20,7 +20,8 @@ import { lumbarPuncture, runProcedure, tubeProblem } from "@/engine/procedures";
 import { ckdEpi, compensated, creatinineClearance, followLabs, LAB_PENDING, pao2ForSaturation, severinghaus, wintersPaCO2 } from "@/engine/lab-model";
 import { expectedPH as hh } from "@/engine/abg-check";
 import { generateDebrief } from "@/engine/debrief";
-import { clauseFor, courseOf, notRepeated, onlyFindings, saidNotTo, stockedSpelling, withoutFindings } from "@/engine/providers/openai";
+import { fluidBalance } from "@/engine/fluids";
+import { clauseFor, courseOf, notRepeated, onlyFindings, saidNotTo, stockedSpelling, wholeSentences, withoutFindings } from "@/engine/providers/openai";
 import { createHiddenState, runTurn } from "@/engine/simulator";
 import type { ActionRecord } from "@/engine/types";
 
@@ -1148,5 +1149,121 @@ describe("from the live logs", () => {
     const route = readFileSync("src/app/api/cases/route.ts", "utf8");
     expect(route.indexOf("await bankCase(")).toBeGreaterThan(0);
     expect(route.indexOf("await bankCase(")).toBeLessThan(route.indexOf("await checkCase("));
+  });
+});
+
+describe("case reports of 1 and 2 November", () => {
+  const acne = () => C("derm-acne");
+  const heart = () => C("em-adhf");
+  const lastSaid = (state: { messages: readonly { role: string; text: string }[] }) => state.messages.at(-1)!.text;
+
+  it("'remove oxygen' takes it off, and never asks which mask", async () => {
+    for (const words of ["remove oxygen", "stop oxygen", "take off the oxygen", "oxygen off", "stop the o2"]) {
+      const { state, hidden } = await converse(heart(), ["oxygen face mask 6 l/min", words]);
+      expect(said(state)).not.toMatch(/by nasal prongs, face mask/);
+      expect(hidden.oxygenOn).toBeUndefined();
+      expect(lastSaid(state)).toMatch(/Oxygen off.*95 → 88%/);
+    }
+    const { state } = await converse(heart(), ["remove oxygen"]);
+    expect(lastSaid(state)).toMatch(/isn't on oxygen/);
+  });
+
+  it("a diuretic doesn't pass a litre in 3 minutes, nor clear the chest while the patient crashes", async () => {
+    const { state } = await converse(heart(), ["ns 5 litre over 5 min", "yes give it", "iv furosemide 100 mg start"]);
+    const text = said(state);
+    const after = text.slice(text.lastIndexOf("Furosemide 100 mg IV"));
+    expect(after).toMatch(/Over 3 min: urine \d{1,2} mL/);
+    expect(after).not.toMatch(/Crackles much reduced/);
+  });
+
+  it("a diuretic's whole effect takes about an hour", () => {
+    expect(fluidBalance(1, { weightKg: 60, tempF: 98.6, rr: 16, urineMlPerH: 50, inMl: 0, diuresisMl: 800 }).urineMl).toBe(850);
+  });
+
+  it("a better chest is never followed by 'no change from it'", async () => {
+    const def = structuredClone(acne());
+    def.exam.push({ id: "rs", label: "Chest", group: "systemic", finding: "Mild bilateral wheeze.", abnormal: true } as unknown as (typeof def.exam)[number]);
+    def.therapeutics = [...def.therapeutics, { id: "treat-asthma", kind: "drug", label: "Salbutamol", match: ["salbutamol"], appropriateness: "ideal", drugIds: ["salbutamol"], vitalsAfter: [{ key: "hr", value: "76" }] } as unknown as (typeof def.therapeutics)[number]];
+    const { state } = await converse(def, ["salbutamol 2.5 mg neb"]);
+    const text = said(state);
+    expect(text).toMatch(/Wheeze much reduced/);
+    expect(text).not.toMatch(/no change from it/);
+  });
+
+  it("the skin after a course is the skin examined and photographed, under a new picture", async () => {
+    const { state } = await converse(acne(), ["examine the skin lesion", "adapalene gel od", "use for 14 days but 9 times a day", "show current rash"]);
+    const pictures = state.messages.filter((m) => m.media?.ai?.ref?.startsWith("e-")).map((m) => m.media!.ai!.ref);
+    expect(pictures[0]).toBe("e-local");
+    expect(pictures.at(-1)).toMatch(/^e-local--/);
+    expect(lastSaid(state)).toMatch(/redness, dryness and fine peeling/);
+  });
+
+  it("a retinoid used far too often burns the skin, and it's said; an ordinary use isn't", async () => {
+    const often = await converse(acne(), ["adapalene gel 9 times a day for 14 days"]);
+    expect(said(often.state)).toMatch(/burning and peeling/);
+    expect(said(often.state)).toMatch(/\+2 weeks elapsed/);
+    const right = await converse(acne(), ["adapalene gel hs for 14 days"]);
+    expect(said(right.state)).not.toMatch(/burning and peeling/);
+  });
+
+  it("a retinoid isn't 'much better' in a few days", async () => {
+    const { state } = await converse(acne(), ["apply adapalene", "usual dose"]);
+    expect(said(state)).not.toMatch(/much better/);
+  });
+
+  it("a cream's strength isn't its dose, and 'whole face' is only for a face", async () => {
+    const face = await converse(acne(), ["adapalene 0.1 gel hs", "for 14 days"]);
+    expect(said(face.state)).not.toMatch(/· 0\.1 % ·/);
+    const trunk = await converse(C("derm-tinea"), ["use adapalene 0.1 gel", "TDS"]);
+    expect(said(trunk.state)).toMatch(/thin layer to the affected skin/);
+    expect(said(trunk.state)).not.toMatch(/whole face/);
+  });
+
+  it("'show rash image' shows it; where no picture exists it says so", async () => {
+    const { state } = await converse(C("derm-tinea"), ["examine the skin lesion", "show rash image"]);
+    expect(state.messages.at(-1)!.media).toBeTruthy();
+    const def = structuredClone(C("derm-tinea"));
+    for (const e of def.exam) delete e.media;
+    const none = await converse(def, ["show rash image"]);
+    expect(said(none.state)).toMatch(/No photograph of this area/);
+  });
+
+  it("'for 5 days' means the last medicine at its dose; Montek LC is both its drugs and needs no dose", async () => {
+    const { state } = await converse(acne(), ["azithromycin 500 mg stat oral", "for 5 days and montek lc hs for 5 days"]);
+    const text = said(state);
+    expect(text).toMatch(/Prescribed — Azithromycin · 500 mg · oral · once daily · 5 days/);
+    expect(text).toMatch(/Prescribed — Montelukast \+ levocetirizine/);
+    expect(text).not.toMatch(/what dose/);
+  });
+
+  it("sputum analysis is a test", async () => {
+    const { state } = await converse(heart(), ["sputum analysis"]);
+    expect(said(state)).not.toMatch(/say that again/);
+    expect(said(state)).toMatch(/Sputum/);
+  });
+
+  it("'via spacer' is the inhaler, not a nebuliser", async () => {
+    const { state } = await converse(heart(), ["salbutamol via spacer", "usual dose"]);
+    expect(said(state)).toMatch(/4 puffs via spacer/);
+    expect(said(state)).not.toMatch(/nebulisation started/);
+    const puffs = await converse(heart(), ["salbutamol via spacer", "4 puffs"]);
+    expect(said(puffs.state)).not.toMatch(/times the usual dose/);
+  });
+
+  it("paracetamol's day counts, not just the dose", async () => {
+    const queried = await converse(acne(), ["paracetamol 1 g 9 times a day for 5 days"]);
+    expect(said(queried.state)).toMatch(/liver-toxic/);
+    expect(queried.hidden.drugs).toHaveLength(0);
+    const insisted = await converse(acne(), ["paracetamol 1 g 9 times a day for 5 days", "yes give it"]);
+    expect(insisted.hidden.hazards.some((a) => a.id === "paracetamol-overdose")).toBe(true);
+    const safe = await converse(acne(), ["paracetamol 650 mg tds for 5 days"]);
+    expect(safe.hidden.hazards.some((a) => a.id === "paracetamol-overdose")).toBe(false);
+  });
+
+  it("the senior's reason ends where a sentence ends", () => {
+    const long = `${"She has wheeze and a low peak flow. ".repeat(12)}so naming the diagnosis guides asthma treatment and`;
+    const cut = wholeSentences(long, 400);
+    expect(cut.length).toBeLessThanOrEqual(400);
+    expect(cut).toMatch(/peak flow$/);
   });
 });

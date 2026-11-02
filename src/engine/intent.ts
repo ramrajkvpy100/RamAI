@@ -632,10 +632,14 @@ function resolveClause(rawClauseIn: string, ctx: IntentContext): ResolvedIntent[
     return done([{ kind: "results", phrase: rawClause, matched: true }]);
   }
 
-  // "Show me (the picture / the rash / it)": the doctor wants to see — the examination that has a photograph.
-  if (/^(?:please\s+|can you\s+|let me\s+)?(?:show(?: me)?|let me see|can i see)\b(?:\s+(?:the|your|a|it|that|them))*\s*(?:picture|photo|photograph|image|pic|lesions?|rash|skin|spots?|lumps?|swelling|wound|it|that|them)?\s*$/.test(norm)) {
+  // "Stop the oxygen", "oxygen off", "take off the mask": never a new order for oxygen.
+  if (/\b(?:remove|stop|discontinue|withdraw|wean|take off|turn off|switch off)\b(?:\s+\w+){0,2}?\s+(?:oxygen|o2|o 2|face mask|oxygen mask|nasal prongs|nrbm|venturi)\b|\b(?:oxygen|o2)\s+off\b|\boff\s+(?:the\s+)?(?:oxygen|o2)\b/.test(norm)) {
+    return done([{ kind: "action", targetId: "measure:stop-oxygen", phrase: rawClause, matched: true }]);
+  }
+  // "Show me (the picture / the rash / it)", "show the current rash", "rash image": the doctor wants to see — the examination that has a photograph.
+  if (/^(?:please\s+|can you\s+|let me\s+)?(?:show(?: me)?|let me see|can i see)\b(?:\s+(?:the|your|a|it|that|them|current|currant|latest|updated|new|present|now|this))*\s*(?:picture|photo|photograph|image|pic|lesions?|rash|skin|spots?|lumps?|swelling|wound|it|that|them)?(?:\s+(?:picture|photo|image|pic|now|today))?\s*$/.test(norm)) {
     // Only an examination that has a photograph — otherwise it's not this rule's to guess.
-    const pictured = ctx.def.exam.find((e) => e.media);
+    const pictured = ctx.def.exam.find((e) => e.media) ?? ctx.def.exam.find((e) => e.group === "local-exam");
     if (pictured) return done([{ kind: "exam", targetId: pictured.id, phrase: rawClause, matched: true }]);
   }
 
