@@ -2554,7 +2554,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   let p = intent.payload?.usual === true ? { ...usualOrder(drug, intent.payload, mode, child && child.weightKg > 0 ? child : undefined), ...pulse } : intent.payload ?? {};
   // A rate said out loud is the order, even in a sentence that also says "no bolus".
   const statedRate = drug?.fluid ? (typeof p.rateMlH === "number" ? p.rateMlH : parseFloat(ctx.record.raw.match(/(\d+(?:\.\d+)?)\s*ml\s*(?:\/|per\s+)\s*h(?:ou)?r?\b/i)?.[1] ?? "")) : NaN;
-  if (Number.isFinite(statedRate)) p = { ...p, rateMlH: statedRate, rapid: false, overMin: undefined };
+  if (Number.isFinite(statedRate)) p = { ...p, rateMlH: statedRate, rapid: false, overMin: 0 };
   // A route this drug doesn't come in ("tab ceftriaxone", "IV metformin"): the nurse says so and asks again.
   const routes = routesFor(drug);
   const asked = typeof p.route === "string" ? (p.route as DrugRoute) : undefined;
