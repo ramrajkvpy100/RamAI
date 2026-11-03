@@ -485,7 +485,8 @@ export function completeOrder(pending: PendingOrder, clause: string, weightKg: n
   if (pending.kind === "drug") {
     // The time period: "Stat", "Single stat dose", "3 days", "over 30 min", typed or tapped.
     if (pending.needs.includes("period")) {
-      if (/^\s*(?:single\s+)?(?:stat|once|now|immediately)\b/i.test(clause) || /\bsingle (?:stat )?dose\b/i.test(clause)) return { ...pending.payload, statSaid: true };
+      // (However it's put: "give it stat", "yes, give it", "go ahead" all mean now. An order is never lost to its wording.)
+      if (/\b(?:stat|once|now|immediately|at once|single (?:stat )?dose|yes|ok|okay|give it|go ahead|do it)\b/i.test(clause) && !/\b\d+\s*(?:mins?|minutes?|hrs?|hours?|days?|weeks?|wks?|months?)\b/i.test(clause)) return { ...pending.payload, statSaid: true };
       const bare = clause.match(/^\s*(?:for\s+)?(\d+(?:\.\d+)?)\s*(mins?|minutes?|hrs?|hours?|days?|weeks?|wks?|months?)\s*$/i);
       if (bare) {
         const unit = bare[2]!.toLowerCase().replace(/^mins?$/, "minutes").replace(/^hrs?$/, "hours").replace(/^wks?$/, "weeks").replace(/s?$/, "");

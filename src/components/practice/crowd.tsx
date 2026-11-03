@@ -42,7 +42,7 @@ const LEVEL = (c: number) => (c >= 75 ? ["Easy", "text-success border-success/40
 /** "60% got this correct" and how hard it was, from everyone's answers. */
 export function CrowdBanner({ stats, className }: { stats: Stats | null; className?: string }) {
   if (!stats) return null;
-  if (stats.total < ENOUGH) return <p className={cn("text-[12.5px] text-fg-3", className)}>You&apos;re among the first {Math.max(stats.total, 1)} to answer this — percentages appear after {ENOUGH} doctors.</p>;
+  if (stats.total < ENOUGH) return <p className={cn("text-[12.5px] text-fg-3", className)}>{stats.total <= 1 ? "You're the first to answer this" : `You're among the first ${stats.total} to answer this`} — percentages appear after {ENOUGH} doctors.</p>;
   const [label, tone] = LEVEL(stats.correct);
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>

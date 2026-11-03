@@ -305,6 +305,9 @@ export function Conversation({
   highlightIds: Set<string>;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  // The latest question still waiting, even if other messages came after it in the same reply.
+  const lastDoctor = state.messages.map((m) => m.role).lastIndexOf("doctor");
+  const waitingQuestion = state.messages.slice(lastDoctor + 1).reverse().find((m) => m.replies?.length);
   const [pinned, setPinned] = useState(true);
   const [unseen, setUnseen] = useState(false);
   // Two threads: the patient (and family), and the team (nurse, senior, results). "All" shows both, as before.
@@ -329,7 +332,8 @@ export function Conversation({
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    if (pinned) {
+    // (A question waiting on a tap is always brought into view, wherever the doctor had scrolled.)
+    if (pinned || waitingQuestion) {
       el.scrollTo({ top: el.scrollHeight, behavior: newIds.size ? "smooth" : "auto" });
     } else {
       setUnseen(true);
@@ -384,7 +388,7 @@ export function Conversation({
             );
           })}
 
-          {!sendingInput && <QuickReplies message={state.messages.at(-1)} />}
+          {!sendingInput && <QuickReplies message={waitingQuestion} />}
 
           {sendingInput && (
             <>

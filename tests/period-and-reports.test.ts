@@ -35,6 +35,14 @@ describe("every medicine asks for its time period", () => {
     expect(stat.hidden.drugs.some((d) => d.drugId === "furosemide")).toBe(true);
   });
 
+  it("an order is never lost to how the answer is worded", async () => {
+    for (const words of ["give it stat", "yes give it", "go ahead"]) {
+      const { hidden } = await converse(C("em-adhf"), ["furosemide 40 mg iv", words]);
+      expect(hidden.drugs.some((d) => d.drugId === "furosemide"), words).toBe(true);
+      expect(hidden.pendingOrders.filter((o) => o.needs.includes("period")), words).toHaveLength(0);
+    }
+  });
+
   it("one tap answers every drug in the same message", async () => {
     const { hidden } = await converse(C("em-adhf"), ["furosemide 40 mg iv and pantoprazole 40 mg iv", "Stat"]);
     expect(hidden.drugs.map((d) => d.drugId)).toEqual(expect.arrayContaining(["furosemide", "pantoprazole"]));

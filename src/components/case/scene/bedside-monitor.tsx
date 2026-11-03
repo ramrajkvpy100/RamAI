@@ -231,16 +231,16 @@ export function MonitorStrip({ state, alarm, onOpen }: { state: CaseState; alarm
     { k: "hr", label: "HR", value: numbers.hr },
     { k: "spo2", label: "SpO₂", value: numbers.spo2 },
     { k: "rr", label: "RR", value: numbers.rr },
-    { k: "bp", label: "BP", value: cuff.measuring ? `${cuff.cuff}…` : state.vitals.bp?.current.value },
+    { k: "bp", label: "BP", value: state.vitals.bp?.current.value ?? (cuff.measuring ? "…" : undefined) },
   ];
   return (
     <div className="flex w-full items-center gap-2 bg-[#07090d] pr-2 text-white">
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-left min-[420px]:gap-3" aria-label="Open the bedside monitor and chart">
         {/* Narrower on small phones so all four numbers fit beside it. */}
-        <span className="relative h-8 w-16 shrink-0 overflow-hidden rounded-md bg-white/[0.03] min-[420px]:w-[104px]">
+        <span className="relative h-8 w-11 shrink-0 overflow-hidden rounded-md bg-white/[0.03] min-[420px]:w-[104px]">
           <MonitorSweep signal={signal} running={running} pleth={false} speed={40} onBeat={() => beep(numbers.spo2)} className="absolute inset-0 h-full w-full" />
         </span>
-        <span className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] min-[420px]:gap-3">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] min-[420px]:gap-3">
           {items.map(({ k, label, value }) => {
             const shown = state.vitals[k] && value !== null && value !== undefined;
             return (

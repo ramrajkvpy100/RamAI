@@ -81,7 +81,7 @@ export function TimeJump({ clock, from = 15 }: { clock: number; from?: number })
   }, [clock, from]);
   if (!jump) return null;
   return (
-    <div key={jump.n} role="status" className="pointer-events-none absolute top-2 left-1/2 z-20 w-max -translate-x-1/2 animate-enter overflow-hidden rounded-full bg-[#0b1220] px-3.5 py-1.5 text-[12.5px] font-semibold text-white shadow-lg ring-1 ring-white/15">
+    <div key={jump.n} role="status" className="pointer-events-none absolute top-14 left-1/2 xl:top-2 z-20 w-max -translate-x-1/2 animate-enter overflow-hidden rounded-full bg-[#0b1220] px-3.5 py-1.5 text-[12.5px] font-semibold text-white shadow-lg ring-1 ring-white/15">
       <span className="relative flex items-center gap-2 tabular">
         <Icon name="clock" size={14} className="animate-spin [animation-duration:1.2s]" /> +{span(shown)} elapsed
       </span>

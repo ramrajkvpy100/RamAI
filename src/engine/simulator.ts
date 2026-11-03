@@ -3155,6 +3155,8 @@ function oxygenOrdered(intent: ResolvedIntent) {
 /** Oxygen without a device or flow: the nurse asks. Returns the question, or null when it can go on. */
 function askOxygen(ctx: TurnContext, intent: ResolvedIntent, targetId: string): TurnEffect[] | null {
   if (ctx.def.track === "phone" || ctx.def.guided) return null;
+  // BiPAP or high flow brings its own oxygen: no "how many litres by mask?".
+  if (/\b(?:bipap|cpap|niv|non.?invasive|hfnc|high.?flow)\b/i.test(intent.phrase)) return null;
   const o = oxygenOrdered(intent);
   const needs = oxygenNeeds(o);
   if (needs.length === 0) return null;
@@ -3357,14 +3359,14 @@ function handleMeasure(ctx: TurnContext, measureId: string, intent: ResolvedInte
       break;
     }
     case "admit": {
-      const icu = /\bicu|intensive\b/i.test(intent.phrase);
+      const icu = /\b(?:icu|ccu|hdu|intensive|coronary care)\b/i.test(intent.phrase);
       const setting: CareSetting = icu ? "ICU" : "IPD";
       if (hidden.setting !== setting) {
         hidden.setting = setting;
         fx.push({ type: "setting", setting });
       }
       if (icu && !hidden.monitored) { hidden.monitored = true; fx.push({ type: "monitoring", on: true, rhythm: monitorRhythm(ctx.def) }); }
-      fx.push({ type: "message", role: "system", kind: "action", text: icu ? "Admitted to the ICU." : "Admitted to the ward." });
+      fx.push({ type: "message", role: "system", kind: "action", text: icu ? `Admitted to the ${/\bccu|coronary care\b/i.test(intent.phrase) ? "CCU" : /\bhdu\b/i.test(intent.phrase) ? "HDU" : "ICU"}.` : "Admitted to the ward." });
       fx.push({ type: "timeline", label: icu ? "Admitted to ICU" : "Admitted", category: "status" });
       break;
     }

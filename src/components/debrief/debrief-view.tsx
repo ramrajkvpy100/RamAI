@@ -270,12 +270,6 @@ export function DebriefView({
       <CaseTopBar state={state} complete />
       <main className="selectable mx-auto w-full max-w-5xl px-4 pt-10 pb-32 sm:px-6 sm:pt-14">
         {state.duel && <DuelCard id={state.duel} className="mb-6" />}
-        {!state.duel && !d.guided && !d.learning && <ChallengeCard token={session.token} score={d.score.total} className="mb-6" />}
-        {!d.guided && (
-          <div className="mb-6 flex justify-center">
-            <DoubtButton token={session.token} />
-          </div>
-        )}
         {/* Header ------------------------------------------------------- */}
         <section className="animate-rise">
           <Label>Case complete</Label>
@@ -354,6 +348,14 @@ export function DebriefView({
         )}
 
         {/* Rewards ------------------------------------------------------------ */}
+        <div className="mt-10">
+        {!state.duel && !d.guided && !d.learning && <ChallengeCard token={session.token} score={d.score.total} className="mb-6" />}
+        {!d.guided && (
+          <div className="mb-6 flex justify-center">
+            <DoubtButton token={session.token} />
+          </div>
+        )}
+        </div>
         <div className="mt-10 animate-rise [animation-delay:120ms]">
           <RewardsPanel xpEarned={session.rewards?.xp ?? d.score.xp} score={d.score.total} rewards={session.rewards} progress={progress} seed={d.caseNumber * 7919 + d.score.total} boxKey={`ramai.box.${state.sessionId}`} />
           {state.daily && <DailyShare dayKey={state.daily} score={d.score} minutes={d.elapsedMin} place={session.rewards?.daily} />}

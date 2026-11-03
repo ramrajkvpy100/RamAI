@@ -51,6 +51,12 @@ function answerPending(text: string, ctx: InterpretContext, rctx: IntentContext)
   if (pending.length === 0) return null;
   const out: ResolvedIntent[] = [];
   let answered = false;
+  // The time-period question, answered in a few plain words ("give it stat", "yes give it"): that's the answer, not a new order.
+  const periods = pending.filter((p) => p.needs.length === 1 && p.needs[0] === "period");
+  if (periods.length > 0 && text.trim().split(/\s+/).length <= 6 && pending.length === periods.length) {
+    const done = periods.flatMap((p) => { const c = completeOrder(p, text, rctx.weightKg); return c ? [completedIntent(p, c, text)] : []; });
+    if (done.length) return done;
+  }
   for (const clause of splitClauses(text)) {
     const own = resolveIntents(clause, rctx);
     const elsewhere = own.some(
