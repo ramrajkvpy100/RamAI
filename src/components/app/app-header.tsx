@@ -5,6 +5,8 @@ import { SearchButton } from "./search-box";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { HeartbeatLine, SlidingPill } from "@/components/ui/motion-kit";
+
 import { NotInAndroidApp } from "@/components/app/android-app";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -35,13 +37,15 @@ export function AppHeader({ initial }: { initial: Me }) {
   return (
     <>
     <header className="material-bar sticky top-0 z-40 border-b border-[var(--material-stroke)]">
+      <HeartbeatLine />
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-3 sm:gap-6 sm:px-6">
         <Link href="/" aria-label="RamAI — home" className="rounded-lg">
           <Wordmark />
         </Link>
         <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} prefetch className={cn("rounded-lg px-3 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}>
+            <Link key={n.href} href={n.href} prefetch className={cn("relative isolate rounded-lg px-3 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "text-fg" : "text-fg-2 hover:text-fg")}>
+              {(n.href === "/" ? path === "/" : path.startsWith(n.href)) && <SlidingPill id="nav-desktop" className="rounded-lg bg-surface-3" />}
               {n.label}
             </Link>
           ))}
@@ -78,7 +82,8 @@ export function AppHeader({ initial }: { initial: Me }) {
           const on = n.href === "/" ? path === "/" : path.startsWith(n.href);
           return (
             // (prefetch: each tab's page and data are fetched ahead, so a tap opens it at once.)
-            <Link key={n.href} href={n.href} prefetch aria-current={on ? "page" : undefined} className={cn("flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", on ? "text-accent-text" : "text-fg-2")}>
+            <Link key={n.href} href={n.href} prefetch aria-current={on ? "page" : undefined} className={cn("relative isolate flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", on ? "text-accent-text" : "text-fg-2")}>
+              {on && <SlidingPill id="nav-phone" className="inset-x-2 inset-y-1.5 rounded-xl bg-accent-soft" />}
               <Icon name={n.icon} size={20} strokeWidth={on ? 2.3 : 1.8} />
               {n.label}
             </Link>

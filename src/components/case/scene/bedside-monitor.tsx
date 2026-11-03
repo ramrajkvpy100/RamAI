@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon } from "@/components/ui/icon";
+import { AnimatedValue, type Trend } from "@/components/ui/motion-kit";
 import { glucoseLabel } from "@/engine/countries";
 import type { CaseState, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";
@@ -51,13 +52,37 @@ function Label({ children, aside }: { children: ReactNode; aside?: ReactNode }) 
 }
 
 /** A waveform parameter's number, beside its trace. */
+/** Which way a vital has moved, for its flash: towards normal or away from it. */
+const NORMAL: Partial<Record<VitalKey, [number, number]>> = { hr: [60, 100], rr: [12, 20], spo2: [95, 100], temp: [97, 99.5], rbs: [70, 180] };
+function trendOf(k: VitalKey, value: string | number | null | undefined, before: { current?: string | number | null; last?: Trend }): Trend {
+  const now = parseFloat(String(value ?? "")), was = parseFloat(String(before.current ?? ""));
+  if (!Number.isFinite(now) || !Number.isFinite(was) || now === was) return before.last ?? null;
+  const range: [number, number] | undefined = k === "bp" ? [90, 140] : NORMAL[k];
+  if (!range) return null;
+  const off = (v: number) => (v < range[0] ? range[0] - v : v > range[1] ? v - range[1] : 0);
+  return off(now) === off(was) ? null : off(now) < off(was) ? "better" : "worse";
+}
+function useTrend(k: VitalKey, value: string | number | null | undefined): Trend {
+  const seen = useRef<{ current?: string | number | null; last?: Trend }>({ current: value });
+  const t = trendOf(k, value, seen.current);
+  if (seen.current.current !== value) seen.current = { current: value, last: t };
+  return t;
+}
+/** A vital in danger, whichever monitor it's on. */
+function critical(k: VitalKey, value: string | number | null | undefined): boolean {
+  const n = parseFloat(String(value ?? ""));
+  if (!Number.isFinite(n)) return false;
+  return k === "spo2" ? n < 90 : k === "hr" ? n > 130 || n < 50 : k === "bp" ? n < 90 || n >= 180 : false;
+}
+
 function Live({ state, k, label, unit, value, size, className }: { state: CaseState; k: "hr" | "spo2" | "rr"; label: string; unit?: string; value: number | null; size: string; className?: string }) {
   const measured = !!state.vitals[k];
+  const trend = useTrend(k, value);
   return (
-    <div className={cn("flex min-h-0 flex-col justify-center rounded-lg px-2", alarmingKeys(state).has(k) && FLASH, className)}>
+    <div className={cn("flex min-h-0 flex-col justify-center rounded-lg px-2", alarmingKeys(state).has(k) && FLASH, measured && critical(k, value) && "vital-critical", className)}>
       <Label aside={measured && !state.monitored ? "spot" : undefined}>{label}</Label>
       <div className={cn("flex items-baseline gap-1 font-mono tabular", measured ? COLOR[k] : "text-white/25")}>
-        <span className={cn("leading-none font-medium tracking-[-0.03em]", size)}>{measured && value !== null ? value : "—"}</span>
+        <span className={cn("leading-none font-medium tracking-[-0.03em]", size)}>{measured && value !== null && value !== undefined ? <AnimatedValue value={value} trend={trend} /> : "—"}</span>
         {measured && unit && <span className="text-[10px] text-white/35">{unit}</span>}
       </div>
     </div>
@@ -70,6 +95,7 @@ function Nibp({ state }: { state: CaseState }) {
   const cuff = useNibp(state);
   const m = r?.value.match(/^(\d+)\s*\/\s*(\d+)/);
   const map = m ? Math.round(Number(m[2]) + (Number(m[1]) - Number(m[2])) / 3) : null;
+  const trend = useTrend("bp", r?.value);
   if (cuff.measuring) {
     return (
       <div className="min-w-0 rounded-lg px-2 py-1.5" aria-live="polite">
@@ -89,7 +115,7 @@ function Nibp({ state }: { state: CaseState }) {
       {/* On the monitor the cuff cycles automatically every 15 minutes; the time is its last reading. */}
       <Label aside={r ? (state.monitored ? `${clockAt(state.arrivalMinuteOfDay, r.at)} · auto` : "spot") : undefined}>NIBP</Label>
       <div className={cn("flex items-baseline gap-1.5 font-mono tabular", r ? COLOR.bp : "text-white/25")}>
-        <span className="text-[19px] leading-none font-medium tracking-[-0.03em]">{r ? r.value : "—"}</span>
+        <span className="text-[19px] leading-none font-medium tracking-[-0.03em]">{r ? <AnimatedValue value={r.value} trend={trend} /> : "—"}</span>
         {map !== null && <span className="text-[11px] text-white/45">({map})</span>}
       </div>
     </div>
@@ -98,11 +124,12 @@ function Nibp({ state }: { state: CaseState }) {
 
 function Reading({ state, k, label, unit }: { state: CaseState; k: VitalKey; label: string; unit?: string }) {
   const r = state.vitals[k]?.current;
+  const trend = useTrend(k, r?.value);
   return (
     <div className="min-w-0 rounded-lg px-2 py-1.5">
       <Label>{label}</Label>
       <div className={cn("flex items-baseline gap-1 font-mono tabular", r ? COLOR[k] : "text-white/25")}>
-        <span className="text-[19px] leading-none font-medium tracking-[-0.03em]">{r ? r.value : "—"}</span>
+        <span className="text-[19px] leading-none font-medium tracking-[-0.03em]">{r ? <AnimatedValue value={r.value} trend={trend} /> : "—"}</span>
         {r && unit && <span className="text-[10px] text-white/35">{unit}</span>}
       </div>
     </div>
@@ -219,7 +246,7 @@ export function MonitorStrip({ state, alarm, onOpen }: { state: CaseState; alarm
             return (
               <span key={k} className={cn("flex shrink-0 items-baseline gap-1 rounded px-1 font-mono tabular", alarming.has(k) && FLASH)}>
                 <span className="text-[9.5px] tracking-[0.08em] text-white/40 uppercase">{label}</span>
-                <span className={cn("text-[15px] font-medium", shown ? COLOR[k] : "text-white/25")}>{shown ? value : "—"}</span>
+                <span className={cn("text-[15px] font-medium", shown ? COLOR[k] : "text-white/25")}>{shown ? <AnimatedValue value={value} /> : "—"}</span>
               </span>
             );
           })}

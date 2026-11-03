@@ -112,6 +112,8 @@ export type MessageRole = "patient" | "attendant" | "doctor" | "nurse" | "system
 export type MessageKind = "speech" | "action" | "finding" | "status";
 
 export interface EncounterMessage {
+  /** The line as written, before it was said aloud: what the Hinglish table is keyed by. */
+  plain?: string;
   id: string;
   role: MessageRole;
   kind: MessageKind;
@@ -149,12 +151,18 @@ export interface HeartSounds {
   soft?: boolean;
   s3?: boolean;
   s4?: boolean;
-  murmur?: { phase: "systolic" | "diastolic" | "continuous"; shape: "plateau" | "diamond" | "decrescendo" | "rumble" | "late" | "harsh" | "machinery" };
+  murmur?: { phase: "systolic" | "diastolic" | "continuous"; shape: "plateau" | "diamond" | "decrescendo" | "rumble" | "late" | "harsh" | "machinery" | "late-peak" | "respiratory" | "musical" | "flow" };
   rub?: boolean;
   /** A mid-systolic click (mitral valve prolapse). */
   click?: boolean;
   /** An opening snap just after S2 (mitral stenosis). */
   snap?: boolean;
+  /** An early-systolic ejection click (pulmonary or bicuspid aortic valve). */
+  ejectionClick?: boolean;
+  /** S2 audibly split: "fixed" with breathing (atrial septal defect), "wide" and varying (pulmonary stenosis). */
+  splitS2?: "fixed" | "wide";
+  /** Metallic valve clicks (a mechanical aortic valve). */
+  mechanical?: boolean;
 }
 
 export interface BreathSounds {
@@ -164,15 +172,23 @@ export interface BreathSounds {
   breath: "vesicular" | "bronchial" | "reduced" | "absent";
   crackles?: "fine" | "coarse";
   wheeze?: boolean;
+  /** How the wheeze sounds: many pitches together (asthma, COPD), one fixed pitch (a foreign body, a tumour), or barely there (a silent chest). */
+  wheezeKind?: "polyphonic" | "monophonic" | "faint";
   stridor?: boolean;
+  /** Stridor in expiration as well (subglottic or tracheal). */
+  stridorBiphasic?: boolean;
+  /** Low-pitched, snoring sounds from secretions in large airways. */
+  rhonchi?: boolean;
   rub?: boolean;
 }
 
 export interface BowelSounds {
   kind: "bowel";
-  activity: "normal" | "sluggish" | "absent" | "hyperactive" | "tinkling";
+  activity: "normal" | "sluggish" | "absent" | "hyperactive" | "tinkling" | "splash";
   /** A vascular bruit heard over the abdomen (synchronous with the pulse). */
   bruit?: boolean;
+  /** A creaking friction rub over the liver, moving with breathing. */
+  rub?: boolean;
   rate: number;
 }
 
@@ -635,7 +651,7 @@ export interface ActionRecord {
  * render state. This keeps the interface identical for every provider.
  */
 export type TurnEffect =
-  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; media?: MediaAsset; attachmentIds?: string[]; stethoscope?: ListenArea[]; sounds?: Auscultation[]; replies?: { text: string; send?: boolean }[] }
+  | { type: "message"; role: MessageRole; kind: MessageKind; text: string; plain?: string; media?: MediaAsset; attachmentIds?: string[]; stethoscope?: ListenArea[]; sounds?: Auscultation[]; replies?: { text: string; send?: boolean }[] }
   | { type: "vitals"; readings: VitalPatch[] }
   | { type: "fact"; group: FactGroup; label: string; value: string; abnormal?: boolean }
   | { type: "investigation_ordered"; instanceId: string; defId: string; name: string; category: InvestigationCategory; turnaroundMin: number; cost?: number }

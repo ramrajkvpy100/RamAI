@@ -59,7 +59,7 @@ describe("Hinglish", () => {
       if ((en.role === "patient" || en.role === "attendant") && en.kind === "speech") expect(h.text).not.toBe(en.text);
       else expect(h.text).toBe(en.text);
     }
-    expect(localizeState(state, emAdhf.id, "en").messages).toEqual(state.messages);
+    expect(localizeState(state, emAdhf.id, "en").messages).toEqual(state.messages.map(({ plain: _plain, ...m }) => m));
   });
 });
 

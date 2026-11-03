@@ -5,6 +5,7 @@
  */
 
 import { EXPECTED_COURSE } from "./drug-safety";
+import { substituteNote } from "./therapeutic-classes";
 import { catalogInvestigation, flagVital } from "./catalog";
 import type { ClinicalCaseDefinition, ScoreWeights } from "./case-definition";
 import { hazardLibrary } from "./physiology";
@@ -282,6 +283,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     // The illness's own treatment, given, with the patient better for it: the extras it lacked don't sink the mark.
     const treated = !!definitive && definitive.ids.some(done) && (hidden.status === "improving" || hidden.status === "recovered");
     if (treated && quality !== "harmful") frac = Math.max(frac, 0.65);
+    // A guideline's second choice, where nothing first-line was given for that step: most of the credit, and why.
+    const secondLine = hidden.drugs.filter((d) => d.substitute?.tier === "second-line" && d.ruleId && !hidden.drugs.some((o) => o.ruleId === d.ruleId && o.substitute?.tier !== "second-line"));
+    const secondSteps = [...new Set(secondLine.map((d) => d.ruleId))];
+    if (secondSteps.length) frac -= Math.min(0.2, secondSteps.length * 0.12);
     if (quality === "harmful") frac = Math.min(frac, 0.5);
     notes.unshift(satisfied === groups.length ? "Complete, appropriate treatment" : `${satisfied} of ${groups.length} essential treatment elements given`);
     const lostTx: string[] = [];
@@ -291,6 +296,10 @@ export function calculateScore(def: ClinicalCaseDefinition, hidden: HiddenState)
     const late = penalties.find((p) => p.label === "Delayed treatment");
     if (late && definitive) lostTx.push(late.reason.endsWith("never done") ? `${definitive.label} was never given.` : `${definitive.label} came after the first ${definitive.byMinute} minutes.`);
     if (quality === "harmful") lostTx.push("Part of the treatment could harm this patient.");
+    for (const step of secondSteps) {
+      const d = secondLine.find((x) => x.ruleId === step)!;
+      lostTx.push(substituteNote(d.generic, d.substitute!));
+    }
     line("treatment", frac, notes, lostTx);
   }
 

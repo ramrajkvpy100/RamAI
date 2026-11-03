@@ -1,5 +1,6 @@
 "use client";
 
+import { HeartbeatLine } from "@/components/ui/motion-kit";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
@@ -33,6 +34,7 @@ const CTA = "inline-flex h-12 items-center justify-center gap-2 rounded-full px-
 export function LandingNav() {
   return (
     <header className="material-bar sticky top-0 z-30 border-b border-[var(--material-stroke)]">
+      <HeartbeatLine />
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" aria-label="RamAI — home" className="rounded-lg">
           <Wordmark size="md" />

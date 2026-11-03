@@ -10,8 +10,9 @@ export const maxDuration = 60;
 const digest = (s: string) => createHash("sha256").update(s).digest();
 
 /**
- * GET /api/cron/reminders — Vercel Cron calls this every evening (vercel.json).
- * With CRON_SECRET set, only Vercel can. Without it, a stray call is harmless:
+ * GET /api/cron/reminders — Vercel Cron calls this once an hour, 6 am to 11 pm India time (vercel.json: one daily job per hour, which the free plan allows),
+ * for the hour each doctor chose. A run reaches anyone due and not yet reached that day, so a missed hour only delays them.
+ * With CRON_SECRET set, only they can. Without it, a stray call is harmless:
  * reminders still go out only in the evening and at most once a day.
  */
 export async function GET(req: Request) {

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { RadiologyReporting } from "@/components/radiology/radiology-reporting";
+import { SlidingPill } from "@/components/ui/motion-kit";
 import { useCareerStage } from "@/lib/career-stage";
 import { useMe } from "@/lib/me-store";
 import { MODALITIES, MODALITY_IDS, type Modality } from "@/lib/practice";
@@ -49,8 +50,13 @@ const MODALITY_FIRST: Record<string, Modality[]> = {
 };
 
 /** Skills Lab: a short list of drills — tap one; nothing loads until then. */
-export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
+export function SkillsLab() {
   const me = useMe();
+  // (Read after the page is drawn: the drills don't wait for them.)
+  const [stats, setStats] = useState<PracticeStats[]>([]);
+  useEffect(() => {
+    fetch("/api/practice/stats", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => d && setStats(d.stats)).catch(() => undefined);
+  }, []);
   const stage = useCareerStage();
   const specialty = me?.user.specialty && me.user.specialty !== "mixed" ? me.user.specialty : null;
   const level: SkillLevel = stage === "student" || stage === "intern" ? "basic" : "full";
@@ -118,7 +124,7 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
                 const [label, sub] = SECTIONS[id];
                 const [emoji, ...words] = label.split(" ");
                 return (
-                  <button key={id} type="button" onClick={() => setSection(id)} className="group flex min-h-[72px] items-center gap-3.5 rounded-2xl border border-line bg-surface px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:bg-surface-2 hover:shadow-md active:scale-[0.99]">
+                  <button key={id} type="button" onClick={() => setSection(id)} style={{ animationDelay: `${order.indexOf(id) * 40}ms` }} className="deck-card animate-rise group flex min-h-[72px] items-center gap-3.5 rounded-2xl border border-line bg-surface px-4 py-3 text-left hover:bg-surface-2 hover:shadow-md active:scale-[0.99]">
                     <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-3 text-[22px]">{emoji}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold">{words.join(" ")}</span>
@@ -153,7 +159,8 @@ export function SkillsLab({ stats }: { stats: PracticeStats[] }) {
           {[null, ...[...new Set((section === "antidotes" ? ANTIDOTE_IDS() : section === "algorithms" ? ALGORITHM_IDS() : CALC_IDS()).map((x) => x.cat))]].map((c) => {
             const ids = (section === "antidotes" ? ANTIDOTE_IDS() : section === "algorithms" ? ALGORITHM_IDS() : CALC_IDS()).filter((x) => !c || x.cat === c).map((x) => x.id);
             return (
-              <button key={c ?? "all"} type="button" role="radio" aria-checked={cat === c} onClick={() => setCat(c)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", cat === c ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+              <button key={c ?? "all"} type="button" role="radio" aria-checked={cat === c} onClick={() => setCat(c)} className={cn("relative isolate shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors", cat === c ? "border-accent-line text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                {cat === c && <SlidingPill id="skills-chip" className="rounded-full bg-accent-soft" />}
                 {c ?? "All"} <span className="text-fg-3 tabular">{progress("quiz:", ids).mastered}/{ids.length}</span>
               </button>
             );

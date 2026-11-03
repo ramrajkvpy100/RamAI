@@ -13,7 +13,7 @@ export const LISTEN_SECONDS = 12;
 /** Plenty for body sounds (all below ~2.5 kHz) and small on the wire. */
 export const SAMPLE_RATE = 11025;
 
-type Shape = "plateau" | "diamond" | "decrescendo" | "crescendo" | "breath-in" | "breath-out";
+type Shape = "plateau" | "diamond" | "late-diamond" | "decrescendo" | "crescendo" | "breath-in" | "breath-out";
 
 /** Envelope 0…1 at fraction x of a sound lasting dur seconds. */
 function envelope(shape: Shape, x: number, dur: number): number {
@@ -23,6 +23,8 @@ function envelope(shape: Shape, x: number, dur: number): number {
       return x < edge ? x / edge : x > 1 - edge ? (1 - x) / edge : 1;
     case "diamond":
       return x < 0.5 ? x / 0.5 : (1 - x) / 0.5;
+    case "late-diamond":
+      return x < 0.68 ? x / 0.68 : (1 - x) / 0.32;
     case "decrescendo": {
       const rise = Math.min(0.01 / dur, 0.1);
       return x < rise ? x / rise : (1 - x) / (1 - rise);
@@ -132,8 +134,22 @@ function heart(m: Mix, s: HeartSounds, from: number, until: number) {
     if (s.s4) m.thud(t - 0.09, 34, 0.07, 0.3 * loud);
     m.thud(t, 56, 0.11, 0.9 * loud);
     m.thud(t + 0.025, 50, 0.09, 0.45 * loud);
-    m.thud(s2, 72, 0.08, 0.7 * loud);
-    m.thud(s2 + 0.03, 66, 0.06, 0.32 * loud);
+    if (s.mechanical) {
+      // Metal on metal: a crisp high click as the valve shuts at S2, a softer one as it opens in early systole.
+      m.tone(t + 0.055, 0.012, 1200, 0.28);
+      m.tone(s2, 0.016, 1500, 0.55);
+      m.tone(s2 + 0.002, 0.012, 2300, 0.3);
+      m.thud(s2, 72, 0.05, 0.25);
+    } else if (s.splitS2) {
+      // Two separate closures: the same gap each beat when fixed; when wide, it still widens and narrows with breathing.
+      const gap = s.splitS2 === "fixed" ? 0.075 : 0.05 + 0.025 * Math.sin((2 * Math.PI * t) / 4);
+      m.thud(s2, 72, 0.07, 0.65 * loud);
+      m.thud(s2 + gap, 64, 0.06, 0.55 * loud);
+    } else {
+      m.thud(s2, 72, 0.08, 0.7 * loud);
+      m.thud(s2 + 0.03, 66, 0.06, 0.32 * loud);
+    }
+    if (s.ejectionClick) m.thud(t + 0.07, 170, 0.03, 0.6 * loud);
     if (s.s3) m.thud(s2 + 0.15, 36, 0.09, 0.4 * loud);
     if (s.click) m.thud(t + systole * 0.55, 140, 0.03, 0.55 * loud);
     if (s.snap) m.thud(s2 + 0.08, 150, 0.03, 0.5 * loud);
@@ -141,6 +157,13 @@ function heart(m: Mix, s: HeartSounds, from: number, until: number) {
       const sh = s.murmur.shape;
       if (sh === "late") m.hiss(t + systole * 0.58, systole * 0.4, { type: "bandpass", freq: 320, q: 1.2, peak: 0.22, shape: "crescendo" });
       else if (sh === "harsh") m.hiss(t + 0.04, systole - 0.06, { type: "bandpass", freq: 420, q: 0.7, peak: 0.34, shape: "plateau" });
+      else if (sh === "late-peak") m.hiss(t + 0.08, systole - 0.1, { type: "bandpass", freq: 240, q: 1, peak: 0.32, shape: "late-diamond" });
+      else if (sh === "respiratory") {
+        // Pansystolic, but swelling with each breath in (Carvallo's sign): a slow rise and fall over a 4-second breath.
+        const breath = 0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 4);
+        m.hiss(t + 0.06, systole - 0.08, { type: "bandpass", freq: 250, q: 1.3, peak: 0.08 + 0.26 * breath, shape: "plateau" });
+      } else if (sh === "musical") m.tone(t + 0.05, systole * 0.6, 118, 0.17);
+      else if (sh === "flow") m.hiss(t + 0.07, systole * 0.55, { type: "bandpass", freq: 210, q: 1, peak: 0.1, shape: "diamond" });
       else {
         const diamond = sh === "diamond";
         m.hiss(t + 0.06, systole - 0.08, { type: "bandpass", freq: diamond ? 190 : 300, q: diamond ? 0.9 : 1.3, peak: diamond ? 0.32 : 0.22, shape: diamond ? "diamond" : "plateau" });
@@ -166,9 +189,10 @@ function heart(m: Mix, s: HeartSounds, from: number, until: number) {
 
 function lungs(m: Mix, s: BreathSounds, from: number, until: number) {
   const cycle = 60 / s.rate;
-  const insp = cycle * 0.4;
-  const exp = cycle * 0.6;
-  const level = { vesicular: 0.26, bronchial: 0.42, reduced: 0.08, absent: 0.012 }[s.breath];
+  // Obstruction lengthens expiration.
+  const insp = cycle * (s.wheezeKind === "polyphonic" ? 0.3 : 0.4);
+  const exp = cycle - insp;
+  const level = { vesicular: 0.26, bronchial: 0.42, reduced: 0.08, absent: 0.012 }[s.breath] * (s.wheezeKind === "faint" ? 0.45 : 1);
   let t = from + 0.15;
   while (t + insp + 0.3 < until) {
     const bronchial = s.breath === "bronchial";
@@ -180,33 +204,65 @@ function lungs(m: Mix, s: BreathSounds, from: number, until: number) {
     }
     if (s.crackles === "coarse") {
       for (let i = 0, n = Math.round(m.between(4, 7)); i < n; i++) {
-        const at = i % 2 ? t + insp + exp * m.between(0, 0.4) : t + insp * m.between(0.05, 0.5);
+        // Early in inspiration, a few again in expiration.
+        const at = i % 3 === 2 ? t + insp + exp * m.between(0, 0.35) : t + insp * m.between(0.02, 0.42);
         m.hiss(at, 0.014, { type: "bandpass", freq: m.between(450, 750), q: 1.2, peak: 1.1, shape: "decrescendo" });
       }
     }
-    if (s.wheeze) {
+    if (s.wheeze && s.wheezeKind === "polyphonic") {
+      // Many pitches at once, starting at different moments, all through a long expiration.
+      for (const [lo, hi] of [[250, 310], [390, 470], [590, 690], [810, 940], [1050, 1250]] as const) {
+        const lag = m.between(0.02, 0.2);
+        m.tone(t + insp + exp * lag, exp * m.between(0.65, 0.92 - lag), m.between(lo, hi), 0.042);
+      }
+    } else if (s.wheeze && s.wheezeKind === "monophonic") {
+      // One fixed pitch, both ways, the same breath after breath: a single narrowed airway.
+      const f = 440 + (s.rate % 7) * 6;
+      m.tone(t + 0.06, insp * 0.85, f, 0.085);
+      m.tone(t + insp + 0.02, exp * 0.85, f, 0.11);
+    } else if (s.wheeze && s.wheezeKind === "faint") {
+      m.tone(t + insp + exp * 0.15, exp * 0.22, m.between(820, 980), 0.01);
+    } else if (s.wheeze) {
       const f = m.between(360, 520);
       m.tone(t + insp + 0.04, exp * 0.85, f, 0.07);
       m.tone(t + insp + 0.08, exp * 0.7, f * m.between(1.25, 1.45), 0.045);
     }
-    if (s.stridor) m.tone(t + 0.04, insp * 0.9, m.between(850, 1000), 0.05, "saw");
-    if (s.rub) m.hiss(t + insp * 0.85, 0.18, { type: "bandpass", freq: 380, q: 4, peak: 0.2, shape: "diamond" });
+    if (s.stridor) m.tone(t + 0.04, insp * 0.9, m.between(850, 1000), 0.1, "saw");
+    if (s.stridorBiphasic) m.tone(t + insp + 0.04, exp * 0.55, m.between(680, 800), 0.085, "saw");
+    if (s.rhonchi) {
+      m.tone(t + insp * 0.5, insp * 0.45, m.between(115, 150), 0.09, "saw");
+      m.tone(t + insp + 0.03, exp * 0.75, m.between(120, 175), 0.13, "saw");
+    }
+    if (s.rub) m.hiss(t + insp * 0.85, 0.18, { type: "bandpass", freq: 380, q: 4, peak: 0.45, shape: "diamond" });
     t += cycle * m.between(0.95, 1.05);
   }
 }
 
 function bowel(m: Mix, s: BowelSounds, from: number, until: number) {
-  const perMinute = { normal: 14, sluggish: 3, absent: 0, hyperactive: 45, tinkling: 18 }[s.activity];
+  const perMinute = { normal: 14, sluggish: 3, absent: 0, hyperactive: 45, tinkling: 18, splash: 9 }[s.activity];
   m.hiss(from, until - from, { type: "lowpass", freq: 200, q: 0.5, peak: 0.015, shape: "plateau" });
   let t = from + m.between(0.4, s.activity === "sluggish" ? 4 : 1.8);
   while (perMinute && t < until - 0.5) {
     const tinkling = s.activity === "tinkling";
+    // A succussion splash: fluid slopping to and fro, low and slow, each slop weaker than the last.
+    if (s.activity === "splash") {
+      for (let i = 0; i < 3; i++) m.hiss(t + i * 0.32, m.between(0.2, 0.3), { type: "bandpass", freq: m.between(120, 240), q: 1.6, peak: 0.95 - i * 0.25, shape: "breath-out" });
+      t += (60 / perMinute) * m.between(0.7, 1.2);
+      continue;
+    }
     for (let i = 0, n = Math.round(m.between(3, tinkling ? 5 : 9)); i < n; i++) {
       const at = t + i * m.between(0.04, 0.09);
       if (tinkling) m.tone(at, m.between(0.03, 0.06), m.between(1400, 2400), 0.05);
       else m.hiss(at, m.between(0.03, 0.09), { type: "bandpass", freq: m.between(160, 520), q: m.between(4, 9), peak: s.activity === "hyperactive" ? 0.8 : 0.5, shape: "diamond" });
     }
     t += (60 / perMinute) * m.between(0.4, 1.4);
+  }
+  if (s.rub) {
+    // Two creaks to each 4-second breath, as the liver slides under the diaphragm.
+    for (let at = from + 0.6; at < until - 1; at += 4 * m.between(0.92, 1.08)) {
+      m.hiss(at, 0.42, { type: "bandpass", freq: 480, q: 4.5, peak: 0.34, shape: "diamond" });
+      m.hiss(at + 1.5, 0.38, { type: "bandpass", freq: 440, q: 4.5, peak: 0.28, shape: "diamond" });
+    }
   }
   if (s.bruit) {
     const beat = 60 / s.rate;

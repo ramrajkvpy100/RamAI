@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import { MediaFigure } from "@/components/media/media-figure";
@@ -18,9 +19,9 @@ const FLAG_CLASS: Record<Flag, string> = {
 };
 
 function FlagGlyph({ flag }: { flag: Flag }) {
-  if (flag === "high") return <span aria-label="above range" className="ml-1 text-[10px]">▲</span>;
-  if (flag === "low") return <span aria-label="below range" className="ml-1 text-[10px]">▼</span>;
-  if (flag === "critical") return <span aria-label="critical" className="ml-1 text-[10px]">◆</span>;
+  if (flag === "high") return <span aria-label="above range" className="flag-pop ml-1 text-[10px]">▲</span>;
+  if (flag === "low") return <span aria-label="below range" className="flag-pop ml-1 text-[10px]">▼</span>;
+  if (flag === "critical") return <span aria-label="critical" className="flag-pop ml-1 text-[10px]">◆</span>;
   return null;
 }
 
@@ -112,8 +113,8 @@ export function ResultCard({
                 </tr>
               </thead>
               <tbody>
-                {inv.rows.map((row) => (
-                  <tr key={row.analyte} className={cn("border-b border-line-2 last:border-b-0", row.flag !== "normal" && row.flag !== "unknown" && "bg-[color-mix(in_srgb,var(--warning)_4%,transparent)]")}>
+                {inv.rows.map((row, rowIndex) => (
+                  <tr key={row.analyte} style={{ "--i": rowIndex } as CSSProperties} className={cn("row-in border-b border-line-2 last:border-b-0", row.flag !== "normal" && row.flag !== "unknown" && "bg-[color-mix(in_srgb,var(--warning)_4%,transparent)]")}>
                     <th scope="row" className="py-2 pr-2 pl-4 text-left font-normal text-fg-2">
                       {row.analyte}
                     </th>

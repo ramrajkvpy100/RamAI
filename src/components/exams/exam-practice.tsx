@@ -1,5 +1,6 @@
 "use client";
 
+import { AnswerButton } from "@/components/ui/motion-kit";
 import { CrowdBanner, keyOf, OptionPct, useCrowd } from "@/components/practice/crowd";
 import { DeckSave } from "@/components/practice/deck-save";
 import { success, warn } from "@/lib/haptics";
@@ -276,7 +277,7 @@ function Question({
           const state = !checked ? "idle" : i === checked.answer ? "right" : i === checked.choice ? "wrong" : "other";
           return (
             <li key={i}>
-              <button
+              <AnswerButton state={state} picked={checked?.choice === i}
                 type="button"
                 disabled={!!checked || busy}
                 onClick={() => onChoose(i)}
@@ -292,7 +293,7 @@ function Question({
                   {state === "right" ? <Icon name="check" size={13} /> : state === "wrong" ? <Icon name="x" size={13} /> : LETTERS[i]}
                 </span>
                 <span>{o}<OptionPct stats={crowd} option={o} /></span>
-              </button>
+              </AnswerButton>
             </li>
           );
         })}

@@ -4,6 +4,8 @@
  */
 import { useEffect, useSyncExternalStore } from "react";
 
+import { androidAppVersion } from "./in-app";
+
 /* -------------------------------------------------------------------------- */
 /* Service worker                                                              */
 /* -------------------------------------------------------------------------- */
@@ -243,6 +245,34 @@ export async function enableReminders(): Promise<ReminderState> {
       tag: "ramai-welcome",
     })
     .catch(() => undefined);
+  return "on";
+}
+
+/** The Android app from 1.7.0 keeps the reminder itself (ramai://remind): no web push, so it works on every phone. */
+const NATIVE_KEY = "ramai.remind.native";
+const nativeRemind = (q: string) => void (window.location.href = `intent://remind?${q}#Intent;scheme=ramai;package=com.ramai.app;end`);
+export const usesNativeReminder = () => androidAppVersion() >= 10;
+export function nativeReminderOn(): boolean {
+  try {
+    return localStorage.getItem(NATIVE_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+/** Tells the Android app; it asks for the phone's permission the first time. */
+export async function setNativeReminder(on: boolean): Promise<void> {
+  // Web push off too, so the reminder never comes twice.
+  if (on && reminder === "on") await disableReminders().catch(() => undefined);
+  nativeRemind(on ? `hour=${remindHour()}` : "off=1");
+  try {
+    localStorage.setItem(NATIVE_KEY, on ? "on" : "off");
+  } catch {}
+}
+
+/** Reminders on, whichever way this device keeps them. Call straight from a tap. */
+export async function turnOnReminders(): Promise<ReminderState> {
+  if (!usesNativeReminder()) return enableReminders();
+  await setNativeReminder(true);
   return "on";
 }
 

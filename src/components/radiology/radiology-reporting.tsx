@@ -1,5 +1,6 @@
 "use client";
 
+import { AnswerButton } from "@/components/ui/motion-kit";
 import { recordSkill } from "@/lib/skill-progress";
 import { CrowdBanner, OptionPct, useCrowd } from "@/components/practice/crowd";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
@@ -10,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import type { DrillItem, Modality } from "@/lib/practice";
-import type { RadiologyBrief } from "@/lib/radiology";
+import { deckOf, RADIOLOGY_DECKS, type RadiologyBrief } from "@/lib/radiology";
 import STACKS from "@/lib/radiology-stacks.json";
 import GEOMETRY from "@/lib/radiology-geometry.json";
 
@@ -18,35 +19,11 @@ import { SaveOffline, stackUrls, warm } from "./save-offline";
 import { StackViewer } from "./stack-viewer";
 
 type Item = DrillItem & { brief: RadiologyBrief; stack?: { id: string; slices: number; credit: string; windows?: string[]; zRatio?: number } };
-type Tab = Modality | "mammo" | "mri";
+type Tab = "decks" | Modality | "mri" | "special";
 /** CT and MRI: scroll through the series (as at a workstation), or single images. */
 type View = "scroll" | "static";
 
-const TABS: [Tab, string][] = [["xray", "X-ray"], ["ct", "CT"], ["mri", "MRI"], ["usg", "Ultrasound"], ["mammo", "Mammography"]];
-
-/** Body systems, and the chapters within them — each study sorted by its id and diagnosis. */
-const SYSTEMS: [string, RegExp][] = [
-  ["Brain & spine", /ct-normal-head|\bhead\b|edh|sdh|sah|ich|infarct|hydroceph|abscess-brain|brain|ncc|tubercul?oma|gbm|glio|ms\b|mri-ms|pituitar|meningio|schwannoma|vs-mri|skull|disc|spine|potts|c-spine|cerebr|ivh/i],
-  ["Chest & lungs", /ngt|ett-|tube|cxr|pneumo(?!peritoneum)|tension|consolidation|effusion|oedema|edema|cardiomegaly|miliary|cavity|collapse|copd|emphysema|lung|bronch|ild|hilar|haemothorax|empyema|ground-glass|covid|pe\b|embol|mediastin|rib|b-lines|lung-sliding/i],
-  ["Liver", /liver|hcc|hepat|cirrhosis|hydatid|fatty|tace/i],
-  ["Gallbladder & pancreas", /gall|chole|gb-|cbd|pancrea|pseudocyst/i],
-  ["Kidney & bladder", /\brenal|kidney|kub|stone|calcul|hydroneph|pyelo|pkd|ckd|bladder|bph|prostat/i],
-  ["Bowel & abdomen", /normal-abdo|adrenal|abdo|appendic|sbo|lbo|bowel|volvulus|intussus|diverticul|perforat|pneumoperitoneum|mesenteric|ascites|splen|fluoro|achalasia|crohn|hiatus|applecore|free-fluid|pyloric/i],
-  ["Bones & joints", /plate-screws|im-nail|\bdhs|cannulated|ex-fix|k-wires|tension-band|arthroplasty|distal-radius|forearm|fracture|colles|nof|scaphoid|boxer|ankle|tibia|clavicle|shoulder|supracondylar|oa-|ra-|gout|ankylos|osteo|rickets|pelvic|acl|knee/i],
-  ["Women & pregnancy", /ectopic|iup|ovar|fibroid|pcos|dermoid|endometrioma|molar|miscarriage|twin|placenta|breech|anenceph|mammo|breast|fibroadenoma/i],
-  ["Vessels & heart", /dissection|aaa|aneurysm|dvt|pericardial|varicocele|testicular/i],
-  ["Neck & thyroid", /foreign-body|coin|thyroid|lymph|graves|adenoma|nm-|epiglott|croup|sinus|orbital/i],
-];
-const systemOf = (it: { item: string; options: string[]; answer: number }) => SYSTEMS.find(([, re]) => re.test(`${it.item} ${it.options[it.answer] ?? ""}`))?.[0] ?? "Other systems";
-/** Systems with fewer than 10 studies are pooled as "Other systems" (when there are several). */
-const MIN_PER_SYSTEM = 10;
-function groupSystems(items: { item: string; options: string[]; answer: number }[]): Map<string, string> {
-  const raw = new Map<string, number>();
-  for (const it of items) raw.set(systemOf(it), (raw.get(systemOf(it)) ?? 0) + 1);
-  const small = [...raw].filter(([, n]) => n < MIN_PER_SYSTEM).map(([k]) => k);
-  // (Never folded into another named system: a study is always shown under a true heading.)
-  return new Map([...raw.keys()].map((k) => [k, small.length > 1 && small.includes(k) ? "Other systems" : k]));
-}
+const TABS: [Tab, string][] = [["decks", "Decks"], ["xray", "X-ray"], ["ct", "CT"], ["mri", "MRI"], ["usg", "Ultrasound"], ["special", "Special"]];
 
 const shuffle = <T,>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
 
@@ -66,7 +43,10 @@ function stackItems(only: "CT" | "MR"): Item[] {
  * commit to a diagnosis — then compare with the model report. No treatment.
  */
 export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab: no page heading of its own. */ embedded?: boolean } = {}) {
-  const [modality, setModality] = useState<Tab>("xray");
+  const [modality, setModality] = useState<Tab>("decks");
+  const [deck, setDeck] = useState(RADIOLOGY_DECKS[0]!.name);
+  /** In a deck: how many of its studies exist, when some still wait for a picture. */
+  const [deckTotal, setDeckTotal] = useState(0);
   const [view, setView] = useState<View>("scroll");
   const [items, setItems] = useState<Item[] | null>(null);
   const [index, setIndex] = useState(0);
@@ -77,7 +57,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
   const [system, setSystem] = useState<string | null>(null);
   const [all, setAll] = useState<Item[] | null>(null);
 
-  const load = useCallback(async (m: Tab, v: View) => {
+  const load = useCallback(async (m: Tab, v: View, d: string) => {
     setItems(null);
     setIndex(0);
     setPicked(null);
@@ -90,16 +70,22 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
       setItems(st);
       return;
     }
-    const res = await fetch("/api/radiology/round", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modality: m }) }).catch(() => null);
-    const json = res?.ok ? ((await res.json()) as { items: Item[] }) : { items: [] };
+    const res = await fetch("/api/radiology/round", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(m === "decks" ? { deck: d } : { modality: m }) }).catch(() => null);
+    const json = res?.ok ? ((await res.json()) as { items: Item[]; total?: number }) : { items: [] as Item[], total: 0 };
     const got = shuffle(json.items);
+    setDeckTotal(json.total ?? 0);
     setAll(got);
     setItems(got);
   }, []);
-  useEffect(() => void load(modality, view), [modality, view, load]);
-  const groups = useMemo(() => groupSystems(all ?? []), [all]);
-  const sysOf = (x: Item) => groups.get(systemOf(x)) ?? systemOf(x);
-  const systems = all ? [...new Set(all.map(sysOf))].sort((a, b) => (a === "Other systems" ? 1 : b === "Other systems" ? -1 : 0)) : [];
+  useEffect(() => void load(modality, view, deck), [modality, view, deck, load]);
+  // Within a modality: its studies by deck (a scroll series by its diagnosis). In the Decks tab the deck is chosen above.
+  const sysOf = useCallback((x: Item) => (x.stack ? x.options[x.answer]! : deckOf(x.item) ?? "Other"), []);
+  const systems = useMemo(() => {
+    if (!all || modality === "decks") return [];
+    const present = new Set(all.map(sysOf));
+    return [...RADIOLOGY_DECKS.map((d) => d.name).filter((n) => present.has(n)), ...[...present].filter((n) => !RADIOLOGY_DECKS.some((d) => d.name === n))];
+  }, [all, modality, sysOf]);
+  const shortName = (n: string) => RADIOLOGY_DECKS.find((d) => d.name === n)?.short ?? n;
   const chooseSystem = (sys: string | null) => {
     setSystem(sys);
     setIndex(0);
@@ -132,16 +118,25 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
         <h1 className="mt-2 text-[28px] font-semibold tracking-[-0.03em]">Report the study</h1>
         <p className="mt-1 text-[14.5px] text-fg-2">Real images, a real request form — from the history to the diagnosis. Write your findings, then commit.</p>
       </header>}
-      <div className="grid grid-cols-5 gap-1 rounded-xl bg-surface-3 p-1">
+      <div className="grid grid-cols-6 gap-1 rounded-xl bg-surface-3 p-1">
         {TABS.map(([id, label]) => (
-          <button key={id} type="button" aria-pressed={modality === id} onClick={() => setModality(id)} className={cn("h-10 min-w-0 truncate rounded-lg px-1 text-[11.5px] font-medium sm:text-[13.5px]", modality === id ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
-            {/* (Long names are shortened on phones, so the five tabs fit.) */}
-            {label === "Mammography" ? <><span className="sm:hidden">Mammo</span><span className="hidden sm:inline">{label}</span></> : label === "Ultrasound" ? <><span className="sm:hidden">USG</span><span className="hidden sm:inline">{label}</span></> : label}
+          <button key={id} type="button" aria-pressed={modality === id} onClick={() => setModality(id)} className={cn("h-10 min-w-0 truncate rounded-lg px-0.5 text-[11px] font-medium sm:text-[13.5px]", modality === id ? "bg-surface text-fg shadow-sm" : "text-fg-2")}>
+            {/* (Long names are shortened on phones, so the six tabs fit.) */}
+            {label === "Ultrasound" ? <><span className="sm:hidden">USG</span><span className="hidden sm:inline">{label}</span></> : label}
           </button>
         ))}
       </div>
 
       <SaveOffline />
+      {modality === "decks" && (
+        <div role="radiogroup" aria-label="Deck" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {RADIOLOGY_DECKS.map((d) => (
+            <button key={d.name} type="button" role="radio" aria-checked={deck === d.name} onClick={() => setDeck(d.name)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", deck === d.name ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+              {d.short ?? d.name}
+            </button>
+          ))}
+        </div>
+      )}
       {(modality === "ct" || modality === "mri") && (
         <div className="flex gap-1 self-start rounded-full bg-surface-3 p-1 text-[13px]">
           {(["scroll", "static"] as const).map((v) => (
@@ -152,10 +147,10 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
         </div>
       )}
       {systems.length > 1 && (
-        <div role="radiogroup" aria-label="System" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <div role="radiogroup" aria-label="Deck" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {[null, ...systems].map((sys) => (
             <button key={sys ?? "all"} type="button" role="radio" aria-checked={system === sys} onClick={() => chooseSystem(sys)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", system === sys ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
-              {sys ?? "All systems"} <span className="text-fg-3 tabular">{sys ? all!.filter((x) => sysOf(x) === sys).length : all!.length}</span>
+              {sys ? shortName(sys) : "All"} <span className="text-fg-3 tabular">{sys ? all!.filter((x) => sysOf(x) === sys).length : all!.length}</span>
             </button>
           ))}
         </div>
@@ -166,13 +161,13 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
         <div className="card flex flex-col items-center gap-3 p-8 text-center">
           <div className="text-[44px] font-bold tabular">{score}/{items.length}</div>
           <p className="text-[14px] text-fg-2">diagnoses correct</p>
-          <button type="button" onClick={() => void load(modality, view)} className="h-11 rounded-full bg-accent px-6 text-[14px] font-semibold text-on-accent">Another set</button>
+          <button type="button" onClick={() => void load(modality, view, deck)} className="h-11 rounded-full bg-accent px-6 text-[14px] font-semibold text-on-accent">Another set</button>
         </div>
       )}
 
       {item && (
         <article className="card flex flex-col gap-4 p-5">
-          <div className="text-[12px] text-fg-3 tabular">Study {index + 1} of {items!.length}</div>
+          <div className="text-[12px] text-fg-3 tabular">Study {index + 1} of {items!.length}{modality === "decks" && deckTotal > (all?.length ?? 0) ? ` · ${all?.length ?? 0} of the deck's ${deckTotal} have pictures so far` : ""}</div>
           <section className="rounded-xl bg-surface-2 p-4">
             <div className="text-[11px] font-bold tracking-[0.1em] text-fg-3 uppercase">Request form</div>
             <p className="mt-1.5 text-[14.5px] leading-6">{item.brief.history}</p>
@@ -204,7 +199,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
               {item.options.map((o, i) => {
                 const state = picked === null ? "idle" : i === item.answer ? "right" : i === picked ? "wrong" : "other";
                 return (
-                  <button
+                  <AnswerButton state={state} picked={picked === i}
                     key={o}
                     type="button"
                     disabled={picked !== null}
@@ -217,7 +212,7 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
                   >
                     {o}
                     <OptionPct stats={crowd} option={o} />
-                  </button>
+                  </AnswerButton>
                 );
               })}
             </div>

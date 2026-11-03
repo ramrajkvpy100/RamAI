@@ -214,8 +214,11 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     (async () => {
       const open = (await self.clients.matchAll({ type: "window", includeUncontrolled: true })).find((c) => new URL(c.url).origin === self.location.origin);
-      // An open RamAI window is just brought forward — never pulled away from a case in progress.
-      if (open && "focus" in open) return open.focus();
+      // An open RamAI window is brought forward — and goes to the daily case, unless a case is in progress there.
+      if (open && "focus" in open) {
+        if (new URL(open.url).pathname !== "/case" && "navigate" in open) await open.navigate(url).catch(() => undefined);
+        return open.focus();
+      }
       return self.clients.openWindow(url);
     })(),
   );

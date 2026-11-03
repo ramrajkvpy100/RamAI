@@ -1,5 +1,6 @@
 "use client";
 
+import { AnswerButton } from "@/components/ui/motion-kit";
 import { recordSkill, useSkillProgress } from "@/lib/skill-progress";
 import { CrowdBanner, OptionPct, useCrowd } from "./crowd";
 import { DeckSave } from "./deck-save";
@@ -200,10 +201,10 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
         </div>
         <div className="panel flex flex-col gap-4 p-5 sm:p-6">
           {groupsOf(modality).length > 1 && (
-            <div role="radiogroup" aria-label="Subcategory" className="flex flex-wrap gap-2">
+            <div role="radiogroup" aria-label="Subcategory" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
               {[null, ...groupsOf(modality)].map((s) => (
-                <button key={s ?? "all"} type="button" role="radio" aria-checked={subject === s} onClick={() => setSubject(s)} className={cn("rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors", subject === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
-                  {s ?? "All subjects"}
+                <button key={s ?? "all"} type="button" role="radio" aria-checked={subject === s} onClick={() => setSubject(s)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors", subject === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                  {s ?? "All"}
                   <span className="ml-1 text-fg-3 tabular">{s ? `${progress(`spot:${modality}:`, MODALITIES[modality].items.filter((i) => groupOf(modality, i) === s).map((i) => i.id)).mastered}/${MODALITIES[modality].items.filter((i) => groupOf(modality, i) === s).length}` : MODALITIES[modality].items.length}</span>
                 </button>
               ))}
@@ -291,7 +292,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
         {item.options.map((o, i) => {
           const state = picked === null ? "idle" : i === item.answer ? "right" : i === picked ? "wrong" : "other";
           return (
-            <button
+            <AnswerButton state={state} picked={picked === i}
               key={o}
               type="button"
               disabled={picked !== null}
@@ -306,7 +307,7 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
             >
               {o}
               <OptionPct stats={crowd} option={o} />
-            </button>
+            </AnswerButton>
           );
         })}
       </div>

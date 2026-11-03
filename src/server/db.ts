@@ -307,6 +307,17 @@ CREATE TABLE IF NOT EXISTS case_feedback (
 CREATE INDEX IF NOT EXISTS case_feedback_kind ON case_feedback(kind, created_at);
 
 -- Free Pro cases: a trial for every account, and more for inviting a friend (and for the friend).
+CREATE TABLE IF NOT EXISTS progress_summaries (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  day TEXT NOT NULL,
+  n INTEGER NOT NULL,
+  json TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS certificates (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS case_credits (
   user_id TEXT PRIMARY KEY,
   credits INTEGER NOT NULL,
@@ -744,6 +755,7 @@ async function migrate(b: Backend) {
     add.push("UPDATE users SET email_verified_at = created_at WHERE is_demo = 0");
   }
   if (!columns.includes("league_tier")) add.push("ALTER TABLE users ADD COLUMN league_tier INTEGER NOT NULL DEFAULT 0");
+  if (!columns.includes("invite_tier")) add.push("ALTER TABLE users ADD COLUMN invite_tier INTEGER NOT NULL DEFAULT 0");
   if (!columns.includes("is_guest")) add.push("ALTER TABLE users ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0");
   if (!columns.includes("country")) add.push("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT 'IN'");
   // Proof of consent: when the terms and privacy policy were accepted, and which version.

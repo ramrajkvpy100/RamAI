@@ -44,11 +44,14 @@ public class DailyReminder extends BroadcastReceiver {
                 requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 2);
                 return; // finishes in onRequestPermissionsResult
             }
+            if (p.getInt("hour", -1) >= 0) confirm(this);
             done();
         }
 
         @Override
         public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
+            if (results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) confirm(this);
+            else android.widget.Toast.makeText(this, "Notifications are blocked for RamAI. Turn them on in Settings to get reminders.", android.widget.Toast.LENGTH_LONG).show();
             done();
         }
 
@@ -101,20 +104,29 @@ public class DailyReminder extends BroadcastReceiver {
         { "Time for a quick case ⏱️", "Five minutes of thinking like a doctor, every day." },
     };
 
+    /** Proof at once that reminders reach this phone. */
+    static void confirm(Context c) {
+        post(c, "RamAI Clinical Reminders Active", "Tap to open today's case.");
+    }
+
+    private static void post(Context c, String title, String text) {
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Daily reminder", NotificationManager.IMPORTANCE_DEFAULT));
+        Notification.Builder b = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
+        b.setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setAutoCancel(true)
+            .setContentIntent(FocusWidget.open(c, "/cases?daily=1&source=android", 41));
+        try { nm.notify(41, b.build()); } catch (SecurityException ignored) { }
+    }
+
     @Override
     public void onReceive(Context c, Intent intent) {
         if (!RING.equals(intent.getAction())) return;
         schedule(c); // tomorrow's
-        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm == null) return;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Daily reminder", NotificationManager.IMPORTANCE_DEFAULT));
         String[] line = LINES[Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % LINES.length];
-        Notification.Builder b = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
-        b.setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(line[0])
-            .setContentText(line[1])
-            .setAutoCancel(true)
-            .setContentIntent(FocusWidget.open(c, "/?source=android", 41));
-        try { nm.notify(41, b.build()); } catch (SecurityException ignored) { }
+        post(c, line[0], line[1]);
     }
 }

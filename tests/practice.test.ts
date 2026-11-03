@@ -1,7 +1,8 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createProfile, type User } from "@/server/auth";
-import { addPicture, missingPictures, picture, practiceStats, recordRound, round } from "@/server/practice";
+import { addExtraPicture, addPicture, keptExtraPictures, missingPictures, picture, practiceStats, recordRound, round } from "@/server/practice";
+import { optionText } from "@/lib/confusable";
 import { MODALITIES } from "@/lib/practice";
 
 process.env.RAMAI_DB_PATH = ":memory:";
@@ -45,6 +46,16 @@ afterEach(() => {
 });
 
 describe("practice drills", () => {
+  it("a radiology-only study with no picture finds a real one in the background and keeps it; an answer-only choice never does", async () => {
+    process.env.OPENAI_API_KEY = "test";
+    stub({ realistic: 9, matches: 9 });
+    expect(await keptExtraPictures("mri")).toHaveLength(0);
+    expect(await addExtraPicture("mri-stroke")).toBe(true);
+    const kept = await keptExtraPictures("mri");
+    expect(kept.map((k) => k.item)).toEqual(["mri-stroke"]);
+    expect(kept[0]!.credit?.source).toBeTruthy();
+    expect(await addExtraPicture("mammo-normal")).toBe(false);
+  });
   it("ECGs RamAI can draw are ready at once, each with four names and the right one among them", async () => {
     const { items, ready } = await round("ecg", "spot");
     expect(items.length).toBe(10);
@@ -54,7 +65,7 @@ describe("practice drills", () => {
       expect(it.ecg?.kind).toBe("ecg");
       expect(it.options).toHaveLength(4);
       expect(new Set(it.options).size).toBe(4);
-      expect(it.options[it.answer]).toBe(MODALITIES.ecg.items.find((x) => x.id === it.item)!.label);
+      expect(it.options[it.answer]).toBe(optionText(MODALITIES.ecg.items.find((x) => x.id === it.item)!.label));
     }
   });
 

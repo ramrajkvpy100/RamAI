@@ -1,5 +1,6 @@
 "use client";
 
+import { CountIn } from "@/components/ui/motion-kit";
 import { primeMe } from "@/lib/me-store";
 import { success } from "@/lib/haptics";
 import { toast } from "@/lib/toast";
@@ -154,7 +155,7 @@ function LeagueHero({ view, meId, me, onPlay, starting }: { view: LeagueView; me
           </div>
           <div>
             <div className="text-[12px] text-white/55">XP this week</div>
-            <div className="text-[24px] leading-none font-semibold tracking-[-0.02em] tabular">{xp(mine.xp)}</div>
+            <div className="text-[24px] leading-none font-semibold tracking-[-0.02em] tabular"><CountIn value={xp(mine.xp)} /></div>
           </div>
           {mine.movement !== null && mine.movement !== 0 && (
             <div className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[12.5px] font-semibold", mine.movement > 0 ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300")}>

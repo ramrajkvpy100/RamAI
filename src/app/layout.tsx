@@ -1,4 +1,5 @@
 import { RefCapture } from "@/components/app/ref-capture";
+import { MotionRoot } from "@/components/ui/motion-kit";
 import { HapticTouches } from "@/components/app/haptic-touches";
 import { FocusPill } from "@/components/focus/focus-pill";
 import { Toaster } from "@/components/shell/toaster";
@@ -58,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-dvh bg-bg text-fg antialiased">
-        {children}
+        <MotionRoot>{children}</MotionRoot>
         <RefCapture />
         <AndroidAppMarker />
         <StartingOverlay />

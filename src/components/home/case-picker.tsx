@@ -279,12 +279,12 @@ export function CasePicker({
           </span>
         </button>
 
-        <Group label="Play with someone">
+        <Group label="Challenge a colleague">
           <div className="grid grid-cols-3 gap-1.5">
             {([
-              ["invite", "👥", "A friend"],
-              ["find", "🔎", "Anyone"],
+              ["invite", "⚔️", "Beat my score"],
               ["computer", "🤖", "Computer"],
+              ["find", "🔎", "Live match"],
             ] as const).map(([id, icon, label]) => (
               <button
                 key={id}

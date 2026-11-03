@@ -134,15 +134,17 @@ export function toHinglish(text: string, caseId: string, speaker: Speaker, patie
 const spoken = (role: string, kind: string): role is Speaker => kind === "speech" && (role === "patient" || role === "attendant");
 
 export function localizeState(state: CaseState, caseId: string, lang: PatientLang): CaseState {
-  if (lang !== "hinglish") return { ...state, lang: "en" };
+  const bare = ({ plain: _plain, ...m }: CaseState["messages"][number]) => m;
+  if (lang !== "hinglish") return { ...state, lang: "en", messages: state.messages.map(bare) };
   return {
     ...state,
     lang,
-    messages: state.messages.map((m) => (spoken(m.role, m.kind) ? { ...m, text: toHinglish(m.text, caseId, m.role, state.patient) } : m)),
+    messages: state.messages.map((m) => (spoken(m.role, m.kind) ? { ...bare(m), text: toHinglish(m.plain ?? m.text, caseId, m.role, state.patient) } : bare(m))),
   };
 }
 
 export function localizeEffects(effects: TurnEffect[], caseId: string, patient: PatientIdentity, lang: PatientLang): TurnEffect[] {
-  if (lang !== "hinglish") return effects;
-  return effects.map((e) => (e.type === "message" && spoken(e.role, e.kind) ? { ...e, text: toHinglish(e.text, caseId, e.role, patient) } : e));
+  const bare = (e: TurnEffect) => { if (e.type !== "message" || !e.plain) return e; const { plain: _plain, ...rest } = e; return rest; };
+  if (lang !== "hinglish") return effects.map(bare);
+  return effects.map((e) => (e.type === "message" && spoken(e.role, e.kind) ? { ...bare(e), text: toHinglish(e.plain ?? e.text, caseId, e.role, patient) } as TurnEffect : bare(e)));
 }

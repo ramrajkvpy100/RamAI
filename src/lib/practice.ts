@@ -8,7 +8,10 @@
 import type { EcgSpec } from "@/engine/types";
 
 import { CLINICAL_ITEMS } from "./banks/clinical";
+import { SPOT_ALSO_TRUE, SPOT_CLUSTERS } from "./banks/confusable-data";
+import { SPOT_GROUPS } from "./banks/groups";
 import { MORE_CT, MORE_ECG, MORE_SMEAR, MORE_USG, MORE_XRAY } from "./banks/imaging";
+import { optionTexts, pickOptions } from "./confusable";
 
 export { CLINICAL_SUBJECTS, type ClinicalSubject } from "./banks/clinical";
 
@@ -27,6 +30,8 @@ export interface PracticeItem {
   ecg?: EcgSpec;
   /** Clinical images: the subject it belongs to. */
   subject?: string;
+  /** The sub-group within its drill (a filter chip, and where the wrong options come from first). */
+  group?: string;
 }
 
 export interface ModalityInfo {
@@ -185,19 +190,28 @@ export interface DrillItem {
 export const RAPID_SECONDS = 60;
 export const SPOT_COUNT = 10;
 
-/** Subcategories within each image drill (clinical images carry their own subject). */
-const GROUPS: Partial<Record<Modality, [string, RegExp][]>> = {
-  ecg: [["Rhythms", /sinus|af|flutter|svt|vt|vf|torsades|ectopic|bigeminy|junctional|mat|asystole|pea|paced/], ["Blocks & conduction", /block|degree|mobitz|chb|bbb|lafb|wpw|brugada|long-qt|qt/], ["Heart attack & ischaemia", /stemi|mi\b|nstemi|wellens|winter|pericard|early-repol|lvh|rvh/], ["Electrolytes, drugs & other", /k\b|kal|cal|digoxin|tca|pe-ecg|hypotherm|low-voltage|dextro/]],
-  xray: [["Chest", /hiatus|cxr|pneumo(?!peritoneum)|tension|consolidation|effusion|oedema|cardiomegaly|miliary|cavity|collapse|copd|rib|haemo|lung|hilar|ild|bronch|abscess|hydro|mediastin|emphysema|ngt|ett|dextro|aortic/], ["Abdomen", /pneumoperitoneum|sbo|lbo|volvulus|kub|coin/], ["Bones & joints", /normal-(hand|leg|hip)-xr|plate-screws|im-nail|dhs|cannulated|ex-fix|k-wires|tension-band|arthroplasty|distal-radius|forearm|colles|nof|fracture|disloc|clavicle|supracondylar|scaphoid|boxer|ankle|tibia|oa-|ra-|gout|ankylos|potts|osteo|rickets|skull/], ["Neck & children", /epiglott|croup/]],
-  ct: [["Head & spine", /edh|sdh|sah|ich|infarct|hydroceph|brain|ncc|tubercul|tumour|oedema|ivh|depressed|normal-head|c-spine|orbital|sinus/], ["Chest", /pe\b|pe$|dissection|pneumothorax|effusion|empyema|consolidation|glass|lung|emphysema|bronch/], ["Abdomen", /append|pancrea|renal|stone|liver|abscess|aaa|perforat|sbo|divertic|intussus|hcc|hydatid|cirrhosis|pyelo|chole|pseudocyst|mesenteric/], ["Trauma", /splenic|injury|pelvic|fracture/]],
-  usg: [["Liver, gallbladder & abdomen", /gall|chole|gb-|cbd|liver|fatty|cirrhosis|hydatid|mets|spleno|ascites|append|intussus|pyloric|free-fluid|aaa/], ["Kidney & bladder", /hydroneph|renal|kidney|ckd|pkd|bladder|bph/], ["Women & pregnancy", /ectopic|iup|ovar|fibroid|pcos|dermoid|endometrioma|torsion-ovary|molar|miscarriage|twins|placenta|breech|anenceph|breast|fibroadenoma/], ["Other", /.*/]],
-  smear: [["Malaria & parasites", /falciparum|vivax|malariae|ovale|microfilaria|loa|leishmania|trypano|borrelia|babesia/], ["Red cells & anaemia", /sickle|ida|megaloblastic|sphero|schisto|target|thalass|howell|stippling|teardrop|burr|acantho|ellipto|bite|rouleaux|agglutin|nrbc|reticulo|dimorphic|aiha|normal/], ["White cells & leukaemia", /aml|cll|all|cml|apml|hairy|myeloma|neutroph|eosin|atypical|pelger|monocyt|basophil|leukoeryth|toxoplasma/], ["Platelets", /platelet|thrombocyt/]],
-};
+// Every item carries its sub-group: from the hand-made lists, or its subject for clinical images.
+for (const [m, groups] of Object.entries(SPOT_GROUPS) as [keyof typeof SPOT_GROUPS, Record<string, readonly string[]>][]) {
+  for (const [group, ids] of Object.entries(groups)) for (const id of ids) {
+    const item = MODALITIES[m].items.find((x) => x.id === id);
+    if (item) item.group = group;
+  }
+}
+for (const item of MODALITIES.clinical.items) item.group = item.subject;
+
 /** Which subcategory an item belongs to within its drill. */
-export function groupOf(modality: Modality, item: PracticeItem): string {
-  if (item.subject) return item.subject;
-  return GROUPS[modality]?.find(([, re]) => re.test(item.id))?.[0] ?? "Other";
+export function groupOf(_modality: Modality, item: PracticeItem): string {
+  return item.group ?? item.subject ?? "Other";
 }
 export function groupsOf(modality: Modality): string[] {
-  return [...new Set(MODALITIES[modality].items.map((i) => groupOf(modality, i)))];
+  return [...new Set(MODALITIES[modality].items.map((i) => groupOf(modality, i)))].sort((a, b) => {
+    const order = modality === "clinical" ? null : Object.keys(SPOT_GROUPS[modality]);
+    return order ? order.indexOf(a) - order.indexOf(b) : 0;
+  });
+}
+
+/** The four options for a picture: three look-alikes (see confusable.ts) and the right one, in the same shape on the button. */
+export function optionsFor(modality: Modality, item: PracticeItem, pool: readonly PracticeItem[] = MODALITIES[modality].items, rand?: () => number) {
+  const { options, answer } = pickOptions(item, pool, { clusters: SPOT_CLUSTERS[modality], alsoTrue: SPOT_ALSO_TRUE, ...(rand ? { rand } : {}) });
+  return { options, answer, labels: optionTexts(options.map((o) => o.label)) };
 }

@@ -11,7 +11,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { groupOf, MODALITIES, SPOT_COUNT, type DrillItem, type Modality, type PracticeItem, type PracticeMode } from "@/lib/practice";
+import { groupOf, MODALITIES, optionsFor, SPOT_COUNT, type DrillItem, type Modality, type PracticeItem, type PracticeMode } from "@/lib/practice";
+import { EXTRA_ITEMS, type ExtraModality } from "@/lib/radiology";
 import type { PictureType } from "@/engine/types";
 
 import { reviewPicture, type PictureBrief } from "./ai-images";
@@ -97,6 +98,41 @@ export async function missingPictures(modality: Modality, limit = 3, subject?: s
     .map((i) => i.id);
 }
 
+/** Radiology's own modalities: what the checker is told a picture must be. */
+const EXTRA_KIND: Record<ExtraModality, { type: PictureType; view: string; style: string }> = {
+  mri: { type: "mri", view: "MRI", style: "A real MRI slice as a radiologist reads it: no arrows, captions or text naming the finding (sequence and scanner overlays are fine). Reject any image whose text names the diagnosis." },
+  mammo: { type: "xray", view: "mammogram", style: "A real mammogram (CC or MLO view) as a radiologist reads it: no arrows, captions or text naming the finding. Reject any image whose text names the diagnosis." },
+  fluoro: { type: "xray", view: "contrast fluoroscopy study", style: "A real fluoroscopic contrast study (barium or iodinated contrast) as a radiologist reads it: no arrows, captions or text naming the finding. Reject any image whose text names the diagnosis." },
+  nuclear: { type: "photo", view: "nuclear medicine scan", style: "A real nuclear medicine (scintigraphy) image as a radiologist reads it: no arrows, captions or text naming the finding. Reject any image whose text names the diagnosis." },
+};
+
+/**
+ * Radiology's MRI, contrast and nuclear studies: one more real, freely licensed picture found on Commons and checked
+ * against its findings by the AI checker (never AI-made), kept alongside the bank's. Those with nothing kept aren't shown.
+ */
+export async function addExtraPicture(itemId: string): Promise<boolean> {
+  const item = EXTRA_ITEMS.find((x) => x.id === itemId);
+  if (!item || !item.search.length || !item.history || !picturesAvailable()) return false;
+  const have = await db.all<{ credit: string | null }>("SELECT credit FROM practice_images WHERE modality = ? AND item = ? AND source = 'commons'", item.modality, itemId);
+  if (have.length >= PER_ITEM) return false;
+  const used = have.map((h) => (h.credit ? (JSON.parse(h.credit) as Credit).source : "")).filter(Boolean);
+  const kind = EXTRA_KIND[item.modality];
+  const p: PictureBrief = { type: kind.type, view: kind.view, describe: `A teaching ${kind.view} of ${item.label}. It must clearly show the classic features: ${item.key}`, topic: item.label, style: kind.style };
+  const real = await findRealImage(item.search, (image) => reviewPicture(image, p).then((r) => r.ok).catch(() => false), 25_000, used);
+  if (!real) return false;
+  await db.run(
+    "INSERT INTO practice_images (id, modality, item, mime, data, credit, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    randomUUID(), item.modality, itemId, real.mime, real.base64, real.credit ? JSON.stringify(real.credit) : null, "commons", Date.now(),
+  );
+  return true;
+}
+
+/** The pictures kept for a radiology-only modality, found by addExtraPicture. */
+export async function keptExtraPictures(modality: ExtraModality): Promise<{ id: string; item: string; credit: Credit | null }[]> {
+  const rows = await db.all<{ id: string; item: string; credit: string | null }>("SELECT id, item, credit FROM practice_images WHERE modality = ? AND source = 'commons'", modality);
+  return rows.map((r) => ({ id: r.id, item: r.item, credit: r.credit ? (JSON.parse(r.credit) as Credit) : null }));
+}
+
 const shuffle = <T,>(xs: T[]): T[] => {
   const a = [...xs];
   for (let i = a.length - 1; i > 0; i--) {
@@ -126,17 +162,14 @@ export async function round(modality: Modality, mode: PracticeMode, level: "basi
   const ready = new Set(pool.map((p) => p.item.id)).size;
   const picked = everything ? shuffle(pool) : shuffle(pool).slice(0, mode === "spot" ? SPOT_COUNT : 40);
   const items = picked.map(({ item, row }): DrillItem => {
-    // Look-alikes first: wrong options from the same body area when there are enough of them.
-    const pool = bank.filter((b) => b.id !== item.id && b.label !== item.label);
-    const near = pool.filter((b) => groupOf(modality, b) === groupOf(modality, item));
-    const others = (near.length >= 3 ? shuffle(near) : [...shuffle(near), ...shuffle(pool.filter((b) => !near.includes(b)))]).slice(0, 3);
-    const options = shuffle([item, ...others]);
+    // Look-alikes: same sub-group first (the rest of what this level sees only when that runs out).
+    const { options, labels, answer } = optionsFor(modality, item, all);
     return {
       item: item.id,
       image: row ? `/api/practice/image/${row.id}` : null,
       ecg: row ? null : item.ecg!,
-      options: options.map((o) => o.label),
-      answer: options.indexOf(item),
+      options: labels,
+      answer,
       key: item.key,
       keys: options.map((o) => o.key),
       credit: row?.credit ? (JSON.parse(row.credit) as Credit) : null,

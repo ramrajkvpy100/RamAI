@@ -66,10 +66,10 @@ describe("what doesn't count", () => {
     expect(r.steps[2]!.delta).toBeGreaterThan(0);
   });
 
-  it("a duel waits for the opponent, then moves by the exchange", () => {
+  it("a duel is rated solo against the case; one settled the old way keeps what it settled", () => {
     const pending = replayRating([played({ duelId: "d1", score: 100 })]);
-    expect(pending.rating).toBe(1200);
-    expect(pending.steps[0]!.unrated).toBe("duel-pending");
+    expect(pending.rating).toBeGreaterThan(1200);
+    expect(pending.steps[0]!.unrated).toBeUndefined();
     expect(replayRating([played({ duelId: "d1", score: 100, ratingBonus: 20 })]).rating).toBe(1220);
     const [a, b] = duelDeltas(1500, 1500, 1, 50, 50);
     expect(a).toBe(12);

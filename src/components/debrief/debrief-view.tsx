@@ -11,6 +11,7 @@ import { ShareSheet } from "@/components/share/share-sheet";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Sheet } from "@/components/ui/sheet";
 import { CaseFeedback, ReportCase } from "@/components/case/case-feedback";
+import { ChallengeCard } from "@/components/duel/challenge-card";
 import { DuelCard } from "@/components/duel/duel-card";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Badge, Label } from "@/components/ui/primitives";
@@ -268,6 +269,7 @@ export function DebriefView({
       <CaseTopBar state={state} complete />
       <main className="selectable mx-auto w-full max-w-5xl px-4 pt-10 pb-32 sm:px-6 sm:pt-14">
         {state.duel && <DuelCard id={state.duel} className="mb-6" />}
+        {!state.duel && !d.guided && !d.learning && <ChallengeCard token={session.token} score={d.score.total} className="mb-6" />}
         {/* Header ------------------------------------------------------- */}
         <section className="animate-rise">
           <Label>Case complete</Label>

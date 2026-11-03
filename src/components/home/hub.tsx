@@ -13,6 +13,8 @@ import { nextRank, rankFor, rankProgress } from "@/engine/progression";
 import { hydrate, useCase } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
 import { dailyKeyFor, dailyNumber } from "@/lib/daily";
+import { CountIn } from "@/components/ui/motion-kit";
+import { AppCard } from "./app-card";
 import { useMe, type Me } from "@/lib/me-store";
 
 import { CompetenceRings } from "./competence-rings";
@@ -142,7 +144,7 @@ export function Hub({ initial }: { initial: Me }) {
           <GoalRing value={p.dailyXp} goal={p.dailyGoal} size={44} stroke={5} />
           <div className="min-w-0">
             <div className="text-[20px] leading-6 font-bold">
-              {p.dailyXp}
+              <CountIn value={p.dailyXp} />
               <span className="text-[13px] font-normal text-fg-2">/{p.dailyGoal}</span>
             </div>
             <div className="text-[12.5px] text-fg-2">{goalMet ? "goal met 🎉" : "XP today"}</div>
@@ -182,6 +184,8 @@ export function Hub({ initial }: { initial: Me }) {
           ))}
         </div>
       </section>
+
+      <AppCard guest={me.user.isGuest} />
 
       {/* The daily case — last on the page */}
       <Link href="/cases" className="panel group relative flex items-center gap-4 overflow-hidden p-4 sm:p-5">

@@ -16,7 +16,10 @@ import { ShareSheet } from "@/components/share/share-sheet";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { ProgressBar, EmptyState } from "@/components/ui/primitives";
 import { levelMeta, trackLabel } from "@/engine/levels";
+import { CredentialCard } from "@/components/progress/credential-card";
 import { RatingCard } from "@/components/progress/rating-card";
+import { CountIn } from "@/components/ui/motion-kit";
+import { ReminderCard } from "./reminder-card";
 import { BADGE_LIST, nextRank, RANKS, rankFor, rankProgress } from "@/engine/progression";
 import { NotInAndroidApp } from "@/components/app/android-app";
 import { cn } from "@/lib/cn";
@@ -45,7 +48,7 @@ function Stat({ icon, value, label }: { icon: React.ReactNode; value: string | n
   return (
     <div className="panel flex flex-col gap-2 p-4">
       <div className="flex h-8 w-8 items-center justify-center">{icon}</div>
-      <div className="text-[22px] leading-none font-semibold tracking-[-0.02em] tabular">{value}</div>
+      <div className="text-[22px] leading-none font-semibold tracking-[-0.02em] tabular">{typeof value === "number" || typeof value === "string" ? <CountIn value={value} /> : value}</div>
       <div className="text-[12.5px] text-fg-2">{label}</div>
     </div>
   );
@@ -112,7 +115,7 @@ export function Profile({ initial }: { initial: Me }) {
             <div className="text-[15px] font-semibold">{rank.label}</div>
             <ProgressBar value={rankProgress(p.rating)} className="mt-2 h-1.5" label="Progress to next rank" />
             <div className="mt-1.5 text-[12px] text-fg-2 tabular">
-              Rating {p.rating}
+              Rating <CountIn value={p.rating} />
               {next ? ` · ${next.minRating - p.rating} to ${next.label}` : " · highest rank"}
               {` · Recent form ${p.percent.toFixed(0)}%`}
             </div>
@@ -121,6 +124,8 @@ export function Profile({ initial }: { initial: Me }) {
       </section>
 
       <RatingCard />
+      <CredentialCard />
+      <ReminderCard />
 
       <div className="-mt-1 flex justify-end">
         <button type="button" onClick={() => setSharing(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-[13.5px] font-semibold ring-1 ring-line transition-colors hover:bg-surface-3">

@@ -1,12 +1,13 @@
 "use client";
 
+import { FillBar } from "@/components/ui/motion-kit";
 import { Badge } from "@/components/ui/primitives";
 import type { CaseScore } from "@/engine/types";
 import { cn } from "@/lib/cn";
 import { useCountUp } from "@/lib/use-count-up";
 
 export function ScoreRing({ score, size = 128 }: { score: number; size?: number }) {
-  const value = useCountUp(score, 1200, 250);
+  const value = useCountUp(score, 800, 200);
   const r = (size - 10) / 2;
   const c = 2 * Math.PI * r;
   const tone = score >= 75 ? "var(--success)" : score >= 50 ? "var(--accent)" : score >= 35 ? "var(--warning)" : "var(--danger)";
@@ -30,7 +31,7 @@ export function ScoreBreakdown({ score }: { score: CaseScore }) {
   return (
     <div className="flex flex-col gap-5">
       <ul className="flex flex-col gap-3">
-        {score.lines.map((l) => {
+        {score.lines.map((l, lineIndex) => {
           const pct = l.max ? l.earned / l.max : 0;
           return (
             <li key={l.category} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
@@ -39,10 +40,7 @@ export function ScoreBreakdown({ score }: { score: CaseScore }) {
                 <span className="text-fg">{Number.isInteger(l.earned) ? l.earned : l.earned.toFixed(1)}</span> / {l.max}
               </span>
               <div className="col-span-2 h-1 overflow-hidden rounded-full bg-surface-3">
-                <div
-                  className={cn("h-full rounded-full transition-[width] duration-1000 ease-out", pct >= 0.75 ? "bg-success" : pct >= 0.5 ? "bg-accent" : pct >= 0.3 ? "bg-warning" : "bg-danger")}
-                  style={{ width: `${pct * 100}%` }}
-                />
+                <FillBar value={pct} delay={0.1 + lineIndex * 0.07} className={cn(pct >= 0.75 ? "bg-success" : pct >= 0.5 ? "bg-accent" : pct >= 0.3 ? "bg-warning" : "bg-danger")} />
               </div>
               {l.notes.length > 0 && <p className="col-span-2 text-[12px] leading-5 text-fg-2">{l.notes.join(" · ")}</p>}
             </li>

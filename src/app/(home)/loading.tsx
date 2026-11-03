@@ -12,14 +12,14 @@ export default function Loading() {
       <header className="material-bar sticky top-0 z-40 border-b border-[var(--material-stroke)]">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center px-4 sm:px-6">
           <Wordmark />
-          <span className="ml-auto h-8 w-8 animate-pulse rounded-full bg-surface-3" />
+          <span className="ml-auto h-8 w-8 skeleton rounded-full" />
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 pt-6 pb-8 sm:px-6 sm:pt-8">
-        <div className="h-[220px] animate-pulse rounded-[22px] bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]" />
+        <div className="h-[220px] skeleton rounded-[22px]" />
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="h-40 animate-pulse rounded-[22px] bg-[color-mix(in_srgb,var(--fg)_5%,transparent)]" />
-          <div className="h-40 animate-pulse rounded-[22px] bg-[color-mix(in_srgb,var(--fg)_5%,transparent)]" />
+          <div className="h-40 skeleton rounded-[22px]" />
+          <div className="h-40 skeleton rounded-[22px]" />
         </div>
       </main>
     </div>

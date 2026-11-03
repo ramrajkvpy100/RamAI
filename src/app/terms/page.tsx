@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { A, Email, LegalPage, List, Section } from "@/components/legal/legal-page";
 import { PublicPage } from "@/components/shell/public-page";
-import { PERIODS, PLANS, priceList } from "@/lib/plans";
+import { PERIODS, FREE_DAILY_CASES, priceList } from "@/lib/plans";
 import { operator } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Terms & conditions", description: "The terms for using RamAI, including accounts, Pro plans and acceptable use." };
@@ -53,7 +53,7 @@ export default function TermsPage() {
         <Section title="5. Plans and payments">
           <List>
             <li>
-              <b className="text-fg">Free:</b> {PLANS.free.dailyCases} cases a day on the first three care levels.
+              <b className="text-fg">Free:</b> {FREE_DAILY_CASES} rated cases a day, plus the daily case.
             </li>
             <li>
               <b className="text-fg">Pro:</b> unlimited cases at every level — {priceList("yearly")} for {PERIODS.yearly.days} days, or {priceList("monthly")} for {PERIODS.monthly.days} days.

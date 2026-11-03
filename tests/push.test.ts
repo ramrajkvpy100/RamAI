@@ -159,7 +159,7 @@ describe("the evening reminder", () => {
 
   it("puts a streak about to break first, and never mentions the case", () => {
     const now = Date.parse("2026-10-20T13:30:00Z");
-    expect(reminderFor(6, "2026-10-20", now)).toMatchObject({ title: "🔥 6 days strong", body: expect.stringMatching(/5 hours left/), url: "/" });
+    expect(reminderFor(6, "2026-10-20", now)).toMatchObject({ title: "🔥 6 days strong", body: expect.stringMatching(/5 hours left/), url: "/cases?daily=1" });
     expect(reminderFor(0, "2026-10-20", now).title).toBe("🧠 Sharpen up — one case");
     expect(reminderFor(1, "2026-10-20", Date.parse("2026-10-20T17:50:00Z"))).toMatchObject({ title: "🔥 1 day strong", body: expect.stringMatching(/1 hour left/) });
     expect(reminderFor(3, "2026-10-20", Date.parse("2026-10-20T04:30:00Z")).title).toBe("🔥 Day 4 is waiting");

@@ -49,7 +49,7 @@ describe("spoken shorthand", () => {
   it("answers a question in several parts in one reply", async () => {
     const { state } = await converse(C("surg-cholecystitis"), ["Where is the pain, does it radiate, and when did it start?", "Any diabetes, hypertension, or asthma?"]);
     expect(said(state)).toMatch(/shoulder blade/);
-    expect(said(state)).toMatch(/No sugar, BP or asthma/);
+    expect(said(state)).toMatch(/I don't have sugar, high BP or asthma/);
   });
 });
 

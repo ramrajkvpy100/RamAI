@@ -1,6 +1,6 @@
 /**
- * Duels: two doctors, one patient. The same case (its source) is played by each on their own; the
- * scores are compared. The second player is a friend with the link, whoever is looking for a game,
+ * Duels: two doctors, one patient. The same case (its source) is played by each on their own, hours apart if they like; the
+ * scores are compared (the rating stays each doctor against the case). The second player is a friend with the link, whoever is looking for a game,
  * or the computer — an expert's steady score.
  */
 import "server-only";
@@ -9,10 +9,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import type { CaseSource } from "@/engine/providers/types";
 
-import { duelDeltas } from "@/engine/rating";
-
 import { db } from "./db";
-import { progressFor } from "./progress";
 
 export type DuelMode = "invite" | "find" | "computer";
 
@@ -62,32 +59,9 @@ export async function findOpenDuel(guest: { id: string; name: string }): Promise
   return null;
 }
 
-export async function recordDuelScore(id: string, userId: string, score: number): Promise<number | undefined> {
+export async function recordDuelScore(id: string, userId: string, score: number): Promise<void> {
   await db.run("UPDATE duels SET host_score = ? WHERE id = ? AND host_id = ? AND host_score IS NULL", score, id, userId);
   await db.run("UPDATE duels SET guest_score = ? WHERE id = ? AND guest_id = ? AND guest_score IS NULL", score, id, userId);
-  return settleDuel(id, userId);
-}
-
-/** A friend or a stranger, not the computer: the two doctors' ratings are at stake against each other. */
-export async function isHeadToHead(id: string): Promise<boolean> {
-  return (await db.get<{ mode: string }>("SELECT mode FROM duels WHERE id = ?", id))?.mode !== "computer";
-}
-
-/** Once both have played: the higher score wins (the quicker on a tie), and the ratings exchange. What this doctor gained or lost, once settled. */
-async function settleDuel(id: string, userId: string): Promise<number | undefined> {
-  const row = await db.get<Row & { settled: number | null }>("SELECT * FROM duels WHERE id = ?", id);
-  if (!row || row.mode === "computer" || !row.guest_id || row.host_score === null || row.guest_score === null || row.settled) return undefined;
-  const took = await db.run("UPDATE duels SET settled = 1 WHERE id = ? AND settled IS NULL", id);
-  if (!took.changes) return undefined;
-  const times = await db.all<{ user_id: string; elapsed_min: number | null }>("SELECT user_id, elapsed_min FROM results WHERE duel_id = ?", id);
-  const minutes = (who: string) => times.find((t) => t.user_id === who)?.elapsed_min ?? Infinity;
-  const hostTime = minutes(row.host_id), guestTime = minutes(row.guest_id);
-  const result: 0 | 0.5 | 1 = row.host_score !== row.guest_score ? (row.host_score > row.guest_score ? 1 : 0) : hostTime === guestTime ? 0.5 : hostTime < guestTime ? 1 : 0;
-  const [host, guest] = await Promise.all([progressFor(row.host_id), progressFor(row.guest_id)]);
-  const [hostDelta, guestDelta] = duelDeltas(host.rating, guest.rating, result, host.ratedCases ?? 0, guest.ratedCases ?? 0);
-  await db.run("UPDATE results SET rating_bonus = ? WHERE duel_id = ? AND user_id = ?", hostDelta, id, row.host_id);
-  await db.run("UPDATE results SET rating_bonus = ? WHERE duel_id = ? AND user_id = ?", guestDelta, id, row.guest_id);
-  return userId === row.host_id ? hostDelta : guestDelta;
 }
 
 /** The computer's score for a case: an expert's, steady but not perfect (68–92). */
@@ -112,9 +86,16 @@ export async function duelView(id: string, userId: string): Promise<DuelView | n
   return { id, mode: row.mode, you, them, waiting: !them };
 }
 
-/** What an invite link shows before joining: who's asking. */
-export async function duelInvite(id: string): Promise<{ host: string; open: boolean } | null> {
+/** What an invite link shows before joining: who's asking, and the score to beat if they've played. */
+export async function duelInvite(id: string): Promise<{ host: string; open: boolean; hostScore: number | null; hostId: string; guestId: string | null } | null> {
   const row = await db.get<Row>("SELECT * FROM duels WHERE id = ?", id);
   if (!row || row.mode === "computer") return null;
-  return { host: row.host_name, open: !row.guest_id };
+  return { host: row.host_name, open: !row.guest_id, hostScore: row.host_score, hostId: row.host_id, guestId: row.guest_id };
+}
+
+/** "Beat this score": a case just played becomes a challenge — the same patient, whenever the colleague opens the link. */
+export async function createChallenge(host: { id: string; name: string }, src: CaseSource, score: number): Promise<string> {
+  const id = newDuelId();
+  await db.run("INSERT INTO duels (id, src, mode, host_id, host_name, host_score, created_at) VALUES (?, ?, 'invite', ?, ?, ?, ?)", id, JSON.stringify(src), host.id, host.name, score, Date.now());
+  return id;
 }

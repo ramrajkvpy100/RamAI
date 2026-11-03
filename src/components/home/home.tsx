@@ -103,7 +103,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
     window.addEventListener(TOUR_EVENT, ask);
     window.addEventListener(SPECIALTY_EVENT, specialty);
     const url = new URL(window.location.href);
-    for (const [param, open] of [["tour", ask], ["specialty", specialty]] as const) {
+    for (const [param, open] of [["tour", ask], ["specialty", specialty], ["daily", () => void launch({ daily: true })]] as const) {
       if (url.searchParams.get(param) !== "1") continue;
       url.searchParams.delete(param);
       window.history.replaceState(null, "", url.pathname + url.search + url.hash);
@@ -143,7 +143,7 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
       setPicker(false);
       setGate(
         me.user.isGuest
-          ? { code: "SIGNUP_REQUIRED", message: `That's your ${limit} free cases for today. Log in and go Pro for unlimited cases — or come back after midnight.` }
+          ? { code: "SIGNUP_REQUIRED", message: `That's your ${limit} free cases for today. Sign in with Google to save your Clinical Rating — or come back after midnight.` }
           : { code: "DAILY_LIMIT", message: "Go Pro for unlimited cases at every level." },
       );
       return;

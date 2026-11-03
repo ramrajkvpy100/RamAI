@@ -11,6 +11,7 @@ import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { mockProvider } from "@/engine/providers/mock";
 import { requireUser } from "@/server/auth";
 import { TRIAL, useCredit } from "@/server/credits";
+import { bumpMe } from "@/server/me";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
 import { requestDuel } from "@/server/nearby";
 import { bankCase, takeFromBank, takeLiveSlot, takeReady, type PoolChoice, prepareNext, unbankCase, waitForWriting } from "@/server/case-pool";
@@ -64,8 +65,8 @@ export async function POST(req: Request) {
       return apiError(402, "PRO_REQUIRED", "This level is part of RamAI Pro.");
     } else if (overLimit) {
       // Guests get a few real cases a day; accounts a free Pro trial; Pro is unlimited.
-      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's your ${limit} free cases for today. Sign up free for ${TRIAL} Pro cases — or come back after midnight.`);
-      return apiError(402, "DAILY_LIMIT", "Your free Pro cases are used up. Go Pro for unlimited cases at every level — or invite a friend for 10 more each.");
+      if (user.isGuest) return apiError(403, "SIGNUP_REQUIRED", `That's your ${limit} free cases for today. Sign in with Google to save your Clinical Rating and get ${TRIAL} Pro cases — or come back after midnight.`);
+      return apiError(402, "DAILY_LIMIT", "That's today's free cases. Invite a colleague for +2 cases a day and 3 days of Pro, or go Pro for unlimited cases.");
     }
     // Newcomers (guests, and anyone's first few cases) get an easy one — unless they picked something themselves.
     const picked = !!(body.specialty || body.track || body.level);
@@ -169,6 +170,7 @@ export async function POST(req: Request) {
       after(() => withUsage({ kind: "case-start" }, () => prepareNext(user.id, choice, { allowedLevels: plan.levels, exclude, lang: user.patientLang } as never)).then(() => undefined).catch((err) => console.warn("[ramai] the next patient wasn't written:", err instanceof Error ? err.message : err)));
     }
     console.info(timingLine("/api/cases", timing, ["auth", "facts", "lookup", "rules", "llm_primary", "llm_fallback"], Date.now() - began));
+    await bumpMe();
     if (host && duelId) await createDuel(duelId, host, { id: user.id, name: user.name || user.username || "Doctor" }, sessionInfo(session.token).src);
     // "Near me": the doctors chosen are asked to play the same patient.
     if (host === "invite" && duelId && body.invite?.length && !user.isGuest) await requestDuel(user, duelId, body.invite).catch(() => 0);

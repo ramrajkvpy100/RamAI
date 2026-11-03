@@ -14,6 +14,10 @@ import { nextRank, rankFor, rankProgress, RANKS } from "@/engine/progression";
 import { DAILY_BONUS, UNRATED_LABEL } from "@/engine/rating";
 import type { CaseRewards, PlayerProgress } from "@/engine/types";
 import { league } from "@/lib/leagues";
+import { m } from "motion/react";
+
+import { FillBar, ShimmerBurst } from "@/components/ui/motion-kit";
+import { cn } from "@/lib/cn";
 import { useCountUp } from "@/lib/use-count-up";
 
 import { Confetti } from "./confetti";
@@ -28,12 +32,16 @@ function Tile({ children, delay }: { children: React.ReactNode; delay: number })
 }
 
 /** The rating's move this case, like a contest result, and why. */
-function RatingChange({ rating: r }: { rating: NonNullable<CaseRewards["rating"]> }) {
+function RatingChange({ rating: r, promoted }: { rating: NonNullable<CaseRewards["rating"]>; promoted?: boolean }) {
   const next = nextRank(r.after);
   const rank = rankFor(r.after);
   const expected = Math.round(r.expected * 100);
+  // The rating counts from where it was to where it is, then the change pops in.
+  const moved = useCountUp(r.after - r.before, 900, 350);
+  const great = r.score >= 90 || promoted;
   return (
-    <div className="panel mb-3 animate-pop p-4 sm:p-5">
+    <div className="panel relative mb-3 animate-pop overflow-hidden p-4 sm:p-5">
+      {great && !r.unrated && <ShimmerBurst />}
       {r.unrated ? (
         <>
           <div className="text-[16px] font-semibold tabular">Rating: {r.after}</div>
@@ -42,7 +50,8 @@ function RatingChange({ rating: r }: { rating: NonNullable<CaseRewards["rating"]
       ) : (
         <>
           <div className="text-[18px] font-semibold tabular">
-            Rating: {r.before} → {r.after} <span className={r.delta >= 0 ? "text-success" : "text-warning"}>({r.delta >= 0 ? "+" : "−"}{Math.abs(r.delta)} {r.delta >= 0 ? "↑" : "↓"})</span>
+            Rating: {r.before} → <span className="tabular">{Math.round(r.before + moved)}</span>{" "}
+            <m.span initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 420, damping: 14, delay: 1.25 }} className={cn("inline-block rounded-full px-2 py-0.5 text-[15px]", r.delta >= 0 ? "bg-emerald-500/15 text-success shadow-[0_0_14px_rgb(16_185_129/0.45)]" : "bg-amber-500/15 text-warning")}>({r.delta >= 0 ? "+" : "−"}{Math.abs(r.delta)} {r.delta >= 0 ? "↑" : "↓"})</m.span>
           </div>
           <p className="mt-1.5 inline-block rounded-full bg-surface-2 px-3 py-1 text-[12px] text-fg-2 tabular">
             Case {r.caseRating} vs you {r.before} · Score {r.score}/100, expected about {expected}% performance{r.dailyBonus ? ` · Daily +${DAILY_BONUS}` : ""}
@@ -54,7 +63,7 @@ function RatingChange({ rating: r }: { rating: NonNullable<CaseRewards["rating"]
         <span className="text-fg-2 tabular">{next ? `${next.minRating - r.after} pts to ${next.label} (${next.minRating})` : "The highest rank"}</span>
       </div>
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
-        <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-400" style={{ width: `${Math.max(3, rankProgress(r.after) * 100)}%` }} />
+        <FillBar value={Math.max(0.03, rankProgress(r.after))} delay={0.5} className="bg-gradient-to-r from-indigo-500 to-sky-400" />
       </div>
     </div>
   );
@@ -79,7 +88,7 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
   const before = rewards?.weeklyPositionBefore;
   const climbed = position !== undefined && before !== undefined ? before - position : 0;
   const leagueName = league(rewards?.leagueTier ?? 0).label;
-  const celebrate = !!rewards && (score >= 80 || promoted || goalJustMet || rewards.newBadges.length > 0);
+  const celebrate = !!rewards && (score >= 80 || !!rewards.daily || promoted || goalJustMet || rewards.newBadges.length > 0);
   // A fanfare for a good case (once, when its rewards arrive); a streak chime when the streak grows.
   useEffect(() => {
     if (!rewards) return;
@@ -99,7 +108,7 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
       {celebrate && <Confetti seed={seed} />}
       {boxKey && prizes.length > 0 && <AchievementReveal prizes={prizes} storageKey={boxKey} />}
 
-      {rewards?.rating && <RatingChange rating={rewards.rating} />}
+      {rewards?.rating && <RatingChange rating={rewards.rating} promoted={promoted} />}
       {promoted && rewards && (
         <div className="ink mb-3 flex animate-pop items-center gap-4 rounded-2xl px-5 py-4">
           <span className="relative shrink-0">

@@ -22,6 +22,8 @@ import { liveClash, QT } from "./interactions";
 import { lumbarPuncture, runProcedure, type ProcedureContext } from "./procedures";
 import { diagnosisIn, statedReviewDays } from "./intent";
 import { reworded } from "./reword";
+import { spokenLine } from "./spoken";
+import { substituteFor, type Substitute } from "./therapeutic-classes";
 import { alignedPanel, compensated, creatinineClearance, criticalFlags, followLabs, fromVitals, LAB_PENDING, withTrend, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
@@ -102,6 +104,8 @@ export interface GivenDrug {
   appropriateness: Appropriateness;
   doseError: boolean;
   frequencyError: boolean;
+  /** Stands in for the drug the case names. */
+  substitute?: Substitute;
 }
 
 export interface ArmedHazard {
@@ -739,7 +743,9 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
       // (What acts within a minute, like adenosine, shows as soon as it's given.)
       // (An infection answers its treatment over hours, whatever the drug's own timing: the first signs at about three.)
       const antiInfective = !def.guided && fd && SLOW_RESPONSE.some((c) => fd.classes.includes(c));
-      const delay = antiInfective ? Math.max(180, acts) : acts <= 1 ? 0 : acts;
+      const onTime = antiInfective ? Math.max(180, acts) : acts <= 1 ? 0 : acts;
+      // A second-line drug works, a little more slowly.
+      const delay = drug?.substitute?.tier === "second-line" ? Math.round(onTime * 1.15) : onTime;
       events.push({
         at: givenAt + delay,
         order: 4,
@@ -752,9 +758,12 @@ function pendingEvents(def: ClinicalCaseDefinition, hidden: HiddenState, lib: Ma
           hidden.status = "improving";
           // Getting better never takes away oxygen saturation already gained (on oxygen, say).
           const sats = hidden.vitals.spo2;
+          const before = { ...hidden.vitals };
           settleVitals(hidden, def.patient.age);
           const response = def.onResponse;
           applyVitals(hidden, response?.vitals);
+          // A second-line drug gets most of the way there (about 87%), not all of it.
+          if (drug?.substitute?.tier === "second-line") partRecovery(hidden, before, 0.87);
           if (sats && parseFloat(hidden.vitals.spo2.value) < parseFloat(sats.value)) hidden.vitals.spo2 = sats;
           for (const [examId, finding] of Object.entries(response?.examFindings ?? {})) if (finding) hidden.examOverrides[examId] = finding;
           if (response?.patientSays) hidden.patientSays = response.patientSays;
@@ -1255,6 +1264,17 @@ function howDoYouFeel(def: ClinicalCaseDefinition, hidden: HiddenState): string 
 /* -------------------------------------------------------------------------- */
 /* Treatment quality (follow-up outcome & scoring)                             */
 /* -------------------------------------------------------------------------- */
+
+/** The monitor's numbers, only part of the way from where they were to where a full response takes them. */
+function partRecovery(hidden: HiddenState, before: HiddenState["vitals"], share: number) {
+  const mid = (a: number, b: number) => Math.round(a + (b - a) * share);
+  for (const key of ["hr", "rr", "spo2"] as const) {
+    const from = parseFloat(before[key]?.value ?? ""), to = parseFloat(hidden.vitals[key]?.value ?? "");
+    if (Number.isFinite(from) && Number.isFinite(to) && hidden.vitals[key]) hidden.vitals[key] = { ...hidden.vitals[key]!, value: String(mid(from, to)) };
+  }
+  const [s0, d0] = (before.bp?.value ?? "").split("/").map(Number), [s1, d1] = (hidden.vitals.bp?.value ?? "").split("/").map(Number);
+  if (s0 && d0 && s1 && d1 && hidden.vitals.bp) hidden.vitals.bp = { ...hidden.vitals.bp, value: `${mid(s0, s1)}/${mid(d0, d1)}` };
+}
 
 export type TreatmentQuality = "ideal" | "acceptable" | "harmful" | "untreated";
 
@@ -2451,7 +2471,7 @@ function contextualRisk(def: ClinicalCaseDefinition, hidden: HiddenState, drug: 
   // A serious clash with something they're on: the nurse or pharmacist stops it.
   // (Not on the phone: a relative at home can't know this.)
   // (Not what this illness's standard treatment combines on purpose: aspirin with enoxaparin in an infarct.)
-  const clash = def.track === "phone" || findDrugRule(def, drug)?.appropriateness === "ideal" ? null : liveClash(drug.id, [...hidden.drugs.filter((d) => d.stoppedAt === undefined && (d.mode === "prescribed" || hidden.clock - d.at <= 1440)).map((d) => d.drugId), ...(def.profile?.currentDrugs ?? [])]);
+  const clash = def.track === "phone" || (findDrugRule(def, drug)?.appropriateness === "ideal" && !findDrugRule(def, drug)?.substitute) ? null : liveClash(drug.id, [...hidden.drugs.filter((d) => d.stoppedAt === undefined && (d.mode === "prescribed" || hidden.clock - d.at <= 1440)).map((d) => d.drugId), ...(def.profile?.currentDrugs ?? [])]);
   if (clash) return `${def.patient.sex === "Female" ? "She's" : def.patient.sex === "Male" ? "He's" : "They're"} on ${formularyDrug(clash.other)?.generic.toLowerCase() ?? clash.other} — ${clash.effect.charAt(0).toLowerCase()}${clash.effect.slice(1)}`;
   // A drug that can harm a baby, for a woman who could be pregnant: asked in any emergency (so it gives nothing away), and
   // wherever she truly is. In a clinic with nothing to suggest it, forgetting the test is left to the marks.
@@ -2489,7 +2509,9 @@ function findDrugRule(def: ClinicalCaseDefinition, drug: FormularyDrug, route?: 
   const local = (route === "TOP" || route === "OD-eye") && drug.route !== "TOP" && drug.route !== "OD-eye";
   return (
     drugRules.find((r) => r.drugIds?.includes(drug.id)) ??
-    (local ? undefined : drugRules.find((r) => r.drugClasses?.some((c) => drug.classes.includes(c as never))))
+    (local ? undefined : drugRules.find((r) => r.drugClasses?.some((c) => drug.classes.includes(c as never)))) ??
+    // Nothing in the case about this drug: an equivalent of one it does name is that treatment.
+    (local ? undefined : substituteFor(def, drug, route)?.rule)
   );
 }
 
@@ -2658,7 +2680,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     mode, route, dose, amount, unit, frequency, duration, volumeMl, multiple, overMin, benefit: fluid?.benefit,
     pressureLoad: drug.fluid && route === "IV" && mode === "given" && volumeMl ? pressureRise(volumeMl * volumeFactor(drug.id) - (fluid?.filledMl ?? 0), weightKg, overMin, def.patient.age) : undefined,
     authored: rule && def.rubric.definitiveTreatment?.ids.includes(rule.id) ? "all" : rule?.vitalsAfter?.flatMap((v): EffectKey[] => (v.key === "bp" ? ["sbp", "dbp"] : [v.key as EffectKey])),
-    ruleId: rule?.id, appropriateness, doseError, frequencyError,
+    ruleId: rule?.id, appropriateness, doseError, frequencyError, ...(rule?.substitute ? { substitute: rule.substitute } : {}),
   };
   hidden.drugs.push(given);
   record(hidden, `drug:${drug.id}`);
@@ -4108,6 +4130,7 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   }
   // Several questions in one breath get one answer: the same person's replies run together.
   const partsSaid: string[] = [];
+  const answersIn = new Map<TurnEffect, string[]>();
   if (record.intents.filter((i) => i.kind === "history").length > 1) {
     const parts: TurnEffect[] = [];
     let speaker: Extract<TurnEffect, { type: "message" }> | undefined;
@@ -4118,7 +4141,10 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
       if (speaks && speaker?.role === e.role) {
         if (!parts.includes(speaker)) { partsSaid.push(speaker.text); parts.push(speaker); }
         partsSaid.push(e.text);
-        if (!speaker.text.includes(e.text)) speaker.text = `${speaker.text} ${e.text}`;
+        if (!speaker.text.includes(e.text)) {
+          answersIn.set(speaker, [...(answersIn.get(speaker) ?? [speaker.text]), e.text]);
+          speaker.text = `${speaker.text} ${e.text}`;
+        }
         fx.splice(i--, 1);
       } else speaker = speaks ? e : undefined;
     }
@@ -4147,6 +4173,21 @@ export function runTurn(def: ClinicalCaseDefinition, hidden: HiddenState, record
   }
   // What was said inside a joined answer has been said too.
   for (const part of partsSaid) hidden.said[part] = (hidden.said[part] ?? 0) + 1;
+  // Out loud: in sentences, and the way they are right now. (The written line is kept for the Hinglish table.)
+  if (!def.guided && !hidden.code?.active) {
+    const now = vitalsNow(hidden);
+    const number = (v: string | undefined) => { const n = parseFloat(v ?? ""); return Number.isFinite(n) ? n : undefined; };
+    const awake = (number(now.gcs?.value) ?? 15) > 10;
+    for (const e of kept) {
+      if (e.type !== "message" || e.kind !== "speech" || e.media || (e.role !== "patient" && e.role !== "attendant")) continue;
+      const relative = e.role === "attendant";
+      if (!relative && !awake) continue;
+      const parts = answersIn.get(e);
+      e.plain = e.text;
+      // (Said again, the opener in front belongs to the whole answer, so it isn't split.)
+      e.text = spokenLine(parts && parts.join(" ") === e.text ? parts : [e.text], { spo2: number(now.spo2?.value), rr: number(now.rr?.value), pain: number(now.pain?.value), age: def.patient.age, relative, sex: def.patient.sex, aboutThem: (t) => aboutThem(t, def.patient.sex) });
+    }
+  }
   return kept;
 }
 

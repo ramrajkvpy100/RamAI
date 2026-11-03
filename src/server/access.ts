@@ -20,13 +20,16 @@ const LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const owners = () => (process.env.RAMAI_ADMIN_EMAILS ?? SITE.ownerAccounts.join(",")).split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 /** Whether this account may use RamAI (and, if it came in with a pass, remembers it on the account). */
-export async function userAllowed(user: User, cookieValue?: string): Promise<boolean> {
+export async function userAllowed(user: User, cookieValue?: string, listed?: boolean): Promise<boolean> {
   if (!inviteOnly()) return true;
   const email = user.email.toLowerCase();
   if (owners().includes(email)) return true;
   if (!user.isGuest && user.createdAt < INVITES_SINCE) return true;
-  if (await db.get("SELECT 1 AS ok FROM access_users WHERE user_id = ?", user.id)) return true;
-  if (!user.isGuest && (await db.get("SELECT 1 AS ok FROM access_emails WHERE email = ?", email))) return true;
+  if (listed === true) return true;
+  if (listed === undefined) {
+    if (await db.get("SELECT 1 AS ok FROM access_users WHERE user_id = ?", user.id)) return true;
+    if (!user.isGuest && (await db.get("SELECT 1 AS ok FROM access_emails WHERE email = ?", email))) return true;
+  }
   if (await validAccessCookie(cookieValue)) {
     await db.run("INSERT OR IGNORE INTO access_users (user_id, via, at) VALUES (?, 'invite', ?)", user.id, Date.now());
     return true;

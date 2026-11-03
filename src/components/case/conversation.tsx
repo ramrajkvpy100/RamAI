@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityGlyph, activityOf } from "./activity";
 import { Rich } from "@/components/ui/rich-lines";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -397,10 +398,7 @@ export function Conversation({
                   </span>
                 )}
                 <span className="flex items-center gap-1.5 rounded-[18px] rounded-bl-[6px] border border-line bg-surface px-4 py-3 shadow-sm">
-                  <span className="sr-only">{asking ? "Waiting for the reply" : "Carrying out your orders"}</span>
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className="h-1.5 w-1.5 animate-[typing_1.2s_ease-in-out_infinite] rounded-full bg-fg-3" style={{ animationDelay: `${i * 0.18}s` }} />
-                  ))}
+                  <ActivityGlyph kind={activityOf(sendingInput)} />
                 </span>
               </div>
             </>

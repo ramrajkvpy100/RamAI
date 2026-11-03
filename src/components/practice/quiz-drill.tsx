@@ -9,6 +9,8 @@ import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
+import { m } from "motion/react";
+
 import { success, warn } from "@/lib/haptics";
 import type { QuizQuestion } from "@/lib/skills";
 
@@ -46,15 +48,26 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
         {q.options.map((o, n) => {
           const state = picked === null ? "idle" : n === q.answer ? "right" : n === picked ? "wrong" : "other";
           return (
-            <button key={o} type="button" disabled={picked !== null} onClick={() => { setPicked(n); if (n === q.answer) success(); else warn(); recordSkill(`quiz:${q.id}`, n === q.answer); if (n === q.answer) setScore((s) => s + 1); else setWrong((w) => [...w, q]); }} className={cn("min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "correct-pop border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}>
+            <m.button
+              key={o}
+              type="button"
+              disabled={picked !== null}
+              onClick={() => { setPicked(n); if (n === q.answer) success(); else warn(); recordSkill(`quiz:${q.id}`, n === q.answer); if (n === q.answer) setScore((s) => s + 1); else setWrong((w) => [...w, q]); }}
+              whileHover={picked === null ? { y: -2 } : undefined}
+              whileTap={picked === null ? { scale: 0.97 } : undefined}
+              animate={state === "right" ? { scale: [1, 1.03, 1] } : state === "wrong" ? { x: [0, -6, 6, -4, 4, 0] } : { scale: 1, x: 0 }}
+              transition={state === "right" || state === "wrong" ? { duration: 0.32 } : { type: "spring", stiffness: 500, damping: 30 }}
+              className={cn("relative min-h-12 rounded-xl border px-4 py-2.5 text-left text-[14.5px]", state === "right" ? "border-success bg-success-soft" : state === "wrong" ? "border-danger bg-danger-soft" : "border-line bg-surface hover:bg-surface-2", state === "other" && "opacity-60")}
+            >
               {o}
               <OptionPct stats={stats} option={o} />
-            </button>
+              {state === "right" && picked === n && <span aria-hidden className="float-up absolute -top-2 right-3 rounded-full bg-success px-2 py-0.5 text-[12px] font-semibold text-white">+1 🔥</span>}
+            </m.button>
           );
         })}
       </div>
       {picked !== null && (
-        <section className="selectable animate-enter rounded-xl border border-line p-4">
+        <m.section initial={{ opacity: 0, y: 10, height: 0 }} animate={{ opacity: 1, y: 0, height: "auto" }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="selectable overflow-hidden rounded-xl border border-line p-4">
           <div className={cn("text-[14px] font-semibold", picked === q.answer ? "text-success" : "text-danger")}>{picked === q.answer ? "Correct" : `Answer: ${q.options[q.answer]}`}</div>
           <CrowdBanner stats={stats} className="mt-2" />
           <div className="mt-2"><DeckSave stem={q.stem} options={q.options} answer={q.options[q.answer]!} explanation={q.explain} from={title} source="skills" wrong={picked !== q.answer} /></div>
@@ -68,7 +81,7 @@ export function QuizDrill({ make, title }: { make: () => QuizQuestion[]; title: 
             <ReportProblem compact target={{ area: "skills", ref: `${title} · ${q.stem.slice(0, 90)}`, details: `${q.stem}\n\nOptions: ${q.options.map((o, n) => `${n === q.answer ? "✓ " : ""}${o}`).join(" | ")}\n\nExplanation: ${q.explain}\nSource: ${q.source}` }} />
             <button type="button" onClick={() => { setPicked(null); if (i + 1 >= qs.length) success(); setI(i + 1); }} autoFocus className="h-10 rounded-full bg-accent px-5 text-[14px] font-semibold text-on-accent">{i + 1 < qs.length ? "Next" : "See your score"}</button>
           </div>
-        </section>
+        </m.section>
       )}
     </article>
   );

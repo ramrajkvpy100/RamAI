@@ -7,7 +7,7 @@ export default function SkillsPreview() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
     <div className="mx-auto max-w-4xl px-4">
-      <SkillsLab stats={[]} />
+      <SkillsLab />
     </div>
   );
 }

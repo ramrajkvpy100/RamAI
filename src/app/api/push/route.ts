@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { requireUser } from "@/server/auth";
 import { sendPush, vapidPublicKey } from "@/server/push";
-import { removeSubscription, saveSubscription, subscriptionProblem } from "@/server/reminders";
+import { DAILY_URL, removeSubscription, saveSubscription, subscriptionProblem } from "@/server/reminders";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 
 export const runtime = "nodejs";
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     if (problem) return apiError(400, "BAD_REQUEST", problem);
     await saveSubscription(user.id, sub, Date.now(), body.hour ?? 19);
     // A notification at once, so the doctor knows reminders really reach this phone (and we learn if they don't).
-    const sent = await sendPush(sub, { title: "✅ You're all set", body: `A gentle nudge at ${(((body.hour ?? 19) + 11) % 12) + 1} ${(body.hour ?? 19) < 12 ? "am" : "pm"} — only on days you haven't played.`, url: "/" }, 3600, "reminders-on")
+    const sent = await sendPush(sub, { title: "RamAI Clinical Reminders Active", body: "Tap to open today's case.", url: DAILY_URL }, 3600, "reminders-on")
       .then((outcome) => outcome === "sent")
       .catch((err) => {
         console.error("[ramai] test reminder failed:", err instanceof Error ? err.message : err);

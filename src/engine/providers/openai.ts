@@ -1101,7 +1101,51 @@ async function lookUpOrder(text: string, ctx: InterpretContext): Promise<{ corre
   return { reference };
 }
 
+/** Words that say nothing about what's being asked. */
+const CHAT_FILLER = new Set("about after again also any anything been being could does doing doctor feel feeling from have having help here home into just know like long make many more much must need really right should some something tell than that their them then there these they thing think this those time today very want well were what when where which while will with worried worry would your yours".split(" "));
+
+/**
+ * Plain conversation with the patient: an open question or a kind word, that the rules couldn't place and that touches
+ * nothing in the case file, the tests or the drugs. It needs a voice, not a reading of the whole case; anything else takes the full reading.
+ */
+function plainChat(text: string, ctx: InterpretContext, ruled: ResolvedIntent[]): boolean {
+  const t = text.trim();
+  if (ctx.def.guided || t.length > 160 || ruled.some((i) => i.kind !== "unknown") || ctx.hidden.pendingOrders?.length) return false;
+  if (ORDER_WORDS.test(t) || !/\?$|^(?:how|what|why|are you|do you|did you|is there|can you|tell me|don't worry|thank|sorry|good|hello|hi\b|namaste)/i.test(t)) return false;
+  const words = normalise(t).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !CHAT_FILLER.has(w));
+  const known = [
+    ...ctx.def.history.flatMap((h) => [h.id, h.label, ...(h.match ?? [])]),
+    ...ctx.def.exam.flatMap((e) => [e.id, e.label]),
+    ...INVESTIGATIONS.flatMap((i) => [i.id, i.name, ...i.match]),
+    ...MEASURES.flatMap((m) => [m.id, m.label, ...m.match]),
+    ...FORMULARY.flatMap((d) => [d.id, d.generic]),
+  ].join(" ").toLowerCase();
+  return !words.some((w) => known.includes(w));
+}
+
+/** The patient's voice alone, in a few hundred tokens: quick enough for conversation. Null when it can't be used. */
+async function patientVoice(text: string, ctx: InterpretContext): Promise<Interpretation | null> {
+  const def = ctx.def;
+  const relative = def.patient.age < 12;
+  try {
+    const raw = await chatJSON([
+      { role: "system", content: `You are ${relative ? "the parent of" : ""} a patient speaking to a doctor in an Indian clinic. Reply in one or two short, natural spoken sentences (${language(ctx.country, ctx.lang)}), warm and human. Say only what a patient feels and knows: no diagnosis, examination finding or test result, and no new symptoms or medical history. If asked something you wouldn't know, say so simply. JSON only: {"message":"..."}` },
+      { role: "user", content: `Patient: ${def.patient.age}-year-old ${def.patient.sex}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}, ${def.patient.city}.${def.persona ? ` Manner: ${def.persona}.` : ""}\nNow: ${stateNote(ctx).slice(0, 200)}\n${lastSaid(ctx).length ? `Already said (don't repeat): ${lastSaid(ctx).slice(-3).join(" | ").slice(0, 300)}\n` : ""}Doctor: """${text}"""` },
+    ], 120, false, 3000, true, true);
+    const message = typeof (raw as { message?: unknown })?.message === "string" ? (raw as { message: string }).message.trim() : "";
+    const roomSoFar = `${def.history.map((h) => h.reply).join(" ")} ${ctx.transcript.map((m) => m.text).join(" ")}`;
+    if (!message || leaksDiagnosis(def, message, roomSoFar)) return null;
+    return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: relative ? "attendant" : "patient", settled: true } }], generated: { "0": notRepeated(withoutFindings(message), lastSaid(ctx), ctx.transcript.length) } };
+  } catch {
+    return null;
+  }
+}
+
 async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[], reference = ""): Promise<Interpretation> {
+  if (!reference && plainChat(text, ctx, ruled)) {
+    const voice = await patientVoice(text, ctx);
+    if (voice) return voice;
+  }
   try {
     // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
     const guess = ruled.filter((i) => i.kind !== "unknown").map((i) => `${i.kind}${i.targetId ? `:${i.targetId}` : ""}${i.payload && Object.keys(i.payload).length ? ` ${JSON.stringify(i.payload)}` : ""}`).join("; ");
@@ -1466,9 +1510,10 @@ export function createOpenAIProvider(): ClinicalProvider {
       // No order is this long; the rules and the model read what's reasonable.
       const text = written.slice(0, 2000);
       // Rules first: instant and free. What they can't place, the model answers — in the guided demo too.
-      const rulesAt = Date.now();
+      const rulesAt = performance.now();
       const rules = await mockProvider.interpret(text, ctx);
-      noteTiming("rules", Date.now() - rulesAt);
+      // (Under a millisecond rounds to rules=0 in the logs: the rules still ran, and answered early.)
+      noteTiming("rules", performance.now() - rulesAt);
       // In a cardiac arrest the orders are read by rules alone: no waiting on a model.
       if (ctx.hidden.code?.active) return rules;
       // The senior's button and "Full history" are carried out exactly by the simulator — nothing to read.
@@ -1507,6 +1552,8 @@ export function createOpenAIProvider(): ClinicalProvider {
       const moreTests = !(placed && /,/.test(text)) && (testWords.length > ruled.filter((i) => i.kind === "investigation").length + 1 || (testWords.length === 2 && ruled.filter((i) => i.kind === "investigation").length === 1 && testWords.every((w) => w.length <= 6)));
       const unresolved = !ruled.some((i) => i.payload?.completes === true) && (partly || questionAsOrder || moreTests || ruled.some((i) => (i.kind === "unknown" && !i.payload?.empty) || (i.kind === "history" && i.targetId?.startsWith("fallback:"))));
       // What the rules placed goes straight back in the case's own words: instant, and nothing paid for.
+      // Why this turn needs the model: the shape of the message only, never its words.
+      if (unresolved) console.info(`[RULES_MISS] why=${[ruled.some((i) => i.kind === "unknown") ? "unplaced" : "", partly ? "partly" : "", questionAsOrder ? "question" : "", moreTests ? "more-tests" : ""].filter(Boolean).join("+") || "other"} placed=${ruled.filter((i) => i.kind !== "unknown").map((i) => i.kind).join(",") || "none"} words=${text.trim().split(/\s+/).length} q=${/\?\s*$/.test(text.trim()) ? 1 : 0} chat=${plainChat(text, ctx, ruled) ? 1 : 0}`);
       const reading: Promise<Interpretation> = unresolved ? understand(text, ctx, ruled, reference) : Promise.resolve({ intents: ruled });
       // The demo's results stay as written; elsewhere, what the case file left out is reported for this patient.
       if (ctx.def.guided) return reading;

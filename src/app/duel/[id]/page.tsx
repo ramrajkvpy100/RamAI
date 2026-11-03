@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { DuelCard } from "@/components/duel/duel-card";
 import { DuelInvite } from "@/components/duel/duel-invite";
 import { PublicPage } from "@/components/shell/public-page";
+import { getCurrentUser } from "@/server/auth";
 import { duelInvite } from "@/server/duels";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +21,10 @@ export default async function DuelPage({ params }: { params: Promise<{ id: strin
   if (!/^[a-f0-9]{12}$/.test(id)) notFound();
   const invite = await duelInvite(id).catch(() => null);
   if (!invite) notFound();
+  const user = await getCurrentUser().catch(() => null);
   return (
     <PublicPage>
-      <DuelInvite id={id} host={invite.host} open={invite.open} />
+      {user && (user.id === invite.hostId || user.id === invite.guestId) && !(invite.open && user.id !== invite.hostId) ? <DuelCard id={id} className="mx-auto mt-10 max-w-md" /> : <DuelInvite id={id} host={invite.host} open={invite.open} score={invite.hostScore} />}
     </PublicPage>
   );
 }

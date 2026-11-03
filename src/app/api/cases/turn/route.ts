@@ -3,8 +3,8 @@ import { sessionInfo, submitDoctorAction } from "@/engine/engine";
 import type { TeachingPack } from "@/engine/providers/types";
 import { getCaseAI } from "@/server/case-ai";
 import { requireUser } from "@/server/auth";
-import { RATING_FLOOR } from "@/engine/rating";
-import { isHeadToHead, recordDuelScore } from "@/server/duels";
+import { recordDuelScore } from "@/server/duels";
+import { bumpMe } from "@/server/me";
 import { recordCase } from "@/server/results";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { TurnSchema } from "@/lib/server/schemas";
@@ -31,16 +31,10 @@ export async function POST(req: Request) {
     console.info(timingLine("/api/cases/turn", timing, ["rebuild", "rules", "llm_primary", "llm_fallback"], Date.now() - began));
     if (res.debrief) {
       const info = sessionInfo(body.token);
-      const duel = info.duel && (await isHeadToHead(info.duel).catch(() => false)) ? info.duel : undefined;
-      res.rewards = await recordCase(user, info.sessionId, res.debrief, { daily: info.daily, state: res.state, duel });
-      if (info.duel) {
-        const won = await recordDuelScore(info.duel, user.id, res.debrief.score.total).catch(() => undefined);
-        // The second to finish settles it, and sees it at once.
-        if (won !== undefined && res.rewards.rating) {
-          const { unrated: _pending, ...rating } = res.rewards.rating;
-          res.rewards.rating = { ...rating, delta: won, after: Math.max(RATING_FLOOR, rating.before + won) };
-        }
-      }
+      // The rating is the doctor against the case, always: a duel's result is shown, not exchanged.
+      res.rewards = await recordCase(user, info.sessionId, res.debrief, { daily: info.daily, state: res.state });
+      if (info.duel) await recordDuelScore(info.duel, user.id, res.debrief.score.total).catch(() => undefined);
+      await bumpMe();
     }
     return ok(res);
   } catch (err) {

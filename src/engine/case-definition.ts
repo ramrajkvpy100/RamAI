@@ -18,6 +18,7 @@
  */
 
 import type { Country } from "./countries";
+import type { Substitute } from "./therapeutic-classes";
 import type {
   CareLevel,
   CareSetting,
@@ -164,6 +165,8 @@ export interface TherapeuticRule {
   critique?: DebriefMiss;
   /** Debrief strength line when this action was taken. */
   praise?: string;
+  /** Set when an equivalent drug stands in for the one the rule names (never authored in a case). */
+  substitute?: Substitute;
 }
 
 /* -------------------------------------------------------------------------- */

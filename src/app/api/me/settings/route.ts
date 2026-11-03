@@ -2,7 +2,7 @@ import type { Country } from "@/engine/countries";
 import type { PatientLang } from "@/engine/types";
 import { AuthError, requireUser, setCountry, setPatientLang, setGeo, setProfileDetails, setSpecialty } from "@/server/auth";
 import type { PreferredSpecialty } from "@/lib/specialty";
-import { meFor } from "@/server/me";
+import { bumpMe, meFor } from "@/server/me";
 import { crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
 import { SettingsSchema } from "@/lib/server/schemas";
 
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/me/settings — player preferences: patient language, country, their own specialty. */
 export async function POST(req: Request) {
+  await bumpMe();
   const blocked = crossSite(req) ?? rateLimited(req, 30);
   if (blocked) return blocked;
   const body = await parseBody(req, SettingsSchema);

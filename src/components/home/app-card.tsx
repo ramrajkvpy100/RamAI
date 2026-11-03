@@ -4,22 +4,25 @@ import { useEffect, useState } from "react";
 
 import { InstallSheet } from "@/components/app/install-sheet";
 import { Icon } from "@/components/ui/icon";
-import { enableReminders, promptInstall, reminderTime, useInstallRoute, useReminders } from "@/lib/app-install";
+import { nativeReminderOn, promptInstall, reminderTime, turnOnReminders, useInstallRoute, usesNativeReminder, useReminders } from "@/lib/app-install";
 
 const DISMISS_KEY = "ramai.appcard.dismissed";
-const QUIET_DAYS = 14;
+const QUIET_DAYS = 3;
 
 /**
- * Put RamAI on the home screen; after a first case, turn on the daily
- * reminder. "Not now" keeps it away for two weeks.
+ * Put RamAI on the home screen; turn on the daily reminder. "Not now" keeps it away for three days.
  */
-export function AppCard({ guest, played }: { guest: boolean; played: boolean }) {
+export function AppCard({ guest }: { guest: boolean; played?: boolean }) {
   const route = useInstallRoute();
   const reminder = useReminders();
   const [quiet, setQuiet] = useState(true);
   const [howTo, setHowTo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nativeOn, setNativeOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (usesNativeReminder()) setNativeOn(nativeReminderOn());
+  }, []);
 
   useEffect(() => {
     try {
@@ -36,7 +39,7 @@ export function AppCard({ guest, played }: { guest: boolean; played: boolean }) 
   };
 
   const install = route === "prompt" || route === "ios" || route === "mac-safari";
-  const remind = !guest && played && reminder === "off";
+  const remind = !guest && (nativeOn === null ? reminder === "off" : !nativeOn);
   if (quiet || (!install && !remind)) return null;
 
   const act = async () => {
@@ -48,7 +51,9 @@ export function AppCard({ guest, played }: { guest: boolean; played: boolean }) 
     }
     setBusy(true);
     try {
-      await enableReminders();
+      const now = await turnOnReminders();
+      if (now === "blocked") setError("Notifications are blocked for RamAI. Turn them on in your phone's settings, then try again.");
+      if (usesNativeReminder()) setNativeOn(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't turn it on. Please try again.");
     } finally {
@@ -63,12 +68,12 @@ export function AppCard({ guest, played }: { guest: boolean; played: boolean }) 
       </span>
       <div className="min-w-0 flex-1">
         <h2 id="app-card-heading" className="text-[15px] font-semibold">
-          {install ? "Get the RamAI app" : "Never lose your streak"}
+          {install ? "Get the RamAI app" : "Enable Clinical Reminders"}
         </h2>
         <p className="mt-0.5 text-[13px] leading-5 text-fg-2">
           {install
             ? "One tap from your home screen, full-screen, no app store needed."
-            : `A nudge at about ${reminderTime()} — only on days you haven't played yet.`}
+            : `Today's case, at about ${reminderTime()} — only on days you haven't played yet.`}
         </p>
         {error && (
           <p role="alert" className="mt-1 text-[12px] text-danger">

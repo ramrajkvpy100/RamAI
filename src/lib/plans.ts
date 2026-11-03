@@ -22,7 +22,7 @@ export const PLANS: Record<PlanId, Plan> = {
     // The free cases are a guest's (GUEST_DAILY_CASES); beyond them, an account with Pro.
     dailyCases: 0,
     levels: ["phc", "chc", "district"],
-    features: ["20 cases a day for invited doctors, every level", "The guided demo and the daily case", "Full debrief and score", "Your progress kept on every device"],
+    features: ["3 rated cases a day, plus the daily case", "Unlimited flashcard review", "The guided demo", "Full debrief and score", "Your progress kept on every device"],
   },
   pro: {
     id: "pro",
@@ -39,27 +39,40 @@ export const PLANS: Record<PlanId, Plan> = {
  */
 export const PRO_FOR_EVERYONE = process.env.NEXT_PUBLIC_RAMAI_PRO_FOR_EVERYONE === "1";
 
-/** Free, with no account: the demo, then this many real cases a day. More means logging in and going Pro. */
-export const GUEST_DAILY_CASES = 5;
+/** Free, with no account: the demo and the daily case, then this many real cases a day. More means signing in. */
+export const GUEST_DAILY_CASES = 2;
 
-/** Invited doctors (RamAI is invite-only): free cases a day, at every level. */
-export const INVITEE_DAILY_CASES = 20;
+/** A signed-in free doctor: rated cases a day, besides the daily case. */
+export const FREE_DAILY_CASES = 3;
+
+/** The colleague-invite ladder: what a doctor has unlocked by how many invited colleagues have signed in and finished a case. */
+export const INVITE_LADDER = [
+  { friends: 1, dailyCases: 2, proDays: 3, perk: "+2 cases a day for good, and 3 days of Pro" },
+  { friends: 3, dailyCases: 0, proDays: 14, perk: "14 days of Pro and your verified CV certificate" },
+  { friends: 5, dailyCases: 0, proDays: 30, perk: "30 days of Pro and the Clinical Fellow Mentor badge" },
+] as const;
+/** Colleagues who unlock the verified certificate, and the mentor badge. */
+export const CV_AT_FRIENDS = 3;
+export const MENTOR_AT_FRIENDS = 5;
+
+/** The cases a day this ladder step adds. */
+export const inviteBonusCases = (tier: number) => INVITE_LADDER.reduce((n, step) => (tier >= step.friends ? n + step.dailyCases : n), 0);
 
 /**
  * While RamAI is invite-only, every invited doctor plays every level free, with
- * INVITEE_DAILY_CASES cases a day (more with free Pro cases, or Pro). Off with NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS=0.
+ * FREE_DAILY_CASES cases a day (more with the invite ladder, free Pro cases, or Pro). Off with NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS=0.
  */
 export const INVITEES_ALL_LEVELS = process.env.NEXT_PUBLIC_RAMAI_INVITEES_ALL_LEVELS !== "0";
 
 /** The plan a player actually has: their own, or Pro while it's open to everyone (guests keep their daily allowance). */
-export function planFor(user: { plan: PlanId; isGuest: boolean }): Plan {
-  if (!PRO_FOR_EVERYONE) return user.plan === "free" && INVITEES_ALL_LEVELS ? { ...PLANS.free, levels: PLANS.pro.levels, dailyCases: user.isGuest ? GUEST_DAILY_CASES : INVITEE_DAILY_CASES } : PLANS[user.plan];
+export function planFor(user: { plan: PlanId; isGuest: boolean; inviteTier?: number }): Plan {
+  if (!PRO_FOR_EVERYONE) return user.plan === "free" && INVITEES_ALL_LEVELS ? { ...PLANS.free, levels: PLANS.pro.levels, dailyCases: user.isGuest ? GUEST_DAILY_CASES : FREE_DAILY_CASES + inviteBonusCases(user.inviteTier ?? 0) } : PLANS[user.plan];
   return user.isGuest ? { ...PLANS.pro, dailyCases: GUEST_DAILY_CASES } : PLANS.pro;
 }
 
 /** How many cases this player can start today (null = unlimited). The daily case and the demo don't count. */
-export const dailyLimitFor = (user: { plan: PlanId; isGuest: boolean }): number | null =>
-  PRO_FOR_EVERYONE || INVITEES_ALL_LEVELS ? planFor(user).dailyCases : user.isGuest ? GUEST_DAILY_CASES : PLANS[user.plan].dailyCases;
+export const dailyLimitFor = (user: { plan: PlanId; isGuest: boolean; inviteTier?: number }): number | null =>
+  PRO_FOR_EVERYONE || INVITEES_ALL_LEVELS ? planFor(user).dailyCases : user.isGuest ? GUEST_DAILY_CASES : user.plan === "pro" ? null : FREE_DAILY_CASES + inviteBonusCases(user.inviteTier ?? 0);
 
 /**
  * What Pro costs, in the currency of the country the doctor practises in

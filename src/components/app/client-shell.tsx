@@ -10,26 +10,32 @@ import { AppShell } from "./app-shell";
 const KEY = "ramai.me.v1";
 
 /**
- * The signed-in frame for pages that need nothing from the server: drawn at once from what this phone already knows
- * (the last account details, kept here), then refreshed. The server never waits on the database for these pages.
+ * The signed-in player, without the server waiting on the database: drawn at once from what this phone already knows
+ * (the last account details, kept here), then refreshed in the background. `signedOut` is where to go if the cookie
+ * turns out to be stale; null stays on the page.
  */
-export function ClientShell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
+export function useShellMe(signedOut: string | null): { me: Me | null; out: boolean } {
   const live = useMe();
-  const [kept, setKept] = useState<Me | null>(null);
+  const [out, setOut] = useState(false);
   useEffect(() => {
+    // Already known from the page before: no second read on the way in.
+    if (live) return;
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw && !live) setKept(JSON.parse(raw) as Me);
+      if (raw) primeMe(JSON.parse(raw) as Me);
     } catch {}
-    // Already known from the page before (the server sent it, or it was just read): no second read on the way in.
-    if (live) return;
     let off = false;
     fetch("/api/me", { cache: "no-store" })
       .then(async (r) => {
         if (off) return;
         if (r.status === 401) {
           try { localStorage.removeItem(KEY); } catch {}
-          window.location.href = `/login?next=${encodeURIComponent(location.pathname)}`;
+          if (signedOut) window.location.replace(signedOut);
+          else setOut(true);
+          return;
+        }
+        if (r.status === 403) {
+          window.location.replace("/invite?need=1");
           return;
         }
         if (!r.ok) return;
@@ -41,7 +47,13 @@ export function ClientShell({ children, wide = false }: { children: ReactNode; w
     return () => { off = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const me = live ?? kept;
+  return { me: live, out };
+}
+
+/** The signed-in frame, for pages whose server waits on nothing. `publicPage`: a stale sign-in just shows the page without the frame. */
+export function ClientShell({ children, wide = false, signedOut, publicPage = false }: { children: ReactNode; wide?: boolean; signedOut?: string; publicPage?: boolean }) {
+  const { me, out } = useShellMe(publicPage ? null : (signedOut ?? (typeof window === "undefined" ? "/login" : `/login?next=${encodeURIComponent(location.pathname)}`)));
+  if (out) return <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 pb-16 sm:px-6">{children}</main>;
   if (!me) return <PageLoading />;
   return <AppShell me={me} wide={wide}>{children}</AppShell>;
 }

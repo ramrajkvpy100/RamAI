@@ -4,13 +4,8 @@ import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
-import { changeRemindHour, disableReminders, enableReminders, hourLabel, promptInstall, remindHour, setRemindHour, useInstallRoute, useReminders } from "@/lib/app-install";
-import { androidAppVersion } from "@/lib/in-app";
+import { changeRemindHour, disableReminders, enableReminders, hourLabel, nativeReminderOn, promptInstall, remindHour, setNativeReminder, setRemindHour, useInstallRoute, usesNativeReminder, useReminders } from "@/lib/app-install";
 import { toast } from "@/lib/toast";
-
-/** The Android app from 1.7.0 keeps the reminder itself (ramai://remind): no web push, so it works on every phone. */
-const NATIVE_KEY = "ramai.remind.native";
-const nativeRemind = (q: string) => void (window.location.href = `intent://remind?${q}#Intent;scheme=ramai;package=com.ramai.app;end`);
 
 import { InstallSheet } from "./install-sheet";
 
@@ -37,8 +32,7 @@ export function AppOptions({ guest, onNavigate }: { guest: boolean; onNavigate?:
   const web = useReminders();
   const [native, setNative] = useState<"on" | "off" | null>(null);
   useEffect(() => {
-    if (androidAppVersion() < 10) return;
-    try { setNative(localStorage.getItem(NATIVE_KEY) === "on" ? "on" : "off"); } catch { setNative("off"); }
+    if (usesNativeReminder()) setNative(nativeReminderOn() ? "on" : "off");
   }, []);
   const reminder = native ?? web;
   const [howTo, setHowTo] = useState(false);
@@ -53,10 +47,7 @@ export function AppOptions({ guest, onNavigate }: { guest: boolean; onNavigate?:
   };
   const toggle = async (on: boolean) => {
     if (native) {
-      // Web push off too, so the reminder never comes twice.
-      if (on && web === "on") await disableReminders().catch(() => undefined);
-      nativeRemind(on ? `hour=${remindHour()}` : "off=1");
-      try { localStorage.setItem(NATIVE_KEY, on ? "on" : "off"); } catch {}
+      await setNativeReminder(on);
       setNative(on ? "on" : "off");
       if (on) toast(`Daily reminder on — every day at ${hourLabel(remindHour())}`);
       return;
@@ -109,7 +100,7 @@ export function AppOptions({ guest, onNavigate }: { guest: boolean; onNavigate?:
                   setHour(h);
                   if (native) {
                     setRemindHour(h);
-                    if (native === "on") { nativeRemind(`hour=${h}`); toast(`Reminder moved to ${hourLabel(h)}`); }
+                    if (native === "on") { void setNativeReminder(true); toast(`Reminder moved to ${hourLabel(h)}`); }
                     return;
                   }
                   void changeRemindHour(h).then(() => reminder === "on" && toast(`Reminder moved to ${hourLabel(h)}`)).catch(() => toast("Couldn't change the time — try again", { tone: "danger" }));

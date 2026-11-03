@@ -1,5 +1,6 @@
 "use client";
 
+import { m } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { useMe } from "@/lib/me-store";
@@ -9,10 +10,12 @@ export function RatingLine({ points, className }: { points: readonly number[]; c
   if (points.length < 2) return null;
   const lo = Math.min(...points), hi = Math.max(...points);
   const span = Math.max(20, hi - lo);
+  const tipY = 26 - ((points.at(-1)! - lo) / span) * 24;
   const line = points.map((p, i) => `${((i / (points.length - 1)) * 100).toFixed(2)},${(26 - ((p - lo) / span) * 24).toFixed(2)}`).join(" ");
   return (
     <svg viewBox="0 0 100 28" preserveAspectRatio="none" className={className} role="img" aria-label={`Rating over the last ${points.length} rated cases, from ${points[0]} to ${points.at(-1)}`}>
-      <polyline points={line} fill="none" stroke="currentColor" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" className="text-sky-500" />
+      <m.polyline points={line} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: "easeOut" }} fill="none" stroke="currentColor" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" className="text-sky-500" />
+      <m.circle cx={100} cy={tipY} r="1.6" initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.85, type: "spring", stiffness: 420, damping: 14 }} fill="currentColor" style={{ filter: "drop-shadow(0 0 3px currentColor)" }} />
     </svg>
   );
 }

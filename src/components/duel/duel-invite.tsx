@@ -3,13 +3,13 @@
 import { useLauncher } from "@/components/home/use-launcher";
 
 /** "Dr X challenges you": one tap plays the same patient. */
-export function DuelInvite({ id, host, open }: { id: string; host: string; open: boolean }) {
+export function DuelInvite({ id, host, open, score }: { id: string; host: string; open: boolean; score?: number | null }) {
   const { launch, starting, error } = useLauncher();
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 py-16 text-center">
       <div className="text-[44px]" aria-hidden>⚔️</div>
       <h1 className="text-[26px] font-bold tracking-[-0.02em]">Dr. {host} challenges you</h1>
-      <p className="text-[15px] leading-7 text-fg-2">Same patient, two doctors. Play the case your way — when you both finish, you'll see who scored higher.</p>
+      <p className="text-[15px] leading-7 text-fg-2">{typeof score === "number" ? <>This exact patient: they scored <b className="text-fg">{score}/100</b>. Play it whenever you like and see if you can beat it.</> : "Same patient, two doctors. Play the case your way — when you both finish, you'll see who scored higher."}</p>
       {open ? (
         <button type="button" disabled={starting} onClick={() => void launch({ duel: id })} className="mt-2 h-12 rounded-full bg-accent px-7 text-[15px] font-semibold text-on-accent shadow-glow disabled:opacity-70">
           {starting ? "Getting the patient ready…" : "Accept and play"}

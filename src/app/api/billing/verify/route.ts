@@ -1,3 +1,4 @@
+import { bumpMe } from "@/server/me";
 import { requireUser } from "@/server/auth";
 import { BillingError, verifyPayment } from "@/server/billing";
 import { apiError, crossSite, handleError, ok, parseBody, rateLimited } from "@/lib/server/http";
@@ -7,6 +8,7 @@ export const runtime = "nodejs";
 
 /** POST /api/billing/verify — checks Razorpay's signature and the payment itself, then activates Pro. */
 export async function POST(req: Request) {
+  await bumpMe();
   const blocked = crossSite(req) ?? rateLimited(req, 20);
   if (blocked) return blocked;
   const body = await parseBody(req, VerifySchema);

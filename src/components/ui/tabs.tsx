@@ -2,6 +2,7 @@
 
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
 
+import { SlidingPill } from "@/components/ui/motion-kit";
 import { cn } from "@/lib/cn";
 
 export interface TabItem<T extends string> {
@@ -57,10 +58,11 @@ export function Tabs<T extends string>({
             onClick={() => onChange(item.id)}
             onKeyDown={(e) => onKey(e, i)}
             className={cn(
-              "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-[7px] px-2 text-ui font-medium transition-[background-color,color,box-shadow] duration-150",
-              selected ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg",
+              "relative isolate flex h-7 flex-1 items-center justify-center gap-1.5 rounded-[7px] px-2 text-ui font-medium transition-colors duration-150",
+              selected ? "text-fg" : "text-fg-2 hover:text-fg",
             )}
           >
+            {selected && <SlidingPill id={`tabs-${idPrefix}`} className="rounded-[7px] bg-surface shadow-sm" />}
             {item.label}
             {item.badge}
           </button>

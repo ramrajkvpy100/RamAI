@@ -20,6 +20,8 @@ const MAX_FAILURES = 5;
 /** Reminder hours a doctor can choose, India time. */
 export const REMIND_HOURS = { from: 6, to: 23 };
 const IST_OFFSET_MS = 330 * 60_000;
+/** Tapping a reminder opens today's daily case. */
+export const DAILY_URL = "/cases?daily=1";
 
 /** Why a subscription can't be stored, or null when it's sound. */
 export function subscriptionProblem(sub: PushTarget): string | null {
@@ -60,14 +62,14 @@ export async function removeSubscription(userId: string, endpoint: string) {
 export function reminderFor(streakDays: number, dayKey: string, now: number): PushMessage {
   const hours = Math.max(1, Math.round((dailyEndsAt(dayKey) - now) / 3_600_000));
   const n = dailyNumber(dayKey);
-  if (streakDays > 0 && hours <= 6) return { title: `🔥 ${streakDays} ${streakDays === 1 ? "day" : "days"} strong`, body: `${hours} ${hours === 1 ? "hour" : "hours"} left — one quick case keeps your streak.`, url: "/" };
-  if (streakDays > 0) return { title: `🔥 Day ${streakDays + 1} is waiting`, body: "Your next patient is in. 10 minutes, one diagnosis.", url: "/" };
+  if (streakDays > 0 && hours <= 6) return { title: `🔥 ${streakDays} ${streakDays === 1 ? "day" : "days"} strong`, body: `${hours} ${hours === 1 ? "hour" : "hours"} left — one quick case keeps your streak.`, url: DAILY_URL };
+  if (streakDays > 0) return { title: `🔥 Day ${streakDays + 1} is waiting`, body: "Your next patient is in. 10 minutes, one diagnosis.", url: DAILY_URL };
   const lines = [
     { title: "🩺 Your patient is waiting", body: `Daily case #${n} — the same patient for every doctor today.` },
     { title: "☕ One case with your chai?", body: "Ten minutes. One patient. See how you'd handle it." },
     { title: "🧠 Sharpen up — one case", body: `Daily case #${n} is open. Where will you rank today?` },
   ];
-  return { ...lines[n % lines.length]!, url: "/" };
+  return { ...lines[n % lines.length]!, url: DAILY_URL };
 }
 
 export interface ReminderRun {

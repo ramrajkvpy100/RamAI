@@ -492,7 +492,7 @@ dialog[data-closing]::backdrop { animation: fade-out 180ms ease both; }
 
 /* Page changes: the old page fades out, the new one rises in (browsers with view transitions). */
 ::view-transition-old(.page-out) { animation: page-out 140ms ease-in both; }
-::view-transition-new(.page-in) { animation: page-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms both; }
+::view-transition-new(.page-in) { animation: page-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 /* Guided case: the part of the screen the current tip is about gently pulses. */
 @keyframes coach-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent); } }
@@ -706,3 +706,73 @@ svg {
 @keyframes cafe-drift { 0%, 100% { transform: scale(1.02) translate(0, 0); } 50% { transform: scale(1.06) translate(-1%, 0.5%); } }
 .cafe-drift { animation: cafe-drift 40s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .cafe-drift { animation: none; } }
+
+
+/* Motion kit --------------------------------------------------------------- */
+.vital-flash { position: absolute; inset: -2px -5px; border-radius: 6px; opacity: 0; pointer-events: none; animation: vital-flash 650ms ease-out; }
+.vital-flash-better { background: rgb(16 185 129 / 0.45); }
+.vital-flash-worse { background: rgb(245 158 11 / 0.5); }
+@keyframes vital-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+/* A vital in danger breathes red: an overlay's opacity, so the GPU does the work. */
+.vital-critical { position: relative; }
+.vital-critical::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 1px rgb(248 113 113 / 0.7), 0 0 16px 2px rgb(239 68 68 / 0.55); animation: vital-breathe 1.6s ease-in-out infinite; }
+@keyframes vital-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@keyframes iv-drip { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(5px); opacity: 1; } 100% { transform: translateY(6px); opacity: 0; } }
+/* Results come in row by row; a flag pops. */
+.row-in { animation: row-in 260ms var(--ease-out-soft) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+@keyframes row-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.flag-pop { display: inline-block; animation: flag-pop 340ms var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 30ms + 140ms); }
+@keyframes flag-pop { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
+/* Skeletons: a sheen, with a heartbeat through the page outline. */
+.skeleton { position: relative; overflow: hidden; background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 9%, transparent), transparent); animation: sweep 1.5s ease-in-out infinite; }
+.pulse-line { stroke-dasharray: 300; animation: pulse-line 1.8s linear infinite; }
+@keyframes pulse-line { from { stroke-dashoffset: 300; } to { stroke-dashoffset: -300; } }
+.deck-card { transition: transform 200ms var(--ease-out-soft), box-shadow 200ms var(--ease-out-soft); }
+@media (hover: hover) { .deck-card:hover { transform: perspective(700px) translateY(-3px) rotateX(2deg); } }
+@keyframes float-up { 0% { opacity: 0; transform: translateY(6px) scale(0.8); } 20% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-34px) scale(1); } }
+.float-up { animation: float-up 1100ms ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .vital-flash, .vital-critical::after, .row-in, .flag-pop, .skeleton::after, .pulse-line, .float-up { animation: none; }
+  .vital-flash { display: none; }
+  .deck-card:hover { transform: none; }
+}
+
+/* Every page, without each one asking: in @layer base, so anything a component sets for itself still wins. ------- */
+@layer base {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Cards and panels arrive one after another as a page opens. */
+    main :where(.panel, .card) { animation: card-in 320ms var(--ease-out-soft) backwards; }
+    main :where(.panel, .card):nth-child(2) { animation-delay: 40ms; }
+    main :where(.panel, .card):nth-child(3) { animation-delay: 80ms; }
+    main :where(.panel, .card):nth-child(4) { animation-delay: 120ms; }
+    main :where(.panel, .card):nth-child(5) { animation-delay: 160ms; }
+    main :where(.panel, .card):nth-child(n + 6) { animation-delay: 200ms; }
+    main :where(h1) { animation: title-in 360ms var(--ease-out-soft) backwards; }
+    /* Lists, tables and sections further down rise into place as they scroll into view (on the compositor, where the browser can). */
+    @supports (animation-timeline: view()) {
+      main :where(li, tbody tr, section, article) { animation: scroll-in linear backwards; animation-timeline: view(); animation-range: entry 0% entry 35%; }
+    }
+    /* Anything you can press gives under the finger. (`scale`, so it never disturbs a transform that positions it.) */
+    :where(button, [role="button"], a.panel, a.card, a[class*="rounded"]) { transition-property: scale, translate, background-color, border-color, color, box-shadow, opacity, filter; transition-duration: 140ms; }
+    :where(button, [role="button"], a.panel, a.card, a[class*="rounded"]):not(:disabled):active { scale: 0.97; }
+    /* A choice just made pops. */
+    :where([role="radio"][aria-checked="true"], [role="tab"][aria-selected="true"], [role="switch"][aria-checked="true"]) { animation: chip-on 260ms var(--ease-spring); }
+    @media (hover: hover) {
+      :where(a.panel, a.card, button.panel, button.card):hover { translate: 0 -2px; box-shadow: 0 10px 28px -14px rgb(0 0 0 / 0.35); }
+      :where(button[class*="bg-accent"], a[class*="bg-accent"], button[class*="bg-ai"], a[class*="bg-ai"]):not(:disabled):hover { filter: brightness(1.08); }
+    }
+  }
+}
+@keyframes card-in { from { opacity: 0; transform: translateY(12px) scale(0.99); } }
+@keyframes title-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes scroll-in { from { translate: 0 18px; scale: 0.985; opacity: 0.25; } }
+@keyframes chip-on { 0% { scale: 0.94; } 60% { scale: 1.03; } 100% { scale: 1; } }
+/* The heartbeat under the header, on every page. */
+.heartbeat-line { position: absolute; inset-inline: 0; bottom: -1px; height: 10px; width: 100%; pointer-events: none; overflow: visible; color: var(--accent); opacity: 0.55; }
+.heartbeat-line path { stroke-dasharray: 170 1500; animation: heartbeat-run 5.2s linear infinite; }
+@keyframes heartbeat-run { from { stroke-dashoffset: 1670; } to { stroke-dashoffset: 0; } }
+/* The page's background light drifts slowly. */
+.aurora-drift { animation: aurora 16s ease-in-out infinite alternate; }
+@keyframes aurora { from { transform: translate3d(-2%, 0, 0) scale(1); } to { transform: translate3d(2%, 12px, 0) scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .heartbeat-line path, .aurora-drift { animation: none; } .heartbeat-line path { stroke-dasharray: none; opacity: 0.2; } }

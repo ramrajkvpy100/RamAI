@@ -157,8 +157,8 @@ describe("countries — a whole encounter", () => {
       const local = localizeCase(def, country);
       const { hidden, state, turns } = play(local, inputs);
       const shown = [
-        ...strings({ ...presentState(state, country), messages: presentState(state, country).messages.filter((m) => m.role !== "doctor") }),
-        ...turns.flatMap((t) => strings(presentEffects(t.effects, country).filter((e) => !(e.type === "message" && e.role === "doctor")))),
+        ...strings({ ...presentState(state, country), messages: presentState(state, country).messages.filter((m) => m.role !== "doctor").map(({ plain: _plain, ...m }) => m) }),
+        ...turns.flatMap((t) => strings(presentEffects(t.effects, country).filter((e) => !(e.type === "message" && e.role === "doctor")).map((e) => (e.type === "message" ? { ...e, plain: undefined } : e)))),
         ...(hidden.closed ? strings(presentDebrief(generateDebrief(local, hidden, state), country)) : []),
       ];
       for (const s of shown) if (INDIA.test(s)) leaks.push(`${def.id}: ${s}`);

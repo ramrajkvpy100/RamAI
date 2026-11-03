@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import type { CaseRewards, CaseScore } from "@/engine/types";
-import { enableReminders, useReminders } from "@/lib/app-install";
+import { turnOnReminders, useReminders } from "@/lib/app-install";
 import { dailyNumber, shareResult, shareText, squares } from "@/lib/daily";
 import { useMe } from "@/lib/me-store";
 
@@ -17,7 +17,9 @@ export function DailyShare({ dayKey, score, minutes, place }: { dayKey: string; 
   const [reminded, setReminded] = useState(false);
   const remind = async () => {
     try {
-      if ((await enableReminders()) === "on") setReminded(true);
+      const now = await turnOnReminders();
+      if (now === "on") setReminded(true);
+      else if (now === "blocked") setNote("Notifications are blocked for RamAI. Turn them on in your phone's settings, then try again.");
     } catch (err) {
       setNote(err instanceof Error ? err.message : null);
     }

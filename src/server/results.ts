@@ -10,6 +10,7 @@ import type { CaseDebrief, CaseRewards, CaseState } from "@/engine/types";
 
 import type { User } from "./auth";
 import { caseSummary } from "./case-summary";
+import { settleInviterOf } from "./credits";
 import { db } from "./db";
 import { demoPlayersEnabled, ensureMembership, leaguePosition } from "./leagues";
 import { progressFor, progressForMany } from "./progress";
@@ -221,6 +222,7 @@ export async function recordCase(user: User, sessionId: string, debrief: CaseDeb
   );
   const after = await progressFor(user.id);
   if (!user.isGuest) await keepRating(user.id, after.rating).catch(() => undefined);
+  if (!user.isGuest && !debrief.guided) await settleInviterOf(user.id).catch(() => undefined);
   await ensureMembership(user);
   const league = await leaguePosition(user);
   const step = replayRating(after.history).steps.at(-1);

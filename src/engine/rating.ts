@@ -7,6 +7,7 @@ import type { CareLevel, CompletedCaseSummary } from "./types";
 
 export const START_RATING = 1200;
 export const RATING_FLOOR = 800;
+export const RATING_CEILING = 2400;
 export const PROVISIONAL_CASES = 5;
 const REPEAT_DAYS = 7;
 export const DAILY_BONUS = 5;
@@ -36,14 +37,13 @@ export function ratingDelta(doctor: number, caseRating: number, score: number, r
   return doctor - caseRating > 350 && score >= 85 ? Math.min(delta, 2) : delta;
 }
 
-export type UnratedReason = "learning" | "tutorial" | "repeat" | "hints" | "duel-pending";
+export type UnratedReason = "learning" | "tutorial" | "repeat" | "hints";
 
 export const UNRATED_LABEL: Record<UnratedReason, string> = {
   learning: "Unrated · Learning mode",
   tutorial: "Unrated · Tutorial",
   repeat: "Unrated · Played in the last 7 days",
   hints: "Unrated · Senior's help used",
-  "duel-pending": "Duel · Rated when your opponent finishes",
 };
 
 export interface RatingStep {
@@ -90,17 +90,15 @@ export function replayRating(history: readonly CompletedCaseSummary[]): RatingRe
     let delta = 0;
     if (h.tutorial) unrated = "tutorial";
     else if (previous !== undefined && at - previous < REPEAT_DAYS * DAY) unrated = "repeat";
-    else if (h.duelId) {
-      // A duel is settled head to head, once both have played.
-      if (h.ratingBonus === undefined || h.ratingBonus === null) unrated = "duel-pending";
-      else delta = h.ratingBonus;
-    } else {
+    // (Duels settled head to head before the rating went solo keep what they settled.)
+    else if (h.duelId && h.ratingBonus !== undefined && h.ratingBonus !== null) delta = h.ratingBonus;
+    else {
       delta = ratingDelta(rating, caseRating, h.score, rated, { failed: h.failed, clean: h.clean });
       if (h.daily) delta += DAILY_BONUS;
     }
     if (!unrated) {
       rated += 1;
-      rating = Math.max(RATING_FLOOR, rating + delta);
+      rating = Math.min(RATING_CEILING, Math.max(RATING_FLOOR, rating + delta));
       peak = Math.max(peak, rating);
       points.push(rating);
     }

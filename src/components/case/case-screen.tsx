@@ -1,5 +1,6 @@
 "use client";
 
+import { TimeJump } from "./activity";
 import { DebriefPipeline } from "@/components/debrief/pipeline";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -240,9 +241,10 @@ function Workspace() {
                 <PatientPanel state={state} flashKeys={flash} />
               </aside>
 
-              <main className="flex min-h-0 flex-col" aria-label="Encounter">
+              <main className="relative flex min-h-0 flex-col" aria-label="Encounter">
                 {/* One monitor at a time: the strip steps aside whenever the full monitor is on screen (the left column, or the panel's Patient tab). */}
                 <SceneStrip state={state} className={cn("xl:hidden", panelOpen && tab === "patient" && "md:hidden")} />
+                <TimeJump clock={state.clock} />
                 <Conversation state={state} sendingInput={snap.sending?.input ?? null} newIds={newIds} highlightIds={highlight} />
 
                 <div className="px-3 pt-1 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6">

@@ -38,6 +38,8 @@ export interface User {
   planExpiresAt: number | null;
   /** Language patients and families speak in this player's cases. */
   patientLang: PatientLang;
+  /** The highest step of the colleague-invite ladder reached (0, 1, 3 or 5 colleagues). */
+  inviteTier: number;
   createdAt: number;
   emailVerified: boolean;
   /** Trying the demo without an account; becomes a full account on sign-up. */
@@ -65,6 +67,7 @@ interface UserRow {
   name: string;
   plan: string;
   plan_expires_at: number | null;
+  invite_tier?: number | null;
   patient_lang: string | null;
   created_at: number;
   email_verified_at: number | null;
@@ -89,6 +92,7 @@ function toUser(r: UserRow): User {
     name: r.name,
     plan: active ? "pro" : "free",
     planExpiresAt: r.plan_expires_at,
+    inviteTier: r.invite_tier ?? 0,
     patientLang: r.patient_lang === "hinglish" ? "hinglish" : "en",
     createdAt: r.created_at,
     emailVerified: r.email_verified_at !== null || r.is_demo === 1,
