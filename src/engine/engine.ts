@@ -294,6 +294,16 @@ export async function coachFor(token: string, userId: string): Promise<CaseDebri
   return provider.feedback({ def, hidden, transcript: state.messages, debrief: generateDebrief(def, hidden, state), country });
 }
 
+/** A doctor's doubt about a finished case, answered with the whole case in hand. */
+export async function doubtFor(token: string, userId: string, question: string): Promise<string | undefined> {
+  const provider = await getProvider();
+  if (!provider.doubt) return undefined;
+  const payload = open(token, userId);
+  const { def, hidden, state, country } = rebuild(payload, provider);
+  if (!hidden.closed) throw new EngineError("NOT_CLOSED", "Finish the case first.");
+  return provider.doubt({ question, def, hidden, transcript: state.messages, debrief: generateDebrief(def, hidden, state), country });
+}
+
 /** An invented case's debrief teaching, written while it's being played (server use: stored with the case). */
 export async function teachingFor(token: string, userId: string): Promise<TeachingPack | undefined> {
   const provider = await getProvider();

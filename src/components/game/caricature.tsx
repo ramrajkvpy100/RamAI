@@ -4,7 +4,7 @@
  *   PatientFigure  the patient; their face follows their condition
  *   FamilyFigure   the attendant or caller; worries when the patient does
  *   NurseFigure    the nurse, calm or alert
- *   DoctorFigure   you — the outfit grows with your rank
+ *   DoctorFigure   you, or another doctor: the avatar they chose, else dressed for their rank
  *
  * Expressions only ever reflect what the player can already see (the
  * patient's status, measured vitals) — never hidden case information.
@@ -12,6 +12,8 @@
 "use client";
 
 import { MyDoctor } from "./my-doctor";
+import { PersonaAvatar } from "./specialist-avatar";
+import type { PublicAvatar } from "@/lib/avatar-style";
 import { useId, type CSSProperties, type ReactNode } from "react";
 
 import type { PatientIdentity, PatientStatus } from "@/engine/types";
@@ -373,27 +375,16 @@ function WhiteCoat({ shirt, tie }: { shirt: string; tie?: "tie" | "bow" }) {
   );
 }
 
-export const DOCTOR_NEXT: Record<number, string> = {
-  1: "your first stethoscope",
-  2: "hospital scrubs",
-  3: "the senior resident's coat",
-  4: "a shirt, tie and glasses",
-  5: "your faculty badge",
-  6: "the professor's bow tie",
-  7: "the HOD pin",
-  8: "the Dean's suit",
-  9: "the golden stethoscope",
-};
-
 /**
  * A doctor dressed for their rank. With a `seed` (a player id) each doctor
  * gets their own face — skin tone, hair, glasses — for leaderboards; without
- * one it's "your doctor".
+ * one it's "your doctor". `avatar` (from the API's row) draws what that doctor chose instead.
  */
-export function DoctorFigure({ tier, size = 72, className, seed, title = "Your doctor", portrait }: { tier: number; size?: number; className?: string; seed?: string; title?: string; portrait?: boolean }) {
+export function DoctorFigure({ tier, size = 72, className, seed, title = "Your doctor", avatar }: { tier: number; size?: number; className?: string; seed?: string; title?: string; avatar?: PublicAvatar | null }) {
   const t = Math.max(1, Math.min(10, Math.round(tier)));
   // Your own doctor: your avatar framed in your level's colour — or the level's portrait, male or female (other players keep their drawn faces).
-  if (!seed) return <MyDoctor tier={t} size={size} className={className} title={title} portrait={portrait} />;
+  if (!seed) return <MyDoctor tier={t} size={size} className={className} title={title} />;
+  if (avatar) return <PersonaAvatar persona={avatar.persona} photo={avatar.photo} size={size} className={className} title={title} />;
   const senior = t >= 7;
   const h = seed ? hashOf(seed) : 0;
   const styles: HairStyle[] = senior ? ["neat", "receding", "bun", "short"] : ["neat", "short", "bun", "long"];

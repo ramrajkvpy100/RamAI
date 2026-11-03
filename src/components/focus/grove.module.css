@@ -1,0 +1,87 @@
+/* The Clinical Grove's motion. Only transform and opacity move; the curves are the app's own (globals.css). */
+
+.art { display: block; overflow: visible; }
+.layer {
+  transform-origin: 100px 172px;
+  opacity: 0;
+  transition: opacity 430ms var(--ease-out-soft), transform 700ms var(--spring-smooth);
+}
+.layerOn { opacity: 1; }
+
+/* A withered plant: browned once (never animated), drooping, faded in over the living one. */
+.dry {
+  transform-origin: 100px 172px;
+  filter: grayscale(0.85) sepia(0.5) brightness(0.8);
+}
+.dryLayer {
+  transform-origin: 100px 172px;
+  transition: opacity 1200ms var(--ease-out-soft), transform 1600ms var(--ease-out-soft);
+}
+.droop { transform: rotate(7deg) skewX(9deg) scale(0.93, 0.86); }
+
+/* The window behind a plant: pale in both themes, so dark leaves always read. */
+.plate {
+  background: radial-gradient(90% 75% at 50% 25%, #f6fbf4 0%, #e3efe2 62%, #d3e4d3 100%);
+  box-shadow: inset 0 0 0 1px rgb(63 125 99 / 0.14);
+}
+:global(:root[data-theme="dark"]) .plate { background: radial-gradient(90% 75% at 50% 25%, #d8e6d8 0%, #bdd2bf 62%, #a9c2ad 100%); }
+
+.ringTrack { stroke: rgb(63 125 99 / 0.2); }
+.ringFill { stroke: #3f7d63; }
+.ringTip { fill: #3f7d63; }
+:global(:root[data-theme="dark"]) .ringTrack { stroke: rgb(110 231 183 / 0.2); }
+:global(:root[data-theme="dark"]) .ringFill { stroke: #6ee7b7; }
+:global(:root[data-theme="dark"]) .ringTip { fill: #6ee7b7; }
+.ringTurn { transform-origin: 110px 110px; transition: transform 1000ms linear; }
+
+/* Text and controls over any scene: solid enough to read in both themes, and on low-end phones. */
+.pane {
+  background: color-mix(in srgb, var(--surface-solid) 86%, transparent);
+  color: var(--fg);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--fg) 10%, transparent);
+}
+
+/* Coherent breathing: 5.5 s in, 5.5 s out. */
+.orb {
+  background: radial-gradient(circle, rgb(110 231 183 / 0.5) 0%, rgb(110 231 183 / 0.16) 62%, transparent 72%);
+  animation: breathe 11s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(0.86); opacity: 0.5; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+.breatheIn, .breatheOut { grid-area: 1 / 1; text-align: center; }
+.breatheIn { animation: wordIn 11s linear infinite; }
+.breatheOut { animation: wordOut 11s linear infinite; }
+@keyframes wordIn { 0%, 46% { opacity: 1; } 50%, 96% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes wordOut { 0%, 46% { opacity: 0; } 50%, 96% { opacity: 1; } 100% { opacity: 0; } }
+
+/* A plant going into the garden. */
+.tile {
+  background: linear-gradient(180deg, transparent 58%, color-mix(in srgb, #8a6a48 20%, transparent) 58%, color-mix(in srgb, #8a6a48 30%, transparent) 100%);
+  animation: plantIn 430ms var(--spring-smooth) backwards;
+  animation-delay: calc(min(var(--i, 0), 12) * 30ms);
+}
+@keyframes plantIn {
+  from { transform: translateY(8px) scale(0.86); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* A chosen card lifts a little. */
+.pick { transition: transform 325ms var(--spring-snappy), opacity 220ms var(--ease-out-soft); }
+.picked { transform: translateY(-2px); }
+
+.pearlIn { animation: pearlIn 430ms var(--ease-out-soft) backwards; }
+@keyframes pearlIn {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer, .dryLayer, .ringTurn, .pick { transition: none; }
+  .tile, .pearlIn { animation: none; }
+  /* The plant no longer droops or scales on its way; the words still change, without moving. */
+  .orb { animation: none; opacity: 0.7; }
+}

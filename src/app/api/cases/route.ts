@@ -9,7 +9,7 @@ import { learnFor, sessionInfo, simulateCase, teachingFor } from "@/engine/engin
 import { putCaseAI } from "@/server/case-ai";
 import type { CareLevel, CaseTrack, Specialty } from "@/engine/types";
 import { mockProvider } from "@/engine/providers/mock";
-import { requireUser } from "@/server/auth";
+import { userOrGuest } from "@/server/auth";
 import { TRIAL, useCredit } from "@/server/credits";
 import { bumpMe } from "@/server/me";
 import { createDuel, findOpenDuel, joinDuel, newDuelId, type DuelMode } from "@/server/duels";
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   try {
     const began = Date.now();
     const timing: Record<string, number> = {};
-    const user = await requireUser();
+    const user = await userOrGuest();
     const tutorial = body.tutorial === true;
     const daily = !tutorial && body.daily === true ? dailyKeyFor() : undefined;
     const plan = planFor(user);
@@ -121,11 +121,12 @@ export async function POST(req: Request) {
     // (Only when no particular kind of case was the point of asking: a disease, a place, a duel or a retry still waits.)
     const anyOther = fresh || host || shared || pooled || banked || written || !specialty ? null : await mockProvider.createCase({ easy, track: body.track as CaseTrack | undefined, level: body.level as CareLevel | undefined, allowedLevels: plan.levels, exclude, country: user.country } as never).catch(() => null);
     const stopgap = anyOther?.kind === "library" && !exclude.includes(anyOther.id) ? anyOther : null;
-    const awaited = fresh || host || shared || pooled || banked || written || stopgap ? null : await waitForWriting(user.id, choice, 50_000).catch(() => null);
+    const awaited = user.isGuest || fresh || host || shared || pooled || banked || written || stopgap ? null : await waitForWriting(user.id, choice, 50_000).catch(() => null);
     timing.lookup = Date.now() - began;
     // Nothing ready, so one must be invented while they wait: only a few at once, across every server. Past that, the nearest case now.
     const toWrite = !(shared ?? pooled ?? banked ?? written ?? stopgap ?? awaited) && !tutorial && !daily;
-    const release = toWrite ? await takeLiveSlot(randomUUID()).catch(() => async () => undefined) : null;
+    // A visitor without an account plays the written library: a stranger's click never spends on inventing a patient.
+    const release = toWrite && !user.isGuest ? await takeLiveSlot(randomUUID()).catch(() => async () => undefined) : null;
     const busy = toWrite && !release ? await mockProvider.createCase({ easy, allowedLevels: plan.levels, exclude, country: user.country } as never).catch(() => null) : null;
     const ready = shared ?? pooled ?? banked ?? written ?? stopgap ?? awaited ?? busy;
     const usage: UsageScope = { kind: "case-start", timing };
@@ -167,7 +168,7 @@ export async function POST(req: Request) {
     }
     // A written case now means a new patient ready for next time.
     if (written || stopgap || busy) {
-      after(() => withUsage({ kind: "case-start" }, () => prepareNext(user.id, choice, { allowedLevels: plan.levels, exclude, lang: user.patientLang } as never)).then(() => undefined).catch((err) => console.warn("[ramai] the next patient wasn't written:", err instanceof Error ? err.message : err)));
+      if (!user.isGuest) after(() => withUsage({ kind: "case-start" }, () => prepareNext(user.id, choice, { allowedLevels: plan.levels, exclude, lang: user.patientLang } as never)).then(() => undefined).catch((err) => console.warn("[ramai] the next patient wasn't written:", err instanceof Error ? err.message : err)));
     }
     console.info(timingLine("/api/cases", timing, ["auth", "facts", "lookup", "rules", "llm_primary", "llm_fallback"], Date.now() - began));
     await bumpMe();

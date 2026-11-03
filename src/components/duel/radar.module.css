@@ -1,0 +1,59 @@
+/* The radar: decoration over the list that carries the facts. Only transform and opacity move, on the shared curve. */
+.radar {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin-inline: auto;
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  isolation: isolate;
+}
+.ring {
+  position: absolute;
+  inset: var(--inset);
+  border: 1px solid var(--accent-line);
+  border-radius: 9999px;
+}
+.sweep {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0 72%, var(--accent-line) 100%);
+  animation: radar-sweep 4.5s var(--ease-out-soft) infinite;
+}
+.you {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+.blip {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 9999px;
+  background: var(--accent);
+  animation: radar-blip 420ms var(--ease-out-soft) backwards;
+}
+.stale {
+  opacity: 0.45;
+}
+@keyframes radar-sweep {
+  to { transform: rotate(360deg); }
+}
+@keyframes radar-blip {
+  from { opacity: 0; transform: scale(0.4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sweep { animation: none; opacity: 0.6; }
+  .blip { animation: none; }
+}

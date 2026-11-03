@@ -21,7 +21,7 @@ export const dermMelasma: ClinicalCaseDefinition = {
   arrivalMinuteOfDay: 10 * 60 + 10,
   briefing: "A 34-year-old teacher is waiting in Dermatology OPD, room 2, holding a tube of cream.",
   opening: [
-    { role: "system", kind: "finding", text: "Clinical photograph taken by the OPD nurse.", media: cheek(melasma(40, 0.7, 5), 5, "Right cheek · at presentation") },
+    { role: "system", kind: "finding", text: "A drawing of the skin (RamAI's illustration, not a photograph).", media: cheek(melasma(40, 0.7, 5), 5, "Right cheek · at presentation") },
     { role: "patient", kind: "speech", text: "Doctor, these dark marks on my cheeks have been there for months. They keep getting darker." },
   ],
   baselineVitals: {
@@ -218,7 +218,6 @@ export const dermMelasma: ClinicalCaseDefinition = {
   followUp: [
     { when: "ideal", status: "improving",
       lines: [
-        { role: "system", kind: "finding", text: "Clinical photograph at follow-up.", media: cheek(melasma(30, 0.45, 3), 5, "Right cheek · follow-up") },
         { role: "patient", kind: "speech", text: "They're lighter, doctor — my husband noticed. I wear the helmet and use the sunscreen every day, even indoors. The cream stung a little for the first week." },
       ],
       facts: [{ group: "local-exam", label: "Follow-up", value: "Patches lighter and smaller (~40% better)" }] },

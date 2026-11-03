@@ -406,6 +406,26 @@ CREATE TABLE IF NOT EXISTS duel_requests (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS duel_requests_to ON duel_requests(to_id, status, created_at);
+CREATE INDEX IF NOT EXISTS duel_requests_from ON duel_requests(from_id, created_at);
+
+-- "Near me" live: only doctors who turned it on. The position is already snapped to a ~100 m grid (never the phone's own reading),
+-- and a row lives ten minutes after the last heartbeat. Stop sharing deletes it at once.
+CREATE TABLE IF NOT EXISTS location_presence (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  specialty TEXT,
+  rating REAL,
+  last_seen_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS location_presence_seen ON location_presence(last_seen_at);
+-- A row only for a doctor who said yes (sharing = 1) or "don't show me" (hidden = 1). No location here.
+CREATE TABLE IF NOT EXISTS nearby_prefs (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  sharing INTEGER NOT NULL DEFAULT 0,
+  hidden INTEGER NOT NULL DEFAULT 0,
+  consent_at INTEGER
+);
 
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,

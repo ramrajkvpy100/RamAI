@@ -14,7 +14,7 @@ import { deriveSecret } from "@/engine/session";
 import type { CareLevel, CaseTrack } from "@/engine/types";
 import { isCountry, type Country } from "@/engine/countries";
 import { avatarOf, type AvatarLook } from "@/lib/avatar";
-import { parseAvatar } from "@/lib/avatar-style";
+import { parseAvatar, PHOTO } from "@/lib/avatar-style";
 import { dailyNumber } from "@/lib/daily";
 
 import { db } from "./db";
@@ -179,7 +179,7 @@ export async function ownResultId(userId: string, sessionId: string): Promise<nu
   return (await db.get<{ id: number }>("SELECT id FROM results WHERE user_id = ? AND session_id = ?", userId, sessionId))?.id ?? null;
 }
 
-/** Their initials — and the avatar they made, drawn, if they made one. */
+/** Their initials — and their avatar, drawn: a persona, or the cartoon they made (a Google photo stays off share pictures). */
 async function avatarWithFace(userId: string, name: string): Promise<AvatarLook> {
   const look = avatarOf(name);
   try {
@@ -188,8 +188,16 @@ async function avatarWithFace(userId: string, name: string): Promise<AvatarLook>
     if (!style) return look;
     const { renderToStaticMarkup } = await import("react-dom/server");
     const { createElement } = await import("react");
-    const { AvatarFace } = await import("@/components/game/avatar-face");
-    const svg = renderToStaticMarkup(createElement(AvatarFace, { style, size: 256 })).replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    if (style.persona === PHOTO) return look;
+    let drawing;
+    if (style.persona) {
+      const { PersonaArt } = await import("@/components/game/avatar-personas");
+      drawing = createElement(PersonaArt, { persona: style.persona, size: 256 });
+    } else {
+      const { AvatarFace } = await import("@/components/game/avatar-face");
+      drawing = createElement(AvatarFace, { style, size: 256 });
+    }
+    const svg = renderToStaticMarkup(drawing).replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
     return { ...look, face: `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}` };
   } catch {
     return look;

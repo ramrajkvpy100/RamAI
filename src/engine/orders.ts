@@ -14,7 +14,7 @@
 import { formularyDrug, parseOrderDetails, routesFor, type FormularyDrug } from "./formulary";
 import type { DrugRoute } from "./types";
 
-export type OrderNeed = "dose" | "volume" | "route" | "rate" | "frequency" | "duration" | "region" | "view" | "contrast" | "device" | "flow" | "tests";
+export type OrderNeed = "period" | "dose" | "volume" | "route" | "rate" | "frequency" | "duration" | "region" | "view" | "contrast" | "device" | "flow" | "tests";
 
 type Payload = Record<string, string | number | boolean>;
 
@@ -81,6 +81,18 @@ export function drugNeeds(drug: FormularyDrug, p: Payload, mode: "given" | "pres
   }
   return needs;
 }
+
+/** Every order asks for its time period. (Off only for the older engine tests, which aren't about this: see vitest config.) */
+export const PERIOD_PROMPT = { on: process.env.RAMAI_NO_PERIOD_PROMPT !== "1" };
+
+/** Whether the order already says how long: a course, a rate, a time over which, or "stat", "SOS", "now". */
+export function saysPeriod(p: Payload, raw: string): boolean {
+  if (p.statSaid === true || said(p, "duration") || said(p, "overMin") || said(p, "rateMlH")) return true;
+  if (typeof p.frequency === "string" && /^(stat|sos|prn)$/i.test(p.frequency)) return true;
+  return /\b(stat|now|immediately|at once|single dose|one dose|once only|sos|prn|as needed)\b/i.test(raw);
+}
+
+export const periodQuestion = (name: string, several: boolean) => (several ? "For what time period would you like to give these, doctor?" : `For what time period would you like to give ${name}, doctor?`);
 
 /** The question, as whoever takes the order would put it: "Paracetamol — what dose, and oral, IV or rectal, doctor?" */
 export function drugQuestion(drug: FormularyDrug, needs: OrderNeed[], p: Payload, polite: boolean): string {
@@ -471,6 +483,16 @@ export function completeOrder(pending: PendingOrder, clause: string, weightKg: n
   if (pending.kind === "confirm") return isConfirmation(clause) ? { ...pending.payload, confirmed: true } : null;
   const usual = USUAL_RE.test(clause);
   if (pending.kind === "drug") {
+    // The time period: "Stat", "Single stat dose", "3 days", "over 30 min", typed or tapped.
+    if (pending.needs.includes("period")) {
+      if (/^\s*(?:single\s+)?(?:stat|once|now|immediately)\b/i.test(clause) || /\bsingle (?:stat )?dose\b/i.test(clause)) return { ...pending.payload, statSaid: true };
+      const bare = clause.match(/^\s*(?:for\s+)?(\d+(?:\.\d+)?)\s*(mins?|minutes?|hrs?|hours?|days?|weeks?|wks?|months?)\s*$/i);
+      if (bare) {
+        const unit = bare[2]!.toLowerCase().replace(/^mins?$/, "minutes").replace(/^hrs?$/, "hours").replace(/^wks?$/, "weeks").replace(/s?$/, "");
+        const unitName = unit.replace(/minute$/, "minute");
+        return { ...pending.payload, duration: `${bare[1]} ${unitName}${Number(bare[1]) === 1 ? "" : "s"}` };
+      }
+    }
     const d = parseOrderDetails(clause, { weightKg });
     const found: Payload = {};
     if (d.amount !== undefined) found.amount = d.amount;
@@ -609,11 +631,16 @@ export function orderReplies(p: PendingOrder): QuickReply[] {
   if (p.kind !== "drug") return [];
   const drug = formularyDrug(p.targetId);
   if (!drug) return [];
+  if (p.needs.length === 1 && p.needs[0] === "period") {
+    const route = typeof p.payload.route === "string" ? p.payload.route : drug.route;
+    const acute = ["IV", "IM", "SC", "NEB", "INH", "IN", "SL"].includes(route) && p.payload.mode !== "prescribed";
+    return (acute ? ["Stat", "Over 30 min", "1 hour", "4 hours", "12 hours", "24 hours"] : ["Single stat dose", "3 days", "5 days", "7 days", "2 weeks", "4 weeks", "8 weeks"]).map((text) => ({ text, send: true }));
+  }
   const out: QuickReply[] = [{ text: "Usual dose", send: true }];
   if (p.needs.includes("volume")) out.push(...["250 mL", "500 mL", "1 L"].map((text) => ({ text })));
   if (p.needs.includes("dose") && drug.dose && /^\d/.test(drug.dose)) out.push({ text: drug.dose.replace(/\s*\(.*\)$/, "") });
   if (p.needs.includes("route")) out.push(...routesFor(drug).map((r) => ({ text: ROUTE_WORDS[r] ?? r })));
-  if (p.needs.includes("rate")) out.push(...["over 15 min", "over 30 min", "over 1 hour"].map((text) => ({ text })));
+  if (p.needs.includes("rate")) out.push(...(drug.fluid ? ["Stat bolus over 15 min", "over 30 min", "over 1 hour", "over 4 hours", "over 8 hours", "over 20 hours", "over 24 hours"] : ["over 15 min", "over 30 min", "over 1 hour"]).map((text) => ({ text, send: p.needs.length === 1 })));
   if (p.needs.includes("frequency")) out.push(...["OD", "BD", "TDS", "SOS"].map((text) => ({ text })));
   if (p.needs.includes("duration")) out.push(...["for 3 days", "for 5 days", "for 7 days"].map((text) => ({ text })));
   return out.slice(0, 12);

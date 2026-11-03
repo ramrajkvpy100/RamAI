@@ -193,7 +193,7 @@ export function AttachMonitorButton({ state, tone = "dark", className }: { state
 export function BedsideMonitor({ state, alarm, className }: { state: CaseState; alarm: AlarmState; className?: string }) {
   const { numbers, signal, running } = useMonitor(state);
   return (
-    <section aria-label="Bedside monitor" className={cn("overflow-hidden rounded-2xl bg-[#07090d] text-white shadow-[0_18px_40px_-24px_rgb(0_0_0/0.8)] ring-1 ring-white/10", className)}>
+    <section aria-label="Bedside monitor" className={cn("overflow-hidden rounded-2xl bg-[#07090d] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.1),0_18px_40px_-24px_rgb(0_0_0/0.8)] ring-1 ring-white/10", className)}>
       <Header state={state} alarm={alarm} />
       <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-1 px-2 pt-1 pb-1">
         <div className="relative h-[156px]">

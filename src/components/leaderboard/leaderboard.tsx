@@ -18,6 +18,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { xp } from "@/lib/format";
 import { league, LEAGUES, TOP_TIER } from "@/lib/leagues";
+import type { PublicAvatar } from "@/lib/avatar-style";
 import type { Me } from "@/lib/me-store";
 import { planFor } from "@/lib/plans";
 
@@ -56,6 +57,7 @@ interface PodiumEntry {
   xp: number;
   rankTier: number;
   demo: boolean;
+  avatar?: PublicAvatar;
 }
 
 function Podium({ rows, meId }: { rows: PodiumEntry[]; meId: string }) {
@@ -69,7 +71,7 @@ function Podium({ rows, meId }: { rows: PodiumEntry[]; meId: string }) {
               <ViewTransition name={`podium-${r.userId}`} default="none" update="lb-move">
                 <div className="flex min-w-0 flex-col items-center">
                   <div className="relative">
-                    <DoctorFigure tier={r.rankTier} seed={r.userId} size={slot.size} title={r.name} className={cn("rounded-full ring-4", slot.ring)} />
+                    <DoctorFigure tier={r.rankTier} seed={r.userId} avatar={r.avatar} size={slot.size} title={r.name} className={cn("rounded-full ring-4", slot.ring)} />
                     {slot.place === 1 && <Icon name="crown" size={24} className="absolute -top-5 left-1/2 -translate-x-1/2 animate-[bob_3s_ease-in-out_infinite] text-amber-400" />}
                   </div>
                   <div className="mt-2 flex max-w-full items-center gap-1 px-1">
@@ -293,7 +295,7 @@ function LeagueRowItem({ r, me, zone, index }: { r: LRow; me: boolean; zone: "up
       >
         <span className={cn("w-6 text-center text-[14px] font-semibold tabular", zone === "up" ? "text-success" : zone === "down" ? "text-danger" : "text-fg-3")}>{r.position}</span>
         <Movement value={r.movement} />
-        <DoctorFigure tier={r.rankTier} seed={r.userId} size={38} title={r.name} className="rounded-full" />
+        <DoctorFigure tier={r.rankTier} seed={r.userId} avatar={r.avatar} size={38} title={r.name} className="rounded-full" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[14px] font-semibold">{me ? `${r.name} (you)` : r.name}</span>
@@ -402,7 +404,7 @@ function GlobalRow({ r, me, index }: { r: LeaderRow; me: boolean; index: number 
   return (
     <li className={cn("flex animate-enter items-center gap-3 px-4 py-3 sm:px-5", me && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")} style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}>
       <span className="w-7 text-center text-[14px] font-semibold text-fg-3 tabular">{r.position}</span>
-      <DoctorFigure tier={r.rankTier} seed={r.userId} size={38} title={r.name} className="rounded-full" />
+      <DoctorFigure tier={r.rankTier} seed={r.userId} avatar={r.avatar} size={38} title={r.name} className="rounded-full" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-[14px] font-semibold">{me ? `${r.name} (you)` : r.name}</span>

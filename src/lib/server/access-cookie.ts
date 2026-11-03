@@ -5,8 +5,8 @@
 export const ACCESS_COOKIE = "ramai_access";
 const YEAR_MS = 365 * 86_400_000;
 
-/** Invite-only unless RAMAI_INVITE_ONLY is "0". */
-export const inviteOnly = () => process.env.RAMAI_INVITE_ONLY !== "0";
+/** RamAI is open to everyone. Inviting colleagues earns rewards; it never decides who gets in. */
+export const inviteOnly = () => false;
 
 function secret(): string {
   const s = process.env.RAMAI_SESSION_SECRET || process.env.OPENAI_API_KEY || process.env.RAMAI_MAIN_DB_TOKEN || "";

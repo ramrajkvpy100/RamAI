@@ -6,6 +6,7 @@ const OTHER_WAYS: Record<string, string[]> = {
   "Sorry, doctor — could you say that again?": ["I didn't catch that, doctor.", "Could you put that another way, doctor?", "Sorry, I don't follow, doctor.", "I'm not sure what you mean, doctor — please say it differently."],
   "About the same, doctor.": ["No real difference, doctor.", "Much as before, doctor.", "It hasn't really changed, doctor.", "Same as it was, doctor."],
   "Okay, doctor.": ["All right, doctor.", "Yes, doctor.", "Understood, doctor.", "As you say, doctor."],
+  "No real change, doctor. I feel about the same.": ["Nothing different so far, doctor.", "It hasn't changed anything, doctor.", "Still the same, doctor.", "No improvement yet, doctor."],
   "No, doctor.": ["No, not that, doctor.", "Not at all, doctor.", "No, I haven't, doctor.", "Nothing like that, doctor."],
   "Okay, doctor. What next?": ["Done, doctor. What's next?", "Right, doctor. Anything else?", "Yes, doctor. What now?", "Noted, doctor. Your next order?"],
   "Which medicine, dose and route?": ["Please name the medicine, its dose and how it's given.", "I need the drug, the dose and the route.", "What drug should it be, how much, and by which route?", "Still waiting for a drug, a dose and a route."],

@@ -769,3 +769,15 @@ svg {
 .heart-beat { transform-origin: 55% 50%; animation: heart-beat 1.2s var(--ease-out-soft) infinite; }
 @keyframes heart-beat { 0%, 45%, 100% { transform: scale(1); } 12% { transform: scale(1.025); } 26% { transform: scale(1.01); } 34% { transform: scale(1.018); } }
 @media (prefers-reduced-motion: reduce) { .heart-beat { animation: none; } }
+
+/* Six widgets get the glass treatment: a soft surface, a fine lit top edge, crisp numbers. Only here: blurring costs phones. */
+.widget-glass {
+  position: relative;
+  background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), color-mix(in srgb, var(--surface) 82%, transparent));
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent), 0 10px 30px -22px rgb(0 0 0 / 0.45);
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="dark"] .widget-glass { box-shadow: inset 0 1px 0 color-mix(in srgb, white 12%, transparent), 0 10px 30px -22px rgb(0 0 0 / 0.8); }
+.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: var(--success); box-shadow: 0 0 8px color-mix(in srgb, var(--success) 70%, transparent); }

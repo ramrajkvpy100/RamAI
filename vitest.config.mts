@@ -10,6 +10,7 @@ export default defineConfig({
     },
   },
   test: {
+    env: { RAMAI_NO_PERIOD_PROMPT: "1" },
     environment: "node",
     include: ["tests/**/*.test.ts"],
     // The audits call the real AI (they cost credits): run only on purpose: `AUDIT=1 npx vitest run tests/audit/compare.test.ts`.

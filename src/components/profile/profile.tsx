@@ -1,14 +1,13 @@
 "use client";
 
 import { ProfileDetails } from "./profile-details";
-import { AvatarMaker } from "./avatar-maker";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 
 import { Avatar } from "@/components/game/avatar";
 import { DoctorFigure } from "@/components/game/caricature";
-import { LookChoice } from "@/components/game/look-choice";
 import { LEVEL_STYLE, levelGradient } from "@/components/game/level-style";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
@@ -19,7 +18,7 @@ import { levelMeta, trackLabel } from "@/engine/levels";
 import { CredentialCard } from "@/components/progress/credential-card";
 import { RatingCard } from "@/components/progress/rating-card";
 import { ReminderCard } from "./reminder-card";
-import { BADGE_LIST, nextRank, RANKS, rankFor, rankProgress } from "@/engine/progression";
+import { BADGE_LIST, nextRank, rankFor, rankProgress } from "@/engine/progression";
 import { NotInAndroidApp } from "@/components/app/android-app";
 import { cn } from "@/lib/cn";
 import { caseLabel, xp } from "@/lib/format";
@@ -27,6 +26,9 @@ import { useMe, type Me } from "@/lib/me-store";
 import { planFor, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { YourData } from "./your-data";
+
+/** Sixteen drawings and a sheet: fetched the first time someone taps their avatar. */
+const AvatarPicker = dynamic(() => import("./avatar-picker").then((m) => m.AvatarPicker), { ssr: false });
 
 const BADGE_ICON: Record<string, IconName> = {
   "first-case": "user",
@@ -65,18 +67,19 @@ export function Profile({ initial }: { initial: Me }) {
   const mastery = p.mastery.filter((m) => m.cases > 0).sort((a, b) => b.cases - a.cases);
   const recent = [...p.history].reverse().slice(0, 10);
   const [sharing, setSharing] = useState(false);
-  const [making, setMaking] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [pickerLoaded, setPickerLoaded] = useState(false);
   const live = useMe();
 
   return (
     <div className="flex flex-col gap-5">
       <section className="panel flex flex-col gap-6 p-6 md:flex-row md:items-center">
         <div className="flex min-w-0 items-center gap-4">
-          <button type="button" onClick={() => setMaking(true)} aria-label="Make your avatar" className="group relative shrink-0 rounded-full">
-            <Avatar name={me.user.name} size={104} style={live?.avatar ?? me.avatar} />
-            <span className="absolute -right-1 -bottom-1 rounded-full bg-accent px-1.5 py-0.5 text-[10.5px] font-semibold text-on-accent shadow ring-2 ring-surface">✏️ Edit</span>
+          <button type="button" onClick={() => { setPickerLoaded(true); setPicking(true); }} aria-label="Choose your avatar" className="group relative shrink-0 rounded-full">
+            <Avatar name={me.user.name} size={96} style={live ? live.avatar : me.avatar} />
+            <span className="absolute -right-0.5 -bottom-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-surface text-fg-2 shadow ring-1 ring-line"><svg aria-hidden viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19Z" /></svg></span>
           </button>
-          {making && <AvatarMaker onClose={() => setMaking(false)} />}
+          {pickerLoaded && <AvatarPicker open={picking} onClose={() => setPicking(false)} />}
           <div className="min-w-0">
             <h1 className="truncate text-[24px] leading-tight font-semibold tracking-[-0.02em]">{me.user.name}</h1>
             <p className="mt-1 text-[13.5px] text-fg-2">
@@ -138,36 +141,6 @@ export function Profile({ initial }: { initial: Me }) {
         <Stat icon={<Icon name="bolt" size={20} className="text-violet" />} value={xp(p.xp)} label="Total XP" />
         <Stat icon={<Flame active={p.streakDays > 0} size={22} />} value={p.streakDays} label="Day streak" />
         <Stat icon={<Icon name="trophy" size={20} className="text-flame" />} value={p.bestStreak} label="Best streak" />
-      </section>
-
-      <section className="panel p-6" aria-labelledby="doctor-heading">
-        <div className="flex items-baseline justify-between">
-          <h2 id="doctor-heading" className="text-[16px] font-semibold">
-            Your doctor
-          </h2>
-          <LookChoice />
-        </div>
-        <p className="mt-1 text-[12.5px] text-fg-3">A new outfit with every rank. With your own avatar (made below), it wears your rank's colour and number everywhere.</p>
-        <ul className="mt-4 grid grid-cols-5 gap-3 sm:grid-cols-10">
-          {RANKS.map((r) => {
-            const unlocked = r.tier <= rank.tier;
-            return (
-              <li key={r.id} className="flex flex-col items-center text-center" title={unlocked ? r.label : `Unlocks at ${r.label}`}>
-                <span className={cn("relative rounded-full", r.tier === rank.tier && "ring-2 ring-accent ring-offset-2 ring-offset-surface")}>
-                  <span className={cn("block", !unlocked && "opacity-40 grayscale")}>
-                    <DoctorFigure tier={r.tier} size={56} portrait />
-                  </span>
-                  {!unlocked && (
-                    <span className="absolute -right-0.5 -bottom-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-surface-3 text-fg-3 ring-2 ring-surface">
-                      <Icon name="lock" size={11} />
-                    </span>
-                  )}
-                </span>
-                <span className={cn("mt-1.5 text-[10.5px] leading-tight", unlocked ? "font-medium text-fg" : "text-fg-3")}>{r.label}</span>
-              </li>
-            );
-          })}
-        </ul>
       </section>
 
       <section className="panel p-6" aria-labelledby="badges-heading">

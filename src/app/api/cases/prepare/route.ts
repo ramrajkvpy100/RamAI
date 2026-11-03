@@ -19,6 +19,8 @@ export async function POST(req: Request) {
   if (blocked) return blocked;
   try {
     const user = await requireUser();
+    // (A visitor without an account plays the written library: nothing is invented for them.)
+    if (user.isGuest) return ok({ status: "skipped" });
     const own = user.specialty && user.specialty !== "mixed" ? user.specialty : undefined;
     const newcomer = user.isGuest || (await totalCasesStarted(user.id)) <= 3;
     const status = await withUsage({ kind: "case-start" }, () => prepareNext(user.id, { specialty: own, easy: newcomer, country: user.country, lang: user.patientLang }, { allowedLevels: planFor(user).levels, exclude: [] }));

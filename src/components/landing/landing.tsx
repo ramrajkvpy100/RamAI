@@ -22,7 +22,7 @@ import { levelMeta, trackLabel } from "@/engine/levels";
 import { RANKS } from "@/engine/progression";
 import { CARE_LEVELS, PLAYABLE_TRACKS, type CaseTrack } from "@/engine/types";
 import { cn } from "@/lib/cn";
-import { INVITE_ONLY, PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
+import { GUEST_DAILY_CASES, INVITE_ONLY, PLANS, PRO_FOR_EVERYONE } from "@/lib/plans";
 
 import { DemoButton } from "./demo-button";
 import { Faq, SampleDebrief, Trust, type SiteStats } from "./landing-proof";
@@ -175,7 +175,7 @@ function Hero() {
           <DemoButton />
         </div>
         <p className="mt-4 text-[12.5px] text-fg-3">
-          {INVITE_ONLY ? "Invite-only for now — join with a code from a doctor who uses RamAI" : `Try a guided case in 3 minutes — no sign-up · ${PRO_FOR_EVERYONE ? "every level free for now" : "5 free cases a day"}`} ·{" "}
+          {INVITE_ONLY ? "Invite-only for now — join with a code from a doctor who uses RamAI" : `Try a guided case in 3 minutes — no sign-up · ${GUEST_DAILY_CASES} free cases a day, plus the daily case`} ·{" "}
           <Link href="/login" className="font-medium text-fg-2 underline-offset-2 hover:text-fg hover:underline">
             Log in
           </Link>

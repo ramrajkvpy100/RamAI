@@ -74,7 +74,7 @@ export const RADIOLOGY_ALSO_TRUE: Pairs = [["mammo-mass", "mammo-spiculated"]];
 
 export const SOUND_CLUSTERS: Clusters = [
   ["as", "hocm", "ps"], ["mr", "tr", "vsd"], ["ar", "ms", "os"], ["mvp", "ps", "hocm"], ["pda", "vsd", "mr"], ["still", "as", "ps"],
-  ["s3", "s4", "split-s2"], ["normal-heart", "muffled", "split-s2"], ["rub", "mechanical", "af"],
+  ["s3", "s4", "split-s2"], ["split-physiologic", "split-wide", "split-paradoxical", "split-s2"], ["normal-heart", "muffled", "split-s2"], ["rub", "mechanical", "af"],
   ["fine", "coarse", "pleural-rub", "bronchial-crackles"], ["wheeze", "wheeze-mono", "rhonchi", "stridor"], ["stridor", "stridor-biphasic", "wheeze-mono"], ["bronchial", "vesicular", "bronchial-crackles"], ["absent", "diminished", "silent-chest", "vesicular"],
   ["bowel-normal", "bowel-hyper", "bowel-tinkling", "succussion"], ["bowel-sluggish", "bowel-absent", "bowel-normal"], ["aortic-bruit", "renal-bruit", "carotid-bruit", "vessel-normal"], ["av-fistula", "venous-hum", "renal-bruit"], ["hepatic-rub", "bowel-sluggish", "aortic-bruit"],
 ];

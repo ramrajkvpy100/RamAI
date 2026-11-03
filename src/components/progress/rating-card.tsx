@@ -34,7 +34,7 @@ export function RatingCard() {
   // A percentile among a handful of doctors would mean nothing.
   const top = standing?.top !== null && standing && standing.doctors >= 10 ? `Top ${standing.top}%` : "—";
   return (
-    <section className="panel p-4 sm:p-5" aria-label="Clinical rating">
+    <section className="panel widget-glass p-4 sm:p-5" aria-label="Clinical rating">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-semibold">Clinical rating</h2>
         {p.provisional && <span className="text-[12px] text-fg-2">Provisional · {p.ratedCases ?? 0} of 5 placement cases</span>}

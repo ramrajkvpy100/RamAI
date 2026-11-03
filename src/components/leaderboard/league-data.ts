@@ -2,6 +2,7 @@
 
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 
+import type { PublicAvatar } from "@/lib/avatar-style";
 import { league, TOP_TIER, type LeagueOutcome } from "@/lib/leagues";
 
 export interface LeagueRow {
@@ -17,6 +18,8 @@ export interface LeagueRow {
   rankLabel: string;
   streak: number;
   demo: boolean;
+  /** The persona or photo they chose. */
+  avatar?: PublicAvatar;
 }
 
 export interface LeagueView {

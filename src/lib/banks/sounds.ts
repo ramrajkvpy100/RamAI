@@ -2,12 +2,12 @@
  * Hear it: every sound in the drill, made by RamAI's stethoscope engine (src/engine/stethoscope-audio.ts).
  * Each has its own acoustic parameters, so a label never shares a sound with another (tests/skills-see-hear.test.ts).
  */
-import type { Auscultation } from "@/engine/types";
+import type { SoundParams } from "@/engine/stethoscope-audio";
 
 export interface SoundItem {
   id: string;
   label: string;
-  sound: Auscultation;
+  sound: SoundParams;
   key: string;
   group: string;
 }
@@ -25,7 +25,7 @@ export const HEART: SoundItem[] = [
     { id: "as", label: "Aortic stenosis (ejection systolic murmur)", sound: { kind: "heart", rate: 76, murmur: { phase: "systolic", shape: "diamond" } }, key: "A crescendo–decrescendo (diamond) murmur between S1 and S2, loudest at the right upper sternal edge, radiating to the carotids." },
     { id: "mr", label: "Mitral regurgitation (pansystolic murmur)", sound: { kind: "heart", rate: 84, murmur: { phase: "systolic", shape: "plateau" } }, key: "A plateau murmur filling all of systole, loudest at the apex, radiating to the axilla." },
     { id: "ar", label: "Aortic regurgitation (early diastolic murmur)", sound: { kind: "heart", rate: 78, murmur: { phase: "diastolic", shape: "decrescendo" } }, key: "A soft, high-pitched decrescendo murmur starting just after S2, best heard sitting forward in expiration." },
-    { id: "ms", label: "Mitral stenosis (mid-diastolic rumble)", sound: { kind: "heart", rate: 88, murmur: { phase: "diastolic", shape: "rumble" } }, key: "A low-pitched rumble in mid-diastole at the apex, best with the bell, patient on the left side." },
+    { id: "ms", label: "Mitral stenosis (mid-diastolic rumble)", sound: { kind: "heart", rate: 88, murmur: { phase: "diastolic", shape: "rumble" } }, key: "A low-pitched rumble in mid-diastole with a presystolic crescendo into a loud S1 (the crescendo needs atrial contraction, so it is lost in AF), at the apex, best with the bell, patient on the left side." },
     { id: "mvp", label: "Mitral valve prolapse (click + late systolic murmur)", sound: { kind: "heart", rate: 76, click: true, murmur: { phase: "systolic", shape: "late" } }, key: "A sharp mid-systolic click followed by a short late systolic murmur at the apex — mitral valve prolapse." },
     { id: "vsd", label: "Ventricular septal defect (harsh pansystolic)", sound: { kind: "heart", rate: 96, murmur: { phase: "systolic", shape: "harsh" } }, key: "A loud, harsh pansystolic murmur at the left lower sternal edge, often with a thrill — VSD." },
     { id: "pda", label: "Patent ductus arteriosus (continuous machinery murmur)", sound: { kind: "heart", rate: 110, murmur: { phase: "continuous", shape: "machinery" } }, key: "A continuous 'machinery' murmur rising to a peak at S2 and running through it — PDA, best below the left clavicle." },
@@ -37,12 +37,15 @@ export const HEART: SoundItem[] = [
   ]),
   ...inGroup(EXTRA_SOUNDS, [
     { id: "normal-heart", label: "Normal heart sounds", sound: { kind: "heart", rate: 72 }, key: "Crisp S1 and S2 with silent systole and diastole." },
-    { id: "s3", label: "S3 gallop", sound: { kind: "heart", rate: 104, s3: true }, key: "An extra low sound just after S2 ('Ken-tuc-ky') — volume overload, heart failure." },
+    { id: "s3", label: "S3 gallop", sound: { kind: "heart", rate: 104, s3: true }, key: "An extra low sound early in diastole, 120–160 ms after S2 ('Ken-tuc-ky') — volume overload, heart failure." },
     { id: "s4", label: "S4 gallop", sound: { kind: "heart", rate: 80, s4: true }, key: "An extra sound just before S1 ('Ten-nes-see') — a stiff ventricle (hypertension, LVH)." },
-    { id: "rub", label: "Pericardial friction rub", sound: { kind: "heart", rate: 96, rub: true }, key: "A scratchy, leathery sound with the heartbeat — pericarditis." },
+    { id: "rub", label: "Pericardial friction rub", sound: { kind: "heart", rate: 96, rub: true }, key: "A scratchy, leathery sound in up to three parts with each beat (systole, early diastole, late diastole) — pericarditis." },
     { id: "af", label: "Atrial fibrillation (irregularly irregular)", sound: { kind: "heart", rate: 118, irregular: true }, key: "Beats at completely irregular intervals with varying loudness of S1." },
     { id: "muffled", label: "Muffled heart sounds", sound: { kind: "heart", rate: 120, soft: true }, key: "Faint, distant heart sounds — pericardial effusion or tamponade (with hypotension and raised JVP: Beck's triad)." },
     { id: "split-s2", label: "Fixed splitting of S2 (atrial septal defect)", sound: { kind: "heart", rate: 78, splitS2: "fixed", murmur: { phase: "systolic", shape: "flow" } }, key: "S2 clearly in two parts, the gap the same in and out, with a soft pulmonary flow murmur — atrial septal defect." },
+    { id: "split-physiologic", label: "Physiological splitting of S2", sound: { kind: "heart", rate: 76, splitS2: "physiologic" }, key: "S2 is single breathing out and splits by about 50 ms breathing in, as the extra venous return delays P2 — normal, best heard at the left upper sternal edge." },
+    { id: "split-wide", label: "Wide splitting of S2 (right bundle branch block)", sound: { kind: "heart", rate: 74, splitS2: "wide" }, key: "S2 is split on every beat, and wider still breathing in, because P2 is late — right bundle branch block or pulmonary stenosis." },
+    { id: "split-paradoxical", label: "Paradoxical (reversed) splitting of S2", sound: { kind: "heart", rate: 70, splitS2: "paradoxical" }, key: "S2 splits breathing out and closes up breathing in, the reverse of normal, because A2 is late — left bundle branch block or severe aortic stenosis." },
     { id: "mechanical", label: "Mechanical aortic valve (metallic closing click)", sound: { kind: "heart", rate: 72, mechanical: true }, key: "A crisp, high, metallic click at S2 as the prosthetic valve shuts, with a softer opening click just after S1. A muffled click is a warning of thrombosis." },
   ]),
 ];
@@ -54,7 +57,7 @@ export const LUNGS: SoundItem[] = inGroup(LUNGS_AIRWAY, [
   { id: "wheeze", label: "Polyphonic expiratory wheeze", sound: { kind: "lungs", rate: 24, breath: "vesicular", wheeze: true, wheezeKind: "polyphonic" }, key: "Many musical pitches together through a prolonged expiration — widespread airway narrowing: asthma or COPD." },
   { id: "wheeze-mono", label: "Monophonic wheeze", sound: { kind: "lungs", rate: 20, breath: "vesicular", wheeze: true, wheezeKind: "monophonic" }, key: "One fixed musical pitch, the same every breath and over one area — a single narrowed airway: an inhaled foreign body or a tumour." },
   { id: "rhonchi", label: "Rhonchi", sound: { kind: "lungs", rate: 22, breath: "vesicular", rhonchi: true }, key: "Low-pitched, snoring sounds that clear or shift after a cough — secretions in the larger airways." },
-  { id: "stridor", label: "Inspiratory stridor", sound: { kind: "lungs", rate: 28, breath: "vesicular", stridor: true }, key: "A harsh, high-pitched sound in inspiration, loudest over the neck — obstruction above the vocal cords (an emergency)." },
+  { id: "stridor", label: "Inspiratory stridor", sound: { kind: "lungs", rate: 28, breath: "vesicular", stridor: true }, key: "A harsh, high-pitched sound in inspiration, loudest over the neck — obstruction at or above the vocal cords (an emergency)." },
   { id: "stridor-biphasic", label: "Biphasic stridor", sound: { kind: "lungs", rate: 28, breath: "vesicular", stridor: true, stridorBiphasic: true }, key: "Harsh in both inspiration and expiration — a fixed narrowing at or below the cords: subglottic stenosis, tracheal disease." },
   { id: "bronchial", label: "Bronchial breathing", sound: { kind: "lungs", rate: 24, breath: "bronchial" }, key: "Loud, hollow breath sounds with a gap between inspiration and expiration — consolidation." },
   { id: "bronchial-crackles", label: "Bronchial breathing with crackles", sound: { kind: "lungs", rate: 26, breath: "bronchial", crackles: "coarse" }, key: "Hollow, tubular breathing with coarse crackles over it — pneumonia, the consolidated lobe with secretions." },
@@ -66,7 +69,7 @@ export const LUNGS: SoundItem[] = inGroup(LUNGS_AIRWAY, [
 
 /** Over the abdomen and the great vessels: bowel sounds, and bruits with the pulse. */
 export const ABDOMEN: SoundItem[] = inGroup(BRUITS_BOWEL, [
-  { id: "bowel-normal", label: "Normal bowel sounds", sound: { kind: "bowel", activity: "normal", rate: 76 }, key: "Gurgles every 5–15 seconds — normal bowel activity." },
+  { id: "bowel-normal", label: "Normal bowel sounds", sound: { kind: "bowel", activity: "normal", rate: 76 }, key: "Irregular gurgles, roughly 5–30 a minute — normal bowel activity." },
   { id: "bowel-hyper", label: "Hyperactive bowel sounds", sound: { kind: "bowel", activity: "hyperactive", rate: 90 }, key: "Loud, frequent, rushing gurgles (borborygmi) — gastroenteritis, early obstruction or a GI bleed." },
   { id: "bowel-sluggish", label: "Reduced (sluggish) bowel sounds", sound: { kind: "bowel", activity: "sluggish", rate: 84 }, key: "Only occasional faint gurgles — early ileus, after surgery, or opioids." },
   { id: "bowel-absent", label: "Absent bowel sounds", sound: { kind: "bowel", activity: "absent", rate: 110 }, key: "Silence after listening for 2–3 minutes — paralytic ileus or peritonitis." },
@@ -89,10 +92,10 @@ export const ABDOMEN: SoundItem[] = inGroup(BRUITS_BOWEL, [
 const HEART_RATES = [0.7, 0.85, 1, 1.2, 1.4];
 const LUNG_RATES = [0.7, 0.8, 0.9, 1, 1.15, 1.3, 1.5];
 const vary = (xs: SoundItem[], rates: number[]): (SoundItem & { base: string })[] =>
-  xs.flatMap((x) => rates.map((r, n) => ({ ...x, base: x.id, id: `${x.id}@${n}`, sound: { ...x.sound, rate: Math.round(x.sound.rate * r) } as Auscultation })));
+  xs.flatMap((x) => rates.map((r, n) => ({ ...x, base: x.id, id: `${x.id}@${n}`, sound: { ...x.sound, rate: Math.round(x.sound.rate * r) } as SoundParams })));
 export const HEART_CASES = vary(HEART, HEART_RATES);
 export const LUNG_CASES = vary(LUNGS, LUNG_RATES);
 export const ABDOMEN_CASES = vary(ABDOMEN, HEART_RATES);
 
 /** Harder to tell apart — residents and specialists only. */
-export const ADVANCED_SOUNDS = new Set(["ar", "ms", "s4", "rub", "pleural-rub", "coarse", "os", "pda", "mvp", "renal-bruit", "av-fistula", "venous-hum", "ps", "tr", "hocm", "still", "split-s2", "mechanical", "wheeze-mono", "stridor-biphasic", "bronchial-crackles", "succussion", "hepatic-rub"]);
+export const ADVANCED_SOUNDS = new Set(["ar", "ms", "s4", "rub", "pleural-rub", "coarse", "os", "pda", "mvp", "renal-bruit", "av-fistula", "venous-hum", "ps", "tr", "hocm", "still", "split-s2", "split-physiologic", "split-wide", "split-paradoxical", "mechanical", "wheeze-mono", "stridor-biphasic", "bronchial-crackles", "succussion", "hepatic-rub"]);

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import baseline from "./fixtures/skills-baseline.json";
 
 import { renderAuscultation } from "@/engine/stethoscope-audio";
-import type { Auscultation } from "@/engine/types";
+import type { SoundParams as Auscultation } from "@/engine/stethoscope-audio";
 import { RADIOLOGY_ALSO_TRUE, RADIOLOGY_CLUSTERS, SOUND_ALSO_TRUE, SOUND_CLUSTERS, SPOT_ALSO_TRUE, SPOT_CLUSTERS } from "@/lib/banks/confusable-data";
 import { ABDOMEN, ABDOMEN_CASES, HEART, HEART_CASES, LUNG_CASES, LUNGS, type SoundItem } from "@/lib/banks/sounds";
 import { optionText, optionTexts, pickConfusable, pickOptions, type Pickable } from "@/lib/confusable";

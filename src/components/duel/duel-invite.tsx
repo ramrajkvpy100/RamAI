@@ -2,9 +2,12 @@
 
 import { useLauncher } from "@/components/home/use-launcher";
 
+import { useDuelPresence } from "./use-presence";
+
 /** "Dr X challenges you": one tap plays the same patient. */
 export function DuelInvite({ id, host, open, score }: { id: string; host: string; open: boolean; score?: number | null }) {
   const { launch, starting, error } = useLauncher();
+  useDuelPresence();
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 py-16 text-center">
       <div className="text-[44px]" aria-hidden>⚔️</div>

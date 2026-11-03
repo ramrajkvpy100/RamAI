@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { DOCTOR_NEXT, DoctorFigure } from "@/components/game/caricature";
+import { DoctorFigure } from "@/components/game/caricature";
 import { GoalRing } from "@/components/game/goal-ring";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
@@ -173,7 +173,6 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
             <div className="min-w-0">
               <div className="text-[24px] leading-tight font-semibold tracking-[-0.02em] sm:text-[28px]">{rank.label}</div>
               <div className="mt-0.5 text-[13px] text-white/60">{next ? `${Math.round(toNext * 100)}% of the way to ${next.label}` : "The highest rank in RamAI"}</div>
-              {next && DOCTOR_NEXT[rank.tier] && <div className="mt-1 text-[12.5px] text-cyan-300/90">Next unlock: {DOCTOR_NEXT[rank.tier]}</div>}
             </div>
           </div>
           <div className="mt-4 h-2 w-full max-w-[360px] overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Progress to next rank" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(toNext * 100)}>

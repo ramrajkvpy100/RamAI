@@ -66,6 +66,14 @@ function answerPending(text: string, ctx: InterpretContext, rctx: IntentContext)
     if (target) {
       out.push(completedIntent(target, completeOrder(target, clause, rctx.weightKg)!, clause));
       answered = true;
+      // One time period for all the drugs asked about together.
+      if (target.needs.length === 1 && target.needs[0] === "period") {
+        for (const other of pending) {
+          if (other === target || other.needs.length !== 1 || other.needs[0] !== "period") continue;
+          const done = completeOrder(other, clause, rctx.weightKg);
+          if (done) out.push(completedIntent(other, done, clause));
+        }
+      }
     } else out.push(...own);
   }
   return answered ? out : null;
@@ -76,13 +84,19 @@ const ONLY_DETAILS = /\b(?:for|x|use|apply|take|give|continue|it|that|this|same|
 function carriedOn(text: string, ctx: InterpretContext): string {
   const last = ctx.hidden.drugs.filter((d) => d.volumeMl === undefined).at(-1);
   if (!last) return text;
+  // "Take 100 tabs of it": that many of the last medicine, which the nurse queries like any other dose.
+  const tablets = text.trim().match(/^(?:take|give|use)?\s*(\d+)\s*(?:tabs?|tablets?|caps?|capsules?)\s+of\s+(?:it|that|this|the same)\s*$/i);
+  const each = last.dose?.match(/^(\d+(?:\.\d+)?)\s*(mg|mcg|g)\b/);
+  if (tablets && each) return `${last.generic} ${Number(tablets[1]) * Number(each[1])} ${each[2]} ${last.route}`;
   const clauses = text.split(/\s+(?:and|,)\s+|,\s*/);
   const first = clauses[0]!.toLowerCase();
   if (first.replace(ONLY_DETAILS, "").replace(/[^a-z]/g, "") !== "" || !/\b(?:days?|weeks?|wks?|months?|years?|times)\b/.test(first)) return text;
   const details = parseOrderDetails(first);
   const drug = formularyDrug(last.drugId);
   const often = details.frequency ?? (last.frequency && last.frequency !== "stat" ? last.frequency : drug?.frequency ?? "OD");
-  const named = [last.generic ?? drug?.generic, last.route === "TOP" ? "" : last.dose, last.route, often, details.duration ? `for ${details.duration}` : ""].filter(Boolean).join(" ");
+  // (A fixed combination is named by its brand, or its parts would be read as two orders.)
+  const called = last.generic?.includes("+") ? (drug?.brands[0] ?? last.generic) : (last.generic ?? drug?.generic);
+  const named = [called, last.route === "TOP" ? "" : last.dose, last.route, often, details.duration ? `for ${details.duration}` : ""].filter(Boolean).join(" ");
   return [named, ...clauses.slice(1)].join(" and ");
 }
 

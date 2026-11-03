@@ -12,7 +12,7 @@ const CSP = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://accounts.google.com/gsi/client${dev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
-  `img-src 'self' data: blob: https://cdn.razorpay.com ${SCAN_HOST}`,
+  `img-src 'self' data: blob: https://cdn.razorpay.com https://lh3.googleusercontent.com ${SCAN_HOST}`,
   "font-src 'self' data:",
   `connect-src 'self' ${SCAN_HOST} https://accounts.google.com/gsi/ https://api.razorpay.com https://lumberjack.razorpay.com${dev ? " ws: wss:" : ""}`,
   "frame-src https://accounts.google.com/gsi/ https://api.razorpay.com https://checkout.razorpay.com",
@@ -32,7 +32,7 @@ const SECURITY_HEADERS = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
   // The microphone is RamAI's own voice input; nothing else gets device access.
-  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), browsing-topics=()" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(self), browsing-topics=()" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
   // Razorpay's checkout may open payment pop-ups (UPI, bank pages).
   { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },

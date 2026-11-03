@@ -13,7 +13,7 @@ export const dermAcne: ClinicalCaseDefinition = {
   arrivalMinuteOfDay: 11 * 60 + 20,
   briefing: "A 19-year-old college student is waiting in Dermatology OPD, room 3.",
   opening: [
-    { role: "system", kind: "finding", text: "Clinical photograph taken by the OPD nurse.", media: acnePhoto("moderate", 41, "Left cheek · at presentation") },
+    { role: "system", kind: "finding", text: "A drawing of the skin (RamAI's illustration, not a photograph).", media: acnePhoto("moderate", 41, "Left cheek · at presentation") },
     { role: "patient", kind: "speech", text: "Doctor, these pimples on my face just aren't going away. I've tried so many face washes." },
   ],
   baselineVitals: {
@@ -188,19 +188,16 @@ export const dermAcne: ClinicalCaseDefinition = {
   followUp: [
     { when: "ideal", status: "improving",
       lines: [
-        { role: "system", kind: "finding", text: "Clinical photograph at follow-up.", media: { ...acnePhoto("mild", 41, "Left cheek · follow-up"), spec: { kind: "derm", site: "cheek", phototype: 4, seed: 41, lesions: [ { morphology: "comedone-closed", count: 8, size: 1 }, { morphology: "comedone-open", count: 4, size: 1 }, { morphology: "papule", count: 4, size: 2.2 }, { morphology: "hyperpigment", count: 9, size: 2.3 } ] } } },
         { role: "patient", kind: "speech", text: "It's much better, doctor! The red ones have mostly gone. The gel stung a bit in the first week, but I kept going like you said. The dark marks are still there, though." },
       ],
       facts: [{ group: "local-exam", label: "Follow-up", value: "~75% fewer inflammatory lesions; PIH persists" }] },
     { when: "acceptable", status: "stable",
       lines: [
-        { role: "system", kind: "finding", text: "Clinical photograph at follow-up.", media: acnePhoto("moderate", 43, "Left cheek · follow-up") },
         { role: "patient", kind: "speech", text: "It's a little better, but new ones keep coming, especially on my cheeks." },
       ],
       facts: [{ group: "local-exam", label: "Follow-up", value: "Partial improvement; new inflammatory lesions" }] },
     { when: "harmful", status: "deteriorating",
       lines: [
-        { role: "system", kind: "finding", text: "Clinical photograph at follow-up.", media: acnePhoto("moderately-severe", 45, "Left cheek · follow-up") },
         { role: "patient", kind: "speech", text: "It's worse, doctor. My face has become red, and there are lots of small bumps everywhere." },
       ],
       facts: [{ group: "local-exam", label: "Follow-up", value: "Worse: monomorphic papules, erythema" }] },

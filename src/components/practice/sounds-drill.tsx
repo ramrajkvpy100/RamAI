@@ -6,9 +6,8 @@ import { CrowdBanner, OptionPct, useCrowd } from "./crowd";
 import { ReportProblem } from "@/components/case/report-problem";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { loud, renderAuscultation, SAMPLE_RATE, toWav } from "@/engine/stethoscope-audio";
+import { loud, renderAuscultation, SAMPLE_RATE, toWav, type SoundParams } from "@/engine/stethoscope-audio";
 import { Phonogram } from "./phonogram";
-import type { Auscultation } from "@/engine/types";
 import { SOUND_ALSO_TRUE, SOUND_CLUSTERS } from "@/lib/banks/confusable-data";
 import { ABDOMEN, ABDOMEN_CASES, ADVANCED_SOUNDS, HEART, HEART_CASES, LUNG_CASES, LUNGS, type SoundItem } from "@/lib/banks/sounds";
 import { cn } from "@/lib/cn";
@@ -133,7 +132,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
 }
 
 /** A heart that beats, or lungs that breathe, at the sound's own rate — without giving the answer away. */
-function OrganPicture({ sound, playing }: { sound: Auscultation; playing: boolean }) {
+function OrganPicture({ sound, playing }: { sound: SoundParams; playing: boolean }) {
   if (sound.kind === "bowel" || sound.kind === "vessel") {
     // The chest piece on the abdomen or neck, pulsing gently with the pulse while it plays.
     return (

@@ -35,7 +35,7 @@ export function ExamMenu({ country, className }: { country: Country; className?:
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className={cn("flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors", path.startsWith("/exams") ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}
+        className={cn("flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13.5px] xl:px-3 font-medium whitespace-nowrap transition-colors", path.startsWith("/exams") ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg")}
       >
         Exams <Icon name="chevron-down" size={13} className={cn("transition-transform", open && "rotate-180")} />
       </button>

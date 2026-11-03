@@ -50,7 +50,9 @@ interface Group {
   unsuitable?: (id: string, def: ClinicalCaseDefinition) => boolean;
 }
 
-const pregnant = (def: ClinicalCaseDefinition) => /\bpregnan|eclampsia|gravid|antenatal|obstetric|\bpih\b/i.test(`${def.truth.diagnosis} ${def.truth.qualifier ?? ""} ${def.briefing}`);
+/** What a case says is so: "non-pregnant" and "no shock, no fever" aren't pregnancy or shock. */
+const affirmed = (text: string) => text.replace(/\bnon-?\w+/gi, " ").replace(/\b(?:no|not|without|nil|denies|absent)\b[^;.]*/gi, " ");
+const pregnant = (def: ClinicalCaseDefinition) => /\bpregnan|eclampsia|gravid|antenatal|obstetric|\bpih\b/i.test(affirmed(`${def.truth.diagnosis} ${def.truth.qualifier ?? ""} ${def.briefing}`));
 const febrile = (def: ClinicalCaseDefinition) => {
   const t = parseFloat(def.baselineVitals.temp?.value ?? "");
   return (t > 50 ? ((t - 32) * 5) / 9 : t) >= 38;
@@ -110,6 +112,15 @@ export const THERAPEUTIC_GROUPS: Group[] = [
     unsuitable: (id, def) => id === "doxycycline" && (def.patient.age < 8 || pregnant(def)),
   },
   { id: "act", label: "Artemisinin combinations", equivalent: [{ id: "artesunate-sp" }, { id: "artemether-lumefantrine" }], onlyIn: /malaria/i, notIn: /severe|cerebral|complicated/i, oralInEmergency: true },
+  {
+    id: "cystitis", label: "Uncomplicated cystitis",
+    equivalent: [{ id: "nitrofurantoin" }, { id: "fosfomycin" }],
+    second: [{ id: "cefuroxime" }, { id: "cefixime" }, { id: "amox-clav" }],
+    why: "first-line agents treat a bladder infection and keep the cephalosporins in reserve (ICMR)",
+    onlyIn: /cystitis|lower urinary|uncomplicated (?:uti|urinary)|urinary tract infection|\buti\b/i,
+    notIn: /pyelo|pregnan|sepsis|complicated uti|prostat|catheter/i,
+    oralInEmergency: true,
+  },
   { id: "statin", label: "High-intensity statins", equivalent: [{ id: "atorvastatin", mg: 40 }, { id: "rosuvastatin", mg: 20 }] },
   { id: "saba", label: "Short-acting bronchodilators", equivalent: [{ id: "salbutamol" }, { id: "levosalbutamol" }, { id: "levosalbutamol-ipratropium" }] },
   {
@@ -147,7 +158,7 @@ const covers = (rule: TherapeuticRule, id: string) => {
 
 /** The case's own step this drug can stand in for, and how well; undefined when it can't. */
 export function substituteFor(def: ClinicalCaseDefinition, drug: FormularyDrug, route?: string): { rule: TherapeuticRule; substitute: Substitute } | undefined {
-  const text = `${def.truth.diagnosis} ${def.truth.qualifier ?? ""}`;
+  const text = affirmed(`${def.truth.diagnosis} ${def.truth.qualifier ?? ""}`);
   const rules = def.therapeutics.filter((r) => r.kind === "drug" && (r.appropriateness === "ideal" || r.appropriateness === "acceptable"));
   let best: { rule: TherapeuticRule; substitute: Substitute; scale?: number } | undefined;
   for (const g of THERAPEUTIC_GROUPS) {

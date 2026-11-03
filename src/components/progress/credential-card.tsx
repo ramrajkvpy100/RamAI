@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { Avatar } from "@/components/game/avatar";
 import { cvBullet, type CareerIndices } from "@/engine/career";
 import { useMe } from "@/lib/me-store";
 import { useSkillProgress } from "@/lib/skill-progress";
@@ -62,8 +63,13 @@ export function CredentialCard() {
   ];
   return (
     <section className="panel p-5 sm:p-6" aria-labelledby="credential-heading">
-      <h2 id="credential-heading" className="text-[16px] font-semibold">CV / Resume Clinical Credential{c.mentor ? " 🎓" : ""}</h2>
-      <p className="mt-0.5 text-[13.5px] text-fg-2">{c.rank}{c.top !== null ? ` · Top ${c.top}%` : ""} · Rating {c.rating} · {c.ratedCases} rated {c.ratedCases === 1 ? "case" : "cases"}{c.mentor ? " · Clinical Fellow Mentor" : ""}</p>
+      <div className="flex items-center gap-3">
+        <Avatar name={c.name} size={48} style={me.avatar} />
+        <div className="min-w-0">
+          <h2 id="credential-heading" className="text-[16px] font-semibold">CV / Resume Clinical Credential{c.mentor ? " 🎓" : ""}</h2>
+          <p className="mt-0.5 text-[13.5px] text-fg-2">{c.rank}{c.top !== null ? ` · Top ${c.top}%` : ""} · Rating {c.rating} · {c.ratedCases} rated {c.ratedCases === 1 ? "case" : "cases"}{c.mentor ? " · Clinical Fellow Mentor" : ""}</p>
+        </div>
+      </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {INDICES.map(([key, label]) => (
           <div key={key} className="rounded-xl bg-surface-2 px-3 py-2.5">

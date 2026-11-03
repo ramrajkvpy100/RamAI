@@ -30,6 +30,7 @@ import "server-only";
 import { DEFAULT_MODEL, lightReasoning } from "@/lib/server/openai-check";
 
 import { stateOfMind } from "../behaviour";
+import { instantAnswer } from "../spoken-history";
 import { LAB_PENDING } from "../lab-model";
 import { noteTiming } from "./usage";
 import type { ClinicalCaseDefinition } from "../case-definition";
@@ -1131,7 +1132,7 @@ async function patientVoice(text: string, ctx: InterpretContext): Promise<Interp
     const raw = await chatJSON([
       { role: "system", content: `You are ${relative ? "the parent of" : ""} a patient speaking to a doctor in an Indian clinic. Reply in one or two short, natural spoken sentences (${language(ctx.country, ctx.lang)}), warm and human. Say only what a patient feels and knows: no diagnosis, examination finding or test result, and no new symptoms or medical history. If asked something you wouldn't know, say so simply. JSON only: {"message":"..."}` },
       { role: "user", content: `Patient: ${def.patient.age}-year-old ${def.patient.sex}${def.patient.occupation ? `, ${def.patient.occupation}` : ""}, ${def.patient.city}.${def.persona ? ` Manner: ${def.persona}.` : ""}\nNow: ${stateNote(ctx).slice(0, 200)}\n${lastSaid(ctx).length ? `Already said (don't repeat): ${lastSaid(ctx).slice(-3).join(" | ").slice(0, 300)}\n` : ""}Doctor: """${text}"""` },
-    ], 120, false, 3000, true, true);
+    ], 90, false, 1200, true, true);
     const message = typeof (raw as { message?: unknown })?.message === "string" ? (raw as { message: string }).message.trim() : "";
     const roomSoFar = `${def.history.map((h) => h.reply).join(" ")} ${ctx.transcript.map((m) => m.text).join(" ")}`;
     if (!message || leaksDiagnosis(def, message, roomSoFar)) return null;
@@ -1142,9 +1143,16 @@ async function patientVoice(text: string, ctx: InterpretContext): Promise<Interp
 }
 
 async function understand(text: string, ctx: InterpretContext, ruled: ResolvedIntent[], reference = ""): Promise<Interpretation> {
+  if (!reference && ctx.lang !== "hinglish" && ruled.every((i) => i.kind === "unknown")) {
+    // A question a table can safely answer: at once, with no model.
+    const instant = instantAnswer(text, ctx.def, ctx.hidden);
+    if (instant) return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: ctx.def.patient.age < 12 ? "attendant" : "patient", settled: true } }], generated: { "0": instant } };
+  }
   if (!reference && plainChat(text, ctx, ruled)) {
     const voice = await patientVoice(text, ctx);
     if (voice) return voice;
+    // The quick voice didn't answer in time: the patient isn't left waiting on the full reading for small talk.
+    return { intents: [{ kind: "unknown", phrase: text, matched: false, payload: { speaker: ctx.def.patient.age < 12 ? "attendant" : "patient", settled: true } }], generated: { "0": "I'm not sure what to say to that, doctor." } };
   }
   try {
     // The rules' reading, as a colleague's first guess — the model keeps it when it's right and corrects it when it isn't.
@@ -1564,6 +1572,17 @@ export function createOpenAIProvider(): ClinicalProvider {
       const reviewDays = /\?\s*$/.test(text.trim()) || read.intents.some((i) => i.kind === "followup") ? null : statedReviewDays(text);
       if (reviewDays !== null) read.intents.push({ kind: "followup", phrase: text, matched: true, payload: { days: reviewDays } });
       return Object.keys(labs).length ? { ...read, generated: { ...read.generated, ...labs } } : read;
+    },
+
+    async doubt({ question, def, transcript, debrief, country }) {
+      const lines = debrief.score.lines.map((l) => `${l.label}: ${Math.round(l.earned * 10) / 10}/${l.max}${l.lost?.length ? ` (lost: ${l.lost.join("; ").slice(0, 200)})` : ""}`).join("\n");
+      const orders = transcript.filter((m) => m.role === "doctor").map((m) => `- ${m.text}`).join("\n").slice(0, 2500);
+      const raw = await chatJSON([
+        { role: "system", content: `You are a senior clinician teaching a doctor after a simulated case, in ${COUNTRY[country ?? "IN"].name}. Answer the doctor's doubt about THIS case clearly and specifically, as a kind senior would: tie it to this patient's numbers and what this doctor actually did. Base guidance on standard guidelines and name them; if the answer depends on local protocol or you're unsure, say so. Don't invent results that aren't in the case. This is education on a fictional case, not advice about a real patient. At most about 180 words, plain language, short paragraphs. JSON only: {"answer":"..."}` },
+        { role: "user", content: `Patient: ${def.patient.age}-year-old ${def.patient.sex}. Diagnosis: ${def.truth.diagnosis}${def.truth.qualifier ? ` (${def.truth.qualifier})` : ""}.\nFinal status: ${debrief.finalStatus}. Doctor's diagnosis: ${debrief.diagnosis} (${debrief.verdict ?? "not stated"}).\nScore ${debrief.score.total}/${debrief.score.max}:\n${lines}\nWhat the doctor did, in order:\n${orders}\nIdeal reasoning: ${debrief.reasoning?.map((r) => `${r.stage}: ${r.text}`).join(" ").slice(0, 1500) ?? ""}\n\nThe doubt: """${question}"""` },
+      ], 500, true, 20_000, true, true);
+      const answer = (raw as { answer?: unknown })?.answer;
+      return typeof answer === "string" && answer.trim() ? answer.trim() : undefined;
     },
 
     async feedback(input): Promise<CoachFeedback | undefined> {

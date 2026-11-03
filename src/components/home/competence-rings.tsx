@@ -20,7 +20,7 @@ export function CompetenceRings({ me }: { me: Me }) {
   const change = p.ratingChange ?? 0;
   const today = Math.min(3, me.rings?.cases ?? 0);
   return (
-    <Link href="/progress" className="panel flex animate-rise items-center gap-4 p-4 [animation-delay:80ms] sm:p-5" aria-label={`Clinical rating ${rating}, ${tier.label}`}>
+    <Link href="/progress" className="panel widget-glass flex animate-rise items-center gap-4 p-4 [animation-delay:80ms] sm:p-5" aria-label={`Clinical rating ${rating}, ${tier.label}`}>
       <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-400 text-white shadow-md">
         <span className="text-[20px] leading-none font-bold tabular">{rating}</span>
         <span className="mt-0.5 text-[9.5px] font-semibold tracking-[0.12em] uppercase opacity-85">rating</span>

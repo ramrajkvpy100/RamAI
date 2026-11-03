@@ -91,13 +91,9 @@ describe("consent and data rights", () => {
   });
 });
 
-describe("invite-only", () => {
-  it("a visitor without an invite pass or a session is sent to the invite page; the invite page itself is open", async () => {
-    delete process.env.RAMAI_INVITE_ONLY;
-    const res = await proxy(new NextRequest("https://ram-ai.example/case"));
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toContain("/invite");
-    expect((await proxy(new NextRequest("https://ram-ai.example/invite"))).status).toBe(200);
+describe("open to everyone", () => {
+  it("a visitor with no pass or session goes straight in, wherever they land", async () => {
+    for (const path of ["/", "/case", "/cases", "/practice", "/invite"]) expect((await proxy(new NextRequest(`https://ram-ai.example${path}`))).status).toBe(200);
   });
 });
 

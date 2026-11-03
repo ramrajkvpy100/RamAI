@@ -14,7 +14,7 @@ import { InstallSheet } from "./install-sheet";
  * (Chrome, Edge, Android) or the steps Apple requires (Safari on iPhone, iPad, Mac).
  * Hidden once installed, and in browsers that can't install it.
  */
-export function InstallButton({ className, label = "Get the app" }: { className?: string; label?: string }) {
+export function InstallButton({ className, label = "Get the app", compact = false }: { className?: string; label?: string; compact?: boolean }) {
   const route = useInstallRoute();
   const [howTo, setHowTo] = useState(false);
   // Inside the Android app it is installed already.
@@ -32,7 +32,7 @@ export function InstallButton({ className, label = "Get the app" }: { className?
       >
         <Icon name="device" size={14} className="text-accent-text" />
         {/* Just the icon on phones, where the header is tight. */}
-        <span className="hidden sm:inline">{label}</span>
+        <span className={compact ? "hidden xl:inline" : "hidden sm:inline"}>{label}</span>
       </button>
       <InstallSheet route={route} open={howTo} onClose={() => setHowTo(false)} />
     </>

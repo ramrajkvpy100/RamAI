@@ -74,6 +74,8 @@ export interface ClinicalProvider {
   interpret(text: string, ctx: InterpretContext): Promise<Interpretation>;
   /** Feedback in words for the debrief (optional). The score never depends on it. */
   feedback?(input: FeedbackInput): Promise<CoachFeedback | undefined>;
+  /** A doctor's question about a case they've just played, answered by a senior. */
+  doubt?(input: FeedbackInput & { question: string }): Promise<string | undefined>;
   /** For an invented case: the debrief's teaching and misses, written while it's played (optional). */
   teach?(def: ClinicalCaseDefinition): Promise<TeachingPack | undefined>;
   /** Clinical pearls and exam-style questions on the case, for the doctor's country (optional). */

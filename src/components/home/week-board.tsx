@@ -8,6 +8,7 @@ import { nudgeFor, useCountdown, useLeague, type LeagueRow } from "@/components/
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 import { xp } from "@/lib/format";
+import type { PublicAvatar } from "@/lib/avatar-style";
 import { league } from "@/lib/leagues";
 
 export interface LeaderRow {
@@ -21,6 +22,8 @@ export interface LeaderRow {
   rankTier: number;
   rankLabel: string;
   demo: boolean;
+  /** The persona or photo they chose. */
+  avatar?: PublicAvatar;
 }
 
 export interface Board {
@@ -45,7 +48,7 @@ function MiniRow({ r, me }: { r: LeagueRow; me: boolean }) {
   return (
     <li className={cn("flex items-center gap-2.5 rounded-xl px-2.5 py-1.5", me && "bg-accent-soft")}>
       <span className={cn("w-5 text-center text-[13px] font-semibold tabular", r.position <= 3 ? "text-flame" : "text-fg-3")}>{r.position}</span>
-      <DoctorFigure tier={r.rankTier} seed={r.userId} size={28} title={r.name} className="rounded-full" />
+      <DoctorFigure tier={r.rankTier} seed={r.userId} avatar={r.avatar} size={28} title={r.name} className="rounded-full" />
       <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{me ? "You" : r.name}</span>
       <span className="text-[12.5px] text-fg-2 tabular">{xp(r.xp)} XP</span>
     </li>

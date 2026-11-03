@@ -2,12 +2,10 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { isScraper } from "@/lib/server/scrapers";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { ACCESS_COOKIE, inviteOnly, makeAccessCookie, validAccessCookie } from "@/lib/server/access-cookie";
 import { AUTH_JWKS, authCookieOptions, hasAuthCookie, supabaseConfig } from "@/lib/server/supabase-env";
 
 /** Pages anyone may open: the invite page, signing in, the legal pages and shared result cards. */
 // "/" for signed-out visitors is the public landing page (search engines must see it); the app behind it stays invite-only.
-const OPEN_PATHS = /^\/$|^\/(verify|learn|faq|llms\.txt|invite|login|signup|verify-email|forgot-password|reset-password|auth|privacy|terms|disclaimer|refund-policy|shipping-policy|delete-account|pricing|contact|about|s|models|radiology\/[^/]+\/)(\/|$|\?)|^\/focus\/[\w-]+\.(webm|ogg|mp3|m4a|mp4|jpg|png|webp)$|^\/anim\/[\w-]+\.(webm|mp4)$|^\/(radiology\/.+\.(jpg|png)|.*\.(png|jpg|svg|webmanifest|txt|xml|ico))$/;
 
 /**
  * Keeps a Supabase session alive: its access token lasts an hour, so an
@@ -37,8 +35,6 @@ async function refreshSession(request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
-  const dev = process.env.NODE_ENV === "development";
-  const https = request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https";
 
   // Scrapers and AI crawlers get nothing but robots.txt (which tells them so).
   if (isScraper(request.headers.get("user-agent")) && request.nextUrl.pathname !== "/robots.txt") return new NextResponse("Not available.", { status: 403 });
@@ -49,24 +45,6 @@ export async function proxy(request: NextRequest) {
   if (process.env.VERCEL_ENV === "production" && live && host.endsWith(".vercel.app") && host !== live) {
     const to = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${live}`);
     return NextResponse.redirect(to, 308);
-  }
-
-  // The Android app (our Play testers) is let in without a code: its first page is opened with an
-  // android-app://com.ramai.app referrer, and that browser gets the same pass an invite code gives.
-  const fromApp = (request.headers.get("referer") ?? "").startsWith("android-app://com.ramai.app") || request.nextUrl.searchParams.get("source") === "android";
-  if (inviteOnly() && fromApp && !hasAuthCookie(request.cookies.getAll().map((c) => c.name)) && !(await validAccessCookie(request.cookies.get(ACCESS_COOKIE)?.value))) {
-    const pass = await makeAccessCookie();
-    const res = NextResponse.redirect(request.nextUrl);
-    res.cookies.set(ACCESS_COOKIE, pass.value, { httpOnly: true, secure: https, sameSite: "lax", path: "/", maxAge: pass.maxAge });
-    return res;
-  }
-
-  // Invite-only: a visitor with neither an invite pass nor a signed-in session sees the invite page.
-  if (inviteOnly() && !OPEN_PATHS.test(request.nextUrl.pathname) && !(dev && request.nextUrl.pathname.startsWith("/dev/")) && !hasAuthCookie(request.cookies.getAll().map((c) => c.name)) && !(await validAccessCookie(request.cookies.get(ACCESS_COOKIE)?.value))) {
-    const to = request.nextUrl.clone();
-    to.pathname = "/invite";
-    to.search = request.nextUrl.pathname === "/" ? "" : `?next=${encodeURIComponent(request.nextUrl.pathname)}`;
-    return NextResponse.redirect(to);
   }
 
   // First, so the refreshed cookies are in the headers passed on to the page.

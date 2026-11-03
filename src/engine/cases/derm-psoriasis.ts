@@ -18,7 +18,7 @@ export const dermPsoriasis: ClinicalCaseDefinition = {
   arrivalMinuteOfDay: 16 * 60 + 30,
   briefing: "A 41-year-old shopkeeper is waiting in Dermatology OPD. He has rolled up his trouser legs.",
   opening: [
-    { role: "system", kind: "finding", text: "Clinical photograph taken by the OPD nurse.", media: shin(plaques(2, 26), 3, "Right shin · at presentation") },
+    { role: "system", kind: "finding", text: "A drawing of the skin (RamAI's illustration, not a photograph).", media: shin(plaques(2, 26), 3, "Right shin · at presentation") },
     { role: "patient", kind: "speech", text: "Doctor, these patches keep coming back. Now they're on my elbows and scalp as well." },
   ],
   baselineVitals: {
@@ -174,7 +174,6 @@ export const dermPsoriasis: ClinicalCaseDefinition = {
   followUp: [
     { when: "ideal", status: "improving",
       lines: [
-        { role: "system", kind: "finding", text: "Clinical photograph at follow-up.", media: shin(plaques(2, 16), 3, "Right shin · follow-up") },
         { role: "patient", kind: "speech", text: "The patches are much thinner and the flakes have reduced a lot. My finger isn't stiff in the mornings now. The blood tests at two weeks were normal." },
       ],
       facts: [{ group: "local-exam", label: "Follow-up", value: "Plaques thinner, less scale; joint symptoms improved" }] },

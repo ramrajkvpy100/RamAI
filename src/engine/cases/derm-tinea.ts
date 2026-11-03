@@ -22,7 +22,7 @@ export const dermTinea: ClinicalCaseDefinition = {
   arrivalMinuteOfDay: 12 * 60 + 5,
   briefing: "A 28-year-old sales executive has come to Dermatology OPD in the lunch hour. He keeps scratching his waist.",
   opening: [
-    { role: "system", kind: "finding", text: "Clinical photograph taken by the OPD nurse.", media: waist(rings(2, 24, [{ morphology: "pustule", count: 4, size: 1.6, region: "central" }]), 9, "Left flank, belt line · at presentation") },
+    { role: "system", kind: "finding", text: "A drawing of the skin (RamAI's illustration, not a photograph).", media: waist(rings(2, 24, [{ morphology: "pustule", count: 4, size: 1.6, region: "central" }]), 9, "Left flank, belt line · at presentation") },
     { role: "patient", kind: "speech", text: "Doctor, this itching is driving me mad. These rings keep spreading — I've tried so many creams." },
   ],
   baselineVitals: {
@@ -159,7 +159,6 @@ export const dermTinea: ClinicalCaseDefinition = {
   followUp: [
     { when: "ideal", status: "improving",
       lines: [
-        { role: "system", kind: "finding", text: "Clinical photograph at follow-up.", media: waist([{ morphology: "hyperpigment", count: 9, size: 9, region: "central" }], 9, "Left flank · follow-up") },
         { role: "patient", kind: "speech", text: "The itching is almost gone, doctor. The rings have faded — just dark marks now. My wife and brother are on the cream too." },
       ],
       facts: [{ group: "local-exam", label: "Follow-up", value: "Active borders resolved; post-inflammatory hyperpigmentation" }] },
@@ -167,7 +166,6 @@ export const dermTinea: ClinicalCaseDefinition = {
       lines: [{ role: "patient", kind: "speech", text: "Better, but new small rings keep coming on my thighs." }] },
     { when: "harmful", status: "deteriorating",
       lines: [
-        { role: "system", kind: "finding", text: "Clinical photograph at follow-up.", media: waist(rings(4, 26, [{ morphology: "pustule", count: 8, size: 1.6 }]), 13, "Trunk · follow-up") },
         { role: "patient", kind: "speech", text: "It's spread to my chest and arms now, doctor. The cream helps for a day and then it's worse." },
       ] },
     { when: "untreated", status: "stable",

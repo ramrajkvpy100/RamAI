@@ -26,6 +26,7 @@ import { spokenLine } from "./spoken";
 import { substituteFor, type Substitute } from "./therapeutic-classes";
 import { alignedPanel, compensated, creatinineClearance, criticalFlags, followLabs, fromVitals, LAB_PENDING, withTrend, type LabContext } from "./lab-model";
 import { canPerform, LEVELS } from "./levels";
+import { periodQuestion, PERIOD_PROMPT, saysPeriod } from "./orders";
 import { childDoseConcern, childDoseMultiple, hasChildDose, confirmQuestion, ROUTE_WORDS, graveHazards, drugNeeds, orderReplies, drugQuestion, phoneDrugQuestion, imagingKind, imagingNeeds, imagingQuestion, oxygenDelivered, oxygenNeeds, oxygenQuestion, parseImaging, parseOxygen, regionById, usualOrder, type ImagingKind, type OrderNeed, type PendingOrder } from "./orders";
 import { doseMultiple, drugFeeling, kineticsFor, profileFor, withDrugEffects, type ActingDrug, type EffectKey, type Trouble } from "./pharmacology";
 import { arrivalVitals, COVERS, GLOBAL_HAZARD_IDS, globalTriggers, hazardLibrary, morphineEquivalent } from "./physiology";
@@ -191,6 +192,8 @@ export interface HiddenState {
   invSeq: number;
   /** Tests requested that the facility could not perform. */
   unavailable: string[];
+  /** The view or contrast already chosen for a test this hospital couldn't do. */
+  unavailableDetails?: Record<string, Record<string, string | number | boolean>>;
   drugs: GivenDrug[];
   /** Times each rule / "measure:x" / "drug:x" / "stop:x" token was executed. */
   actions: Record<string, number[]>;
@@ -1943,8 +1946,9 @@ function orderAdhoc(ctx: TurnContext, id: string): TurnEffect[] {
 
 function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
-  const payload = intent.payload ?? {};
   const requested = intent.targetId ?? "";
+  // Sent to a private lab after the hospital couldn't do it: the view already chosen stands, it isn't asked twice.
+  const payload = { ...(PRIVATE_RE.test(ctx.record.raw) ? hidden.unavailableDetails?.[requested] : undefined), ...(intent.payload ?? {}) };
 
   // "Send bloods": which ones?
   if (requested === "blood") {
@@ -2032,6 +2036,7 @@ function handleInvestigation(ctx: TurnContext, intent: ResolvedIntent): TurnEffe
     if (intent.payload?.private || PRIVATE_RE.test(intent.phrase) || PRIVATE_RE.test(ctx.record.raw)) privateLab = true;
     else {
       hidden.unavailable.push(id);
+      hidden.unavailableDetails = { ...hidden.unavailableDetails, [requested]: payload };
       return [{
         type: "message",
         role: "system",
@@ -2620,6 +2625,21 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
     const question = def.track === "phone" ? phoneDrugQuestion(drug, needs) : drugQuestion(drug, needs, p, askerRole(ctx, mode) !== "system");
     return askAbout(ctx, { kind: "drug", targetId: drug.id, payload: { ...p, mode }, phrase: intent.phrase, needs }, question, mode);
   }
+  // Every order runs for a time the doctor chose: asked before the clock moves. (Not mid-arrest, and not in the guided demo.)
+  if (PERIOD_PROMPT.on && !def.guided && !hidden.code?.active && !drug.fluid && !saysPeriod(p, `${ctx.record.raw} ${intent.phrase}`)) {
+    const several = ctx.record.intents.filter((i) => i.kind === "drug").length > 1;
+    const pending: PendingOrder = { kind: "drug", targetId: drug.id, payload: { ...p, mode }, phrase: intent.phrase, needs: ["period"] };
+    // Several drugs in one message: one question, one tap for them all.
+    if (several && ctx.asked.some((a) => a.needs.includes("period"))) {
+      hidden.pendingOrders = [...hidden.pendingOrders.filter((o) => !(o.kind === "drug" && o.targetId === drug.id)), pending];
+      ctx.asked.push(pending);
+      return [];
+    }
+    const name = [drug.generic.split(/\s[(]/)[0], typeof p.dose === "string" ? p.dose : "", typeof p.route === "string" ? p.route : ""].filter(Boolean).join(" ");
+    return askAbout(ctx, pending, periodQuestion(name, several), mode);
+  }
+  // "Stat" or a single dose: given now, whatever kind of order it was.
+  if (p.statSaid === true && drug.route !== "TOP") mode = "given";
   // A take-home prescription with no route said is by mouth when the drug comes as tablets (metronidazole, not "IV").
   // "Via spacer", "MDI", "puffs": the inhaler, however the step was written.
   const byInhaler = (!p.route || p.route === "INH") && /\b(?:spacer|mdi|inhaler|puffs?)\b/i.test(intent.phrase) && routesFor(drug).includes("INH");

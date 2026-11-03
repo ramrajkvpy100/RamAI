@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
 
+import { useDuelPresence } from "./use-presence";
+
 interface View {
   id: string;
   mode: "invite" | "find" | "computer";
@@ -19,6 +21,7 @@ interface View {
 export function DuelCard({ id, className }: { id: string; className?: string }) {
   const [view, setView] = useState<View | null>(null);
   const [copied, setCopied] = useState(false);
+  useDuelPresence();
 
   useEffect(() => {
     let live = true;

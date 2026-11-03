@@ -36,35 +36,35 @@ export function AppHeader({ initial }: { initial: Me }) {
   return (
     <>
     <header className="material-bar sticky top-0 z-40 border-b border-[var(--material-stroke)]">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-3 sm:gap-6 sm:px-6">
-        <Link href="/home" aria-label="RamAI — home" className="rounded-lg">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-3 sm:gap-4 sm:px-6">
+        <Link href="/home" aria-label="RamAI — home" className="shrink-0 rounded-lg">
           <Wordmark />
         </Link>
-        <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
+        <nav className="hidden min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] sm:flex xl:gap-1" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} prefetch className={cn("relative isolate rounded-lg px-3 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors", (n.href === "/home" ? path === "/" || path === "/home" : path.startsWith(n.href)) ? "text-fg" : "text-fg-2 hover:text-fg")}>
+            <Link key={n.href} href={n.href} prefetch className={cn("relative isolate shrink-0 rounded-lg px-2 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors xl:px-3", (n.href === "/home" ? path === "/" || path === "/home" : path.startsWith(n.href)) ? "text-fg" : "text-fg-2 hover:text-fg")}>
               {(n.href === "/home" ? path === "/" || path === "/home" : path.startsWith(n.href)) && <span aria-hidden style={{ viewTransitionName: "nav-pill-desktop" }} className="absolute inset-0 -z-10 rounded-lg bg-surface-3" />}
               {n.label}
             </Link>
           ))}
-          <ExamMenu country={me.user.country} />
         </nav>
-        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2.5">
+        <ExamMenu country={me.user.country} className="-ml-3 hidden shrink-0 sm:block xl:-ml-2" />
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 xl:gap-2.5">
           <SearchButton />
           <NotInAndroidApp>
             <Link href="/support" aria-label="Donate to RamAI" className="flex h-8 items-center gap-1.5 rounded-full bg-rose-500/10 px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-500/15 dark:text-rose-400">
-              <span aria-hidden>♥</span><span className="hidden min-[400px]:inline">Donate</span>
+              <span aria-hidden>♥</span><span className="hidden min-[400px]:inline sm:hidden xl:inline">Donate</span>
             </Link>
-            <InstallButton />
+            <InstallButton compact />
           </NotInAndroidApp>
-          <Link href="/plan" prefetch aria-label="Planner" title="Planner" className={cn("flex h-8 min-w-[64px] items-center justify-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/plan" ? "bg-amber-500 text-white" : "bg-amber-500/12 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300")}>
-            <span aria-hidden>⭐</span><span>Plan</span>
+          <Link href="/plan" prefetch aria-label="Planner" title="Planner" className={cn("flex h-8 min-w-[64px] items-center justify-center gap-1 rounded-full px-2.5 text-[13px] sm:min-w-8 xl:min-w-[64px] font-semibold transition-colors", path === "/plan" ? "bg-amber-500 text-white" : "bg-amber-500/12 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300")}>
+            <span aria-hidden>⭐</span><span className="sm:hidden xl:inline">Plan</span>
           </Link>
-          <Link href="/focus" prefetch aria-label="Focus timer" title="Focus timer" className={cn("flex h-8 min-w-[64px] items-center justify-center gap-1 rounded-full px-2.5 text-[13px] font-semibold transition-colors", path === "/focus" ? "bg-emerald-600 text-white" : "bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300")}>
-            <span aria-hidden>☕</span><span>Focus</span>
+          <Link href="/focus" prefetch aria-label="Focus timer" title="Focus timer" className={cn("flex h-8 min-w-[64px] items-center justify-center gap-1 rounded-full px-2.5 text-[13px] sm:min-w-8 xl:min-w-[64px] font-semibold transition-colors", path === "/focus" ? "bg-emerald-600 text-white" : "bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300")}>
+            <span aria-hidden>☕</span><span className="sm:hidden xl:inline">Focus</span>
           </Link>
-          <span className="hidden sm:contents"><ThemeToggle /></span>
-          <Link href="/profile" className="hidden items-center sm:flex" aria-label="Daily goal">
+          <span className="hidden lg:contents"><ThemeToggle /></span>
+          <Link href="/profile" className="hidden shrink-0 items-center lg:flex" aria-label="Daily goal">
             <GoalRing value={me.progress.dailyXp} goal={me.progress.dailyGoal} size={32} stroke={4}>
               <span className="text-[9px] font-semibold text-fg-2 tabular">{Math.min(99, Math.round((me.progress.dailyXp / me.progress.dailyGoal) * 100))}</span>
             </GoalRing>

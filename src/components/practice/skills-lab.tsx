@@ -39,6 +39,20 @@ const FIRST: Record<string, Section[]> = {
   OBGYN: ["algorithms", "spot"],
 };
 
+/** Mastery as a ring round the drill's icon. */
+function SkillRing({ mastered, total, emoji }: { mastered: number; total: number; emoji?: string }) {
+  const r = 20, c = 2 * Math.PI * r, share = total ? Math.min(1, mastered / total) : 0;
+  return (
+    <span aria-hidden className="relative flex h-12 w-12 shrink-0 items-center justify-center text-[20px]">
+      <svg viewBox="0 0 48 48" className="absolute inset-0 -rotate-90">
+        <circle cx="24" cy="24" r={r} fill="none" stroke="var(--line)" strokeWidth="3.5" />
+        <circle cx="24" cy="24" r={r} fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - share)} style={{ transition: "stroke-dashoffset 430ms var(--ease-out-soft)" }} />
+      </svg>
+      {emoji}
+    </span>
+  );
+}
+
 /** Skills Lab: a short list of drills — tap one; nothing loads until then. */
 export function SkillsLab() {
   const me = useMe();
@@ -104,8 +118,8 @@ export function SkillsLab() {
                 const [label, sub] = SECTIONS[id];
                 const [emoji, ...words] = label.split(" ");
                 return (
-                  <button key={id} type="button" onClick={() => setSection(id)} className="group flex min-h-[72px] items-center gap-3.5 rounded-2xl border border-line bg-surface px-4 py-3 text-left hover:bg-surface-2 hover:shadow-md active:scale-[0.99]">
-                    <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-3 text-[22px]">{emoji}</span>
+                  <button key={id} type="button" onClick={() => setSection(id)} className="widget-glass group flex min-h-[72px] items-center gap-3.5 rounded-2xl px-4 py-3 text-left">
+                    <SkillRing mastered={bar(id)[0]} total={bar(id)[1]} emoji={emoji} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold">{words.join(" ")}</span>
                       <span className="block text-[12.5px] leading-5 text-fg-2">{sub}</span>
