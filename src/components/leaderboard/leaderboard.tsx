@@ -1,6 +1,6 @@
 "use client";
 
-import { CountIn } from "@/components/ui/motion-kit";
+import { SlidingPill } from "@/components/ui/motion-primitives";
 import { primeMe } from "@/lib/me-store";
 import { success } from "@/lib/haptics";
 import { toast } from "@/lib/toast";
@@ -155,7 +155,7 @@ function LeagueHero({ view, meId, me, onPlay, starting }: { view: LeagueView; me
           </div>
           <div>
             <div className="text-[12px] text-white/55">XP this week</div>
-            <div className="text-[24px] leading-none font-semibold tracking-[-0.02em] tabular"><CountIn value={xp(mine.xp)} /></div>
+            <div className="text-[24px] leading-none font-semibold tracking-[-0.02em] tabular">{xp(mine.xp)}</div>
           </div>
           {mine.movement !== null && mine.movement !== 0 && (
             <div className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[12.5px] font-semibold", mine.movement > 0 ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300")}>
@@ -486,7 +486,8 @@ function GlobalTab({ meId, isPro, initialScope = "all" }: { meId: string; isPro:
       {/* Compete with doctors near you: everyone, your city, your college (from your profile). */}
       <div role="radiogroup" aria-label="Who" className="flex gap-1 self-start rounded-full bg-surface-3 p-1 text-[13px]">
         {([["all", "🌏 Everyone"], ["near", "📍 Near me"], ["college", "🏥 My college"]] as const).map(([id, label]) => (
-          <button key={id} type="button" role="radio" aria-checked={scope === id} onClick={() => setScope(id)} className={cn("rounded-full px-3.5 py-1.5 font-medium whitespace-nowrap transition-colors", scope === id ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+          <button key={id} type="button" role="radio" aria-checked={scope === id} onClick={() => setScope(id)} className={cn("relative isolate rounded-full px-3.5 py-1.5 font-medium whitespace-nowrap transition-colors", scope === id ? "text-fg" : "text-fg-2 hover:text-fg")}>
+                {scope === id && <SlidingPill id="lb-1" className="rounded-[inherit] bg-surface shadow-sm" />}
             {label}
           </button>
         ))}
@@ -543,7 +544,8 @@ export function Leaderboard({ me }: { me: Me }) {
         </div>
         <div role="radiogroup" aria-label="View" className="inline-flex self-start rounded-full border border-line bg-surface p-1 shadow-sm sm:self-auto">
           {(["league", "near", "all"] as const).map((t) => (
-            <button key={t} type="button" role="radio" aria-checked={tab === t} onClick={() => setTab(t)} className={cn("h-8 rounded-full px-4 text-[13px] font-medium transition-colors", tab === t ? "bg-fg text-bg" : "text-fg-2 hover:text-fg")}>
+            <button key={t} type="button" role="radio" aria-checked={tab === t} onClick={() => setTab(t)} className={cn("relative isolate h-8 rounded-full px-4 text-[13px] font-medium transition-colors", tab === t ? "text-bg" : "text-fg-2 hover:text-fg")}>
+                {tab === t && <SlidingPill id="lb-2" className="rounded-[inherit] bg-fg" />}
               {t === "league" ? "My league" : t === "near" ? "📍 Near me" : "All time"}
             </button>
           ))}

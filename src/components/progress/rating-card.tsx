@@ -15,7 +15,7 @@ export function RatingLine({ points, className }: { points: readonly number[]; c
   return (
     <svg viewBox="0 0 100 28" preserveAspectRatio="none" className={className} role="img" aria-label={`Rating over the last ${points.length} rated cases, from ${points[0]} to ${points.at(-1)}`}>
       <m.polyline points={line} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: "easeOut" }} fill="none" stroke="currentColor" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" className="text-sky-500" />
-      <m.circle cx={100} cy={tipY} r="1.6" initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.85, type: "spring", stiffness: 420, damping: 14 }} fill="currentColor" style={{ filter: "drop-shadow(0 0 3px currentColor)" }} />
+      <m.circle cx={100} cy={tipY} r="1.6" initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.85, duration: 0.22 }} fill="currentColor" />
     </svg>
   );
 }

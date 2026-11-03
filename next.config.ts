@@ -1,9 +1,33 @@
 import type { NextConfig } from "next";
 
-import { SCAN_BASE } from "./src/lib/scans";
+import { SCAN_BASE, SCAN_HOST } from "./src/lib/scans";
 
-/** Sent with every response. The Content-Security-Policy for pages is set per request in src/proxy.ts. */
+const dev = process.env.NODE_ENV === "development";
+/**
+ * One fixed policy, so pages can be served from the CDN and prefetched into the phone's memory. Scripts still come only
+ * from RamAI, Razorpay's checkout and Google sign-in; 'unsafe-inline' is needed because Next.js writes small inline scripts
+ * into static pages (they can't carry a per-visit nonce).
+ */
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://accounts.google.com/gsi/client${dev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
+  `img-src 'self' data: blob: https://cdn.razorpay.com ${SCAN_HOST}`,
+  "font-src 'self' data:",
+  `connect-src 'self' ${SCAN_HOST} https://accounts.google.com/gsi/ https://api.razorpay.com https://lumberjack.razorpay.com${dev ? " ws: wss:" : ""}`,
+  "frame-src https://accounts.google.com/gsi/ https://api.razorpay.com https://checkout.razorpay.com",
+  "media-src 'self' blob: data:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  ...(process.env.VERCEL ? ["upgrade-insecure-requests"] : []),
+].join("; ");
+
+/** Sent with every response. */
 const SECURITY_HEADERS = [
+  { key: "Content-Security-Policy", value: CSP },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },

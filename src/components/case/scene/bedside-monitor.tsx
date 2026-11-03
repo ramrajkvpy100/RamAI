@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon } from "@/components/ui/icon";
-import { AnimatedValue, type Trend } from "@/components/ui/motion-kit";
+import { AnimatedValue, type Trend } from "@/components/ui/motion-primitives";
 import { glucoseLabel } from "@/engine/countries";
 import type { CaseState, VitalKey } from "@/engine/types";
 import { cn } from "@/lib/cn";

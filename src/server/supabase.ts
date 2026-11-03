@@ -13,7 +13,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-import { authCookieOptions, hasAuthCookie, isSecretKey, supabaseConfig, supabaseSecretKey, type SupabaseConfig } from "@/lib/server/supabase-env";
+import { AUTH_JWKS, authCookieOptions, hasAuthCookie, isSecretKey, supabaseConfig, supabaseSecretKey, type SupabaseConfig } from "@/lib/server/supabase-env";
 
 /** Thrown when the Supabase settings are missing or wrong. */
 export class AuthConfigError extends Error {
@@ -80,7 +80,7 @@ export async function currentAccount(): Promise<AuthAccount | null> {
   const jar = await cookies();
   if (!hasAuthCookie(jar.getAll().map((c) => c.name))) return null;
   const supabase = await supabaseServer();
-  const { data, error } = await supabase.auth.getClaims();
+  const { data, error } = await supabase.auth.getClaims(undefined, { keys: AUTH_JWKS.keys });
   const claims = data?.claims;
   if (error || !claims?.sub || claims.is_anonymous || typeof claims.email !== "string") return null;
   return { id: claims.sub, email: claims.email.toLowerCase() };

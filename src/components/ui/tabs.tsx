@@ -2,7 +2,7 @@
 
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
 
-import { SlidingPill } from "@/components/ui/motion-kit";
+import { SlidingPill } from "@/components/ui/motion-primitives";
 import { cn } from "@/lib/cn";
 
 export interface TabItem<T extends string> {

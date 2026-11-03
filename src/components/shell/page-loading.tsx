@@ -16,9 +16,6 @@ export function PageLoading() {
       </header>
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pt-6 pb-8 sm:px-6 sm:pt-8">
         <div className="h-9 w-56 skeleton rounded-xl" />
-        <svg viewBox="0 0 300 40" className="h-8 w-full max-w-sm text-accent-text" aria-hidden>
-          <path className="pulse-line" d="M0 22H95l8-6 8 6h12l6 4 8-24 8 30 6-10h16l10-6 12 6H300" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
         <WaitingFact className="max-w-xl" />
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-24 skeleton rounded-[22px]" />

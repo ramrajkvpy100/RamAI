@@ -38,7 +38,7 @@ const plain = (html = "") =>
     .trim();
 
 /** A real image for the first of `queries` (most specific first) that has one passing `accept` — with its credit. */
-export async function findRealImage(queries: string[], accept: (image: { mime: string; base64: string }) => Promise<boolean>, budgetMs = 15_000, exclude: readonly string[] = []): Promise<{ mime: string; base64: string; credit: Credit } | null> {
+export async function findRealImage(queries: string[], accept: (image: { mime: string; base64: string }) => Promise<boolean>, budgetMs = 15_000, exclude: readonly string[] = [], mention?: (words: string) => boolean): Promise<{ mime: string; base64: string; credit: Credit } | null> {
   const deadline = Date.now() + budgetMs;
   const tried = new Set<string>();
   const clean = queries.map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
@@ -51,18 +51,34 @@ export async function findRealImage(queries: string[], accept: (image: { mime: s
   for (const q of queries.map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean)) {
     if (tried.has(q.toLowerCase()) || Date.now() > deadline - 1500) continue;
     tried.add(q.toLowerCase());
-    const found = await searchOnce(q, accept, deadline, exclude);
+    const found = await searchOnce(q, accept, deadline, exclude, mention);
     if (found) return found;
   }
   // Nothing on Commons: figures from open-access papers, single pictures only (most papers' figures are labelled panels).
   for (const q of clean.slice(0, 2)) {
     const left = deadline - Date.now();
     if (left < 3000) break;
-    const figures = (await openIImages(q, undefined, left - 1500)).filter((f) => !UNWANTED.test(f.caption) && !COMPOSITE.test(f.caption) && !(/cardiogenic/i.test(q) && NOT_CARDIOGENIC.test(f.caption)));
+    const figures = (await openIImages(q, undefined, left - 1500)).filter((f) => !UNWANTED.test(f.caption) && !COMPOSITE.test(f.caption) && (!mention || mention(f.caption)) && !(/cardiogenic/i.test(q) && NOT_CARDIOGENIC.test(f.caption)));
     const found = await tryImages(figures.slice(0, 3), accept, deadline, exclude);
     if (found) return found;
   }
   return null;
+}
+
+/**
+ * A picture's own words must name the diagnosis, with no AI involved: every significant word of its name (a long name, all but one),
+ * and the kind of study if one is given. Strict on purpose: a study with no such picture stays hidden rather than showing a doubtful one.
+ */
+export function namesDiagnosis(label: string, kind?: RegExp): (words: string) => boolean {
+  // British and American spellings are the same word: ischaemic, ischemic; oedema, edema.
+  const spelt = (t: string) => t.toLowerCase().replace(/ae/g, "e").replace(/oe/g, "e");
+  const significant = spelt(label.replace(/\s*\(.*\)\s*$/, "")).split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !["with", "from", "disease", "syndrome", "sign"].includes(w));
+  const allowMiss = significant.length >= 4 ? 1 : 0;
+  return (words) => {
+    const text = spelt(words);
+    if (kind && !kind.test(words.toLowerCase())) return false;
+    return significant.length > 0 && significant.filter((w) => !text.includes(w.replace(/(e|s)$/, ""))).length <= allowMiss;
+  };
 }
 
 /** "(a) … (b) …", "A, B", "Panel C": a figure made of several pictures. */
@@ -89,7 +105,7 @@ async function tryImages(images: OpenImage[], accept: (image: { mime: string; ba
   return null;
 }
 
-async function searchOnce(query: string, accept: (image: { mime: string; base64: string }) => Promise<boolean>, deadline: number, exclude: readonly string[] = []): Promise<{ mime: string; base64: string; credit: Credit } | null> {
+async function searchOnce(query: string, accept: (image: { mime: string; base64: string }) => Promise<boolean>, deadline: number, exclude: readonly string[] = [], mention?: (words: string) => boolean): Promise<{ mime: string; base64: string; credit: Credit } | null> {
   const left = () => Math.max(500, deadline - Date.now());
   const params = new URLSearchParams({
     action: "query",
@@ -117,7 +133,7 @@ async function searchOnce(query: string, accept: (image: { mime: string; base64:
       const meta = info.extmetadata ?? {};
       const license = plain(meta.LicenseShortName?.value);
       const words = `${p.title} ${plain(meta.ImageDescription?.value)} ${plain(meta.ObjectName?.value)}`;
-      return LICENSE_OK.test(license) && !UNWANTED.test(words) && !(/cardiogenic/i.test(query) && NOT_CARDIOGENIC.test(words));
+      return LICENSE_OK.test(license) && !UNWANTED.test(words) && !(/cardiogenic/i.test(query) && NOT_CARDIOGENIC.test(words)) && (!mention || mention(words));
     })
     .slice(0, 3);
   for (const { info } of candidates) {

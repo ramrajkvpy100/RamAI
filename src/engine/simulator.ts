@@ -2540,6 +2540,18 @@ function askAbout(ctx: TurnContext, pending: PendingOrder, question: string, mod
   return [{ type: "message", role, kind: role === "system" ? "status" : "speech", text: question, replies: orderReplies(pending) }];
 }
 
+/** Drugs taken for a long-term condition: "continue" means long term, even when started today. */
+const CHRONIC_CLASSES: DrugClass[] = ["antihypertensive", "statin", "antiplatelet", "hypoglycaemic", "biguanide", "insulin", "thyroid", "antithyroid", "antiepileptic", "inhaled-steroid", "beta-blocker", "ssri", "mood-stabiliser", "anticoagulant"];
+
+/** "Continue paracetamol" for a fever is for as long as it lasts; only a home medicine or a long-term treatment goes on indefinitely. */
+export function continuedCourse(def: ClinicalCaseDefinition, drug: FormularyDrug, raw: string): "as needed" | undefined {
+  if (!/\bcontinu/i.test(raw) || /\b(long term|longterm|life ?long|indefinitely|chronic(?:ally)?|ongoing)\b/i.test(raw)) return undefined;
+  if (drug.classes.some((c) => CHRONIC_CLASSES.includes(c))) return undefined;
+  const names = [drug.generic, ...drug.brands, ...(drug.aliases ?? [])].map((n) => n.toLowerCase());
+  const home = def.history.filter((h) => h.group === "medication").map((h) => `${h.reply} ${h.fact ?? ""}`.toLowerCase()).join(" ");
+  return names.some((n) => home.includes(n)) ? undefined : "as needed";
+}
+
 function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   const { def, hidden } = ctx;
   const fx: TurnEffect[] = [];
@@ -2622,7 +2634,7 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   // A cream's label is for the part being treated: "whole face" only for a face.
   if (route === "TOP" && dose && /whole face/i.test(dose) && !/\b(?:face|facial|cheeks?|forehead|nose|chin)\b/i.test(skinText(def))) dose = "thin layer to the affected skin";
   const frequency = (p.frequency as string | undefined) ?? (mode === "prescribed" ? drug.frequency : "stat");
-  const duration = p.duration as string | undefined;
+  const duration = p.duration === "long term" ? (continuedCourse(def, drug, ctx.record.raw) ?? "long term") : (p.duration as string | undefined);
   // "At 100 mL/h for 8 hours": the volume is the rate times the time.
   const rateAndHours = drug.fluid && typeof p.rateMlH === "number" && typeof p.volumeMl !== "number" ? (courseMinutes(p.duration as string | undefined) / 60) * p.rateMlH : 0;
   const volumeMl = rateAndHours > 0 ? rateAndHours : drug.fluid ? (typeof p.volumeMl === "number" ? p.volumeMl : drug.id === "prbc" ? 350 * (typeof p.amount === "number" ? p.amount : 1) : 500) : undefined;

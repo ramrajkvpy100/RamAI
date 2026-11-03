@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { RadiologyReporting } from "@/components/radiology/radiology-reporting";
-import { SlidingPill } from "@/components/ui/motion-kit";
+import { SlidingPill } from "@/components/ui/motion-primitives";
 import { useCareerStage } from "@/lib/career-stage";
 import { useMe } from "@/lib/me-store";
 import { MODALITIES, MODALITY_IDS, type Modality } from "@/lib/practice";
@@ -124,7 +124,7 @@ export function SkillsLab() {
                 const [label, sub] = SECTIONS[id];
                 const [emoji, ...words] = label.split(" ");
                 return (
-                  <button key={id} type="button" onClick={() => setSection(id)} style={{ animationDelay: `${order.indexOf(id) * 40}ms` }} className="deck-card animate-rise group flex min-h-[72px] items-center gap-3.5 rounded-2xl border border-line bg-surface px-4 py-3 text-left hover:bg-surface-2 hover:shadow-md active:scale-[0.99]">
+                  <button key={id} type="button" onClick={() => setSection(id)} className="group flex min-h-[72px] items-center gap-3.5 rounded-2xl border border-line bg-surface px-4 py-3 text-left hover:bg-surface-2 hover:shadow-md active:scale-[0.99]">
                     <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-3 text-[22px]">{emoji}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold">{words.join(" ")}</span>

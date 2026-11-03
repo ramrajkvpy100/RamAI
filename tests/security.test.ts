@@ -102,18 +102,18 @@ describe("invite-only", () => {
 });
 
 describe("content security policy", () => {
-  it("gives every page a fresh nonce and locks scripts, framing and plugins down", async () => {
+  it("sends one fixed policy that keeps scripts to known hosts and locks framing and plugins down", async () => {
+    const { default: config } = await import("../next.config");
+    const rules = await config.headers!();
+    const csp = rules.find((r) => r.source === "/(.*)")!.headers.find((h) => h.key === "Content-Security-Policy")!.value;
+    expect(csp).toMatch(/script-src 'self' 'unsafe-inline' https:\/\/checkout\.razorpay\.com https:\/\/accounts\.google\.com\/gsi\/client(;|$)/);
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("base-uri 'self'");
+    expect(csp).toContain("form-action 'self'");
+    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).not.toMatch(/script-src[^;]*\*/);
     process.env.RAMAI_INVITE_ONLY = "0";
-    const a = (await proxy(new NextRequest("https://ram-ai.example/case"))).headers.get("content-security-policy")!;
-    const b = (await proxy(new NextRequest("https://ram-ai.example/case"))).headers.get("content-security-policy")!;
-    const nonce = (csp: string) => csp.match(/'nonce-([^']+)'/)?.[1];
-    expect(nonce(a)).toBeTruthy();
-    expect(nonce(a)).not.toBe(nonce(b));
-    expect(a).toContain("'strict-dynamic'");
-    expect(a).toContain("frame-ancestors 'none'");
-    expect(a).toContain("object-src 'none'");
-    expect(a).toContain("upgrade-insecure-requests");
-    expect(a).not.toContain("'unsafe-eval'");
-    expect((await proxy(new NextRequest("http://localhost:3218/"))).headers.get("content-security-policy")).not.toContain("upgrade-insecure-requests");
+    expect((await proxy(new NextRequest("https://ram-ai.example/case"))).headers.get("x-nonce")).toBeNull();
   });
 });

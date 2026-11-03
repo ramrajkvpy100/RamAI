@@ -7,8 +7,8 @@ import { useCase } from "@/lib/case-store";
 import { useStartingMessage } from "@/lib/use-starting-message";
 
 /**
- * While a new patient is being prepared — wherever it was started from — a
- * card with what's happening and a bar filling up, so it's plain it's working.
+ * While a new patient is being prepared — wherever it was started from — the screen answers the tap at once, with what's
+ * happening and a bar filling up.
  */
 export function StartingOverlay() {
   const { starting } = useCase();

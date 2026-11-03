@@ -31,12 +31,12 @@ const SCANS = "ramai-scans-v2";
 const KEEP = [STATIC, MEDIA, PAGES, SCANS];
 
 /** Opened from the phone at once, refreshed behind the scenes (they draw from what's kept on the phone anyway). */
-const INSTANT = /^\/(plan|focus|revision|profile|achievements|learn|practice)(\/|$)/;
+const INSTANT = /^\/(home|cases|case|leaderboard|progress|plan|focus|revision|profile|achievements|learn|practice)(\/|$)/;
 // Not videos or sounds: those are streamed in pieces, which the browser's own cache already handles.
 const MEDIA_RE = /\.(png|jpe?g|webp|avif|gif|svg|ico|woff2?)$/i;
 
 /** Opened offline even before you've visited them: fetched with the code each one needs. */
-const READY = ["/", "/plan", "/focus", "/revision", "/practice", "/achievements", "/profile", "/progress"];
+const READY = ["/", "/home", "/cases", "/case", "/leaderboard", "/plan", "/focus", "/revision", "/practice", "/achievements", "/profile", "/progress"];
 
 async function keepReady() {
   const [pages, code] = await Promise.all([caches.open(PAGES), caches.open(STATIC)]);

@@ -425,7 +425,7 @@ const fluids: (() => QuizQuestion)[] = [
       `Parkland = 4 mL × kg × %TBSA in 24 h; half in the first 8 h from the time of the burn.`,
       `4 × ${wt} × ${tbsa} = ${total} mL; half = **${first} mL**.`,
       `The other ${first} mL goes in over the next 16 h.`,
-      `Trap: count from the time of injury, not arrival — and titrate to urine output (0.5 mL/kg/h). Newer ATLS editions start lower (2 mL/kg/%) for adults; this question asks for classic Parkland.`,
+      `Trap: count from the time of injury, not arrival — and titrate to urine output (0.5 mL/kg/h). ATLS 10th edition uses 2 mL/kg/%TBSA for adult thermal burns; this question asks for classic Parkland.`,
     ) });
   },
   () => {

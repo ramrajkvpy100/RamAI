@@ -1,6 +1,6 @@
 "use client";
 
-import { AnswerButton } from "@/components/ui/motion-kit";
+import { SlidingPill, AnswerButton } from "@/components/ui/motion-primitives";
 import { recordSkill } from "@/lib/skill-progress";
 import { CrowdBanner, OptionPct, useCrowd } from "./crowd";
 import { ReportProblem } from "@/components/case/report-problem";
@@ -75,7 +75,8 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
       {groups.length > 1 && (
         <div role="radiogroup" aria-label="Subcategory" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {[null, ...groups].map((g) => (
-            <button key={g ?? "all"} type="button" role="radio" aria-checked={group === g} onClick={() => setGroup(g)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", group === g ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+            <button key={g ?? "all"} type="button" role="radio" aria-checked={group === g} onClick={() => setGroup(g)} className={cn("relative isolate shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", group === g ? "border-accent-line text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                {group === g && <SlidingPill id="snd-1" className="rounded-[inherit] bg-accent-soft" />}
               {g ?? "All"} <span className="text-fg-3 tabular">{g ? pool.filter((p) => p.group === g).length : pool.length}</span>
             </button>
           ))}
@@ -98,7 +99,7 @@ export function SoundsDrill({ level = "full" }: { level?: "basic" | "full" }) {
             <OrganPicture sound={item.sound} playing={playing} />
             <span className="text-[12.5px] font-medium text-fg-2">{playing ? "Listening… tap to pause" : "▶ Tap to listen"}</span>
           </button>
-          {made && <Phonogram samples={made.samples} rate={SAMPLE_RATE} audio={audio} playing={playing} />}
+          {made && <Phonogram samples={made.samples} rate={SAMPLE_RATE} audio={audio} playing={playing} revealed={picked !== null} />}
           {url && <audio ref={audio} src={url} controls controlsList="nodownload noplaybackrate noremoteplayback" onContextMenu={(e) => e.preventDefault()} loop className="w-full" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />}
           <div className="grid gap-2">
             {options.map((o, n) => {

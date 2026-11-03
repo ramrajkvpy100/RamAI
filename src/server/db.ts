@@ -725,16 +725,17 @@ function backend(): Promise<Backend> {
  */
 const SCHEMA_VERSION = (() => {
   let h = 2166136261;
-  for (const ch of SCHEMA + migrate.toString()) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  for (const ch of SCHEMA) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
   return h;
 })();
+/** Bump with any change to migrate() (tests/db-schema-mark.test.ts checks). The same number in every part of the site, so a new deployment sets up once. */
+export const MIGRATIONS_VERSION = 1;
 
 async function open(): Promise<Backend> {
   const remote = remoteDatabase();
   const b = remote ? await stableTurso(remote.url, remote.authToken) : await fileBackend();
-  // Each part of the site is bundled on its own (its migrate() text differs slightly), so each keeps its own mark —
-  // they never undo each other, and each runs the setup once, ever.
-  const mark = `schema-fp:${SCHEMA_VERSION}`;
+  // Set up once per version, not once per part of the site: every cold start only reads this one row.
+  const mark = `schema-v:${SCHEMA_VERSION}:${MIGRATIONS_VERSION}`;
   const at = await b.get<{ value: number }>("SELECT value FROM meta WHERE key = ?", mark).catch(() => undefined);
   if (at) return b;
   await b.exec(SCHEMA);
@@ -756,6 +757,12 @@ async function migrate(b: Backend) {
   }
   if (!columns.includes("league_tier")) add.push("ALTER TABLE users ADD COLUMN league_tier INTEGER NOT NULL DEFAULT 0");
   if (!columns.includes("invite_tier")) add.push("ALTER TABLE users ADD COLUMN invite_tier INTEGER NOT NULL DEFAULT 0");
+  // Early testers, when the free limit fell from 20 cases a day to 3: 7 days of Pro, once. (Paid or longer Pro only gains the week.)
+  if (!columns.includes("prelaunch_grace")) {
+    const now = Date.now(), week = 7 * 86_400_000;
+    add.push("ALTER TABLE users ADD COLUMN prelaunch_grace INTEGER NOT NULL DEFAULT 0");
+    add.push(`UPDATE users SET prelaunch_grace = 1, plan = 'pro', plan_expires_at = (CASE WHEN plan = 'pro' AND plan_expires_at > ${now} THEN plan_expires_at ELSE ${now} END) + ${week} WHERE is_guest = 0 AND is_demo = 0 AND created_at < ${now} AND NOT (plan = 'pro' AND plan_expires_at IS NULL)`);
+  }
   if (!columns.includes("is_guest")) add.push("ALTER TABLE users ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0");
   if (!columns.includes("country")) add.push("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT 'IN'");
   // Proof of consent: when the terms and privacy policy were accepted, and which version.

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnswerButton } from "@/components/ui/motion-kit";
+import { SlidingPill, AnswerButton } from "@/components/ui/motion-primitives";
 import { recordSkill, useSkillProgress } from "@/lib/skill-progress";
 import { CrowdBanner, OptionPct, useCrowd } from "./crowd";
 import { DeckSave } from "./deck-save";
@@ -203,7 +203,8 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
           {groupsOf(modality).length > 1 && (
             <div role="radiogroup" aria-label="Subcategory" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
               {[null, ...groupsOf(modality)].map((s) => (
-                <button key={s ?? "all"} type="button" role="radio" aria-checked={subject === s} onClick={() => setSubject(s)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors", subject === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                <button key={s ?? "all"} type="button" role="radio" aria-checked={subject === s} onClick={() => setSubject(s)} className={cn("relative isolate shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors", subject === s ? "border-accent-line text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                {subject === s && <SlidingPill id="spot-1" className="rounded-[inherit] bg-accent-soft" />}
                   {s ?? "All"}
                   <span className="ml-1 text-fg-3 tabular">{s ? `${progress(`spot:${modality}:`, MODALITIES[modality].items.filter((i) => groupOf(modality, i) === s).map((i) => i.id)).mastered}/${MODALITIES[modality].items.filter((i) => groupOf(modality, i) === s).length}` : MODALITIES[modality].items.length}</span>
                 </button>
@@ -217,7 +218,8 @@ export function PracticeDrill({ stats: initialStats, level = "full", order = MOD
                 ["rapid", "Rapid-fire", `As many as you can name in ${RAPID_SECONDS} seconds.`],
               ] as const
             ).map(([id, label, note]) => (
-              <button key={id} type="button" role="radio" aria-checked={mode === id} onClick={() => setMode(id)} className={cn("flex flex-col items-start rounded-xl border px-4 py-3 text-left", mode === id ? "border-accent-line bg-accent-soft" : "border-line hover:bg-surface-2")}>
+              <button key={id} type="button" role="radio" aria-checked={mode === id} onClick={() => setMode(id)} className={cn("relative isolate flex flex-col items-start rounded-xl border px-4 py-3 text-left", mode === id ? "border-accent-line" : "border-line hover:bg-surface-2")}>
+                {mode === id && <SlidingPill id="spot-2" className="rounded-[inherit] bg-accent-soft" />}
                 <span className="flex items-center gap-2 text-[14.5px] font-semibold">
                   <Icon name={id === "rapid" ? "bolt" : "eye"} size={15} /> {label}
                 </span>

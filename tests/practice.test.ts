@@ -8,7 +8,7 @@ import { MODALITIES } from "@/lib/practice";
 process.env.RAMAI_DB_PATH = ":memory:";
 
 /** Wikimedia Commons and the AI checker, stood in for: one real image per search, judged by `verdict`. */
-function stub(verdict: { realistic: number; matches: number }) {
+function stub(verdict: { realistic: number; matches: number }, title = "Pneumothorax chest X-ray") {
   const calls: string[] = [];
   let n = 0;
   vi.stubGlobal(
@@ -18,7 +18,7 @@ function stub(verdict: { realistic: number; matches: number }) {
       if (u.startsWith("https://commons.wikimedia.org/w/api.php")) {
         calls.push("search");
         n += 1;
-        const page = { index: 1, title: `File:Pneumothorax ${n}.jpg`, imageinfo: [{ thumburl: `https://upload.wikimedia.org/t${n}.jpg`, url: `https://upload.wikimedia.org/f${n}.jpg`, mime: "image/jpeg", width: 1200, height: 1100, descriptionurl: `https://commons.wikimedia.org/wiki/File:P${n}.jpg`, extmetadata: { LicenseShortName: { value: "CC BY 4.0" }, Artist: { value: "Dr Radiologist" } } }] };
+        const page = { index: 1, title: `File:${title} ${n}.jpg`, imageinfo: [{ thumburl: `https://upload.wikimedia.org/t${n}.jpg`, url: `https://upload.wikimedia.org/f${n}.jpg`, mime: "image/jpeg", width: 1200, height: 1100, descriptionurl: `https://commons.wikimedia.org/wiki/File:P${n}.jpg`, extmetadata: { LicenseShortName: { value: "CC BY 4.0" }, Artist: { value: "Dr Radiologist" } } }] };
         return Response.json({ query: { pages: { "1": page } } });
       }
       if (u.startsWith("https://upload.wikimedia.org/")) return new Response(Buffer.from(`real ${u}`));
@@ -46,14 +46,14 @@ afterEach(() => {
 });
 
 describe("practice drills", () => {
-  it("a radiology-only study with no picture finds a real one in the background and keeps it; an answer-only choice never does", async () => {
-    process.env.OPENAI_API_KEY = "test";
-    stub({ realistic: 9, matches: 9 });
+  it("a radiology-only study with no picture finds a real one in the background, with no model, and keeps it; an answer-only choice never does", async () => {
+    const calls = stub({ realistic: 9, matches: 9 }, "Acute ischemic stroke DWI MRI");
     expect(await keptExtraPictures("mri")).toHaveLength(0);
     expect(await addExtraPicture("mri-stroke")).toBe(true);
     const kept = await keptExtraPictures("mri");
     expect(kept.map((k) => k.item)).toEqual(["mri-stroke"]);
     expect(kept[0]!.credit?.source).toBeTruthy();
+    expect(calls).not.toContain("check");
     expect(await addExtraPicture("mammo-normal")).toBe(false);
   });
   it("ECGs RamAI can draw are ready at once, each with four names and the right one among them", async () => {
@@ -69,16 +69,15 @@ describe("practice drills", () => {
     }
   });
 
-  it("a real image is kept only when the checker agrees it shows the diagnosis — then served, credited, to every round", async () => {
-    process.env.OPENAI_API_KEY = "sk-test-" + "x".repeat(40);
-    stub({ realistic: 2, matches: 2 });
+  it("a real image is kept only when its own words name the diagnosis and the study — with no model — then served, credited, to every round", async () => {
+    stub({ realistic: 2, matches: 2 }, "Pneumothorax CT");
     expect(await addPicture("xray", "pneumothorax")).toBe(false);
     expect((await round("xray", "spot")).items).toHaveLength(0);
 
     vi.unstubAllGlobals();
-    const calls = stub({ realistic: 9, matches: 9 });
+    const calls = stub({ realistic: 9, matches: 9 }, "Pneumothorax chest X-ray");
     expect(await addPicture("xray", "pneumothorax")).toBe(true);
-    expect(calls).toEqual(["search", "check"]);
+    expect(calls).toEqual(["search"]);
     // A second picture of the same diagnosis is a different file.
     expect(await addPicture("xray", "pneumothorax")).toBe(true);
     const { items } = await round("xray", "spot");

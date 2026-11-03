@@ -224,17 +224,17 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-glow: var(--shadow-glow);
 
-  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* "backwards", not "both": a finished animation must leave no transform behind — one keeps any fixed layer inside it (a dialog, a full-screen picture) trapped in the card on phones. */
-  --animate-enter: enter 260ms var(--ease-out-soft) backwards;
-  --animate-rise: rise 520ms var(--ease-out-soft) backwards;
-  --animate-fade: fade 520ms ease backwards;
+  --animate-enter: enter 220ms var(--ease-out-soft) backwards;
+  --animate-rise: rise 220ms var(--ease-out-soft) backwards;
+  --animate-fade: fade 220ms var(--ease-out-soft) backwards;
   --animate-flash: flash 1400ms ease-out backwards;
   --animate-breathe: breathe 1.8s ease-in-out infinite;
   --animate-sweep: sweep 1.6s ease-in-out infinite;
-  --animate-sheet: sheet 300ms var(--ease-out-soft) backwards;
+  --animate-sheet: sheet 220ms var(--ease-out-soft) backwards;
   --animate-float: float 7s ease-in-out infinite;
   --animate-float-slow: float 10s ease-in-out infinite;
   --animate-pop: pop 520ms var(--ease-spring) backwards;
@@ -244,7 +244,7 @@
   --animate-trace: trace 2.6s linear infinite;
   --animate-shake: shake 380ms ease-in-out backwards;
   --animate-toast: toast 320ms var(--ease-spring) backwards;
-  --animate-reveal: reveal 620ms var(--ease-out-soft) backwards;
+  --animate-reveal: reveal 220ms var(--ease-out-soft) backwards;
   --animate-seal: seal-break 520ms var(--ease-spring) forwards;
 }
 
@@ -279,7 +279,7 @@
 @keyframes siren-off { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
 @keyframes sheet-out { to { transform: translateY(14px); opacity: 0; } }
 @keyframes fade-out { to { opacity: 0; } }
-@keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes page-in { from { opacity: 0; transform: translateY(4px); } }
 @keyframes page-out { to { opacity: 0; } }
 @keyframes blink { to { visibility: hidden; } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
@@ -491,8 +491,8 @@ dialog[data-closing] { animation: sheet-out 180ms cubic-bezier(0.4, 0, 1, 1) bot
 dialog[data-closing]::backdrop { animation: fade-out 180ms ease both; }
 
 /* Page changes: the old page fades out, the new one rises in (browsers with view transitions). */
-::view-transition-old(.page-out) { animation: page-out 140ms ease-in both; }
-::view-transition-new(.page-in) { animation: page-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+::view-transition-old(.page-out) { animation: page-out 120ms ease-out both; }
+::view-transition-new(.page-in) { animation: page-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* Guided case: the part of the screen the current tip is about gently pulses. */
 @keyframes coach-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent); } }
@@ -719,60 +719,34 @@ svg {
 @keyframes vital-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 @keyframes iv-drip { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(5px); opacity: 1; } 100% { transform: translateY(6px); opacity: 0; } }
 /* Results come in row by row; a flag pops. */
-.row-in { animation: row-in 260ms var(--ease-out-soft) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+.row-in { animation: row-in 220ms var(--ease-out-soft) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
 @keyframes row-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.flag-pop { display: inline-block; animation: flag-pop 340ms var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 30ms + 140ms); }
+.flag-pop { display: inline-block; animation: flag-pop 340ms var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 30ms + 120ms); }
 @keyframes flag-pop { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
-/* Skeletons: a sheen, with a heartbeat through the page outline. */
+/* Skeletons: a sheen. */
 .skeleton { position: relative; overflow: hidden; background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 9%, transparent), transparent); animation: sweep 1.5s ease-in-out infinite; }
-.pulse-line { stroke-dasharray: 300; animation: pulse-line 1.8s linear infinite; }
-@keyframes pulse-line { from { stroke-dashoffset: 300; } to { stroke-dashoffset: -300; } }
-.deck-card { transition: transform 200ms var(--ease-out-soft), box-shadow 200ms var(--ease-out-soft); }
-@media (hover: hover) { .deck-card:hover { transform: perspective(700px) translateY(-3px) rotateX(2deg); } }
-@keyframes float-up { 0% { opacity: 0; transform: translateY(6px) scale(0.8); } 20% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-34px) scale(1); } }
-.float-up { animation: float-up 1100ms ease-out forwards; }
 @media (prefers-reduced-motion: reduce) {
-  .vital-flash, .vital-critical::after, .row-in, .flag-pop, .skeleton::after, .pulse-line, .float-up { animation: none; }
+  .vital-flash, .vital-critical::after, .row-in, .flag-pop, .skeleton::after { animation: none; }
   .vital-flash { display: none; }
-  .deck-card:hover { transform: none; }
 }
 
-/* Every page, without each one asking: in @layer base, so anything a component sets for itself still wins. ------- */
+/* The whole app's touch and hover, from one place: in @layer base, so anything a component sets for itself still wins. ----- */
 @layer base {
   @media (prefers-reduced-motion: no-preference) {
-    /* Cards and panels arrive one after another as a page opens. */
-    main :where(.panel, .card) { animation: card-in 320ms var(--ease-out-soft) backwards; }
-    main :where(.panel, .card):nth-child(2) { animation-delay: 40ms; }
-    main :where(.panel, .card):nth-child(3) { animation-delay: 80ms; }
-    main :where(.panel, .card):nth-child(4) { animation-delay: 120ms; }
-    main :where(.panel, .card):nth-child(5) { animation-delay: 160ms; }
-    main :where(.panel, .card):nth-child(n + 6) { animation-delay: 200ms; }
-    main :where(h1) { animation: title-in 360ms var(--ease-out-soft) backwards; }
-    /* Lists, tables and sections further down rise into place as they scroll into view (on the compositor, where the browser can). */
-    @supports (animation-timeline: view()) {
-      main :where(li, tbody tr, section, article) { animation: scroll-in linear backwards; animation-timeline: view(); animation-range: entry 0% entry 35%; }
+    :where(button, [role="button"], [role="tab"], [role="radio"], a.panel, a.card, a[class*="rounded"], summary) {
+      transition: scale 100ms var(--ease-out-soft), translate 160ms var(--ease-out-soft), background-color 160ms var(--ease-out-soft), border-color 160ms var(--ease-out-soft), color 160ms var(--ease-out-soft), opacity 160ms var(--ease-out-soft);
     }
-    /* Anything you can press gives under the finger. (`scale`, so it never disturbs a transform that positions it.) */
-    :where(button, [role="button"], a.panel, a.card, a[class*="rounded"]) { transition-property: scale, translate, background-color, border-color, color, box-shadow, opacity, filter; transition-duration: 140ms; }
-    :where(button, [role="button"], a.panel, a.card, a[class*="rounded"]):not(:disabled):active { scale: 0.97; }
-    /* A choice just made pops. */
-    :where([role="radio"][aria-checked="true"], [role="tab"][aria-selected="true"], [role="switch"][aria-checked="true"]) { animation: chip-on 260ms var(--ease-spring); }
+    :where(button, [role="button"], [role="tab"], [role="radio"], a.panel, a.card, a[class*="rounded"], summary):not(:disabled):active { scale: 0.97; }
     @media (hover: hover) {
-      :where(a.panel, a.card, button.panel, button.card):hover { translate: 0 -2px; box-shadow: 0 10px 28px -14px rgb(0 0 0 / 0.35); }
-      :where(button[class*="bg-accent"], a[class*="bg-accent"], button[class*="bg-ai"], a[class*="bg-ai"]):not(:disabled):hover { filter: brightness(1.08); }
+      :where(a.panel, a.card, button.panel, button.card, button[class*="rounded-xl"], button[class*="rounded-2xl"], a[class*="rounded-2xl"]):not(:disabled):hover { translate: 0 -1.5px; }
     }
   }
 }
-@keyframes card-in { from { opacity: 0; transform: translateY(12px) scale(0.99); } }
-@keyframes title-in { from { opacity: 0; transform: translateY(8px); } }
-@keyframes scroll-in { from { translate: 0 18px; scale: 0.985; opacity: 0.25; } }
-@keyframes chip-on { 0% { scale: 0.94; } 60% { scale: 1.03; } 100% { scale: 1; } }
-/* The heartbeat under the header, on every page. */
-.heartbeat-line { position: absolute; inset-inline: 0; bottom: -1px; height: 10px; width: 100%; pointer-events: none; overflow: visible; color: var(--accent); opacity: 0.55; }
-.heartbeat-line path { stroke-dasharray: 170 1500; animation: heartbeat-run 5.2s linear infinite; }
-@keyframes heartbeat-run { from { stroke-dashoffset: 1670; } to { stroke-dashoffset: 0; } }
-/* The page's background light drifts slowly. */
-.aurora-drift { animation: aurora 16s ease-in-out infinite alternate; }
-@keyframes aurora { from { transform: translate3d(-2%, 0, 0) scale(1); } to { transform: translate3d(2%, 12px, 0) scale(1.06); } }
-@media (prefers-reduced-motion: reduce) { .heartbeat-line path, .aurora-drift { animation: none; } .heartbeat-line path { stroke-dasharray: none; opacity: 0.2; } }
+.eq-bar { width: 3px; height: 100%; border-radius: 2px; background: var(--accent); opacity: 0.55; transform: scaleY(0.5); animation: eq 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
+.eq-still { animation: none; transform: scaleY(0.12); }
+@keyframes eq { from { transform: scaleY(0.12); } to { transform: scaleY(0.8); } }
+@media (prefers-reduced-motion: reduce) { .eq-bar { animation: none; transform: scaleY(0.25); } }
+
+/* The tab's highlight glides from page to page. */
+::view-transition-group(nav-pill-phone), ::view-transition-group(nav-pill-desktop) { animation-duration: 320ms; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }

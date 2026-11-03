@@ -1,20 +1,29 @@
 "use client";
 
 /**
- * The app's motion: springs loaded after the page is up (so animation never slows the first paint), and the small
- * pieces every screen shares. Everything honours the phone's reduced-motion setting.
+ * RamAI's motion system: three curves, used everywhere, and the few pieces that need more than CSS (the global press and
+ * hover are in globals.css). Springs load after the page is up, so motion never slows the first paint; only transform and
+ * opacity move; everything honours the phone's reduced-motion setting.
  */
 import { LazyMotion, MotionConfig, m, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
+/** Buttons, answer options, chips, toggles, nav icons. */
+export const SPRING_SNAPPY = { type: "spring", stiffness: 500, damping: 32, mass: 0.8 } as const;
+/** Sliding pills, drawers, sheets, cards changing place. */
+export const SPRING_SMOOTH = { type: "spring", stiffness: 320, damping: 28, mass: 0.9 } as const;
+/** Page changes, chat bubbles, reports, modals. (The same curve is --ease-out-soft in CSS.) */
+export const EASE_OUT_EXPO = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const;
+
+// (layoutId needs domMax rather than domAnimation; it's loaded in its own chunk, after the page is interactive.)
 const features = () => import("motion/react").then((x) => x.domMax);
 
 export function MotionRoot({ children }: { children: ReactNode }) {
   return (
     <LazyMotion features={features}>
-      <MotionConfig reducedMotion="user" transition={{ type: "spring", stiffness: 420, damping: 34 }}>
+      <MotionConfig reducedMotion="user" transition={SPRING_SMOOTH}>
         {children}
       </MotionConfig>
     </LazyMotion>
@@ -76,51 +85,22 @@ export function AnimatedValue({ value, trend = null, durationMs = 400, fromZero 
   );
 }
 
-/**
- * An answer option that feels like a real button: lifts on hover, gives under the finger, bounces when right, shakes when
- * wrong, and a small "+1" floats up from a right pick.
- */
-export function AnswerButton({ state, picked = false, children, ...rest }: { state: "idle" | "right" | "wrong" | "other"; picked?: boolean; children: ReactNode } & Omit<ComponentProps<typeof m.button>, "children" | "animate">) {
+/** An answer option: gives under the finger, confirms when right, a short shake when wrong. */
+export function AnswerButton({ state, picked: _picked, children, ...rest }: { state: "idle" | "right" | "wrong" | "other"; picked?: boolean; children: ReactNode } & Omit<ComponentProps<typeof m.button>, "children" | "animate">) {
   return (
     <m.button
       {...rest}
-      whileHover={state === "idle" ? { y: -2 } : undefined}
-      whileTap={state === "idle" ? { scale: 0.97 } : undefined}
-      animate={state === "right" ? { scale: [1, 1.03, 1], x: 0 } : state === "wrong" ? { x: [0, -6, 6, -4, 4, 0], scale: 1 } : { scale: 1, x: 0 }}
-      transition={state === "right" || state === "wrong" ? { duration: 0.32 } : { type: "spring", stiffness: 500, damping: 30 }}
-      style={{ position: "relative", ...rest.style }}
+      animate={state === "right" ? { scale: [1, 1.02, 1], x: 0 } : state === "wrong" ? { x: [0, -5, 5, -3, 3, 0], scale: 1 } : { scale: 1, x: 0 }}
+      transition={state === "right" || state === "wrong" ? { duration: 0.28, ease: [0.16, 1, 0.3, 1] } : SPRING_SNAPPY}
     >
       {children}
-      {state === "right" && picked && <span aria-hidden className="float-up absolute -top-2 right-3 rounded-full bg-success px-2 py-0.5 text-[12px] font-semibold text-white">+1 🔥</span>}
     </m.button>
   );
 }
 
-/** A number on a page counting up to its value as the page opens. */
-export const CountIn = ({ value, className }: { value: string | number; className?: string }) => <AnimatedValue value={value} fromZero durationMs={800} className={className} />;
-
-/** A pulse travelling along the bottom of the header, on every page. */
-export function HeartbeatLine() {
-  const beat = "h60l6-3 6 3h10l4 2 5-8 5 10 4-4h14l7-3 7 3h60";
-  return (
-    <svg aria-hidden viewBox="0 0 1200 12" preserveAspectRatio="none" className="heartbeat-line">
-      <path d={`M0 7${beat.repeat(6)}`} fill="none" stroke="currentColor" strokeWidth="1.2" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/** The background of whichever tab or chip is on: it slides across rather than jumping. The parent must be `relative`. */
+/** The background of whichever tab or chip is on: it slides across rather than jumping. The parent must be `relative isolate`. */
 export function SlidingPill({ id, className }: { id: string; className?: string }) {
-  return <m.span layoutId={id} aria-hidden className={cn("absolute inset-0 -z-10", className)} transition={{ type: "spring", stiffness: 500, damping: 38 }} />;
-}
-
-/** Cards coming in one after another. */
-export function Rise({ index = 0, children, className }: { index?: number; children: ReactNode; className?: string }) {
-  return (
-    <m.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 12) * 0.04 }} className={className}>
-      {children}
-    </m.div>
-  );
+  return <m.span layoutId={id} aria-hidden className={cn("absolute inset-0 -z-10", className)} transition={SPRING_SMOOTH} />;
 }
 
 /** A bar filling from nothing to its value, on the GPU (scale, not width). */
@@ -129,18 +109,10 @@ export function FillBar({ value, delay = 0, className }: { value: number; delay?
     <m.div
       initial={{ scaleX: 0 }}
       animate={{ scaleX: Math.max(0, Math.min(1, value)) }}
-      transition={{ type: "spring", stiffness: 90, damping: 18, delay }}
+      transition={{ ...SPRING_SMOOTH, delay }}
       style={{ transformOrigin: "left center" }}
       className={cn("h-full w-full rounded-full", className)}
     />
   );
 }
 
-/** A clean shimmer of light across a card, for a great result. */
-export function ShimmerBurst({ className }: { className?: string }) {
-  return (
-    <span aria-hidden className={cn("pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]", className)}>
-      <m.span initial={{ x: "-120%", opacity: 0.9 }} animate={{ x: "120%", opacity: 0 }} transition={{ duration: 1.1, ease: "easeOut", delay: 0.35 }} className="absolute inset-y-0 w-2/3 skew-x-[-18deg] bg-gradient-to-r from-transparent via-white/45 to-transparent" />
-    </span>
-  );
-}

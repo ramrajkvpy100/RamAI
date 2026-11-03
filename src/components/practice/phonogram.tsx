@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 
 /**
- * The sound as it's heard: its real waveform scrolling past a playhead, and a stethoscope diaphragm that swells with it.
- * Drawn from the very samples being played and timed from the audio's own clock, so picture and sound stay together.
+ * While the doctor is answering: a plain moving equalizer that says nothing about the sound, so it's the ears that decide.
+ * Once answered: its real waveform scrolling past a playhead, drawn from the very samples played and timed from the audio's own clock.
  */
-export function Phonogram({ samples, rate, audio, playing }: { samples: Float32Array; rate: number; audio: RefObject<HTMLAudioElement | null>; playing: boolean }) {
+export function Phonogram({ samples, rate, audio, playing, revealed }: { samples: Float32Array; rate: number; audio: RefObject<HTMLAudioElement | null>; playing: boolean; revealed: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const diaphragm = useRef<HTMLSpanElement>(null);
   // Loudness every 15 ms: enough to show each beat, and light to draw.
   const step = Math.round(rate * 0.015);
   const envelope = useMemo(() => {
@@ -24,6 +23,7 @@ export function Phonogram({ samples, rate, audio, playing }: { samples: Float32A
   }, [samples, step]);
 
   useEffect(() => {
+    if (!revealed) return;
     const el = canvas.current;
     const g = el?.getContext("2d");
     if (!el || !g) return;
@@ -51,24 +51,23 @@ export function Phonogram({ samples, rate, audio, playing }: { samples: Float32A
       }
       g.globalAlpha = 0.9;
       g.fillRect(head, 0, 1.5, h);
-      const loudNow = envelope[Math.floor(at) % Math.max(1, envelope.length)] ?? 0;
-      if (diaphragm.current) {
-        diaphragm.current.style.transform = `scale(${1 + (playing ? loudNow : 0) * 0.45})`;
-        diaphragm.current.style.opacity = String(playing ? 0.35 + loudNow * 0.65 : 0.3);
-      }
       if (playing && !reduced) raf = requestAnimationFrame(draw);
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [audio, envelope, playing, rate, step]);
+  }, [audio, envelope, playing, rate, revealed, step]);
 
   return (
-    <div className="flex items-center gap-3" aria-hidden>
-      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-        <span ref={diaphragm} className="absolute inset-0 rounded-full bg-accent-soft ring-2 ring-accent-line will-change-transform" />
-        <span className="relative h-4 w-4 rounded-full bg-accent" />
-      </span>
-      <canvas ref={canvas} className="h-12 min-w-0 flex-1 rounded-lg text-accent-text" />
+    <div aria-hidden className="h-12">
+      {revealed ? (
+        <canvas ref={canvas} className="animate-fade h-full w-full rounded-lg text-accent-text" />
+      ) : (
+        <div className="flex h-full items-center justify-center gap-[3px]">
+          {Array.from({ length: 28 }, (_, i) => (
+            <span key={i} className={playing ? "eq-bar" : "eq-bar eq-still"} style={{ animationDelay: `${((i * 7) % 11) * -90}ms` }} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { FillBar } from "@/components/ui/motion-kit";
+import { FillBar } from "@/components/ui/motion-primitives";
 import { Badge } from "@/components/ui/primitives";
 import type { CaseScore } from "@/engine/types";
 import { cn } from "@/lib/cn";

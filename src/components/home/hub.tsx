@@ -13,7 +13,6 @@ import { nextRank, rankFor, rankProgress } from "@/engine/progression";
 import { hydrate, useCase } from "@/lib/case-store";
 import { cn } from "@/lib/cn";
 import { dailyKeyFor, dailyNumber } from "@/lib/daily";
-import { CountIn } from "@/components/ui/motion-kit";
 import { AppCard } from "./app-card";
 import { useMe, type Me } from "@/lib/me-store";
 
@@ -144,7 +143,7 @@ export function Hub({ initial }: { initial: Me }) {
           <GoalRing value={p.dailyXp} goal={p.dailyGoal} size={44} stroke={5} />
           <div className="min-w-0">
             <div className="text-[20px] leading-6 font-bold">
-              <CountIn value={p.dailyXp} />
+              {p.dailyXp}
               <span className="text-[13px] font-normal text-fg-2">/{p.dailyGoal}</span>
             </div>
             <div className="text-[12.5px] text-fg-2">{goalMet ? "goal met 🎉" : "XP today"}</div>

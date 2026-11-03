@@ -13,22 +13,13 @@ import { randomUUID } from "node:crypto";
 
 import { groupOf, MODALITIES, optionsFor, SPOT_COUNT, type DrillItem, type Modality, type PracticeItem, type PracticeMode } from "@/lib/practice";
 import { EXTRA_ITEMS, type ExtraModality } from "@/lib/radiology";
-import type { PictureType } from "@/engine/types";
 
-import { reviewPicture, type PictureBrief } from "./ai-images";
 import { db } from "./db";
-import { findRealImage, type Credit } from "./real-images";
+import { findRealImage, namesDiagnosis, type Credit } from "./real-images";
 
 /** Pictures kept per diagnosis. */
 const PER_ITEM = 5;
 
-const TYPE: Record<Modality, PictureType> = { ecg: "photo", xray: "xray", ct: "ct", usg: "usg", smear: "slide", clinical: "photo" };
-const STYLE: Partial<Record<Modality, string>> = {
-  ecg: "A real 12-lead ECG printed on standard pink-red grid paper at 25 mm/s and 10 mm/mV, photographed flat or scanned: crisp black traces, lead labels only, true electrophysiology.",
-  usg: "An original, unannotated ultrasound frame as a radiologist sees it on the scanner: no text labels, arrows or captions naming any structure or finding (machine overlays such as depth scale and calipers are fine). Reject any image whose text names the diagnosis or a finding.",
-  clinical: "A real clinical photograph of a patient's skin, eye, mouth, nails or body, as a doctor sees it at the bedside: no text, arrows, labels or captions naming the condition. Reject any image whose text names the diagnosis, and any illustration or drawing.",
-  smear: "A real thin peripheral blood smear under oil-immersion light microscopy (×1000), Leishman or Giemsa stain: pink red cells, purple-staining nuclei, true cell sizes and morphology.",
-};
 
 /** Pictures past a student's or intern's level — shown to residents and specialists only. */
 const ADVANCED_SPOT = new Set([
@@ -48,7 +39,9 @@ const ADVANCED_SPOT = new Set([
 const REMOVED = ["d1d59e4e-398f-4f5b-b3cb-18042b05891a", "19041bed-3818-48f7-899d-7c0b44fc20a7"];
 let removed = false;
 
-export const picturesAvailable = () => !!process.env.OPENAI_API_KEY;
+/** The finder uses only free sources (Wikimedia Commons, Open-i) and no model, so browsing the Skills Lab never spends OpenAI credit. */
+export const picturesAvailable = () => true;
+const takeIt = async () => true;
 
 interface Row {
   id: string;
@@ -57,25 +50,18 @@ interface Row {
   source: "commons" | "ai";
 }
 
-function brief(modality: Modality, item: PracticeItem): PictureBrief {
-  const m = MODALITIES[modality];
-  return { type: TYPE[modality], view: m.kind, describe: modality === "clinical" ? `A real clinical photograph showing ${item.describe}. It must be recognisable as ${item.label} to a doctor; the exact body site and severity don't matter.` : `A teaching ${m.kind} showing ${item.describe}. It must clearly show the classic features: ${item.key}`, topic: item.label, ...(STYLE[modality] ? { style: STYLE[modality] } : {}) };
-}
-
-/** Finds (or makes) one more picture of a diagnosis, checked against it, and keeps it. */
+/** Finds one more real picture of a diagnosis, whose own words name it, and keeps it. */
 export async function addPicture(modality: Modality, itemId: string): Promise<boolean> {
   const item = MODALITIES[modality].items.find((i) => i.id === itemId);
   if (!item || !picturesAvailable()) return false;
   const have = await db.all<{ credit: string | null }>("SELECT credit FROM practice_images WHERE modality = ? AND item = ? AND source = 'commons'", modality, itemId);
   if (have.length >= PER_ITEM) return false;
   const used = have.map((h) => (h.credit ? (JSON.parse(h.credit) as Credit).source : "")).filter(Boolean);
-  const p = brief(modality, item);
-  const accept = (image: { mime: string; base64: string }) => reviewPicture(image, p).then((r) => r.ok).catch(() => false);
   const kind = MODALITIES[modality].kind;
   let found: { mime: string; base64: string; credit?: Credit; source: "commons" } | null = null;
   // Clinical photos: the plain name first — Commons finds far more for "psoriasis" than for a long phrase.
   const plainName = item.label.replace(/\s*\(.*\)$/, "");
-  const real = await findRealImage(modality === "clinical" ? [plainName, ...item.search] : [...item.search, `${item.label} ${kind}`], accept, 25_000, used);
+  const real = await findRealImage(modality === "clinical" ? [plainName, ...item.search] : [...item.search, `${item.label} ${kind}`], takeIt, 25_000, used, namesDiagnosis(item.label, modality === "clinical" ? undefined : STUDY_WORD[modality]));
   if (real) found = { ...real, source: "commons" };
   // Practice uses real images only — never AI-made ones. (ECGs RamAI can draw exactly have their tracing besides.)
   if (!found) return false;
@@ -98,17 +84,13 @@ export async function missingPictures(modality: Modality, limit = 3, subject?: s
     .map((i) => i.id);
 }
 
-/** Radiology's own modalities: what the checker is told a picture must be. */
-const EXTRA_KIND: Record<ExtraModality, { type: PictureType; view: string; style: string }> = {
-  mri: { type: "mri", view: "MRI", style: "A real MRI slice as a radiologist reads it: no arrows, captions or text naming the finding (sequence and scanner overlays are fine). Reject any image whose text names the diagnosis." },
-  mammo: { type: "xray", view: "mammogram", style: "A real mammogram (CC or MLO view) as a radiologist reads it: no arrows, captions or text naming the finding. Reject any image whose text names the diagnosis." },
-  fluoro: { type: "xray", view: "contrast fluoroscopy study", style: "A real fluoroscopic contrast study (barium or iodinated contrast) as a radiologist reads it: no arrows, captions or text naming the finding. Reject any image whose text names the diagnosis." },
-  nuclear: { type: "photo", view: "nuclear medicine scan", style: "A real nuclear medicine (scintigraphy) image as a radiologist reads it: no arrows, captions or text naming the finding. Reject any image whose text names the diagnosis." },
-};
+/** What a picture's own words must call the study, so the same diagnosis in another modality isn't taken. */
+const STUDY_WORD: Partial<Record<Modality, RegExp>> = { ecg: /\b(ecg|ekg|electrocardiogra)/, xray: /\b(x-?ray|radiograph|cxr|roentgen)/, ct: /\b(ct|computed tomography|tomogra)/, usg: /\b(ultraso|sonogra|usg|echocardiogra)/, smear: /\b(smear|blood film|giemsa|leishman|wright|microscop|parasit)/ };
+const EXTRA_WORD: Record<ExtraModality, RegExp> = { mri: /\b(mri|mr imag|magnetic resonance|t1|t2|flair|dwi)\b/, mammo: /\b(mammogra|bi-?rads)/, fluoro: /\b(barium|fluoro|swallow|enema|hysterosalping|hsg|contrast)/, nuclear: /\b(scintigra|nuclear|hida|v\/?q|technetium|tc-?99|bone scan|spect)/ };
 
 /**
- * Radiology's MRI, contrast and nuclear studies: one more real, freely licensed picture found on Commons and checked
- * against its findings by the AI checker (never AI-made), kept alongside the bank's. Those with nothing kept aren't shown.
+ * Radiology's MRI, contrast and nuclear studies: one more real, freely licensed picture found on Commons whose own words
+ * name the diagnosis and the study (never AI-made), kept alongside the bank's. Those with nothing kept aren't shown.
  */
 export async function addExtraPicture(itemId: string): Promise<boolean> {
   const item = EXTRA_ITEMS.find((x) => x.id === itemId);
@@ -116,9 +98,7 @@ export async function addExtraPicture(itemId: string): Promise<boolean> {
   const have = await db.all<{ credit: string | null }>("SELECT credit FROM practice_images WHERE modality = ? AND item = ? AND source = 'commons'", item.modality, itemId);
   if (have.length >= PER_ITEM) return false;
   const used = have.map((h) => (h.credit ? (JSON.parse(h.credit) as Credit).source : "")).filter(Boolean);
-  const kind = EXTRA_KIND[item.modality];
-  const p: PictureBrief = { type: kind.type, view: kind.view, describe: `A teaching ${kind.view} of ${item.label}. It must clearly show the classic features: ${item.key}`, topic: item.label, style: kind.style };
-  const real = await findRealImage(item.search, (image) => reviewPicture(image, p).then((r) => r.ok).catch(() => false), 25_000, used);
+  const real = await findRealImage(item.search, takeIt, 25_000, used, namesDiagnosis(item.label, EXTRA_WORD[item.modality]));
   if (!real) return false;
   await db.run(
     "INSERT INTO practice_images (id, modality, item, mime, data, credit, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",

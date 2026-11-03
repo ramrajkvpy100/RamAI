@@ -1,6 +1,6 @@
 "use client";
 
-import { AnswerButton } from "@/components/ui/motion-kit";
+import { SlidingPill, AnswerButton } from "@/components/ui/motion-primitives";
 import { recordSkill } from "@/lib/skill-progress";
 import { CrowdBanner, OptionPct, useCrowd } from "@/components/practice/crowd";
 import { Rich, RichLines } from "@/components/ui/rich-lines";
@@ -131,7 +131,8 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
       {modality === "decks" && (
         <div role="radiogroup" aria-label="Deck" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {RADIOLOGY_DECKS.map((d) => (
-            <button key={d.name} type="button" role="radio" aria-checked={deck === d.name} onClick={() => setDeck(d.name)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", deck === d.name ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+            <button key={d.name} type="button" role="radio" aria-checked={deck === d.name} onClick={() => setDeck(d.name)} className={cn("relative isolate shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", deck === d.name ? "border-accent-line text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                {deck === d.name && <SlidingPill id="rad-1" className="rounded-[inherit] bg-accent-soft" />}
               {d.short ?? d.name}
             </button>
           ))}
@@ -149,7 +150,8 @@ export function RadiologyReporting({ embedded = false }: { /** Inside Skills Lab
       {systems.length > 1 && (
         <div role="radiogroup" aria-label="Deck" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {[null, ...systems].map((sys) => (
-            <button key={sys ?? "all"} type="button" role="radio" aria-checked={system === sys} onClick={() => chooseSystem(sys)} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", system === sys ? "border-accent-line bg-accent-soft text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+            <button key={sys ?? "all"} type="button" role="radio" aria-checked={system === sys} onClick={() => chooseSystem(sys)} className={cn("relative isolate shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap", system === sys ? "border-accent-line text-accent-text" : "border-line text-fg-2 hover:text-fg")}>
+                {system === sys && <SlidingPill id="rad-2" className="rounded-[inherit] bg-accent-soft" />}
               {sys ? shortName(sys) : "All"} <span className="text-fg-3 tabular">{sys ? all!.filter((x) => sysOf(x) === sys).length : all!.length}</span>
             </button>
           ))}

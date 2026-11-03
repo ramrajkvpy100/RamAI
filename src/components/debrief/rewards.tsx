@@ -16,7 +16,7 @@ import type { CaseRewards, PlayerProgress } from "@/engine/types";
 import { league } from "@/lib/leagues";
 import { m } from "motion/react";
 
-import { FillBar, ShimmerBurst } from "@/components/ui/motion-kit";
+import { FillBar, SPRING_SNAPPY } from "@/components/ui/motion-primitives";
 import { cn } from "@/lib/cn";
 import { useCountUp } from "@/lib/use-count-up";
 
@@ -32,16 +32,14 @@ function Tile({ children, delay }: { children: React.ReactNode; delay: number })
 }
 
 /** The rating's move this case, like a contest result, and why. */
-function RatingChange({ rating: r, promoted }: { rating: NonNullable<CaseRewards["rating"]>; promoted?: boolean }) {
+function RatingChange({ rating: r }: { rating: NonNullable<CaseRewards["rating"]> }) {
   const next = nextRank(r.after);
   const rank = rankFor(r.after);
   const expected = Math.round(r.expected * 100);
   // The rating counts from where it was to where it is, then the change pops in.
   const moved = useCountUp(r.after - r.before, 900, 350);
-  const great = r.score >= 90 || promoted;
   return (
     <div className="panel relative mb-3 animate-pop overflow-hidden p-4 sm:p-5">
-      {great && !r.unrated && <ShimmerBurst />}
       {r.unrated ? (
         <>
           <div className="text-[16px] font-semibold tabular">Rating: {r.after}</div>
@@ -51,7 +49,7 @@ function RatingChange({ rating: r, promoted }: { rating: NonNullable<CaseRewards
         <>
           <div className="text-[18px] font-semibold tabular">
             Rating: {r.before} → <span className="tabular">{Math.round(r.before + moved)}</span>{" "}
-            <m.span initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 420, damping: 14, delay: 1.25 }} className={cn("inline-block rounded-full px-2 py-0.5 text-[15px]", r.delta >= 0 ? "bg-emerald-500/15 text-success shadow-[0_0_14px_rgb(16_185_129/0.45)]" : "bg-amber-500/15 text-warning")}>({r.delta >= 0 ? "+" : "−"}{Math.abs(r.delta)} {r.delta >= 0 ? "↑" : "↓"})</m.span>
+            <m.span initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING_SNAPPY, delay: 1.1 }} className={cn("inline-block rounded-full px-2 py-0.5 text-[15px]", r.delta >= 0 ? "bg-emerald-500/15 text-success" : "bg-amber-500/15 text-warning")}>({r.delta >= 0 ? "+" : "−"}{Math.abs(r.delta)} {r.delta >= 0 ? "↑" : "↓"})</m.span>
           </div>
           <p className="mt-1.5 inline-block rounded-full bg-surface-2 px-3 py-1 text-[12px] text-fg-2 tabular">
             Case {r.caseRating} vs you {r.before} · Score {r.score}/100, expected about {expected}% performance{r.dailyBonus ? ` · Daily +${DAILY_BONUS}` : ""}
@@ -108,7 +106,7 @@ export function RewardsPanel({ xpEarned, score, rewards, progress, seed, boxKey 
       {celebrate && <Confetti seed={seed} />}
       {boxKey && prizes.length > 0 && <AchievementReveal prizes={prizes} storageKey={boxKey} />}
 
-      {rewards?.rating && <RatingChange rating={rewards.rating} promoted={promoted} />}
+      {rewards?.rating && <RatingChange rating={rewards.rating} />}
       {promoted && rewards && (
         <div className="ink mb-3 flex animate-pop items-center gap-4 rounded-2xl px-5 py-4">
           <span className="relative shrink-0">

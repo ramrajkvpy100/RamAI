@@ -1,5 +1,6 @@
 "use client";
 
+import { SlidingPill } from "@/components/ui/motion-primitives";
 import { useState, type CSSProperties } from "react";
 
 import { LEVEL_STYLE, levelGradient, TRACK_ICON } from "@/components/game/level-style";
@@ -114,7 +115,8 @@ export function CasePicker({
         <Group label="How you play">
           <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1" role="radiogroup" aria-label="How you play">
             {([[true, "🎓 Learning", "4 choices each step, with why"], [false, "🩺 Real life", "you decide and type"]] as const).map(([on, label, note]) => (
-              <button key={label} type="button" role="radio" aria-checked={learning === on} onClick={() => chooseLearning(on)} className={cn("flex flex-col items-center justify-center rounded-lg px-2 py-2 text-center transition-colors", learning === on ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+              <button key={label} type="button" role="radio" aria-checked={learning === on} onClick={() => chooseLearning(on)} className={cn("relative isolate flex flex-col items-center justify-center rounded-lg px-2 py-2 text-center transition-colors", learning === on ? "text-fg" : "text-fg-2 hover:text-fg")}>
+                {learning === on && <SlidingPill id="pick-1" className="rounded-[inherit] bg-surface shadow-sm" />}
                 <span className="text-[14px] font-semibold">{label}</span>
                 <span className="text-[11.5px] text-fg-3">{note}</span>
               </button>
@@ -125,7 +127,8 @@ export function CasePicker({
         <Group label="Where the patient is from">
           <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-3 p-1" role="radiogroup" aria-label="Where the patient is from">
             {([[false, "🌏 Anywhere", "cases from all over"], [true, "🏠 My city", savedCity ? savedCity : "your city's diseases"]] as const).map(([on, label, note]) => (
-              <button key={label} type="button" role="radio" aria-checked={nearMe === on} onClick={() => chooseNear(on)} className={cn("flex min-w-0 flex-col items-center justify-center rounded-lg px-2 py-2 text-center transition-colors", nearMe === on ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg")}>
+              <button key={label} type="button" role="radio" aria-checked={nearMe === on} onClick={() => chooseNear(on)} className={cn("relative isolate flex min-w-0 flex-col items-center justify-center rounded-lg px-2 py-2 text-center transition-colors", nearMe === on ? "text-fg" : "text-fg-2 hover:text-fg")}>
+                {nearMe === on && <SlidingPill id="pick-2" className="rounded-[inherit] bg-surface shadow-sm" />}
                 <span className="text-[14px] font-semibold">{label}</span>
                 <span className="max-w-full truncate text-[11.5px] text-fg-3">{note}</span>
               </button>

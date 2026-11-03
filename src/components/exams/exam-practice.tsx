@@ -1,6 +1,6 @@
 "use client";
 
-import { AnswerButton } from "@/components/ui/motion-kit";
+import { SlidingPill, AnswerButton } from "@/components/ui/motion-primitives";
 import { CrowdBanner, keyOf, OptionPct, useCrowd } from "@/components/practice/crowd";
 import { DeckSave } from "@/components/practice/deck-save";
 import { success, warn } from "@/lib/haptics";
@@ -127,7 +127,8 @@ export function ExamPractice({ exam, stats: initialStats }: { exam: ExamId; stat
         <div className="panel flex flex-col gap-4 p-5 sm:p-6">
           <div role="radiogroup" aria-label="Question style" className="grid gap-2 sm:grid-cols-2">
             {(Object.keys(EXAM_STYLES) as ExamStyle[]).map((id) => (
-              <button key={id} type="button" role="radio" aria-checked={style === id} onClick={() => setStyle(id)} className={cn("flex flex-col items-start rounded-xl border px-4 py-3 text-left", style === id ? "border-accent-line bg-accent-soft" : "border-line hover:bg-surface-2")}>
+              <button key={id} type="button" role="radio" aria-checked={style === id} onClick={() => setStyle(id)} className={cn("relative isolate flex flex-col items-start rounded-xl border px-4 py-3 text-left", style === id ? "border-accent-line" : "border-line hover:bg-surface-2")}>
+                {style === id && <SlidingPill id="exam-1" className="rounded-[inherit] bg-accent-soft" />}
                 <span className="text-[14.5px] font-semibold">{EXAM_STYLES[id].label}</span>
                 <span className="mt-0.5 text-[12.5px] leading-5 text-fg-2">{EXAM_STYLES[id].note}</span>
               </button>

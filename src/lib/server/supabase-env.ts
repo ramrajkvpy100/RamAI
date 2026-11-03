@@ -50,3 +50,11 @@ export const hasAuthCookie = (names: Iterable<string>) => [...names].some((n) =>
  * stealing a session.
  */
 export const authCookieOptions = () => ({ path: "/", sameSite: "lax" as const, httpOnly: true, secure: process.env.NODE_ENV === "production" });
+
+/**
+ * Supabase's public signing key, so a sign-in is checked here without first fetching it from Sydney (about a second on every
+ * new server). Public by design. If the key is rotated, a token with another key id falls back to fetching it.
+ */
+export const AUTH_JWKS = {
+  keys: [{ alg: "ES256", crv: "P-256", ext: true, key_ops: ["verify"], kid: "074b813a-948b-4942-9d62-beb9ace2b411", kty: "EC", use: "sig", x: "uffxgeR4fYcVsnVfJqMIJnto3kpb4JV3dbdlgZFyJQo", y: "GZRaeFxCNb9A-x8f5GbvoPLRTbiGiKW5oUGqmbsdMB8" }],
+};

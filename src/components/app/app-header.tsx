@@ -5,7 +5,6 @@ import { SearchButton } from "./search-box";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { HeartbeatLine, SlidingPill } from "@/components/ui/motion-kit";
 
 import { NotInAndroidApp } from "@/components/app/android-app";
 import { ThemeToggle } from "@/components/app/theme-toggle";
@@ -21,7 +20,7 @@ import { UserMenu } from "./user-menu";
 
 /** The main places — always in sight: across the top on a computer, as a tab bar at the bottom on a phone. */
 const NAV = [
-  { href: "/", label: "Home", icon: "home" },
+  { href: "/home", label: "Home", icon: "home" },
   { href: "/cases", label: "Cases", icon: "pulse" },
   { href: "/practice", label: "Skills Lab", icon: "target" },
   { href: "/leaderboard", label: "Leaderboard", icon: "trophy" },
@@ -37,15 +36,14 @@ export function AppHeader({ initial }: { initial: Me }) {
   return (
     <>
     <header className="material-bar sticky top-0 z-40 border-b border-[var(--material-stroke)]">
-      <HeartbeatLine />
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-3 sm:gap-6 sm:px-6">
-        <Link href="/" aria-label="RamAI — home" className="rounded-lg">
+        <Link href="/home" aria-label="RamAI — home" className="rounded-lg">
           <Wordmark />
         </Link>
         <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} prefetch className={cn("relative isolate rounded-lg px-3 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors", (n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "text-fg" : "text-fg-2 hover:text-fg")}>
-              {(n.href === "/" ? path === "/" : path.startsWith(n.href)) && <SlidingPill id="nav-desktop" className="rounded-lg bg-surface-3" />}
+            <Link key={n.href} href={n.href} prefetch className={cn("relative isolate rounded-lg px-3 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-colors", (n.href === "/home" ? path === "/" || path === "/home" : path.startsWith(n.href)) ? "text-fg" : "text-fg-2 hover:text-fg")}>
+              {(n.href === "/home" ? path === "/" || path === "/home" : path.startsWith(n.href)) && <span aria-hidden style={{ viewTransitionName: "nav-pill-desktop" }} className="absolute inset-0 -z-10 rounded-lg bg-surface-3" />}
               {n.label}
             </Link>
           ))}
@@ -79,11 +77,11 @@ export function AppHeader({ initial }: { initial: Me }) {
       {/* Phones: a tab bar along the bottom, like an app. */}
       <nav className="tabbar-solid fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--material-stroke)] pb-[env(safe-area-inset-bottom)] sm:hidden" aria-label="Main">
         {PHONE_NAV.map((n) => {
-          const on = n.href === "/" ? path === "/" : path.startsWith(n.href);
+          const on = n.href === "/home" ? path === "/" || path === "/home" : path.startsWith(n.href);
           return (
             // (prefetch: each tab's page and data are fetched ahead, so a tap opens it at once.)
             <Link key={n.href} href={n.href} prefetch aria-current={on ? "page" : undefined} className={cn("relative isolate flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", on ? "text-accent-text" : "text-fg-2")}>
-              {on && <SlidingPill id="nav-phone" className="inset-x-2 inset-y-1.5 rounded-xl bg-accent-soft" />}
+              {on && <span aria-hidden style={{ viewTransitionName: "nav-pill-phone" }} className="absolute inset-x-2 inset-y-1.5 -z-10 rounded-xl bg-accent-soft" />}
               <Icon name={n.icon} size={20} strokeWidth={on ? 2.3 : 1.8} />
               {n.label}
             </Link>
