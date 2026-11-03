@@ -1,39 +1,24 @@
 "use client";
 
 /**
- * RamAI's motion system: three curves, used everywhere, and the few pieces that need more than CSS (the global press and
- * hover are in globals.css). Springs load after the page is up, so motion never slows the first paint; only transform and
- * opacity move; everything honours the phone's reduced-motion setting.
+ * RamAI's motion system: three curves, used everywhere (in CSS as --spring-snappy, --spring-smooth and --ease-out-soft; the
+ * global press and hover are in globals.css), and the few pieces that need more than a class. No animation library: browsers
+ * run these natively, so motion adds nothing to what a phone downloads. Only transform and opacity move, and everything
+ * honours the phone's reduced-motion setting.
  */
-import { LazyMotion, MotionConfig, m, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
-/** Buttons, answer options, chips, toggles, nav icons. */
-export const SPRING_SNAPPY = { type: "spring", stiffness: 500, damping: 32, mass: 0.8 } as const;
-/** Sliding pills, drawers, sheets, cards changing place. */
-export const SPRING_SMOOTH = { type: "spring", stiffness: 320, damping: 28, mass: 0.9 } as const;
-/** Page changes, chat bubbles, reports, modals. (The same curve is --ease-out-soft in CSS.) */
-export const EASE_OUT_EXPO = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const;
-
-// (layoutId needs domMax rather than domAnimation; it's loaded in its own chunk, after the page is interactive.)
-const features = () => import("motion/react").then((x) => x.domMax);
-
-export function MotionRoot({ children }: { children: ReactNode }) {
-  return (
-    <LazyMotion features={features}>
-      <MotionConfig reducedMotion="user" transition={SPRING_SMOOTH}>
-        {children}
-      </MotionConfig>
-    </LazyMotion>
-  );
-}
+/** How long each spring takes to settle (its curve lives in globals.css). */
+export const SPRING_SNAPPY_MS = 325;
+export const SPRING_SMOOTH_MS = 430;
 
 export type Trend = "better" | "worse" | null;
 
 const NUMBER = /-?\d+(?:\.\d+)?/g;
 const decimals = (s: string) => (s.includes(".") ? s.length - s.indexOf(".") - 1 : 0);
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Text with its numbers rolled part of the way from one value to another: "90/60" → "118/74". */
 function rolled(from: string, to: string, t: number): string {
@@ -50,19 +35,17 @@ function rolled(from: string, to: string, t: number): string {
  * A number that rolls from its old value to its new one (400 ms), with a brief flash: emerald for better, amber for worse.
  * Handles "120/80" and "98.6". Screen readers get the final value only.
  */
-export function AnimatedValue({ value, trend = null, durationMs = 400, fromZero = false, className }: { value: string | number; trend?: Trend; durationMs?: number; fromZero?: boolean; className?: string }) {
+export function AnimatedValue({ value, trend = null, durationMs = 400, className }: { value: string | number; trend?: Trend; durationMs?: number; className?: string }) {
   const target = String(value);
-  const reduced = useReducedMotion();
   const [shown, setShown] = useState(target);
   const [flash, setFlash] = useState<{ tone: Trend; n: number }>({ tone: null, n: 0 });
-  // (Counting up from nothing starts after the first paint, so the server's copy and the phone's match.)
-  const last = useRef(fromZero ? target.replace(NUMBER, "0") : target);
+  const last = useRef(target);
   useEffect(() => {
     const from = last.current;
     last.current = target;
     if (from === target) return;
     if (trend) setFlash((f) => ({ tone: trend, n: f.n + 1 }));
-    if (reduced || (from.match(NUMBER)?.length ?? 0) !== (target.match(NUMBER)?.length ?? 0)) {
+    if (reducedMotion() || (from.match(NUMBER)?.length ?? 0) !== (target.match(NUMBER)?.length ?? 0)) {
       setShown(target);
       return;
     }
@@ -75,7 +58,7 @@ export function AnimatedValue({ value, trend = null, durationMs = 400, fromZero 
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, trend, durationMs, reduced]);
+  }, [target, trend, durationMs]);
   return (
     <span className={cn("relative inline-block", className)}>
       <span aria-hidden>{shown}</span>
@@ -85,34 +68,45 @@ export function AnimatedValue({ value, trend = null, durationMs = 400, fromZero 
   );
 }
 
-/** An answer option: gives under the finger, confirms when right, a short shake when wrong. */
-export function AnswerButton({ state, picked: _picked, children, ...rest }: { state: "idle" | "right" | "wrong" | "other"; picked?: boolean; children: ReactNode } & Omit<ComponentProps<typeof m.button>, "children" | "animate">) {
-  return (
-    <m.button
-      {...rest}
-      animate={state === "right" ? { scale: [1, 1.02, 1], x: 0 } : state === "wrong" ? { x: [0, -5, 5, -3, 3, 0], scale: 1 } : { scale: 1, x: 0 }}
-      transition={state === "right" || state === "wrong" ? { duration: 0.28, ease: [0.16, 1, 0.3, 1] } : SPRING_SNAPPY}
-    >
-      {children}
-    </m.button>
-  );
+/** Where each row's pill last was, so the next one can slide in from there. */
+const lastPill = new Map<string, DOMRect>();
+
+/**
+ * The background of whichever tab or chip is on: it slides across rather than jumping. One is drawn per row (give them the same
+ * id); the new one starts where the old one was. The parent must be `relative isolate`.
+ */
+export function SlidingPill({ id, className }: { id: string; className?: string }) {
+  const el = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const node = el.current;
+    if (!node) return;
+    const to = node.getBoundingClientRect();
+    const from = lastPill.get(id);
+    lastPill.set(id, to);
+    if (from && to.width && from.width && !reducedMotion() && (from.left !== to.left || from.top !== to.top)) {
+      node.animate(
+        [{ transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})` }, { transform: "none" }],
+        { duration: SPRING_SMOOTH_MS, easing: getComputedStyle(node).getPropertyValue("--spring-smooth") || "ease-out" },
+      );
+    }
+    return () => {
+      const now = node.getBoundingClientRect();
+      if (now.width) lastPill.set(id, now);
+    };
+  }, [id]);
+  return <span ref={el} aria-hidden style={{ transformOrigin: "top left" }} className={cn("absolute inset-0 -z-10", className)} />;
 }
 
-/** The background of whichever tab or chip is on: it slides across rather than jumping. The parent must be `relative isolate`. */
-export function SlidingPill({ id, className }: { id: string; className?: string }) {
-  return <m.span layoutId={id} aria-hidden className={cn("absolute inset-0 -z-10", className)} transition={SPRING_SMOOTH} />;
+/** An answer option: gives under the finger, confirms when right, a short shake when wrong. */
+export function AnswerButton({ state, picked: _picked, children, className, ...rest }: { state: "idle" | "right" | "wrong" | "other"; picked?: boolean; children: ReactNode } & ComponentProps<"button">) {
+  return (
+    <button {...rest} className={cn(className, state === "right" && "answer-right", state === "wrong" && "answer-wrong")}>
+      {children}
+    </button>
+  );
 }
 
 /** A bar filling from nothing to its value, on the GPU (scale, not width). */
 export function FillBar({ value, delay = 0, className }: { value: number; delay?: number; className?: string }) {
-  return (
-    <m.div
-      initial={{ scaleX: 0 }}
-      animate={{ scaleX: Math.max(0, Math.min(1, value)) }}
-      transition={{ ...SPRING_SMOOTH, delay }}
-      style={{ transformOrigin: "left center" }}
-      className={cn("h-full w-full rounded-full", className)}
-    />
-  );
+  return <div style={{ transform: `scaleX(${Math.max(0, Math.min(1, value))})`, animationDelay: `${delay}s` } as CSSProperties} className={cn("fill-bar h-full w-full rounded-full", className)} />;
 }
-

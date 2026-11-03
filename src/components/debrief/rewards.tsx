@@ -14,9 +14,7 @@ import { nextRank, rankFor, rankProgress, RANKS } from "@/engine/progression";
 import { DAILY_BONUS, UNRATED_LABEL } from "@/engine/rating";
 import type { CaseRewards, PlayerProgress } from "@/engine/types";
 import { league } from "@/lib/leagues";
-import { m } from "motion/react";
-
-import { FillBar, SPRING_SNAPPY } from "@/components/ui/motion-primitives";
+import { FillBar } from "@/components/ui/motion-primitives";
 import { cn } from "@/lib/cn";
 import { useCountUp } from "@/lib/use-count-up";
 
@@ -49,7 +47,7 @@ function RatingChange({ rating: r }: { rating: NonNullable<CaseRewards["rating"]
         <>
           <div className="text-[18px] font-semibold tabular">
             Rating: {r.before} → <span className="tabular">{Math.round(r.before + moved)}</span>{" "}
-            <m.span initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING_SNAPPY, delay: 1.1 }} className={cn("inline-block rounded-full px-2 py-0.5 text-[15px]", r.delta >= 0 ? "bg-emerald-500/15 text-success" : "bg-amber-500/15 text-warning")}>({r.delta >= 0 ? "+" : "−"}{Math.abs(r.delta)} {r.delta >= 0 ? "↑" : "↓"})</m.span>
+            <span style={{ animationDelay: "1.1s" }} className={cn("pop-in rounded-full px-2 py-0.5 text-[15px]", r.delta >= 0 ? "bg-emerald-500/15 text-success" : "bg-amber-500/15 text-warning")}>({r.delta >= 0 ? "+" : "−"}{Math.abs(r.delta)} {r.delta >= 0 ? "↑" : "↓"})</span>
           </div>
           <p className="mt-1.5 inline-block rounded-full bg-surface-2 px-3 py-1 text-[12px] text-fg-2 tabular">
             Case {r.caseRating} vs you {r.before} · Score {r.score}/100, expected about {expected}% performance{r.dailyBonus ? ` · Daily +${DAILY_BONUS}` : ""}

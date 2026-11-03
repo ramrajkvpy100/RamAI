@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
@@ -80,16 +79,13 @@ export function TimeJump({ clock, from = 15 }: { clock: number; from?: number })
     const off = window.setTimeout(() => setJump(null), 1900);
     return () => { cancelAnimationFrame(raf); window.clearTimeout(off); };
   }, [clock, from]);
+  if (!jump) return null;
   return (
-    <AnimatePresence>
-      {jump && (
-        <m.div key={jump.n} role="status" initial={{ opacity: 0, y: -10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }} className="pointer-events-none absolute top-2 left-1/2 z-20 w-max -translate-x-1/2 overflow-hidden rounded-full bg-[#0b1220] px-3.5 py-1.5 text-[12.5px] font-semibold text-white shadow-lg ring-1 ring-white/15">
-          <span className="relative flex items-center gap-2 tabular">
-            <Icon name="clock" size={14} className="animate-spin [animation-duration:1.2s]" /> +{span(shown)} elapsed
-          </span>
-          <m.span aria-hidden initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} style={{ transformOrigin: "left" }} className="absolute inset-x-0 bottom-0 h-[2px] bg-sky-400" />
-        </m.div>
-      )}
-    </AnimatePresence>
+    <div key={jump.n} role="status" className="pointer-events-none absolute top-2 left-1/2 z-20 w-max -translate-x-1/2 animate-enter overflow-hidden rounded-full bg-[#0b1220] px-3.5 py-1.5 text-[12.5px] font-semibold text-white shadow-lg ring-1 ring-white/15">
+      <span className="relative flex items-center gap-2 tabular">
+        <Icon name="clock" size={14} className="animate-spin [animation-duration:1.2s]" /> +{span(shown)} elapsed
+      </span>
+      <span aria-hidden className="sweep-in absolute inset-x-0 bottom-0 h-[2px] bg-sky-400" />
+    </div>
   );
 }

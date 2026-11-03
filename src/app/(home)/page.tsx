@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-import { HomeShell } from "@/components/app/me-pages";
+import { HomeShell } from "@/components/app/shells/home-shell";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Landing } from "@/components/landing/landing";
 import { INVESTIGATIONS } from "@/engine/catalog";

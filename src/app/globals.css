@@ -750,3 +750,22 @@ svg {
 
 /* The tab's highlight glides from page to page. */
 ::view-transition-group(nav-pill-phone), ::view-transition-group(nav-pill-desktop) { animation-duration: 320ms; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* The motion system's curves. Snappy (stiffness 500, damping 32, mass 0.8): buttons, answers, chips. Smooth (320, 28, 0.9): sliding pills, drawers, cards. */
+:root { --spring-snappy: linear(0,0.019,0.066,0.134,0.213,0.297,0.383,0.467,0.546,0.619,0.686,0.745,0.796,0.84,0.878,0.91,0.935,0.956,0.973,0.986,0.996,1.003,1.009,1.012,1.014,1.015,1.015,1.015,1.014,1.013,1.012,1.01,1.009,1.008,1.007,1.006,1.005,1.004,1.003,1.002,1.002); --spring-smooth: linear(0,0.018,0.066,0.132,0.21,0.293,0.377,0.459,0.536,0.608,0.673,0.731,0.781,0.825,0.863,0.894,0.921,0.942,0.96,0.974,0.985,0.993,0.999,1.004,1.007,1.009,1.01,1.01,1.01,1.01,1.009,1.008,1.008,1.007,1.006,1.005,1.004,1.004,1.003,1.002,1.002); }
+.fill-bar { transform-origin: left center; animation: fill-bar 430ms var(--spring-smooth) backwards; }
+@keyframes fill-bar { from { transform: scaleX(0); } }
+.answer-right { animation: answer-right 280ms var(--ease-out-soft); }
+@keyframes answer-right { 40% { transform: scale(1.02); } }
+.answer-wrong { animation: answer-wrong 280ms var(--ease-out-soft); }
+@keyframes answer-wrong { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+.pop-in { display: inline-block; animation: pop-in 325ms var(--spring-snappy) backwards; }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.5); } }
+.draw-in { animation: draw-in 900ms var(--ease-out-soft) backwards; }
+@keyframes draw-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.sweep-in { transform-origin: left center; animation: fill-bar 800ms var(--ease-out-soft) backwards; }
+@media (prefers-reduced-motion: reduce) { .fill-bar, .answer-right, .answer-wrong, .pop-in, .draw-in, .sweep-in { animation: none; } }
+
+.heart-beat { transform-origin: 55% 50%; animation: heart-beat 1.2s var(--ease-out-soft) infinite; }
+@keyframes heart-beat { 0%, 45%, 100% { transform: scale(1); } 12% { transform: scale(1.025); } 26% { transform: scale(1.01); } 34% { transform: scale(1.018); } }
+@media (prefers-reduced-motion: reduce) { .heart-beat { animation: none; } }

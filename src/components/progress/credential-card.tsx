@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 
 import { cvBullet, type CareerIndices } from "@/engine/career";
 import { useMe } from "@/lib/me-store";
-import { MODALITIES, MODALITY_IDS } from "@/lib/practice";
 import { useSkillProgress } from "@/lib/skill-progress";
-import { ALGORITHM_COUNT, ANTIDOTE_COUNT, CALCULATION_COUNT } from "@/lib/skills";
-import { ABDOMEN_CASES, HEART_CASES, LUNG_CASES } from "@/lib/banks/sounds";
+import { SKILL_COUNTS } from "@/lib/skill-counts";
 
 interface Credential {
   name: string;
@@ -58,9 +56,9 @@ export function CredentialCard() {
     setMine({ ...mine, verifyId: data.verifyId ?? null });
   };
   const skills: [string, number, number][] = [
-    ["See it", progress("spot:").mastered + progress("radio:").mastered, MODALITY_IDS.reduce((n, m) => n + MODALITIES[m].items.length, 0)],
-    ["Hear it", progress("sound:").mastered, HEART_CASES.length + LUNG_CASES.length + ABDOMEN_CASES.length],
-    ["Know it", progress("quiz:").mastered, ANTIDOTE_COUNT + ALGORITHM_COUNT + CALCULATION_COUNT],
+    ["See it", progress("spot:").mastered + progress("radio:").mastered, SKILL_COUNTS.spot],
+    ["Hear it", progress("sound:").mastered, SKILL_COUNTS.sounds],
+    ["Know it", progress("quiz:").mastered, SKILL_COUNTS.antidotes + SKILL_COUNTS.algorithms + SKILL_COUNTS.calculations],
   ];
   return (
     <section className="panel p-5 sm:p-6" aria-labelledby="credential-heading">

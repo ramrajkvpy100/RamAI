@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LeaderboardShell } from "@/components/app/me-pages";
+import { LeaderboardShell } from "@/components/app/shells/leaderboard-shell";
 
 export const metadata: Metadata = { title: "Leaderboard" };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { SlidingPill } from "@/components/ui/motion-primitives";
 import { EmptyState } from "@/components/ui/primitives";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -131,7 +132,8 @@ export function CommunityFeed({ initial, more: initialMore, guest, signedIn, dra
 
       <div role="tablist" aria-label="Topics" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
         {([null, ...TOPIC_IDS] as (Topic | null)[]).map((t) => (
-          <button key={t ?? "all"} type="button" role="tab" aria-selected={topic === t} onClick={() => setTopic(t)} className={cn("h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors", topic === t ? "bg-fg text-bg" : "bg-surface-2 text-fg-2 hover:text-fg")}>
+          <button key={t ?? "all"} type="button" role="tab" aria-selected={topic === t} onClick={() => setTopic(t)} className={cn("relative isolate h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors", topic === t ? "text-bg" : "bg-surface-2 text-fg-2 hover:text-fg")}>
+            {topic === t && <SlidingPill id="community-topic" className="rounded-full bg-fg" />}
             {t ? TOPICS[t].label : "All"}
           </button>
         ))}

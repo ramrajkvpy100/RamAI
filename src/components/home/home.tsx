@@ -7,7 +7,6 @@ import { DOCTOR_NEXT, DoctorFigure } from "@/components/game/caricature";
 import { GoalRing } from "@/components/game/goal-ring";
 import { RankBadge } from "@/components/game/rank-badge";
 import { Flame } from "@/components/game/streak";
-import { HeartScene } from "@/components/three/heart-scene";
 import { Icon } from "@/components/ui/icon";
 import { levelMeta } from "@/engine/levels";
 import { nextRank, rankFor, rankProgress } from "@/engine/progression";
@@ -158,7 +157,9 @@ export function Home({ initial, library }: { initial: Me; library: LibraryInfo }
         {/* Hero ------------------------------------------------------------ */}
         <section className="ink relative isolate overflow-hidden rounded-[22px] p-6 sm:p-8" aria-label="Your rank">
           {/* Whole on phones, in the space beside the buttons; beside the text on wider screens. */}
-          <HeartScene className="pointer-events-none absolute right-0 bottom-0 -z-10 h-[210px] w-[46%] max-w-[190px] sm:top-0 sm:h-auto sm:w-[44%] sm:max-w-none" density="compact" tone="dark" />
+          {/* A still of the 3D heart with a CSS beat: drawing it live here held up the phone for up to a second on every visit. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/anim/heart-card.webp" alt="" aria-hidden width={380} height={420} className="heart-beat pointer-events-none absolute right-0 bottom-0 -z-10 h-[210px] w-[46%] max-w-[190px] object-contain sm:top-0 sm:h-full sm:w-[44%] sm:max-w-none" />
           <p className="text-[13.5px] text-white/60">
             {hello}, Dr. {firstName(me.user.name)}
           </p>

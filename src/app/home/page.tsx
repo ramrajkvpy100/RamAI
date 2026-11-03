@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { HomeShell } from "@/components/app/me-pages";
+import { HomeShell } from "@/components/app/shells/home-shell";
 
 export const metadata: Metadata = { title: "Home", robots: { index: false } };
 
