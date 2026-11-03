@@ -41,6 +41,8 @@ const ME_VERSION_COOKIE = "ramai_me_v";
 const kept = new Map<string, { at: number; me: Me; allowed: boolean }>();
 /** Bump when what withDerived works out changes, so stored summaries are worked out again. */
 const SUMMARY_VERSION = 1;
+/** How long a page waits for the admin badge; the answer is kept for the next read. */
+const ADMIN_WAIT_MS = 150;
 
 /**
  * The player's details changed: what's kept is out of date, on every server. (A cookie, because each serverless instance
@@ -92,16 +94,14 @@ async function readMe(): Promise<{ me: Me; allowed: boolean } | null> {
     console.info(`[DB_TIMING] getMe cache=hit supabase_claims=${Math.round(authMs)}ms turso=0ms`);
     return hit;
   }
-  const dbAt = performance.now();
   const read = await getMeUnchecked(who);
-  const tursoMs = performance.now() - dbAt;
   if (!read) return null;
   const { me, listed } = read;
   const allowAt = performance.now();
   const { accessCookieValue, userAllowed } = await import("./access");
   // Invite-only: a signed-in account nobody invited is sent to enter a code. (What the access lists say came with the same read.)
   const allowed = await userAllowed(me.user as unknown as User, await accessCookieValue(), listed);
-  console.info(`[DB_TIMING] getMe cache=miss supabase_claims=${Math.round(authMs)}ms turso=${Math.round(tursoMs)}ms access=${Math.round(performance.now() - allowAt)}ms`);
+  console.info(`[DB_TIMING] getMe cache=miss supabase_claims=${Math.round(authMs)}ms turso=${read.timing.turso}ms summary=${read.timing.summary}ms admin=${read.timing.admin}ms access=${Math.round(performance.now() - allowAt)}ms`);
   const entry = { at: Date.now(), me, allowed };
   if (kept.size >= ME_MAX) kept.delete(kept.keys().next().value!);
   kept.set(key, entry);
@@ -125,7 +125,8 @@ async function summaryOf(userId: string, count: number, row: { day?: unknown; n?
   return progress;
 }
 
-async function getMeUnchecked(who: NonNullable<Awaited<ReturnType<typeof identityQuery>>>): Promise<{ me: Me; listed?: boolean } | null> {
+async function getMeUnchecked(who: NonNullable<Awaited<ReturnType<typeof identityQuery>>>): Promise<{ me: Me; listed?: boolean; timing: { turso: number; summary: number; admin: number } } | null> {
+  const at = performance.now();
   const [users, summaries, counts, today, avatars, onList, emailListed] = await db.readMany([
     { sql: who.user, args: who.args },
     { sql: `SELECT day, n, json FROM progress_summaries WHERE user_id = ${who.id}`, args: who.args },
@@ -138,11 +139,22 @@ async function getMeUnchecked(who: NonNullable<Awaited<ReturnType<typeof identit
   if (!users?.[0]) {
     // A new account verified somewhere else, without its profile yet: the slower path makes it.
     const user = await getCurrentUser();
-    return user ? { me: await meFor(user) } : null;
+    return user ? { me: await meFor(user), timing: { turso: Math.round(performance.now() - at), summary: 0, admin: 0 } } : null;
   }
+  const turso = Math.round(performance.now() - at);
   const user = userFromRow(users[0]);
+  const summaryAt = performance.now();
   const progress = await summaryOf(user.id, Number(counts?.[0]?.n ?? 0), summaries?.[0]);
-  const admin = !user.isGuest && (await isAdmin(user).catch(() => false));
+  const summary = Math.round(performance.now() - summaryAt);
+  const adminAt = performance.now();
+  // The admin badge asks Supabase (Sydney) and counts suggestions: nice to have, never worth holding a doctor's page for.
+  const adminExtras = !user.isGuest
+    ? await Promise.race([
+        isAdmin(user).then(async (yes) => (yes ? { admin: true as const, newSuggestions: await newSuggestionCount() } : {})).catch(() => ({})),
+        new Promise<object>((resolve) => setTimeout(() => resolve({}), ADMIN_WAIT_MS)),
+      ])
+    : {};
+  const admin = Math.round(performance.now() - adminAt);
   const avatar = (() => {
     try {
       const raw = avatars?.[0]?.style;
@@ -152,13 +164,14 @@ async function getMeUnchecked(who: NonNullable<Awaited<ReturnType<typeof identit
     }
   })();
   return {
+    timing: { turso, summary, admin },
     listed: !!onList?.[0] || (!user.isGuest && !!emailListed?.[0]),
     me: {
       user,
       ...(avatar ? { avatar } : {}),
       progress,
       usage: { casesToday: Number(today?.[0]?.n ?? 0), dailyLimit: dailyLimitFor(user) },
-      ...(admin ? { admin: true, newSuggestions: await newSuggestionCount() } : {}),
+      ...adminExtras,
     },
   };
 }
