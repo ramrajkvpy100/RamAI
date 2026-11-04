@@ -6,6 +6,10 @@
  *
  *   node scripts/radiology-stacks.mjs redo:<id>…        the same patient's series again, at today's quality
  *   node scripts/radiology-stacks.mjs add:<base>:<n>…   n more patients for a stack (ids <base>-4, -5, …)
+ *   node scripts/radiology-stacks.mjs more:<base>:<n>…  n patients for a definition in radiology-stacks-more.mjs (several at once)
+ *
+ * The images are served from R2, so new ones go to $STACKS_OUT and are uploaded from there; $STACKS_MANIFEST keeps a
+ * batch away from the live manifest until each series has been looked at.
  *
  * A contact sheet of each new stack is written to $SHEETS (default /tmp) — every stack is looked at before it's kept.
  */
@@ -16,8 +20,11 @@ import dicomParser from "dicom-parser";
 import { unzipSync } from "fflate";
 import sharp from "sharp";
 
+import { MORE_STACKS } from "./radiology-stacks-more.mjs";
+
 const NBIA = "https://services.cancerimagingarchive.net/nbia-api/services/v1";
-const OUT = path.resolve("public/radiology");
+const OUT = path.resolve(process.env.STACKS_OUT ?? "public/radiology");
+const MANIFEST = process.env.STACKS_MANIFEST ?? "src/lib/radiology-stacks.json";
 const SIZE = 512;
 const MAX_SLICES = 64;
 const SHEETS = process.env.SHEETS ?? "/tmp";
@@ -29,6 +36,7 @@ const WINDOWS = { soft: [40, 400], lung: [-600, 1500], bone: [400, 1800] };
  * (rcc, crlm and lung-nodule series were tried and left out: their lesions weren't clear enough).
  */
 const STACKS = [
+  ...MORE_STACKS,
   { id: "gbm-mri", avoid: /DTI|FLAIR|DWI|ADC|perf|T2/i, collection: "UPENN-GBM", license: "CC BY 4.0", doi: "10.7937/TCIA.709X-DN49", modality: "MR", match: /3D GAD|T1.*GD|POST/i, window: "auto",
     diagnosis: "Glioblastoma", history: "61-year-old man with 4 weeks of worsening headache, personality change and new left-sided weakness.", question: "MRI brain with contrast (axial T1 post-gadolinium): findings?",
     key: "A large intra-axial mass with thick, irregular ring enhancement around a necrotic centre, surrounding vasogenic oedema and mass effect — typical of glioblastoma.",
@@ -73,7 +81,7 @@ const STACKS = [
     diagnosis: "Hepatocellular carcinoma", history: "66-year-old man with alcohol-related cirrhosis and a rising alpha-fetoprotein.", question: "Multiphase CT liver: findings?",
     key: "A focal mass in a cirrhotic liver with arterial enhancement and washout — hepatocellular carcinoma.",
     options: ["Hepatocellular carcinoma", "Liver abscess", "Hepatic haemangioma", "Liver metastases"] },
-  { id: "pancreatic-ca-ct", avoid: /DRY|chest|pre\b|non/i, collection: "CPTAC-PDA", license: "CC BY 3.0", doi: "10.7937/K9/TCIA.2018.SC20FO18", modality: "CT", match: /venous|portal|abd|pancreas|contrast|axial/i, window: [40, 400],
+  { id: "pancreatic-ca-ct", avoid: /DRY|chest|pre\b|non/i, collection: "CPTAC-PDA", license: "CC BY 4.0", doi: "10.7937/K9/TCIA.2018.SC20FO18", modality: "CT", match: /venous|portal|abd|pancreas|contrast|axial/i, window: [40, 400],
     diagnosis: "Pancreatic adenocarcinoma", history: "68-year-old woman with painless jaundice, weight loss and new-onset diabetes.", question: "CT abdomen (pancreas protocol): findings?",
     key: "A poorly defined hypodense mass in the pancreas, often with a dilated pancreatic and/or common bile duct — pancreatic adenocarcinoma.",
     options: ["Pancreatic adenocarcinoma", "Acute pancreatitis", "Pancreatic pseudocyst", "Normal pancreas"] },
@@ -132,7 +140,10 @@ function readSlice(bytes) {
   // Stored top-to-bottom the wrong way (columns running back to front, as in the NIH Pancreas-CT set): flipped on output.
   const flipY = o.length === 6 && o[4] < -0.5;
   const ps = (ds.string("x00280030") ?? "").split("\\").map(Number);
-  return { rows, cols, px, z: Number.isFinite(pos[2]) ? pos[2] : inst, inst, axial: nz > 0.8, prone, flipY, ps: Number.isFinite(ps[0]) && ps[0] > 0 ? ps[0] : null };
+  // For the case's request form, and to turn away anything that isn't an original image of the patient.
+  const age = parseInt(ds.string("x00101010") ?? "", 10), sex = (ds.string("x00100040") ?? "").trim();
+  const flat = /LOCALIZER|SCREEN SAVE/i.test(ds.string("x00080008") ?? "") || /^1\.2\.840\.10008\.5\.1\.4\.1\.1\.7/.test((ds.string("x00080016") ?? "").trim()) || /YES/i.test(ds.string("x00280301") ?? "");
+  return { rows, cols, px, z: Number.isFinite(pos[2]) ? pos[2] : inst, inst, axial: nz > 0.8, prone, flipY, ps: Number.isFinite(ps[0]) && ps[0] > 0 ? ps[0] : null, age: Number.isFinite(age) ? age : null, sex, flat };
 }
 
 /**
@@ -215,7 +226,7 @@ async function build(st, id, s) {
     }
   } else {
     mkdirSync(dir, { recursive: true });
-    const [lo, hi] = autoWindow(kept, st.id === "breast-mri");
+    const [lo, hi] = autoWindow(kept, st.front || st.id === "breast-mri");
     sheet = await Promise.all(kept.map((sl) => toJpeg(sl, lo, hi)));
     sheet.forEach((b, i) => writeFileSync(path.join(dir, `${String(i).padStart(3, "0")}.jpg`), b));
   }
@@ -234,13 +245,135 @@ const candidates = async (st) =>
     .filter((s) => s.ImageCount >= 30 && s.ImageCount <= 400 && st.match.test(s.SeriesDescription ?? "") && !(st.avoid && st.avoid.test(s.SeriesDescription ?? "")) && !/MPR|MIP|sag|cor|scout|localizer|topogram|reformat/i.test(s.SeriesDescription ?? ""))
     .sort((a, b) => Math.abs(a.ImageCount - 120) - Math.abs(b.ImageCount - 120));
 
-let manifest = JSON.parse(readFileSync("src/lib/radiology-stacks.json", "utf8"));
+let manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
 /** Patients whose series were looked at and left out — never tried again. */
 const rejected = new Set(JSON.parse(readFileSync("scripts/radiology-rejected.json", "utf8")).patients);
-const save = () => writeFileSync("src/lib/radiology-stacks.json", JSON.stringify(manifest, null, 2) + "\n");
+const save = () => writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
 const baseOf = (id) => STACKS.find((x) => x.id === id) ?? STACKS.find((x) => x.id === id.replace(/-\d+$/, ""));
 
-for (const arg of process.argv.slice(2)) {
+/** "61-year-old man": from the collection's clinical table, else the scan's own metadata; only what they say. */
+function whoOf(st, s, first) {
+  const c = st.clinical?.[s.PatientID];
+  const age = c?.age ?? (first.age >= 18 && first.age < 90 ? first.age : null);
+  const sex = c ? c.sex[0] : first.sex === "F" || first.sex === "M" ? first.sex : st.sex;
+  const noun = sex === "F" ? "woman" : sex === "M" ? "man" : null;
+  if (age) return noun ? `${age}-year-old ${noun}` : `${age}-year-old patient`;
+  return noun ? noun[0].toUpperCase() + noun.slice(1) : "Patient";
+}
+
+/** Text burned into a scan stays put from slice to slice: bright pixels, the same in every slice, in the image's corners. */
+async function burnedIn(sheet) {
+  const picks = Array.from({ length: 8 }, (_, i) => sheet[Math.floor((sheet.length * (i + 0.5)) / 8)]);
+  const raws = await Promise.all(picks.map((b) => sharp(b).greyscale().raw().toBuffer({ resolveWithObject: true })));
+  const { width: w, height: h } = raws[0].info;
+  if (raws.some((r) => r.info.width !== w || r.info.height !== h)) return true;
+  const box = Math.floor(Math.min(w, h) * 0.16);
+  let still = 0;
+  for (let y = 0; y < h; y++) {
+    if (y >= box && y < h - box) continue;
+    for (let x = 0; x < w; x++) {
+      if (x >= box && x < w - box) continue;
+      if (raws.every((r) => r.data[y * w + x] > 140)) still++;
+    }
+  }
+  return still > 12;
+}
+
+/** Six slices in a row with the id written on them, for looking through a whole batch. */
+async function reviewRow(id, sheet) {
+  const T = 165;
+  const pick = Array.from({ length: 6 }, (_, i) => sheet[Math.floor(sheet.length * (0.12 + (0.76 * i) / 5))]);
+  const tiles = await Promise.all(pick.map((b) => sharp(b).resize(T, T, { fit: "contain", background: "#000" }).toBuffer()));
+  const label = Buffer.from(`<svg width="${T * 2}" height="16"><rect width="${T * 2}" height="16" fill="#000"/><text x="2" y="12" font-size="12" font-family="Helvetica" fill="#ff0">${id}</text></svg>`);
+  await sharp({ create: { width: T * 6, height: T, channels: 3, background: "#000" } })
+    .composite([...tiles.map((t, i) => ({ input: t, left: i * T, top: 0 })), { input: label, left: 0, top: 0 }])
+    .jpeg({ quality: 78 })
+    .toFile(path.join(SHEETS, `${id}.jpg`));
+}
+
+/** One series of a definition in radiology-stacks-more.mjs; null when it can't be used. */
+async function buildMore(st, id, s, order) {
+  const { slices, kept } = await download(s);
+  if (slices.length < 20 || slices.some((x) => x.flat)) return null;
+  if (slices.filter((x) => x.axial && (st.modality !== "CT" || !x.prone)).length < slices.length * 0.9) return null;
+  // One volume: every slice its own position (no repeated phases) and all the same size.
+  if (new Set(slices.map((x) => x.z.toFixed(2))).size < slices.length * 0.95 || new Set(slices.map((x) => `${x.rows}x${x.cols}`)).size > 1) return null;
+  const dir = path.join(OUT, id);
+  rmSync(dir, { recursive: true, force: true });
+  let primary;
+  let sheet = [];
+  if (st.modality === "CT") {
+    primary = Object.entries(WINDOWS).find(([, w]) => w[0] === st.window[0])?.[0] ?? "soft";
+    for (const [name, [l, w]] of Object.entries(WINDOWS)) {
+      mkdirSync(path.join(dir, name), { recursive: true });
+      const out = await Promise.all(kept.map((sl) => toJpeg(sl, l - w / 2, l + w / 2)));
+      out.forEach((b, i) => writeFileSync(path.join(dir, name, `${String(i).padStart(3, "0")}.jpg`), b));
+      if (name === primary) sheet = out;
+    }
+  } else {
+    mkdirSync(dir, { recursive: true });
+    const [lo, hi] = autoWindow(kept, st.front);
+    sheet = await Promise.all(kept.map((sl) => toJpeg(sl, lo, hi)));
+    sheet.forEach((b, i) => writeFileSync(path.join(dir, `${String(i).padStart(3, "0")}.jpg`), b));
+  }
+  if (await burnedIn(sheet)) {
+    rmSync(dir, { recursive: true, force: true });
+    console.log(`  ${s.PatientID}: fixed bright pixels in the corners, left out`);
+    return null;
+  }
+  await reviewRow(id, sheet);
+  return {
+    id, collection: st.collection, license: st.license, doi: st.doi, modality: st.modality, diagnosis: st.diagnosis,
+    history: st.histories[order % st.histories.length].replace("{who}", whoOf(st, s, slices[0])),
+    question: st.question, key: st.keyOf ? st.keyOf(s.PatientID) : st.key, options: st.options,
+    patient: s.PatientID, seriesUid: s.SeriesInstanceUID, slices: kept.length, series: s.SeriesDescription ?? "", zRatio: zRatioOf(kept),
+    ...(primary ? { windows: [primary, ...Object.keys(WINDOWS).filter((w) => w !== primary)] } : {}),
+    credit: `Data from The Cancer Imaging Archive, ${st.collection} collection (${st.license}), doi:${st.doi}`,
+  };
+}
+
+/** The series' own licence, as TCIA states it, must be the one the definition credits: CC BY only. */
+const licensed = (st, s) => /Attribution/i.test(s.LicenseName ?? "") && !/Non.?Commercial|No.?Deriv/i.test(s.LicenseName ?? "") && (s.LicenseName ?? "").includes(st.license.replace("CC BY ", ""));
+
+async function more(arg) {
+  const [, base, n] = arg.split(":");
+  const st = MORE_STACKS.find((x) => x.id === base);
+  if (!st) return console.log(`✗ ${arg}: no such definition`);
+  const all = (await candidates(st)).filter((s) => (!st.filter || st.filter(s)) && licensed(st, s) && (s.FileSize ?? 0) < 300_000_000);
+  let want = Number(n) || 1, tries = 0;
+  for (const s of all) {
+    if (!want || tries >= Number(n) * 5) break;
+    // Another patient each time: never a second series of someone already shown, nor one already looked at and left out.
+    if (manifest.some((m) => m.patient === s.PatientID) || rejected.has(s.PatientID) || busy.has(s.PatientID)) continue;
+    busy.add(s.PatientID);
+    tries++;
+    let k = 1;
+    while (manifest.some((m) => m.id === `${base}-${k}`) || existsSync(path.join(OUT, `${base}-${k}`))) k++;
+    const newId = `${base}-${k}`;
+    mkdirSync(path.join(OUT, newId), { recursive: true });
+    const entry = await buildMore(st, newId, s, k - 1).catch((e) => (console.log(`  ${s.PatientID}: ${e.message}`), null));
+    busy.delete(s.PatientID);
+    if (!entry) {
+      rmSync(path.join(OUT, newId), { recursive: true, force: true });
+      continue;
+    }
+    manifest.push(entry);
+    save();
+    want--;
+    console.log(`✓ ${newId}: ${entry.slices} slices from ${s.PatientID} "${s.SeriesDescription}"`);
+  }
+  console.log(want ? `✗ ${base}: ${want} short (${all.length} candidates)` : `✓ ${base} done`);
+}
+const busy = new Set();
+const moreArgs = process.argv.slice(2).filter((a) => a.startsWith("more:"));
+if (moreArgs.length) {
+  const queue = [...moreArgs];
+  await Promise.all(Array.from({ length: Number(process.env.STACKS_JOBS ?? 4) }, async () => {
+    while (queue.length) await more(queue.shift()).catch((e) => console.log(`✗ ${e.message}`));
+  }));
+}
+
+for (const arg of process.argv.slice(2).filter((a) => !a.startsWith("more:"))) {
   const [mode, id, n] = arg.split(":");
   const st = baseOf(id);
   if (!st) { console.log(`✗ ${arg}: no such stack`); continue; }

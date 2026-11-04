@@ -1,0 +1,371 @@
+{
+ "ReMIND-002": {
+  "cat": "lgg",
+  "age": 22,
+  "sex": "Female",
+  "histology": "Astrocytoma",
+  "grade": "2",
+  "location": "Paramedian Right Frontal",
+  "enhancement": "No"
+ },
+ "ReMIND-003": {
+  "cat": "lgg",
+  "age": 30,
+  "sex": "Male",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Left Posterior Temporal",
+  "enhancement": "No"
+ },
+ "ReMIND-006": {
+  "cat": "lgg",
+  "age": 58,
+  "sex": "Male",
+  "histology": "Astrocytoma",
+  "grade": "2",
+  "location": "Left Insular",
+  "enhancement": "No"
+ },
+ "ReMIND-010": {
+  "cat": "lgg",
+  "age": 41,
+  "sex": "Male",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Left Inferior Frontal Suprachiasmatic",
+  "enhancement": "Yes"
+ },
+ "ReMIND-014": {
+  "cat": "met",
+  "age": 66,
+  "sex": "Male",
+  "histology": "Metastatic Carcinoma from Lung Adenocarcinoma",
+  "grade": "Not assigned",
+  "location": "Right Inferior Frontal Midline",
+  "enhancement": "Yes"
+ },
+ "ReMIND-019": {
+  "cat": "gbm",
+  "age": 52,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Left Temporal",
+  "enhancement": "No"
+ },
+ "ReMIND-026": {
+  "cat": "lgg",
+  "age": 27,
+  "sex": "Male",
+  "histology": "Astrocytoma",
+  "grade": "2",
+  "location": "Right Insular",
+  "enhancement": "No"
+ },
+ "ReMIND-027": {
+  "cat": "gbm",
+  "age": 73,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "left temporal lobe anterior to functional activations corresponding to Wernicke's an dleft auditory areas",
+  "enhancement": "No"
+ },
+ "ReMIND-028": {
+  "cat": "gbm",
+  "age": 31,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Insular",
+  "enhancement": "Yes"
+ },
+ "ReMIND-029": {
+  "cat": "met",
+  "age": 70,
+  "sex": "Male",
+  "histology": "Metastatic Melanoma",
+  "grade": "Not assigned",
+  "location": "Left Frontal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-032": {
+  "cat": "gbm",
+  "age": 31,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Frontal Caudate",
+  "enhancement": "Yes"
+ },
+ "ReMIND-033": {
+  "cat": "lgg",
+  "age": 32,
+  "sex": "Male",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Right Parietal",
+  "enhancement": "No"
+ },
+ "ReMIND-036": {
+  "cat": "met",
+  "age": 65,
+  "sex": "Female",
+  "histology": "Metastatic Malignant Melanoma",
+  "grade": "Not assigned",
+  "location": "Left Frontal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-038": {
+  "cat": "met",
+  "age": 74,
+  "sex": "Female",
+  "histology": "Metastatic Renal Cell Carcinoma",
+  "grade": "Not assigned",
+  "location": "Left Parietal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-040": {
+  "cat": "lgg",
+  "age": 36,
+  "sex": "Female",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Right Parietal",
+  "enhancement": "No"
+ },
+ "ReMIND-041": {
+  "cat": "lgg",
+  "age": 45,
+  "sex": "Male",
+  "histology": "Astrocytoma",
+  "grade": "2",
+  "location": "Left Frontal",
+  "enhancement": "No"
+ },
+ "ReMIND-044": {
+  "cat": "gbm",
+  "age": 52,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Left Frontal",
+  "enhancement": "No"
+ },
+ "ReMIND-045": {
+  "cat": "gbm",
+  "age": 65,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Temporal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-052": {
+  "cat": "lgg",
+  "age": 26,
+  "sex": "Female",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Right Insular",
+  "enhancement": "No"
+ },
+ "ReMIND-053": {
+  "cat": "lgg",
+  "age": 44,
+  "sex": "Male",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Left Superficial Frontal glioma separate by a sulcus from functional motor activations, primarily for the hand and the face areas",
+  "enhancement": "No"
+ },
+ "ReMIND-055": {
+  "cat": "gbm",
+  "age": 52,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Left Superficial Anterior Temporal Lesion, Left Amygdala, Arachnoid",
+  "enhancement": "Yes"
+ },
+ "ReMIND-056": {
+  "cat": "lgg",
+  "age": 21,
+  "sex": "Female",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Left Temporal",
+  "enhancement": "No"
+ },
+ "ReMIND-058": {
+  "cat": "lgg",
+  "age": 35,
+  "sex": "Female",
+  "histology": "Astrocytoma",
+  "grade": "2",
+  "location": "Right Temporal, anterior portion of a large temporooccipital tumor",
+  "enhancement": "No"
+ },
+ "ReMIND-064": {
+  "cat": "met",
+  "age": 50,
+  "sex": "Female",
+  "histology": "Metastastic Carcinoma from Breast primary.",
+  "grade": "Not assigned",
+  "location": "Right Frontal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-066": {
+  "cat": "gbm",
+  "age": 59,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Left Frontal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-067": {
+  "cat": "gbm",
+  "age": 72,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Temporal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-069": {
+  "cat": "gbm",
+  "age": 61,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Frontal",
+  "enhancement": "No"
+ },
+ "ReMIND-071": {
+  "cat": "gbm",
+  "age": 62,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Frontal Temporal, Posterior Sylvian Fissure",
+  "enhancement": "Yes"
+ },
+ "ReMIND-076": {
+  "cat": "gbm",
+  "age": 43,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Superior/Anterior Temporal Lobe",
+  "enhancement": "No"
+ },
+ "ReMIND-080": {
+  "cat": "lgg",
+  "age": 20,
+  "sex": "Female",
+  "histology": "Astrocytoma",
+  "grade": "2",
+  "location": "Right Temporal",
+  "enhancement": "No"
+ },
+ "ReMIND-086": {
+  "cat": "gbm",
+  "age": 76,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Frontal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-088": {
+  "cat": "gbm",
+  "age": 57,
+  "sex": "Female",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Right Anterior Temporal",
+  "enhancement": "No"
+ },
+ "ReMIND-095": {
+  "cat": "gbm",
+  "age": 54,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Left Insular",
+  "enhancement": "No"
+ },
+ "ReMIND-096": {
+  "cat": "lgg",
+  "age": 56,
+  "sex": "Male",
+  "histology": "Astrocytoma",
+  "grade": "2",
+  "location": "Left Parietal",
+  "enhancement": "No"
+ },
+ "ReMIND-099": {
+  "cat": "met",
+  "age": 57,
+  "sex": "Female",
+  "histology": "Metastastic Carcinoma, Poorly Differentiated",
+  "grade": "Not assigned",
+  "location": "Left Parietal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-101": {
+  "cat": "lgg",
+  "age": 45,
+  "sex": "Male",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Right Frontal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-103": {
+  "cat": "met",
+  "age": 57,
+  "sex": "Male",
+  "histology": "Metastatic Adenocarcinoma from lung primary with likely peritumoral and intratumoral hemorrhage",
+  "grade": "Not assigned",
+  "location": "Right Parietal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-105": {
+  "cat": "gbm",
+  "age": 49,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Left Temporal Parietal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-109": {
+  "cat": "lgg",
+  "age": 51,
+  "sex": "Male",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Left Middle Temporal Gyrus",
+  "enhancement": "Yes"
+ },
+ "ReMIND-110": {
+  "cat": "lgg",
+  "age": 47,
+  "sex": "Male",
+  "histology": "Oligodendroglioma",
+  "grade": "2",
+  "location": "Right Parietal",
+  "enhancement": "Yes"
+ },
+ "ReMIND-114": {
+  "cat": "gbm",
+  "age": 54,
+  "sex": "Male",
+  "histology": "Glioblastoma",
+  "grade": "4",
+  "location": "Left Temporal",
+  "enhancement": "No"
+ }
+}
