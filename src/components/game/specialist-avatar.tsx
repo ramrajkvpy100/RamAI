@@ -3,7 +3,7 @@
 import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
-import { isPersona, PERSONAS, PHOTO, type PersonaId } from "@/lib/avatar-style";
+import { isPersona, personaParts, PERSONAS, PHOTO, type PersonaChoice } from "@/lib/avatar-style";
 
 type Art = typeof import("./avatar-personas").PersonaArt;
 
@@ -27,10 +27,11 @@ const subscribe = (f: () => void) => {
   return () => void waiting.delete(f);
 };
 
-function Drawn({ persona, size, className }: { persona: PersonaId; size: number; className?: string }) {
+function Drawn({ persona: choice, size, className }: { persona: PersonaChoice; size: number; className?: string }) {
+  const { id: persona, sex } = personaParts(choice);
   const Loaded = useSyncExternalStore(subscribe, () => art, () => null);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  if (Loaded) return <Loaded persona={persona} size={size} uid={uid} className={className} />;
+  if (Loaded) return <Loaded persona={persona} sex={sex} size={size} uid={uid} className={className} />;
   const tint = PERSONAS.find((p) => p.id === persona)!.tint;
   return <span aria-hidden className={cn("block", className)} style={{ width: size, height: size, background: `radial-gradient(circle at 50% 32%, color-mix(in srgb, ${tint} 45%, #fff), ${tint})` }} />;
 }

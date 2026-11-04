@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 
-import { SectionDivider } from "@/components/games/game-parts";
 import { MedicalIcon, type MedicalIconName } from "@/components/ui/medical-icons";
 
 export const LEARNING_TOOLS: { href: string; icon: MedicalIconName; title: string; line: string }[] = [
   { href: "/tools/mnemonics", icon: "mnemonics", title: "Mnemonics", line: "Generate mnemonics" },
   { href: "/tools/flowcharts", icon: "flowcharts", title: "Flowcharts", line: "Get flowcharts on demand" },
-  { href: "/tools/youtube", icon: "youtube", title: "YouTube", line: "Watch and summarize videos" },
+  { href: "/tools/youtube", icon: "youtube", title: "YouTube", line: "Playlists by subject, and video summaries" },
   { href: "/tools/notes", icon: "notes", title: "Create smart notes", line: "Upload your notes" },
   { href: "/tools/research", icon: "research", title: "Latest research", line: "Get updates" },
 ];
@@ -33,10 +32,9 @@ export function ToolsHub() {
   return (
     <div className="flex flex-col gap-4 pb-6">
       <div>
-        <h1 className="text-[26px] font-bold">Learning Tools</h1>
-        <p className="mt-0.5 text-[14.5px] text-fg-2">Study smarter, faster. Galleries are free; AI generation is 5 a day with a free account.</p>
+        <h1 className="text-[26px] font-bold">MedKit</h1>
+        <p className="mt-0.5 text-[14.5px] text-fg-2">Your study tools. Galleries are free; AI generation is 5 a day with a free account.</p>
       </div>
-      <SectionDivider>— Learning tools —</SectionDivider>
       <ToolRows />
     </div>
   );

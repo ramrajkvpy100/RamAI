@@ -181,6 +181,36 @@ export const SYNAPSE_BOARDS: SynapseBoard[] = [
   ] },
 ];
 
+/** What each board is really teaching: shown once it's over. */
+export const BOARD_PEARLS: Record<string, string> = {
+  "acid-base": "Calculate the anion gap first: Na − (Cl + HCO₃). It splits metabolic acidosis in two before you think of a single cause.",
+  "drug-effects": "Before a long work-up for gynaecomastia, gum swelling or lung fibrosis, read the drug chart.",
+  "bedside-clusters": "Tamponade and raised ICP are both diagnosed at the bedside. Don't wait for imaging to act.",
+  toxicology: "Pupils narrow the list fast: pinpoint with a slow pulse and secretions suggests organophosphates; big pupils with a fast pulse suggest a sympathomimetic or anticholinergic.",
+  glomerular: "Nephrotic is about protein loss. Nephritic is about inflammation: blood, casts, raised BP and a falling GFR.",
+  vectors: "Aedes bites by day, Culex and Anopheles by night. That's why bed nets don't prevent dengue well.",
+  "ecg-patterns": "Treat hyperkalaemia with ECG changes first and confirm later: calcium works within minutes.",
+  "skull-foramina": "Group the nerves by their exit and a skull-base lesion localises itself: jugular foramen syndrome takes IX, X and XI together.",
+  "endocrine-syndromes": "MEN 1 is the 3 Ps: parathyroid, pituitary, pancreas. Both MEN 2 types carry medullary thyroid cancer, so RET carriers get an early thyroidectomy.",
+  "blood-film": "Schistocytes with low platelets and normal clotting: think TTP or HUS, and call haematology today.",
+  "psych-drugs": "Clozapine needs regular blood counts. Lithium needs levels, kidney and thyroid checks.",
+  "labour-ward": "Tone causes most PPH. Rub up the uterus and give oxytocin while you look for the other Ts.",
+  murmurs: "Inspiration louder on the right, expiration on the left. Valsalva makes HOCM louder and nearly everything else softer.",
+  lungs: "Light's criteria separate exudate from transudate; the upper or lower zone narrows the cause of fibrosis.",
+  gut: "Coeliac serology needs a gluten-containing diet: test before they stop eating it.",
+  antibodies: "Anti-dsDNA tracks lupus nephritis activity. Anti-aquaporin-4 means neuromyelitis optica, not multiple sclerosis.",
+  "abdomen-signs": "Courvoisier: a palpable gallbladder with painless jaundice is unlikely to be stones. Think malignancy.",
+  "nerve-palsies": "Test one motor and one sensory territory for each nerve: wrist drop with first web-space numbness is radial.",
+  torch: "CMV calcifies around the ventricles; toxoplasma calcifies diffusely. Rubella's classic triad is cataract, deafness and heart disease.",
+  "skin-signs": "Pemphigus is the flaccid, intraepidermal one; pemphigoid is the tense, subepidermal one. Rub the skin: Nikolsky positive points to pemphigus.",
+  fundus: "A cherry-red spot with sudden painless loss of vision is central retinal artery occlusion: an eye stroke, so work it up as a stroke.",
+  ent: "Weber and Rinne separate conductive from sensorineural loss. Sudden sensorineural loss is an emergency.",
+  biostat: "Cohort gives relative risk; case-control can only give an odds ratio. Know which study gives which number.",
+  "arrest-anaesthesia": "Ketamine holds up blood pressure and is a good choice in shock; propofol drops it.",
+  antibiotics: "Bactericidal cell-wall drugs need dividing bacteria, so a bacteriostatic partner can blunt them. Aminoglycosides are the 30S exception: they kill.",
+  vitamins: "In a malnourished or alcoholic patient, give thiamine before glucose.",
+};
+
 /** Same tiles in a new order for every game: a seeded shuffle, so a board can be replayed the same way in a test. */
 export function shuffledTiles(board: SynapseBoard, seed: number): string[] {
   const tiles = board.groups.flatMap((x) => x.tiles);

@@ -9,8 +9,7 @@ import { useMe } from "@/lib/me-store";
 import { SKILL_COUNTS } from "@/lib/skill-counts";
 import { useSkillProgress } from "@/lib/skill-progress";
 
-import { PlayHub } from "@/components/games/play-hub";
-import { SectionDivider } from "@/components/games/game-parts";
+import { MedicalIcon } from "@/components/ui/medical-icons";
 
 import { SkillBar } from "./progress-bar";
 import type { Section } from "./skill-section";
@@ -27,6 +26,13 @@ const SECTIONS: Record<Section, [string, string]> = {
   algorithms: ["🚨 Emergency algorithms", "What comes next?"],
   calculations: ["🧮 Clinical calculations", "Quick bedside sums"],
 };
+
+/** The timed games, each among the drills it belongs with. Easy, medium and hard are chosen inside. */
+const GAMES = [
+  { href: "/practice/rush", icon: "image-rush", title: "Image Rush", line: "Name images against the clock" },
+  { href: "/practice/clusters", icon: "synapses", title: "Clusters", line: "Find the 4 hidden groups of 4" },
+  { href: "/practice/detective", icon: "probe", title: "Case Detective", line: "Solve a mystery in 5 clues" },
+] as const;
 
 /** A doctor's own specialty's drills come first. */
 const FIRST: Record<string, Section[]> = {
@@ -96,10 +102,10 @@ export function SkillsLab() {
 
   if (!section) {
     // Three kinds of drill, each its own group: what you see, what you hear, what you must know.
-    const groups: [string, string, Section[]][] = [
-      ["👁️ See it", "Name what's on the image", ["spot", "radiology"]],
-      ["👂 Hear it", "Name what's on the stethoscope", ["sounds"]],
-      ["🧠 Know it", "Quick-fire, high-yield", ["antidotes", "algorithms", "calculations"]],
+    const groups: [string, string, Section[], (typeof GAMES)[number][]][] = [
+      ["👁️ See it", "Name what's on the image", ["spot", "radiology"], [GAMES[0]]],
+      ["👂 Hear it", "Name what's on the stethoscope", ["sounds"], []],
+      ["🧠 Know it", "Quick-fire, high-yield", ["antidotes", "algorithms", "calculations"], [GAMES[1], GAMES[2]]],
     ];
     // The doctor's own drills lead within each group.
     const rank = (id: Section) => order.indexOf(id);
@@ -110,9 +116,7 @@ export function SkillsLab() {
           <p className="mt-1 text-[14.5px] text-fg-2">{level === "basic" ? "Must-know drills for your level — a few minutes each." : "Short drills — a few minutes each."}</p>
           <Link href="/revision" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3.5 py-1.5 text-[13px] font-semibold ring-1 ring-line hover:bg-surface-3">📚 Revision deck</Link>
         </header>
-        <PlayHub />
-        <SectionDivider>— Skills drills —</SectionDivider>
-        {groups.map(([title, note, ids]) => (
+        {groups.map(([title, note, ids, games]) => (
           <section key={title} className="flex flex-col gap-2.5">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="text-[16px] font-semibold">{title}</h2>
@@ -134,6 +138,16 @@ export function SkillsLab() {
                   </button>
                 );
               })}
+              {games.map((g) => (
+                <Link key={g.href} href={g.href} className="widget-glass group flex min-h-[72px] items-center gap-3.5 rounded-2xl px-4 py-3 text-left">
+                  <MedicalIcon name={g.icon} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold">{g.title}</span>
+                    <span className="block text-[12.5px] leading-5 text-fg-2">{g.line}</span>
+                  </span>
+                  <span aria-hidden className="text-fg-3 transition-transform group-hover:translate-x-0.5">›</span>
+                </Link>
+              ))}
             </div>
           </section>
         ))}

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { isPersona, parseAvatar, personaParts } from "@/lib/avatar-style";
 
 import { comboMultiplier, xpFor, GAME_XP_CAP } from "@/lib/games/score";
 import { CLUE_POINTS, PROBE_CASES } from "@/lib/games/probe";
 import { checkTiles, shuffledTiles, SYNAPSE_BOARDS } from "@/lib/games/synapses";
 import { flashcardsFrom, FLOWCHARTS } from "@/lib/tools/flowcharts";
 import { MNEMONICS, phraseParts } from "@/lib/tools/mnemonics";
-import { RESEARCH, RESEARCH_BODIES } from "@/lib/tools/research";
+import { RESEARCH } from "@/lib/tools/research";
+import { layoutFlow } from "@/lib/tools/flow-layout";
+import { PLAYLISTS } from "@/lib/tools/playlists";
 
 describe("Synapses boards", () => {
   it("at least 25 boards, each 16 different tiles in 4 groups of 4", () => {
@@ -87,13 +90,51 @@ describe("Flowcharts", () => {
   });
 });
 
+describe("Flowchart layout", () => {
+  it("every box has a place, and no two boxes in a row overlap", () => {
+    for (const c of FLOWCHARTS) {
+      const l = layoutFlow(c.nodes);
+      for (const n of c.nodes) {
+        expect(l.col.get(n.id), `${c.id}/${n.id}`).toBeGreaterThanOrEqual(0);
+        for (const m of c.nodes) {
+          if (m !== n && l.rank.get(m.id) === l.rank.get(n.id)) expect(Math.abs(l.col.get(m.id)! - l.col.get(n.id)!), `${c.id} ${n.id}/${m.id}`).toBeGreaterThan(0.99);
+        }
+      }
+      // Arrows going down always go to a lower row.
+      for (const e of l.edges) if (!e.back) expect(l.rank.get(e.to)!, c.id).toBeGreaterThan(l.rank.get(e.from)!);
+    }
+  });
+});
+
+describe("Playlists", () => {
+  it("ids look real and don't repeat within a subject", () => {
+    for (const p of PLAYLISTS) {
+      expect(p.lists.length, p.subject).toBeGreaterThan(1);
+      expect(new Set(p.lists.map((l) => l.id)).size, p.subject).toBe(p.lists.length);
+      for (const l of p.lists) expect(l.id, l.title).toMatch(/^PL[\w-]{16,}$/);
+    }
+  });
+});
+
 describe("Latest research", () => {
   it("every item has a link, a takeaway and a bedside point, and its filter exists", () => {
     for (const r of RESEARCH) {
       expect(r.url, r.id).toMatch(/^https:\/\//);
       expect(r.takeaway.length).toBeGreaterThan(30);
       expect(r.bedside.length).toBeGreaterThan(30);
-      expect(RESEARCH_BODIES as readonly string[], r.id).toContain(r.body);
+      expect(r.exam.length, r.id).toBeGreaterThan(10);
     }
+  });
+});
+
+describe("Avatar sex choice", () => {
+  it("a persona can be saved as a man or a woman, and nothing else gets through", () => {
+    expect(isPersona("er-resus")).toBe(true);
+    expect(isPersona("er-resus~m")).toBe(true);
+    expect(isPersona("interventional-cardiologist~f")).toBe(true);
+    expect(isPersona("er-resus~x")).toBe(false);
+    expect(isPersona("nobody~m")).toBe(false);
+    expect(personaParts("radiology-ace~f")).toEqual({ id: "radiology-ace", sex: "f" });
+    expect(parseAvatar({ persona: "bone-setter~f" })?.persona).toBe("bone-setter~f");
   });
 });

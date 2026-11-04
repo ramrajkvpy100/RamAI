@@ -95,6 +95,9 @@ export function UserMenu({ me }: { me: Me }) {
               <Icon name="user" size={15} className="text-fg-2" /> Profile
             </Link>
           )}
+          <Link role="menuitem" href="/progress" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] hover:bg-surface-3">
+            <Icon name="award" size={15} className="text-fg-2" /> Progress
+          </Link>
           <button
             role="menuitem"
             type="button"
@@ -128,9 +131,6 @@ export function UserMenu({ me }: { me: Me }) {
                 </button>
                 <Link role="menuitem" href="/welcome" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3">
                   <span aria-hidden className="text-[18px]">🎯</span>Dream branch
-                </Link>
-                <Link role="menuitem" href="/tools" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3">
-                  <span aria-hidden className="text-[18px]">🧠</span>Learning tools
                 </Link>
                 <Link role="menuitem" href="/achievements" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3 disabled:opacity-60">
                   <span aria-hidden className="text-[18px]">🏅</span>Badges · {me.progress.badges.length}

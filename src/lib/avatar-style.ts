@@ -13,7 +13,7 @@ export interface AvatarStyle {
   /** The outfit (0–9, one per rank); -1 = the newest for their rank. Only old cartoons have one chosen. */
   outfit?: number;
   /** What they chose to be shown as: a persona's id, or PHOTO. Absent: their old cartoon. */
-  persona?: PersonaId | typeof PHOTO;
+  persona?: PersonaChoice | typeof PHOTO;
   /** Their Google picture, when persona is PHOTO. */
   photo?: string;
   /** The cartoon pieces are only defaults: this doctor never made one, so there's none to go back to. */
@@ -55,10 +55,17 @@ export const PERSONAS = [
   { id: "mind-listener", name: "Mind Listener", tint: "#7e22ce" },
 ] as const;
 export type PersonaId = (typeof PERSONAS)[number]["id"];
+export type PersonaSex = "m" | "f";
+/** A persona as chosen: its id, with ~m or ~f once they've picked a man or a woman. Rows from before the choice have the id alone. */
+export type PersonaChoice = PersonaId | `${PersonaId}~${PersonaSex}`;
+export const personaParts = (x: string): { id: PersonaId; sex?: PersonaSex } => {
+  const [id, sex] = x.split("~");
+  return { id: id as PersonaId, ...(sex === "m" || sex === "f" ? { sex } : {}) };
+};
 /** The persona value meaning "my Google photo". */
 export const PHOTO = "photo";
 const PERSONA_IDS = new Set<string>(PERSONAS.map((p) => p.id));
-export const isPersona = (x: unknown): x is PersonaId => typeof x === "string" && PERSONA_IDS.has(x);
+export const isPersona = (x: unknown): x is PersonaChoice => typeof x === "string" && /^[a-z-]+(~[mf])?$/.test(x) && PERSONA_IDS.has(x.split("~")[0]!);
 
 const PHOTO_ROOT = "https://lh3.googleusercontent.com/";
 /** A Google profile picture's address, or nothing: this one host only (it's all the page's security policy lets in). */

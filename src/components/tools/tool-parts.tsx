@@ -26,7 +26,7 @@ export function AiNote() {
 export function ToolHeader({ title, line }: { title: string; line: string }) {
   return (
     <>
-      <BackTo href="/tools" label="Learning Tools" />
+      <BackTo href="/tools" label="MedKit" />
       <h1 className="text-[26px] leading-tight font-bold">{title}</h1>
       <p className="mt-0.5 mb-4 text-[14.5px] text-fg-2">{line}</p>
     </>

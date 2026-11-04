@@ -1,8 +1,6 @@
 "use client";
 
-import { SectionDivider } from "@/components/games/game-parts";
-import { PlayHub, WelcomeBanner } from "@/components/games/play-hub";
-import { ToolRows } from "@/components/tools/tools-hub";
+import { WelcomeBanner } from "@/components/games/play-hub";
 import Link from "next/link";
 
 import { LoopVideo } from "@/components/ui/loop-video";
@@ -34,6 +32,7 @@ const firstName = (name: string) => name.replace(/^dr\.?\s+/i, "").split(/\s+/)[
 const PLACES = [
   { href: "/cases", icon: "pulse", title: "Cases", line: "See a patient — history, exam, tests, treatment", tint: "from-blue-500 to-cyan-400", soft: "from-blue-500/10 to-cyan-400/5" },
   { href: "/practice", icon: "target", title: "Skills Lab", line: "ECGs, X-rays, sounds, drugs and calculations", tint: "from-violet-500 to-fuchsia-400", soft: "from-violet-500/10 to-fuchsia-400/5" },
+  { href: "/tools", icon: "book", title: "MedKit", line: "Mnemonics, flowcharts, lectures, notes, research", tint: "from-cyan-500 to-blue-500", soft: "from-cyan-500/10 to-blue-500/5" },
   { href: "/exams", icon: "file", title: "Exam MCQs", line: "NEET PG, USMLE and PLAB-style questions", tint: "from-amber-500 to-orange-400", soft: "from-amber-500/10 to-orange-400/5" },
   { href: "/leaderboard", icon: "trophy", title: "Leaderboard", line: "Your weekly league and rank", tint: "from-emerald-500 to-teal-400", soft: "from-emerald-500/10 to-teal-400/5" },
   { href: "/community", icon: "users", title: "Community", line: "Ask, share and discuss cases", tint: "from-rose-500 to-pink-400", soft: "from-rose-500/10 to-pink-400/5" },
@@ -188,10 +187,6 @@ export function Hub({ initial }: { initial: Me }) {
           ))}
         </div>
       </section>
-
-      <PlayHub compact />
-      <SectionDivider>— Learning tools —</SectionDivider>
-      <ToolRows />
 
       <AppCard guest={me.user.isGuest} />
 

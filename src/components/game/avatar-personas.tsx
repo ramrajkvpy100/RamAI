@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { PersonaId } from "@/lib/avatar-style";
+import type { PersonaId, PersonaSex } from "@/lib/avatar-style";
 
 /**
  * The sixteen medical personas, drawn by hand on a 100 x 100 card: a gradient frame, a lit disc with the specialty's mark behind
@@ -247,8 +247,64 @@ const ART: Record<PersonaId, Art> = {
   },
 };
 
-export function PersonaArt({ persona, size = 40, className, uid }: { persona: PersonaId; size?: number; className?: string; /** Keeps gradient ids apart when one page draws the same persona twice. */ uid?: string }) {
-  const a = ART[persona];
+
+/** Short hair; long hair (behind the shoulders, and its fringe). The other half of each persona is built from these and its own gear. */
+const crop = (c: string) => <P d="M30.5 46C28 19 72 19 69.5 46 67 38 63 34 50 33.5 37 34 33 38 30.5 46Z" fill={c} />;
+const longBack = (c: string) => <P d="M26 68C17 13 83 13 74 68c-1 6-9 7-11 2H37c-2 5-10 4-11-2Z" fill={c} />;
+const fringe = (c: string) => <P d="M31 47C29 21 71 21 69 47 66 37 58 33 50 32 46 37 37 39 31 47Z" fill={c} />;
+
+/** How each persona was first drawn. */
+const DRAWN_AS: Record<PersonaId, PersonaSex> = {
+  "er-resus": "f", "interventional-cardiologist": "m", "neuro-intensivist": "f", "trauma-surgeon": "m", "pediatric-healer": "f", "clinical-detective": "m",
+  "toxicology-specialist": "f", "maternal-fetal-guardian": "f", "icu-night-owl": "m", "radiology-ace": "f", "infectious-disease-hunter": "m", "master-clinician": "f",
+  "airway-guardian": "m", "rural-frontliner": "f", "bone-setter": "m", "mind-listener": "f",
+};
+/** The same doctor as the other sex: the same clothes, gear and colours, with different hair. */
+const OTHER: Record<PersonaId, Pick<Art, "back" | "f">> = {
+  "er-resus": { back: null, f: <>{crop("#2b1a12")}{scope("#0f172a")}</> },
+  "interventional-cardiologist": { back: longBack("#120b08"), f: <>{fringe("#120b08")}<rect x="59" y="84" width="11" height="8" rx="1.6" fill="#fda4af" /><L d="M61 88h2l1-3 2 5 1-2h2" c="#7f1d1d" w={1} /></> },
+  "neuro-intensivist": { back: null, f: <>{crop("#9a3412")}{glasses("#312e81")}{scope("#312e81", "#c4b5fd")}</> },
+  "trauma-surgeon": { back: longBack("#1c1410"), f: <>
+    <P d="M29 44C25 13 75 13 71 44 62 37 38 37 29 44Z" fill="#134e4a" />
+    <L d="M29.5 44C38 38 62 38 70.5 44" c="#5eead4" w={1.8} />
+    <circle cx="41" cy="27" r="1.3" fill="#5eead4" /><circle cx="50" cy="24" r="1.3" fill="#5eead4" /><circle cx="59" cy="27" r="1.3" fill="#5eead4" />
+    <P d="M36 74c8 5 20 5 28 0l-2 6c-7 3-17 3-24 0Z" fill="#bfdbfe" />
+  </> },
+  "pediatric-healer": { back: null, f: <>{crop("#120b08")}{scope("#be185d", "#fde047")}</> },
+  "clinical-detective": { back: longBack("#3b2413"), f: <>
+    {fringe("#3b2413")}{glasses("#1e293b", 6.8)}
+    <circle cx="73" cy="82" r="10" fill="#e0f2fe" fillOpacity="0.5" stroke="#fbbf24" strokeWidth="3" />
+    <L d="M66 89 56 100" c="#fbbf24" w={4} />
+  </> },
+  "toxicology-specialist": { back: null, f: <>{crop("#2b1a12")}<rect x="62" y="88" width="12" height="4" rx="2" fill="#65a30d" /></> },
+  "maternal-fetal-guardian": { back: null, f: <>{crop("#1a0f09")}{scope("#500724", "#fbcfe8")}</> },
+  "icu-night-owl": { back: longBack("#17110d"), f: fringe("#17110d") },
+  "radiology-ace": { back: null, f: crop("#0b0f14") },
+  "infectious-disease-hunter": { back: longBack("#0d0805"), f: <>
+    <P d="M31 45C28 19 72 19 69 45 64 36 58 33 50 33 42 33 36 36 31 45Z" fill="#0d0805" />
+    <rect x="31" y="27" width="38" height="11" rx="5.5" fill="#fde68a" fillOpacity="0.9" stroke="#14532d" strokeWidth="1.8" />
+    <L d="M50 27.5v10" c="#14532d" w={1.8} />
+    <P d="M31 53c7-3 31-3 38 0 0 11-8 20-19 20S31 64 31 53Z" fill="#f0fdf4" />
+    <L d="M34 58c8 2 24 2 32 0M37 64c7 2 19 2 26 0" c="#86efac" w={1.2} />
+    <L d="M31 52 28 47M69 52l3-5" c="#f0fdf4" w={1.4} />
+  </> },
+  "master-clinician": { back: null, f: <>{crop("#e2e8f0")}{glasses("#92400e", 6.2)}{scope("#d97706", "#fde68a")}</> },
+  "airway-guardian": { back: longBack("#17110d"), f: <>
+    <P d="M27 44C22 22 34 12 50 12s28 10 23 32c-8-10-38-10-46 0Z" fill="#ea580c" />
+    <L d="M28 40C36 26 54 20 70 26M29 33C38 22 52 16 64 18M34 22c4 4 26 12 37 21" c="#9a3412" w={1.6} o={0.7} />
+    <P d="M46.5 20h7l-1 5h-5Z" fill="#fed7aa" />
+    {scope("#0c4a6e", "#bae6fd")}
+  </> },
+  "rural-frontliner": { back: null, f: <>{crop("#1c1009")}{scope("#334155")}</> },
+  "bone-setter": { back: longBack("#44342a"), f: fringe("#44342a") },
+  "mind-listener": { back: null, f: <>
+    <g fill="none" stroke="#0d0805" strokeWidth="5" strokeLinecap="round"><path d="M34 42c2-12 8-15 14-15M66 42c-2-12-8-15-14-15M42 34c2-6 5-8 8-8M58 34c-2-6-5-8-8-8" /></g>
+    {glasses("#ddd6fe", 6.4)}
+  </> },
+};
+
+export function PersonaArt({ persona, sex, size = 40, className, uid }: { persona: PersonaId; /** A man or a woman; left out, as first drawn. */ sex?: PersonaSex; size?: number; className?: string; /** Keeps gradient ids apart when one page draws the same persona twice. */ uid?: string }) {
+  const a: Art = sex && sex !== DRAWN_AS[persona] ? { ...ART[persona], ...OTHER[persona] } : ART[persona];
   const id = `p${uid ?? persona}`;
   const eyes = a.eyes ?? "open";
   const mouth = a.mouth ?? "smile";

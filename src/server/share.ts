@@ -14,7 +14,7 @@ import { deriveSecret } from "@/engine/session";
 import type { CareLevel, CaseTrack } from "@/engine/types";
 import { isCountry, type Country } from "@/engine/countries";
 import { avatarOf, type AvatarLook } from "@/lib/avatar";
-import { parseAvatar, PHOTO } from "@/lib/avatar-style";
+import { parseAvatar, personaParts, PHOTO } from "@/lib/avatar-style";
 import { dailyNumber } from "@/lib/daily";
 
 import { db } from "./db";
@@ -192,7 +192,7 @@ async function avatarWithFace(userId: string, name: string): Promise<AvatarLook>
     let drawing;
     if (style.persona) {
       const { PersonaArt } = await import("@/components/game/avatar-personas");
-      drawing = createElement(PersonaArt, { persona: style.persona, size: 256 });
+      drawing = createElement(PersonaArt, { persona: personaParts(style.persona).id, sex: personaParts(style.persona).sex, size: 256 });
     } else {
       const { AvatarFace } = await import("@/components/game/avatar-face");
       drawing = createElement(AvatarFace, { style, size: 256 });

@@ -7,7 +7,7 @@ import { LookChoice } from "@/components/game/look-choice";
 import { PersonaAvatar } from "@/components/game/specialist-avatar";
 import { Sheet } from "@/components/ui/sheet";
 import { SlidingPill } from "@/components/ui/motion-primitives";
-import { PERSONAS, PHOTO, type AvatarStyle } from "@/lib/avatar-style";
+import { personaParts, PERSONAS, PHOTO, type AvatarStyle, type PersonaSex } from "@/lib/avatar-style";
 import { rankFor } from "@/engine/progression";
 import { cn } from "@/lib/cn";
 import { success, tap } from "@/lib/haptics";
@@ -51,6 +51,7 @@ export function AvatarPicker({ open, onClose }: { open: boolean; onClose: () => 
   const me = useMe();
   const current = me?.avatar;
   const [choice, setChoice] = useState<Choice>(current?.persona ?? null);
+  const [sex, setSex] = useState<PersonaSex>(() => (current?.persona && current.persona !== PHOTO ? personaParts(current.persona).sex : undefined) ?? "m");
   const [photo, setPhoto] = useState<string | null>(current?.persona === PHOTO ? (current.photo ?? null) : null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +91,7 @@ export function AvatarPicker({ open, onClose }: { open: boolean; onClose: () => 
     onClose();
   };
 
-  const name = choice === PHOTO ? "Your Google photo" : choice ? NAME.get(choice) : cartoon ? "The cartoon you made" : "No avatar";
+  const name = choice === PHOTO ? "Your Google photo" : choice ? NAME.get(personaParts(choice).id) : cartoon ? "The cartoon you made" : "No avatar";
   const line = choice === PHOTO ? "Other doctors will see it on leaderboards." : choice ? LINES[choice] : cartoon ? "Just as you left it." : "Your rank picture and initials.";
 
   return (
@@ -121,7 +122,13 @@ export function AvatarPicker({ open, onClose }: { open: boolean; onClose: () => 
         </div>
       </div>
 
-      <div role="radiogroup" aria-label="Avatar" className="mt-4 grid grid-cols-4 gap-1 sm:grid-cols-5">
+      <div role="radiogroup" aria-label="Male or female" className="mt-4 flex gap-1 rounded-xl bg-surface-3 p-1 text-[14px] font-semibold">
+        {([["m", "Male"], ["f", "Female"]] as const).map(([v, t]) => (
+          <button key={v} type="button" role="radio" aria-checked={sex === v} onClick={() => { setSex(v); if (choice && choice !== PHOTO) pick(`${personaParts(choice).id}~${v}` as Choice); }} className={`flex-1 rounded-lg py-2 ${sex === v ? "bg-[var(--surface-solid)] shadow-sm" : "text-fg-2"}`}>{t}</button>
+        ))}
+      </div>
+
+      <div role="radiogroup" aria-label="Avatar" className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-5">
         {photo && (
           <Tile on={choice === PHOTO} label="Google photo" onPick={() => pick(PHOTO)}>
             <PersonaAvatar persona={PHOTO} photo={photo} size={56} />
@@ -133,8 +140,8 @@ export function AvatarPicker({ open, onClose }: { open: boolean; onClose: () => 
           </Tile>
         )}
         {PERSONAS.map((p) => (
-          <Tile key={p.id} on={choice === p.id} label={p.name.replace("Interventional", "Inter\u00ADventional").replace("Resuscitationist", "Resusci\u00ADtationist")} onPick={() => pick(p.id)}>
-            <PersonaAvatar persona={p.id} size={56} />
+          <Tile key={p.id} on={!!choice && choice !== PHOTO && personaParts(choice).id === p.id} label={p.name.replace("Interventional", "Inter\u00ADventional").replace("Resuscitationist", "Resusci\u00ADtationist")} onPick={() => pick(`${p.id}~${sex}` as Choice)}>
+            <PersonaAvatar persona={`${p.id}~${sex}`} size={56} />
           </Tile>
         ))}
         {!cartoon && current?.persona && (

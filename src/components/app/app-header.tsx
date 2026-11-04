@@ -23,12 +23,13 @@ const NAV = [
   { href: "/home", label: "Home", icon: "home" },
   { href: "/cases", label: "Cases", icon: "pulse" },
   { href: "/practice", label: "Skills Lab", icon: "target" },
+  { href: "/tools", label: "MedKit", icon: "book" },
   { href: "/leaderboard", label: "Leaderboard", icon: "trophy" },
   { href: "/community", label: "Community", icon: "users" },
   { href: "/progress", label: "Progress", icon: "award" },
 ] as const;
-// (Five fit a phone: the leaderboard is a big tile on Home, and in the menu.)
-const PHONE_NAV = [NAV[0], NAV[1], NAV[2], { href: "/exams", label: "Exams", icon: "file" }, NAV[4]] as const;
+// (Five fit a phone: the leaderboard and community are big tiles on Home.)
+const PHONE_NAV = [NAV[0], NAV[1], NAV[2], NAV[3], { href: "/exams", label: "Exams", icon: "file" }] as const;
 
 export function AppHeader({ initial }: { initial: Me }) {
   const me = useMe(initial) ?? initial;

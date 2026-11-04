@@ -116,7 +116,7 @@ export function Welcome() {
                 <p className="text-[17px] leading-[26px] font-semibold">Real practice for the wards, in the minutes you actually have:</p>
                 <ul className="mt-3 flex flex-col gap-1.5 text-[15.5px] leading-[23px]">
                   <li><b>{inside.toLocaleString("en-IN")}</b> Skills Lab drills</li>
-                  <li><b>{SYNAPSE_BOARDS.length}</b> Synapses boards and <b>{PROBE_CASES.length}</b> Probe mysteries</li>
+                  <li><b>{SYNAPSE_BOARDS.length}</b> Clusters boards and <b>{PROBE_CASES.length}</b> Case Detective mysteries</li>
                   <li><b>{MNEMONICS.length}</b> visual mnemonics and <b>{FLOWCHARTS.length}</b> flowcharts</li>
                   <li>Unlimited variety of <b>AI patients</b>, marked by code</li>
                 </ul>

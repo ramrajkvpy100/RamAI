@@ -4,12 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { EcgTrace } from "@/components/media/ecg";
 import { MedicalIcon } from "@/components/ui/medical-icons";
-import { comboMultiplier, finishGame, localStats, RUSH_RIGHT_MS, RUSH_START_MS, RUSH_WRONG_MS } from "@/lib/games/score";
+import { comboMultiplier, finishGame, localStats, RUSH_LEVELS, savedLevel, saveLevel, type Level } from "@/lib/games/score";
 import { cn } from "@/lib/cn";
 import { success, tap } from "@/lib/haptics";
 import type { DrillItem, Modality } from "@/lib/practice";
 
-import { BackTo, GameOver, LipButton } from "./game-parts";
+import { BackTo, GameOver, LevelPicker, LipButton } from "./game-parts";
 
 const MODALITIES: Modality[] = ["clinical", "xray", "ct", "ecg", "smear", "usg"];
 
@@ -35,6 +35,15 @@ const shuffled = <T,>(xs: T[]) => {
   return a;
 };
 
+/** Fewer choices on easy: the answer and the closest look-alikes, still in their own order. */
+function narrowed(item: DrillItem, count: number): DrillItem {
+  if (item.options.length <= count) return item;
+  const keep = new Set([item.answer]);
+  for (let i = 0; keep.size < count && i < item.options.length; i++) keep.add(i);
+  const order = [...keep].sort((a, b) => a - b);
+  return { ...item, options: order.map((i) => item.options[i]!), answer: order.indexOf(item.answer) };
+}
+
 type Stage = "ready" | "loading" | "playing" | "over" | "failed";
 
 /** 60 seconds against the clock, on the Skills Lab's real images. Right: points and time. Wrong: time lost and the combo gone. */
@@ -54,15 +63,24 @@ export function ImageRush() {
   const [result, setResult] = useState<{ xp: number; best: number; isBest: boolean } | null>(null);
   const [seen, setSeen] = useState<DrillItem[]>([]);
   const [best, setBest] = useState(0);
+  const [level, setLevelState] = useState<Level>("medium");
+  const rules = RUSH_LEVELS[level];
   const finished = useRef(false);
 
-  useEffect(() => setBest(localStats().best.rush ?? 0), []);
+  useEffect(() => {
+    setBest(localStats().best.rush ?? 0);
+    setLevelState(savedLevel("rush"));
+  }, []);
+  const setLevel = (l: Level) => {
+    setLevelState(l);
+    saveLevel("rush", l);
+  };
 
   const begin = useCallback(async () => {
     tap();
     setStage("loading");
     const rounds = await Promise.all(MODALITIES.map(fetchRound));
-    const all = shuffled(rounds.flat());
+    const all = shuffled(rounds.flat()).map((x) => narrowed(x, RUSH_LEVELS[level].options));
     if (all.length < 4) return setStage("failed");
     finished.current = false;
     setDeck(all);
@@ -74,10 +92,10 @@ export function ImageRush() {
     setPicked(null);
     setSeen([]);
     setResult(null);
-    setEndsAt(Date.now() + RUSH_START_MS);
+    setEndsAt(Date.now() + RUSH_LEVELS[level].startMs);
     setNow(Date.now());
     setStage("playing");
-  }, []);
+  }, [level]);
 
   // The clock, and the end of the game when it runs out.
   useEffect(() => {
@@ -106,19 +124,19 @@ export function ImageRush() {
     setSeen((s) => [...s, item]);
     if (n === item.answer) {
       const nextStreak = streak + 1;
-      const points = 100 * comboMultiplier(nextStreak);
+      const points = rules.points * comboMultiplier(nextStreak);
       success();
       setStreak(nextStreak);
       setScore((x) => x + points);
       setRight((x) => x + 1);
-      setEndsAt((e) => e + RUSH_RIGHT_MS);
+      setEndsAt((e) => e + rules.rightMs);
       setGain(`+${points}`);
     } else {
       setStreak(0);
       setWrong((x) => x + 1);
-      setEndsAt((e) => e - RUSH_WRONG_MS);
+      setEndsAt((e) => e - rules.wrongMs);
       setShake(true);
-      setGain("−3s");
+      setGain(`−${rules.wrongMs / 1000}s`);
     }
     window.setTimeout(() => {
       setShake(false);
@@ -136,11 +154,8 @@ export function ImageRush() {
           <MedicalIcon name="image-rush" size={72} />
           <h1 className="text-[26px] font-bold">Image Rush</h1>
           <p className="text-[15px] leading-6 text-fg-2">Identify medical images against the clock: Radiology, Dermatology and Ophthalmology spotter practice.</p>
-          <ul className="w-full max-w-xs text-left text-[14px] leading-7">
-            <li>Right: <b>+100 points</b> and <b>+2 seconds</b></li>
-            <li>Streak of 3, 6, 10: <b>2×, 3×, 5×</b> points</li>
-            <li>Wrong: <b>−3 seconds</b> and the streak ends</li>
-          </ul>
+          <LevelPicker level={level} onChange={setLevel} line={rules.line} />
+          <p className="text-[14px] leading-6">Right: <b>+{rules.points} points</b>. A streak of 3, 6 or 10 pays <b>2×, 3× or 5×</b>. A wrong answer ends the streak.</p>
           {best > 0 && <p className="text-[13.5px] font-medium text-fg-2">Your best: {best.toLocaleString("en-IN")}</p>}
           {stage === "failed" && <p className="text-[14px] text-danger">The images couldn&apos;t load. Check your connection and try again.</p>}
           <LipButton onClick={() => void begin()} disabled={stage === "loading"} className="mt-1 w-full max-w-xs">{stage === "loading" ? "LOADING IMAGES…" : "START RUSH"}</LipButton>
@@ -164,7 +179,7 @@ export function ImageRush() {
       <div className="flex items-center gap-3">
         <p className={cn("w-[74px] text-[28px] leading-none font-extrabold tabular", left < 10_000 && "text-danger")}>{Math.ceil(left / 1000)}s</p>
         <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-3">
-          <div className={cn("h-full rounded-full transition-[width] duration-100 ease-linear", left < 10_000 ? "bg-danger" : "bg-accent")} style={{ width: `${Math.min(100, (left / RUSH_START_MS) * 100)}%` }} />
+          <div className={cn("h-full rounded-full transition-[width] duration-100 ease-linear", left < 10_000 ? "bg-danger" : "bg-accent")} style={{ width: `${Math.min(100, (left / rules.startMs) * 100)}%` }} />
         </div>
         <p className="text-right text-[20px] leading-none font-extrabold tabular">{score.toLocaleString("en-IN")}</p>
       </div>
