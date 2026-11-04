@@ -21,18 +21,20 @@ export const MnemonicSchema = z.object({
   recallQ: str(220),
   recallA: str(260),
 });
-const NodeSchema = z.object({ id: str(12), kind: z.enum(["question", "step", "end"]), text: str(240), dose: z.string().trim().max(160).optional(), yes: z.string().max(12).optional(), no: z.string().max(12).optional(), next: z.string().max(12).optional() });
-export const FlowSchema = z.object({ title: str(80), source: str(120), nodes: z.array(NodeSchema).min(3).max(18) }).refine((f) => {
+/** The model may send null for an unused field, or a number for an id. */
+const link = z.union([z.string(), z.number()]).nullish().transform((v) => (v === null || v === undefined || v === "" ? undefined : String(v)));
+const NodeSchema = z.object({ id: z.union([z.string(), z.number()]).transform(String), kind: z.enum(["question", "step", "end"]), text: str(500), dose: z.string().trim().max(400).nullish().transform((v) => v || undefined), yes: link, no: link, next: link });
+export const FlowSchema = z.object({ title: str(80), source: str(400), nodes: z.array(NodeSchema).min(3).max(24) }).refine((f) => {
   const ids = new Set(f.nodes.map((n) => n.id));
   return ids.size === f.nodes.length && f.nodes.every((n) => (n.kind === "question" ? ids.has(n.yes ?? "") && ids.has(n.no ?? "") : n.kind === "step" ? ids.has(n.next ?? "") : true)) && f.nodes.some((n) => n.kind === "end");
 }, "A flowchart's arrows must lead to its own boxes");
-const Card = z.object({ front: str(260), back: str(400) });
-export const SummarySchema = z.object({ title: str(120), notes: z.array(str(300)).min(3).max(14), pearls: z.array(str(260)).max(8), oneLiners: z.array(str(200)).max(10), flashcards: z.array(Card).min(2).max(12) });
+const Card = z.object({ front: str(400), back: str(800) });
+export const SummarySchema = z.object({ title: str(200), notes: z.array(str(600)).min(3).max(20), pearls: z.array(str(500)).max(12), oneLiners: z.array(str(300)).max(15), flashcards: z.array(Card).min(2).max(20) });
 export const NotesSchema = z.object({
-  title: str(120),
-  flashcards: z.array(Card).min(2).max(15),
-  mcqs: z.array(z.object({ stem: str(420), options: z.array(str(160)).length(4), answer: z.number().int().min(0).max(3), why: str(320) })).min(1).max(8),
-  map: z.array(z.object({ concept: str(70), links: z.array(z.object({ to: str(70), how: str(60) })).max(5) })).min(2).max(10),
+  title: str(200),
+  flashcards: z.array(Card).min(2).max(25),
+  mcqs: z.array(z.object({ stem: str(800), options: z.array(str(240)).length(4), answer: z.number().int().min(0).max(3), why: str(700) })).min(1).max(12),
+  map: z.array(z.object({ concept: str(120), links: z.array(z.object({ to: str(120), how: str(120) })).max(8) })).min(2).max(16),
 });
 
 export type ToolKind = "mnemonic" | "flowchart" | "summary" | "notes";
@@ -42,9 +44,9 @@ const RULES = "You write study material for doctors in India preparing for exams
 
 const PROMPTS: Record<ToolKind, string> = {
   mnemonic: `Make one memorable, clean, professional mnemonic for the topic. Use a well-known one if it exists. JSON: {"title","phrase","letters":[["S","Scaphoid"],...],"recallQ","recallA"}. Each entry in "letters" is a letter of the phrase, in order: the first letter of a word, or a capital in an acronym.`,
-  flowchart: `Make a clinical decision flowchart for the topic. JSON: {"title","source":"the guideline(s) it follows","nodes":[{"id","kind":"question"|"step"|"end","text","dose"(optional, drug, dose and route),"yes","no"(ids, for a question),"next"(id, for a step)}]}. The first node is the start. Every path reaches an "end". 6 to 14 nodes, with clear numeric cut-offs.`,
-  summary: `Write high-yield notes. JSON: {"title","notes":[...],"pearls":[...],"oneLiners":[...],"flashcards":[{"front","back"}]}. Use only what's in the material if a transcript is given. If only a topic is given, write standard teaching on it.`,
-  notes: `Turn the doctor's own notes into study material, using only their content; where the notes conflict with current guidance, say so in that card. JSON: {"title","flashcards":[{"front","back"}],"mcqs":[{"stem","options":[4 strings],"answer":0-3,"why"}],"map":[{"concept","links":[{"to","how"}]}]}. Exam-style MCQs with close look-alike options.`,
+  flowchart: `Make a clinical decision flowchart for the topic. JSON: {"title","source":"the guideline(s) it follows","nodes":[{"id","kind":"question"|"step"|"end","text","dose"(optional, drug, dose and route),"yes","no"(ids, for a question),"next"(id, for a step)}]}. The first node is the start. Every path reaches an "end". 6 to 14 nodes, under 30 words each, with clear numeric cut-offs.`,
+  summary: `Write high-yield notes. JSON: {"title","notes":[...],"pearls":[...],"oneLiners":[...],"flashcards":[{"front","back"}]}. At most 10 notes, 5 pearls, 6 one-liners and 8 flashcards, each short. Use only what's in the material if a transcript is given. If only a topic is given, write standard teaching on it.`,
+  notes: `Turn the doctor's own notes into study material, using only their content; where the notes conflict with current guidance, say so in that card. JSON: {"title","flashcards":[{"front","back"}],"mcqs":[{"stem","options":[4 strings],"answer":0-3,"why"}],"map":[{"concept","links":[{"to","how"}]}]}. 8 to 12 flashcards, 3 to 5 exam-style MCQs with close look-alike options, and 4 to 8 concepts in the map, all short.`,
 };
 
 const keyOf = (kind: ToolKind, input: string) => createHash("sha256").update(`${kind}\n${input.trim().toLowerCase().replace(/\s+/g, " ")}`).digest("hex");
@@ -57,14 +59,17 @@ export async function cachedTool(kind: ToolKind, input: string): Promise<unknown
 /** The model's answer, checked; asked once more if it comes back the wrong shape. Null if it can't be done. */
 export async function writeTool(kind: ToolKind, input: string): Promise<unknown | null> {
   const schema = SCHEMAS[kind];
+  let problem: string | undefined;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const raw = await chatJSON([{ role: "system", content: `${RULES}\n${PROMPTS[kind]}` }, { role: "user", content: `<input>\n${input}\n</input>` }], kind === "notes" || kind === "summary" ? 2600 : 1500, false, 45_000);
+    const raw = await chatJSON([{ role: "system", content: `${RULES}\n${PROMPTS[kind]}` }, { role: "user", content: `<input>\n${input}\n</input>` }], kind === "notes" || kind === "summary" ? 4000 : 2500, false, 45_000);
     const parsed = schema.safeParse(raw);
+    problem = parsed.error?.issues.slice(0, 3).map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     if (parsed.success) {
       await db.run("INSERT INTO tool_cache (key, kind, data, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO NOTHING", keyOf(kind, input), kind, JSON.stringify(parsed.data), Date.now());
       return parsed.data;
     }
   }
+  console.warn(`tools: ${kind} came back the wrong shape: ${problem ?? "unknown"}`);
   return null;
 }
 
