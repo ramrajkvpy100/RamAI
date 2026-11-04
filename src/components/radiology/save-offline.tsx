@@ -29,7 +29,7 @@ export async function warm(urls: string[], onEach?: () => void, stop?: () => boo
   );
 }
 
-/** "Save every scan for offline": all the scroll series and kept images, onto the phone (about 400 MB). */
+/** "Save every scan for offline": all the scroll series and kept images, onto the phone (about 450 MB). */
 export function SaveOffline() {
   const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
   const [done, setDone] = useState(0);
@@ -77,7 +77,7 @@ export function SaveOffline() {
     <button type="button" onClick={() => void save()} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-left text-[13px] hover:bg-surface-2">
       <span>
         <b>{state === "saved" ? "✓ Scans saved for offline" : "⬇ Save all scans for offline"}</b>
-        <span className="block text-[12px] text-fg-3">{state === "saved" ? "They open at once, even without internet. Tap to refresh." : "Opens every study instantly, even without internet · about 400 MB, best on Wi-Fi"}</span>
+        <span className="block text-[12px] text-fg-3">{state === "saved" ? "They open at once, even without internet. Tap to refresh." : "Opens every study instantly, even without internet · about 450 MB, best on Wi-Fi"}</span>
       </span>
     </button>
   );

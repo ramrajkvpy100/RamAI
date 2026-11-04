@@ -1,3 +1,4 @@
+import { RADIOLOGY_SERIES } from "@/lib/skill-counts";
 import { describe, expect, it } from "vitest";
 
 import STACKS from "@/lib/radiology-stacks.json";
@@ -63,9 +64,7 @@ describe("radiology scroll series", () => {
     }
     const perDiagnosis = new Map<string, number>();
     for (const s of STACKS) perDiagnosis.set(s.diagnosis, (perDiagnosis.get(s.diagnosis) ?? 0) + 1);
-    // Known gap, not a pass: pancreatic has only 2 until its third series (panc-cptac-b-8) finishes uploading to R2.
-    // Remove this exception when that series joins the manifest.
-    const BELOW_THREE = new Map([["Pancreatic adenocarcinoma", 2]]);
-    expect([...perDiagnosis].filter(([d, n]) => n < (BELOW_THREE.get(d) ?? 3))).toEqual([]);
+    expect([...perDiagnosis].filter(([, n]) => n < 3)).toEqual([]);
+    expect(STACKS).toHaveLength(RADIOLOGY_SERIES);
   });
 });

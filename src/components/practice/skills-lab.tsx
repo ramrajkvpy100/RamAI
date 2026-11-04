@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useCareerStage } from "@/lib/career-stage";
 import { useMe } from "@/lib/me-store";
-import { SKILL_COUNTS } from "@/lib/skill-counts";
+import { RADIOLOGY_SERIES, SKILL_COUNTS } from "@/lib/skill-counts";
 import { useSkillProgress } from "@/lib/skill-progress";
 
 import { MedicalIcon } from "@/components/ui/medical-icons";
@@ -93,7 +93,7 @@ export function SkillsLab() {
   // Mastered of total, per section (radiology: of the studies tried, as its bank grows).
   const bar = (id: Section): [number, number] => {
     if (id === "spot") return [progress("spot:").mastered, SKILL_COUNTS.spot];
-    if (id === "radiology") { const r = progress("radio:"); return [r.mastered, Math.max(r.tried, 40)]; }
+    if (id === "radiology") { const r = progress("radio:"); return [r.mastered, Math.max(r.tried, RADIOLOGY_SERIES)]; }
     if (id === "sounds") return [progress("sound:").mastered, SKILL_COUNTS.sounds];
     if (id === "antidotes") return [progress("quiz:antidote-").mastered, SKILL_COUNTS.antidotes];
     if (id === "algorithms") return [progress("quiz:algo-").mastered, SKILL_COUNTS.algorithms];

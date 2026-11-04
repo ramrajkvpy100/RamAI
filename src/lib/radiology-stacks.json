@@ -3337,5 +3337,410 @@
       "bone"
     ],
     "credit": "Data from The Cancer Imaging Archive, TCGA-LUSC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.TYGKKFMQ"
+  },
+  {
+    "id": "crlm-b-7",
+    "collection": "Colorectal-Liver-Metastases",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/QXK2-QG03",
+    "modality": "CT",
+    "diagnosis": "Liver metastases",
+    "history": "65-year-old man, referred for a contrast CT of the abdomen. No further clinical details on the request.",
+    "question": "CT abdomen, portal venous phase: findings?",
+    "key": "This collection is of patients having surgery for colorectal liver metastases, scanned beforehand. They are typically hypodense lesions in the portal venous phase, single or multiple, some with a faint enhancing rim.",
+    "options": [
+      "Liver metastases",
+      "Hepatocellular carcinoma",
+      "Hepatic abscesses",
+      "Hepatic lymphoma"
+    ],
+    "patient": "CRLM-CT-1049",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.9203.8273.265256104276095000640066677784",
+    "slices": 64,
+    "series": "Bind(2461/5/277..520)",
+    "zRatio": 3.21,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Colorectal-Liver-Metastases collection (CC BY 4.0), doi:10.7937/QXK2-QG03"
+  },
+  {
+    "id": "lung-lusc-b-2",
+    "collection": "TCGA-LUSC",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.TYGKKFMQ",
+    "modality": "CT",
+    "diagnosis": "Lung cancer",
+    "history": "75-year-old man, referred for a CT of the chest. No further clinical details on the request.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "This is a TCGA patient with tissue-proven squamous cell carcinoma of the lung. It is typically a central or hilar mass, sometimes cavitating, with or without distal collapse and nodes.",
+    "options": [
+      "Lung cancer",
+      "Organising pneumonia",
+      "Tuberculoma",
+      "Round atelectasis"
+    ],
+    "patient": "TCGA-34-5239",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.6450.4012.330436715987009934625711499239",
+    "slices": 51,
+    "series": "LOW DOSE C- CHEST",
+    "zRatio": 11.78,
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, TCGA-LUSC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.TYGKKFMQ"
+  },
+  {
+    "id": "vs-mcrc-b-2",
+    "collection": "Vestibular-Schwannoma-MC-RC",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/HRZH-2N82",
+    "modality": "MR",
+    "diagnosis": "Vestibular schwannoma",
+    "history": "Woman, referred for an MRI of the internal auditory meati. No further clinical details on the request.",
+    "question": "MRI internal auditory meati (high-resolution T2, axial): findings?",
+    "key": "This collection is of patients with a vestibular schwannoma. It typically sits in the internal auditory canal and may extend into the cerebellopontine angle (the 'ice-cream cone' shape), a dark filling defect against bright CSF on T2.",
+    "options": [
+      "Vestibular schwannoma",
+      "CPA meningioma",
+      "Epidermoid cyst",
+      "Facial nerve schwannoma"
+    ],
+    "patient": "VS-MC-RC-053",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.257197511354892894727573807843173180588",
+    "slices": 44,
+    "series": "_T2_t2_spc_rst_tra_p2_iso",
+    "zRatio": 2.9,
+    "credit": "Data from The Cancer Imaging Archive, Vestibular-Schwannoma-MC-RC collection (CC BY 4.0), doi:10.7937/HRZH-2N82"
+  },
+  {
+    "id": "panc-cptac-b-8",
+    "collection": "CPTAC-PDA",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/K9/TCIA.2018.SC20FO18",
+    "modality": "CT",
+    "diagnosis": "Pancreatic adenocarcinoma",
+    "history": "46-year-old man, referred for a contrast CT of the abdomen. No further clinical details on the request.",
+    "question": "CT abdomen with contrast (pancreas): findings?",
+    "key": "This is a CPTAC patient with tissue-proven pancreatic ductal adenocarcinoma. It is typically a poorly defined hypodense mass, often with a dilated pancreatic and/or common bile duct.",
+    "options": [
+      "Pancreatic adenocarcinoma",
+      "Chronic pancreatitis",
+      "Autoimmune pancreatitis",
+      "Neuroendocrine tumour"
+    ],
+    "patient": "C3L-05049",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1078.3707.251216800774422083944437570461",
+    "slices": 63,
+    "series": "ABD/PEL  ENHANCED 5/2.5mm",
+    "zRatio": 9.6,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, CPTAC-PDA collection (CC BY 4.0), doi:10.7937/K9/TCIA.2018.SC20FO18"
+  },
+  {
+    "id": "lung-lusc-b-4",
+    "collection": "TCGA-LUSC",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.TYGKKFMQ",
+    "modality": "CT",
+    "diagnosis": "Lung cancer",
+    "history": "79-year-old man, referred for a CT of the chest. No further clinical details on the request.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "This is a TCGA patient with tissue-proven squamous cell carcinoma of the lung. It is typically a central or hilar mass, sometimes cavitating, with or without distal collapse and nodes.",
+    "options": [
+      "Lung cancer",
+      "Organising pneumonia",
+      "Tuberculoma",
+      "Round atelectasis"
+    ],
+    "patient": "TCGA-34-5241",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.6450.4012.164244976311084581902293829807",
+    "slices": 37,
+    "series": "HELICAL",
+    "zRatio": 15.47,
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, TCGA-LUSC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.TYGKKFMQ"
+  },
+  {
+    "id": "rcc-kirc-6",
+    "collection": "TCGA-KIRC",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.V6PBVTDR",
+    "modality": "CT",
+    "diagnosis": "Renal cell carcinoma",
+    "history": "55-year-old woman, referred for a contrast CT of the abdomen. No further clinical details on the request.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "This is a TCGA patient with tissue-proven clear-cell renal cell carcinoma. It is typically a heterogeneous, avidly enhancing renal mass distorting the kidney's contour, often with necrosis.",
+    "options": [
+      "Renal cell carcinoma",
+      "Angiomyolipoma",
+      "Renal oncocytoma",
+      "Renal abscess"
+    ],
+    "patient": "TCGA-CJ-4641",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1706.4004.503024051830219651377671012522",
+    "slices": 59,
+    "series": "Recon 2: C/A/P (RENAL)",
+    "zRatio": 3.66,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, TCGA-KIRC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.V6PBVTDR"
+  },
+  {
+    "id": "ovary-tcga-3",
+    "collection": "TCGA-OV",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.NDO1MDFQ",
+    "modality": "CT",
+    "diagnosis": "Ovarian carcinoma",
+    "history": "65-year-old woman, referred for a contrast CT of the abdomen and pelvis. No further clinical details on the request.",
+    "question": "CT abdomen and pelvis with contrast: findings?",
+    "key": "This is a TCGA patient with tissue-proven serous ovarian cystadenocarcinoma. It typically shows a complex solid-cystic adnexal mass, with or without ascites and peritoneal or omental deposits.",
+    "options": [
+      "Ovarian carcinoma",
+      "Tubo-ovarian abscess",
+      "Endometrioma",
+      "Mucinous cystadenoma"
+    ],
+    "patient": "TCGA-61-1901",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.6450.4007.209179523144674569624927588638",
+    "slices": 62,
+    "series": "CAP  W CONTRAST",
+    "zRatio": 14.76,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, TCGA-OV collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.NDO1MDFQ"
+  },
+  {
+    "id": "rcc-kirc-7",
+    "collection": "TCGA-KIRC",
+    "license": "CC BY 3.0",
+    "doi": "10.7937/K9/TCIA.2016.V6PBVTDR",
+    "modality": "CT",
+    "diagnosis": "Renal cell carcinoma",
+    "history": "63-year-old man, referred for a contrast CT of the abdomen. No further clinical details on the request.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "This is a TCGA patient with tissue-proven clear-cell renal cell carcinoma. It is typically a heterogeneous, avidly enhancing renal mass distorting the kidney's contour, often with necrosis.",
+    "options": [
+      "Renal cell carcinoma",
+      "Angiomyolipoma",
+      "Renal oncocytoma",
+      "Renal abscess"
+    ],
+    "patient": "TCGA-CJ-4923",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1706.4004.328002458763002499389231053302",
+    "slices": 59,
+    "series": "C/A/P (RENAL)",
+    "zRatio": 3.84,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, TCGA-KIRC collection (CC BY 3.0), doi:10.7937/K9/TCIA.2016.V6PBVTDR"
+  },
+  {
+    "id": "gbm-upenn-b-1",
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "77-year-old man having an MRI brain. No further clinical details on the request.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "This collection is of patients with glioblastoma. It is typically an intra-axial mass with an irregular enhancing rim around a necrotic centre, with oedema and mass effect.",
+    "options": [
+      "Glioblastoma",
+      "Brain metastasis",
+      "Cerebral abscess",
+      "CNS lymphoma"
+    ],
+    "patient": "UPENN-GBM-00010",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.16236535679500688077268276125603367169",
+    "slices": 64,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "zRatio": 6.02,
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
+  },
+  {
+    "id": "gbm-upenn-b-2",
+    "collection": "UPENN-GBM",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.709X-DN49",
+    "modality": "MR",
+    "diagnosis": "Glioblastoma",
+    "history": "33-year-old man having an MRI brain. No further clinical details on the request.",
+    "question": "MRI brain with contrast (axial T1 post-gadolinium): findings?",
+    "key": "This collection is of patients with glioblastoma. It is typically an intra-axial mass with an irregular enhancing rim around a necrotic centre, with oedema and mass effect.",
+    "options": [
+      "Glioblastoma",
+      "Brain metastasis",
+      "Cerebral abscess",
+      "CNS lymphoma"
+    ],
+    "patient": "UPENN-GBM-00004",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.318499504971376018970528633946846293393",
+    "slices": 64,
+    "series": "t1 axial stealth-post : Processed_CaPTk",
+    "zRatio": 6.14,
+    "credit": "Data from The Cancer Imaging Archive, UPENN-GBM collection (CC BY 4.0), doi:10.7937/TCIA.709X-DN49"
+  },
+  {
+    "id": "hcc-tace-b-6",
+    "collection": "HCC-TACE-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.5FNA-0924",
+    "modality": "CT",
+    "diagnosis": "Hepatocellular carcinoma",
+    "history": "Patient, referred for a contrast CT of the liver. No further clinical details on the request.",
+    "question": "CT abdomen with contrast (liver): findings?",
+    "key": "This collection is of patients with hepatocellular carcinoma referred for embolisation. HCC is typically a liver mass with arterial enhancement and later washout, often in a cirrhotic liver.",
+    "options": [
+      "Hepatocellular carcinoma",
+      "Liver metastases",
+      "Hepatic haemangioma",
+      "Cholangiocarcinoma"
+    ],
+    "patient": "HCC_006",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.1706.8374.169644075146766664505907245033",
+    "slices": 55,
+    "series": "LIVER 3 PHASE (AP)",
+    "zRatio": 6.4,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, HCC-TACE-Seg collection (CC BY 4.0), doi:10.7937/TCIA.5FNA-0924"
+  },
+  {
+    "id": "adrenal-b-3",
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "55-year-old woman, referred for a contrast CT of the abdomen. No further clinical details on the request.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "This collection is of patients with adrenocortical carcinoma. It is typically a large, heterogeneous suprarenal mass, separate from the kidney, often with central necrosis, displacing nearby organs.",
+    "options": [
+      "Adrenal mass",
+      "Upper-pole renal tumour",
+      "Retroperitoneal sarcoma",
+      "Gastric GIST"
+    ],
+    "patient": "Adrenal_Ki67_Seg_006",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.131619305319442714547556255525285829796",
+    "slices": 45,
+    "series": "/CE/FC01",
+    "zRatio": 10.66,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "covid-sbu-b-4",
+    "collection": "COVID-19-NY-SBU",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.BBAG-2923",
+    "modality": "CT",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "86-year-old woman, referred for a CT of the chest. No further clinical details on the request.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "This collection's patients tested positive for COVID-19. The usual CT picture is bilateral, peripheral, often basal ground-glass opacity, with or without consolidation or a crazy-paving pattern.",
+    "options": [
+      "COVID-19 pneumonia",
+      "Pneumocystis pneumonia",
+      "Pulmonary oedema",
+      "Organising pneumonia"
+    ],
+    "patient": "A616705",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.99.1071.21791162066565636804255705138632",
+    "slices": 51,
+    "series": "CHEST AX",
+    "zRatio": 10.23,
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-NY-SBU collection (CC BY 4.0), doi:10.7937/TCIA.BBAG-2923"
+  },
+  {
+    "id": "adrenal-b-9",
+    "collection": "Adrenal-ACC-Ki67-Seg",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/1FPG-VM46",
+    "modality": "CT",
+    "diagnosis": "Adrenal mass",
+    "history": "77-year-old woman, referred for a contrast CT of the abdomen. No further clinical details on the request.",
+    "question": "CT abdomen with contrast: findings?",
+    "key": "This collection is of patients with adrenocortical carcinoma. It is typically a large, heterogeneous suprarenal mass, separate from the kidney, often with central necrosis, displacing nearby organs.",
+    "options": [
+      "Adrenal mass",
+      "Upper-pole renal tumour",
+      "Retroperitoneal sarcoma",
+      "Gastric GIST"
+    ],
+    "patient": "Adrenal_Ki67_Seg_048",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.210296832859071194588348319218255894141",
+    "slices": 43,
+    "series": "",
+    "zRatio": 12.86,
+    "windows": [
+      "soft",
+      "lung",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, Adrenal-ACC-Ki67-Seg collection (CC BY 4.0), doi:10.7937/1FPG-VM46"
+  },
+  {
+    "id": "covid-sbu-b-7",
+    "collection": "COVID-19-NY-SBU",
+    "license": "CC BY 4.0",
+    "doi": "10.7937/TCIA.BBAG-2923",
+    "modality": "CT",
+    "diagnosis": "COVID-19 pneumonia",
+    "history": "Man, referred for a CT of the chest. No further clinical details on the request.",
+    "question": "CT chest (lung windows): findings?",
+    "key": "This collection's patients tested positive for COVID-19. The usual CT picture is bilateral, peripheral, often basal ground-glass opacity, with or without consolidation or a crazy-paving pattern.",
+    "options": [
+      "COVID-19 pneumonia",
+      "Pneumocystis pneumonia",
+      "Pulmonary oedema",
+      "Organising pneumonia"
+    ],
+    "patient": "A964207",
+    "seriesUid": "1.3.6.1.4.1.14519.5.2.1.99.1071.27807111127001271824142448318323",
+    "slices": 45,
+    "series": "CHEST AX",
+    "zRatio": 11.72,
+    "windows": [
+      "lung",
+      "soft",
+      "bone"
+    ],
+    "credit": "Data from The Cancer Imaging Archive, COVID-19-NY-SBU collection (CC BY 4.0), doi:10.7937/TCIA.BBAG-2923"
   }
 ]
