@@ -294,6 +294,25 @@ CREATE TABLE IF NOT EXISTS case_bank_seen (
 );
 
 -- What players say about a case: an error reported, or thumbs up/down after the debrief. Reviewed weekly.
+-- Image Rush, Synapses and Probe: each finished game's score and XP. Never part of the clinical rating.
+CREATE TABLE IF NOT EXISTS game_scores (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  game TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  xp INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS game_scores_user ON game_scores(user_id, game);
+
+-- Learning tools: what the model wrote for a request, so the same request never costs twice.
+CREATE TABLE IF NOT EXISTS tool_cache (
+  key TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS case_feedback (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,

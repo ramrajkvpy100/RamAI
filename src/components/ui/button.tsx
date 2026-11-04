@@ -35,6 +35,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       className={cn(
         "inline-flex select-none items-center justify-center font-medium whitespace-nowrap transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.985]",
         VARIANTS[variant],
+        variant === "primary" && size === "lg" && "btn-lip",
         SIZES[size],
         className,
       )}

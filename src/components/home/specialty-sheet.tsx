@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Sheet } from "@/components/ui/sheet";
+import { MedicalIcon, SPECIALTY_ICON } from "@/components/ui/medical-icons";
 import { ALL_SPECIALTIES } from "@/engine/progression";
 import { setCareerStage, useCareerStage, type CareerStage } from "@/lib/career-stage";
 import { cn } from "@/lib/cn";
@@ -100,8 +101,9 @@ export function SpecialtySheet({ open, current, onClose }: { open: boolean; curr
                 type="button"
                 onClick={() => void choose(s)}
                 disabled={!!saving}
-                className={cn("min-h-11 rounded-xl border px-3 py-2 text-left text-[13.5px] font-medium transition-colors disabled:opacity-60", current === s ? "border-accent-line bg-accent-soft text-accent-text" : "border-line bg-surface hover:bg-surface-2")}
+                className={cn("pick-card flex min-h-[104px] flex-col items-start justify-between gap-2 rounded-2xl border-2 p-3 text-left text-[14px] font-bold disabled:opacity-60", current === s ? "border-[#2563EB]" : "border-transparent bg-[var(--surface-solid)] shadow-[0_1px_3px_rgb(0_0_0/0.1)]")}
               >
+                <MedicalIcon name={SPECIALTY_ICON[s] ?? "medicine"} />
                 {saving === s ? "Saving…" : specialtyLabel(s)}
               </button>
             ))}

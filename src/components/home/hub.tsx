@@ -1,5 +1,8 @@
 "use client";
 
+import { SectionDivider } from "@/components/games/game-parts";
+import { PlayHub, WelcomeBanner } from "@/components/games/play-hub";
+import { ToolRows } from "@/components/tools/tools-hub";
 import Link from "next/link";
 
 import { LoopVideo } from "@/components/ui/loop-video";
@@ -35,7 +38,7 @@ const PLACES = [
   { href: "/leaderboard", icon: "trophy", title: "Leaderboard", line: "Your weekly league and rank", tint: "from-emerald-500 to-teal-400", soft: "from-emerald-500/10 to-teal-400/5" },
   { href: "/community", icon: "users", title: "Community", line: "Ask, share and discuss cases", tint: "from-rose-500 to-pink-400", soft: "from-rose-500/10 to-pink-400/5" },
   { href: "/progress", icon: "award", title: "Progress", line: "Your strengths, gaps and report", tint: "from-sky-500 to-indigo-400", soft: "from-sky-500/10 to-indigo-400/5" },
-  { href: "/focus", icon: "clock", title: "Clinical Grove", line: "Grow a medicinal plant while you study", tint: "from-stone-500 to-amber-500", soft: "from-stone-500/10 to-amber-500/5" },
+  { href: "/focus", icon: "clock", title: "Focus", line: "Grow a medicinal plant, or sit in the café", tint: "from-stone-500 to-amber-500", soft: "from-stone-500/10 to-amber-500/5" },
 ] as const;
 
 /** The first-visit tour: one sentence per part of Home. */
@@ -156,6 +159,8 @@ export function Hub({ initial }: { initial: Me }) {
       <DeckDue />
       <AddWidgetButton />
 
+      <WelcomeBanner />
+
       {/* Everything, as tiles */}
       <section aria-labelledby="hub-places">
         <h2 id="hub-places" className="mb-3 px-1 text-[17px] font-semibold">
@@ -183,6 +188,10 @@ export function Hub({ initial }: { initial: Me }) {
           ))}
         </div>
       </section>
+
+      <PlayHub compact />
+      <SectionDivider>— Learning tools —</SectionDivider>
+      <ToolRows />
 
       <AppCard guest={me.user.isGuest} />
 

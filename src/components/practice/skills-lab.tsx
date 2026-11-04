@@ -9,6 +9,9 @@ import { useMe } from "@/lib/me-store";
 import { SKILL_COUNTS } from "@/lib/skill-counts";
 import { useSkillProgress } from "@/lib/skill-progress";
 
+import { PlayHub } from "@/components/games/play-hub";
+import { SectionDivider } from "@/components/games/game-parts";
+
 import { SkillBar } from "./progress-bar";
 import type { Section } from "./skill-section";
 
@@ -107,6 +110,8 @@ export function SkillsLab() {
           <p className="mt-1 text-[14.5px] text-fg-2">{level === "basic" ? "Must-know drills for your level — a few minutes each." : "Short drills — a few minutes each."}</p>
           <Link href="/revision" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3.5 py-1.5 text-[13px] font-semibold ring-1 ring-line hover:bg-surface-3">📚 Revision deck</Link>
         </header>
+        <PlayHub />
+        <SectionDivider>— Skills drills —</SectionDivider>
         {groups.map(([title, note, ids]) => (
           <section key={title} className="flex flex-col gap-2.5">
             <div className="flex items-baseline justify-between gap-3">

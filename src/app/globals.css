@@ -781,3 +781,17 @@ svg {
 }
 :root[data-theme="dark"] .widget-glass { box-shadow: inset 0 1px 0 color-mix(in srgb, white 12%, transparent), 0 10px 30px -22px rgb(0 0 0 / 0.8); }
 .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: var(--success); box-shadow: 0 0 8px color-mix(in srgb, var(--success) 70%, transparent); }
+
+/* Spring press on a selectable card, the 3D lip on primary calls to action, and the centred section dividers. */
+.pick-card { transition: transform 0.18s var(--spring-snappy, ease-out), border-color 0.15s, box-shadow 0.15s; }
+.pick-card:active { transform: scale(0.96); }
+.btn-lip { box-shadow: 0 4px 0 var(--lip, color-mix(in srgb, var(--accent, #2563eb) 72%, black)); transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, background-color 0.15s; }
+.btn-lip:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 var(--lip, color-mix(in srgb, var(--accent, #2563eb) 72%, black)); }
+.btn-lip:disabled { box-shadow: none; }
+.section-divider { display: flex; align-items: center; gap: 0.75rem; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-3); text-align: center; }
+.section-divider::before, .section-divider::after { content: ""; flex: 1; min-width: 12px; height: 1px; background: var(--line); }
+.game-shake { animation: game-shake 0.32s ease-in-out; }
+@keyframes game-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+@media (prefers-reduced-motion: reduce) { .game-shake { animation: none; } .pick-card:active, .btn-lip:active:not(:disabled) { transform: none; } }
+
+.welcome-bg { background: radial-gradient(120% 80% at 50% 0%, #1B3A6B 0%, #0F2547 55%, #08152B 100%); }

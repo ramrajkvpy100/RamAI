@@ -126,6 +126,12 @@ export function UserMenu({ me }: { me: Me }) {
                 <button role="menuitem" type="button" onClick={() => { setOpen(false); if (window.location.pathname === "/cases") window.dispatchEvent(new Event(TOUR_EVENT)); else router.push("/cases?tour=1"); }} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3 disabled:opacity-60">
                   <span aria-hidden className="text-[18px]">🧭</span>Quick tour
                 </button>
+                <Link role="menuitem" href="/welcome" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3">
+                  <span aria-hidden className="text-[18px]">🎯</span>Dream branch
+                </Link>
+                <Link role="menuitem" href="/tools" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3">
+                  <span aria-hidden className="text-[18px]">🧠</span>Learning tools
+                </Link>
                 <Link role="menuitem" href="/achievements" onClick={() => setOpen(false)} className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface-3/60 px-2 py-2.5 text-center text-[12px] font-medium leading-tight hover:bg-surface-3 disabled:opacity-60">
                   <span aria-hidden className="text-[18px]">🏅</span>Badges · {me.progress.badges.length}
                 </Link>

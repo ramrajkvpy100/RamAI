@@ -6,6 +6,7 @@ import { useState, type CSSProperties } from "react";
 import { LEVEL_STYLE, levelGradient, TRACK_ICON } from "@/components/game/level-style";
 import { FillingBar } from "@/components/ui/filling-bar";
 import { Icon } from "@/components/ui/icon";
+import { MedicalIcon, SPECIALTY_ICON, SPECIALTY_LABEL, SpecialtyGrid } from "@/components/ui/medical-icons";
 import { NearbyPicker } from "@/components/duel/nearby-picker";
 import { Sheet } from "@/components/ui/sheet";
 import { levelMeta, trackLabel } from "@/engine/levels";
@@ -91,6 +92,7 @@ export function CasePicker({
   // Starts at the doctor's own specialty; "Any specialty" means every one this time.
   const own = useMe()?.user.specialty;
   const [specialty, setSpecialty] = useState<Specialty | undefined>(own && own !== "mixed" ? own : undefined);
+  const [pickSpecialty, setPickSpecialty] = useState(false);
   const specialties = ALL_SPECIALTIES.filter((s) => (library.specialties[s] ?? 0) > 0);
 
   return (
@@ -102,7 +104,7 @@ export function CasePicker({
       footer={
         <div className="flex flex-col gap-2">
           {activeCase !== undefined && <p className="text-center text-[12px] text-fg-3">Starting a new case ends {caseLabel(activeCase)}.</p>}
-          <button type="button" onClick={() => void start({ track, level, difficulty, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}), ...(learning ? { learning: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })} disabled={starting} className="shine relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full text-[15px] font-semibold text-white shadow-glow disabled:opacity-80">
+          <button type="button" onClick={() => void start({ track, level, difficulty, specialty: specialty ?? "any", ...(unlimited ? { unlimited: true } : {}), ...(learning ? { learning: true } : {}), ...(disease.trim().length >= 2 ? { disease: disease.trim() } : {}) })} disabled={starting} className="shine btn-lip relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl text-[15px] font-bold text-white disabled:opacity-80">
             {starting ? startingLabel : "Start case"}
             {!starting && <Icon name="arrow-right" size={16} />}
             {/* How far along the new patient is: a bar filling along the bottom of the button. */}
@@ -174,22 +176,17 @@ export function CasePicker({
         </Group>
 
         <Group label="Specialty">
-          <div className="relative">
-            <select
-              value={specialty ?? ""}
-              onChange={(e) => setSpecialty((e.target.value || undefined) as Specialty | undefined)}
-              className="h-11 w-full appearance-none rounded-xl border border-line bg-surface pr-10 pl-3.5 text-[14.5px] outline-none focus:border-accent-line focus:shadow-[0_0_0_3px_var(--accent-soft)]"
-              aria-label="Specialty"
-            >
-              <option value="">Any specialty</option>
-              {specialties.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <Icon name="chevron-down" size={15} className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-fg-3" />
-          </div>
+          <button type="button" aria-expanded={pickSpecialty} onClick={() => setPickSpecialty((x) => !x)} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-line bg-surface p-2.5 text-left">
+            {specialty ? <MedicalIcon name={SPECIALTY_ICON[specialty] ?? "medicine"} size={40} /> : <MedicalIcon name="clinical-games" size={40} />}
+            <span className="min-w-0 flex-1 text-[15px] font-semibold">{specialty ? SPECIALTY_LABEL[specialty] ?? specialty : "Any specialty"}</span>
+            <Icon name="chevron-down" size={15} className={cn("text-fg-3 transition-transform", pickSpecialty && "rotate-180")} />
+          </button>
+          {pickSpecialty && (
+            <div className="flex flex-col gap-2">
+              <button type="button" onClick={() => { setSpecialty(undefined); setPickSpecialty(false); }} className={cn("rounded-xl border py-2 text-[14px] font-semibold", !specialty ? "border-[#2563EB] text-accent-text" : "border-line")}>Any specialty</button>
+              <SpecialtyGrid items={specialties} selected={specialty ?? null} onPick={(x) => { setSpecialty(x as Specialty); setPickSpecialty(false); }} />
+            </div>
+          )}
         </Group>
 
         <Group label="Level">
