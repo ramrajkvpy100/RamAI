@@ -13,6 +13,7 @@ import { toast } from "@/lib/toast";
 
 import { LoopVideo } from "@/components/ui/loop-video";
 import { CafeScene, STREET_VIEWS, StreetScene, type StreetView } from "./cafe-scene";
+import { CafeOrder, FocusModeToggle, type FocusMode } from "./cafe-order";
 import { Cup } from "./cup";
 import { GroveSession } from "./grove-session";
 import { GroveSetup } from "./grove-setup";
@@ -34,15 +35,26 @@ const calmTime = (ms: number, up: boolean) => {
 /** What each scene is called. */
 const SCENE_NAME: Record<Scene, string> = { focus: "🌿 Quiet", social: "☕ Café", window: "🏙️ Street" };
 
-/** Focus: the Clinical Grove. Before a session, the time and the plant; during one, the plant growing. */
+/** Focus: the Clinical Grove (the time and the plant, then the plant growing) or the café (a drink, then the table). */
 export function FocusTimer() {
   const { active, done, now } = useFocus();
   const records = useGrove();
   const [lost, setLost] = useState<GroveRecord | null>(null);
+  const [mode, setMode] = useState<FocusMode>("grove");
+  useEffect(() => {
+    const m = getPrefs().mode;
+    if (m) setMode(m);
+  }, []);
   if (!now) return null;
   if (active?.plant) return <GroveSession active={active} plant={active.plant} done={done} now={now} onLost={setLost} />;
   if (active) return <FreeTimer />;
-  return <GroveSetup records={records} lost={lost} onDismissLost={() => setLost(null)} />;
+  if (mode === "cafe") return <CafeOrder onMode={setMode} />;
+  return (
+    <>
+      <div className="mb-4"><FocusModeToggle mode={mode} onChange={setMode} /></div>
+      <GroveSetup records={records} lost={lost} onDismissLost={() => setLost(null)} />
+    </>
+  );
 }
 
 /** The clock with no plant: flowmodoro, the stopwatch, and any café session already running. */

@@ -121,6 +121,15 @@ export const THERAPEUTIC_GROUPS: Group[] = [
     notIn: /pyelo|pregnan|sepsis|complicated uti|prostat|catheter/i,
     oralInEmergency: true,
   },
+  {
+    id: "dermatophyte", label: "Antifungals for ringworm",
+    equivalent: [{ id: "clotrimazole" }, { id: "luliconazole" }, { id: "sertaconazole" }, { id: "eberconazole" }, { id: "ketoconazole-topical" }],
+    second: [{ id: "terbinafine" }, { id: "itraconazole" }, { id: "fluconazole" }, { id: "griseofulvin" }],
+    why: "a limited patch of ringworm clears with a topical azole; tablets are kept for extensive or resistant disease",
+    onlyIn: /tinea|dermatophyt|ringworm/i,
+    // Scalp and nails need tablets; pityriasis versicolor is another organism.
+    notIn: /capitis|unguium|onychomyc|versicolor/i,
+  },
   { id: "statin", label: "High-intensity statins", equivalent: [{ id: "atorvastatin", mg: 40 }, { id: "rosuvastatin", mg: 20 }] },
   { id: "saba", label: "Short-acting bronchodilators", equivalent: [{ id: "salbutamol" }, { id: "levosalbutamol" }, { id: "levosalbutamol-ipratropium" }] },
   {

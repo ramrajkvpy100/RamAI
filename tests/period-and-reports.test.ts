@@ -3,7 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ALL_CASES } from "@/engine/cases";
 import { orderReplies, PERIOD_PROMPT } from "@/engine/orders";
 import { substituteFor } from "@/engine/therapeutic-classes";
-import { formularyDrug } from "@/engine/formulary";
+import { timesADay } from "@/engine/drug-safety";
+import { formularyDrug, parseOrderDetails } from "@/engine/formulary";
 import { createHiddenState } from "@/engine/simulator";
 import { instantAnswer } from "@/engine/spoken-history";
 
@@ -54,6 +55,32 @@ describe("the last 5 hours' reports", () => {
   it("cefuroxime for cystitis counts, second-line, in a case that only named nitrofurantoin", () => {
     const def = { ...C("gp-uti"), therapeutics: C("gp-uti").therapeutics.filter((r) => r.id !== "cephalosporin") };
     expect(substituteFor(def, formularyDrug("cefuroxime")!, "PO")?.substitute.tier).toBe("second-line");
+  });
+
+  it("an oral antifungal counts for ringworm in a case that only named a cream, but not for scalp ringworm", () => {
+    const base = C("derm-tinea");
+    const def = { ...base, therapeutics: base.therapeutics.filter((r) => !["itraconazole", "terbinafine", "fluconazole"].includes(r.id)) };
+    expect(substituteFor(def, formularyDrug("fluconazole")!, "PO")?.substitute.tier).toBe("second-line");
+    const scalp = { ...def, truth: { ...def.truth, diagnosis: "Tinea capitis" } };
+    expect(substituteFor(scalp, formularyDrug("fluconazole")!, "PO")).toBeUndefined();
+  });
+
+  it("'bi weekly' is written as twice weekly, never once weekly, and isn't counted as a daily dose", () => {
+    expect(parseOrderDetails("fluconazole 150 mg bi weekly for 1 month").frequency).toBe("twice weekly");
+    expect(parseOrderDetails("fluconazole 150 mg twice a week").frequency).toBe("twice weekly");
+    expect(parseOrderDetails("fluconazole 150 mg weekly").frequency).toBe("once weekly");
+    expect(timesADay("twice weekly")).toBe(0);
+  });
+
+  it("a topical steroid isn't charted in the injection's milligrams", async () => {
+    const def = C("derm-psoriasis");
+    const { state } = await converse(def, ["apply hydrocortisone 100 mg topical cream twice daily for 7 days"]);
+    expect(said(state.messages)).not.toMatch(/Prescribed — Hydrocortisone[^\n]*100 mg/i);
+  });
+
+  it("an improper question is refused, not answered", () => {
+    const def = C("derm-tinea");
+    expect(instantAnswer("Your dick size", def, createHiddenState(def))).toMatch(/nothing to do with/);
   });
 
   it("'100 tabs of it' means the last medicine, and is queried", async () => {

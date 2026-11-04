@@ -584,7 +584,7 @@ function patientRole(def: ClinicalCaseDefinition): MessageRole {
 }
 
 const ROUTE_WORD: Partial<Record<DrugRoute, string>> = { PO: "oral", IV: "IV", IM: "IM", SC: "SC", SL: "sublingual", PR: "rectal", TOP: "topical", INH: "inhaled", NEB: "nebulised", IN: "intranasal" };
-const FREQ_WORD: Record<string, string> = { OD: "once daily", BD: "twice daily", TDS: "three times daily", QID: "four times daily", HS: "at night", SOS: "as needed", stat: "stat", "once weekly": "once weekly" };
+const FREQ_WORD: Record<string, string> = { OD: "once daily", BD: "twice daily", TDS: "three times daily", QID: "four times daily", HS: "at night", SOS: "as needed", stat: "stat", "once weekly": "once weekly", "twice weekly": "twice weekly", "three times weekly": "three times weekly" };
 
 /** Compact order text for the timeline: "Doxycycline 100 mg PO". */
 function drugLabel(d: { generic: string; dose?: string; route: DrugRoute; frequency?: string; duration?: string }): string {
@@ -2653,6 +2653,8 @@ function handleDrug(ctx: TurnContext, intent: ResolvedIntent): TurnEffect[] {
   let dose = byInhaler && drug.id === "salbutamol" && (!stated || stated === drug.dose) ? "100 mcg × 4 puffs via spacer" : stated ?? drug.dose;
   // A cream's label is for the part being treated: "whole face" only for a face.
   if (route === "TOP" && dose && /whole face/i.test(dose) && !/\b(?:face|facial|cheeks?|forehead|nose|chin)\b/i.test(skinText(def))) dose = "thin layer to the affected skin";
+  // (Nor are milligrams how much cream to use: "hydrocortisone 1% cream" isn't the injection's 100 mg.)
+  if (route === "TOP" && drug.route !== "TOP" && dose && /\d\s*(?:mg|mcg|g)\b/i.test(dose)) dose = "thin layer to the affected skin";
   const frequency = (p.frequency as string | undefined) ?? (mode === "prescribed" ? drug.frequency : "stat");
   const duration = p.duration === "long term" ? (continuedCourse(def, drug, ctx.record.raw) ?? "long term") : (p.duration as string | undefined);
   // "At 100 mL/h for 8 hours": the volume is the rate times the time.

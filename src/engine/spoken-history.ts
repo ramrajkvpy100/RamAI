@@ -54,6 +54,7 @@ function caseWords(def: ClinicalCaseDefinition): string {
 export function instantAnswer(text: string, def: ClinicalCaseDefinition, hidden: HiddenState): string | null {
   const t = text.trim().toLowerCase();
   if (t.length > 120 || def.guided) return null;
+  if (/\b(dick|cock|penis|boobs?|breasts?)\b.{0,12}\bsize\b|\bsize of (?:your|ur) (dick|cock|penis|boobs?|breasts?)\b/.test(t)) return "Why would you ask me that, doctor? It has nothing to do with why I came.";
   if (CHECK_IN.test(t)) {
     if (hidden.status === "improving" || hidden.status === "recovered") return pick(["Better than when I came in, doctor.", "A good bit better, doctor, thank you.", "It's easing now, doctor."], `${t}${hidden.clock}`);
     if (hidden.status === "deteriorating" || hidden.status === "critical") return pick(["It's getting worse, doctor.", "Not good, doctor, I feel worse.", "Please, doctor, it's getting harder."], `${t}${hidden.clock}`);

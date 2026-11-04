@@ -22,7 +22,7 @@ export const EXPECTED_COURSE = "course-";
 
 /** Doses a day, when it can be counted. */
 export function timesADay(frequency: string | undefined): number {
-  if (!frequency) return 0;
+  if (!frequency || /week/i.test(frequency)) return 0;
   const n = frequency.match(/(\d+)\s*times/i)?.[1];
   if (n) return parseInt(n, 10);
   return { OD: 1, HS: 1, BD: 2, TDS: 3, QID: 4 }[frequency.trim().toUpperCase()] ?? 0;

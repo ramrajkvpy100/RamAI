@@ -422,6 +422,9 @@ const ROUTE_PATTERNS: [RegExp, DrugRoute][] = [
 ];
 
 const FREQUENCY_PATTERNS: [RegExp, string][] = [
+  // Before "weekly" on its own: "bi weekly" is not once weekly.
+  [/\b(bi[ -]?weekly|twice (?:a |per |in a )?week(?:ly)?|(?:two|2) times (?:a |per |in a )?week)\b/, "twice weekly"],
+  [/\b(thrice (?:a |per |in a )?week(?:ly)?|(?:three|3) times (?:a |per |in a )?week)\b/, "three times weekly"],
   [/\b(once (?:a |per )?week(?:ly)?|weekly|every week|1 day a week|once in a week)\b/, "once weekly"],
   // Before "daily" on its own: "twice daily" is not once daily.
   [/\b(bd|bid|twice (?:daily|a day|per day|in a day)|(?:two|2) times (?:daily|a day|per day|in a day)|1[ -]0[ -]1|12 ?hourly|q ?12 ?h|every 12 ?h(?:ours?|rs?)?)\b/, "BD"],

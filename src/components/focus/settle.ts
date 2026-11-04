@@ -37,6 +37,6 @@ export function settlePhase(active: Active, onTimerPage: boolean) {
     void lockScreen("Focus complete ☕", active.size === "flow" ? "1-minute break — then the next 5." : `${SIZES[active.size].focus} minutes on “${active.name || "your focus"}”. Time for a break.`, true);
   } else {
     toast(active.size === "flow" ? "Break over — back to studying. Every 5 minutes earns another minute." : "Break over — ready for another?");
-    void lockScreen(active.size === "flow" ? "Back to it" : "Break over", active.size === "flow" ? "5 minutes of focus." : "Plant another when you're ready.");
+    void lockScreen(active.size === "flow" ? "Back to it" : "Break over", active.size === "flow" ? "5 minutes of focus." : active.plant ? "Plant another when you're ready." : "Order another when you're ready.");
   }
 }

@@ -101,7 +101,7 @@ function syncAlarm() {
 
 export const getActive = () => read<Active | null>(ACTIVE, null);
 export const getDone = () => read<Done[]>(DONE, []);
-export const getPrefs = () => read<{ drink?: Drink; size?: Size; scene?: Scene; volume?: number; street?: "cafe" | "tokyo"; plant?: PlantId; minutes?: number; ambience?: Ambience; breathe?: boolean }>(PREFS, {});
+export const getPrefs = () => read<{ drink?: Drink; size?: Size; scene?: Scene; volume?: number; street?: "cafe" | "tokyo"; plant?: PlantId; minutes?: number; ambience?: Ambience; breathe?: boolean; mode?: "grove" | "cafe" }>(PREFS, {});
 export const setPrefs = (p: Partial<ReturnType<typeof getPrefs>>) => write(PREFS, { ...getPrefs(), ...p });
 
 const phaseMs = (a: Pick<Active, "size" | "phase" | "minutes">) => {
